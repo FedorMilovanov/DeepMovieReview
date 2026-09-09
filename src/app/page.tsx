@@ -17,7 +17,7 @@ export default function HomePage() {
             </p>
             <div className="heroActions">
               <Link className="buttonPrimary" href={`/films/${data.featuredFilm.slug}`}>Open fixture</Link>
-              <a className="buttonGhost" href="#lenses">See the lenses</a>
+              <Link className="buttonGhost" href="#lenses">See the lenses</Link>
             </div>
           </div>
           <div className="livingFrame" aria-label="Living Film Frame placeholder">
@@ -192,8 +192,8 @@ export default function HomePage() {
         </div>
         <div className="discoveryLinks">
           <Link href="/films">Browse film shell</Link>
-          <a href="/#lenses">Explore lenses</a>
-          <a href="/#method">Read the method preview</a>
+          <Link href="/#lenses">Explore lenses</Link>
+          <Link href="/#method">Read the method preview</Link>
         </div>
       </section>
     </>
