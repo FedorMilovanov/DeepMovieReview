@@ -1,23 +1,29 @@
 # DeepMovieReview — Information Architecture
 
-> Status: v0.1 foundation  
+> Status: v0.2 foundation  
 > Purpose: define the long-term domain graph without forcing all features into MVP.
 
 ## 1. Architectural principle
 
-DeepMovieReview should be modeled as a **graph of evidence and interpretation**, not as a blog with rating columns attached.
+DeepMovieReview should be modeled as a **graph of film evidence and interpretation**, not as a blog with rating columns attached.
 
-The fundamental relationships are:
+The moral-event graph remains important, but it is only one branch of a larger analytical system.
 
-`FILM → EDITION → SCENE → MORAL EVENT → CLAIM → EVIDENCE → PRINCIPLE → VERDICT`
+Canonical high-level relationships:
 
-Additional graphs:
-
-`FILM → CHARACTER → ARC → DECISION → CONSEQUENCE`
-
-`DECISION → KNOWN FACTS / UNKNOWN FACTS / OPTIONS / PRESSURES / DUTIES`
-
-`USER → FILM RATING / SCENE RESPONSE / QUESTION RESPONSE / REVIEW / NOTE`
+```text
+FILM → EDITION → SCENE
+FILM → STORY STRUCTURE → PLOT BEAT
+FILM → CHARACTER → CHARACTER ARC
+FILM → RELATIONSHIP → RELATIONSHIP EVENT
+FILM → THEME → NARRATIVE QUESTION → NARRATIVE CLAIM → EVIDENCE
+FILM → WORLDVIEW / SOCIAL MODEL → CLAIM → EVIDENCE
+FILM → TEACHING SIGNAL / NARRATIVE PERMISSION → EVIDENCE
+SCENE → MORAL EVENT → CLAIM → PRINCIPLE → VERDICT
+DECISION → KNOWN FACTS / UNKNOWN FACTS / OPTIONS / PRESSURES / DUTIES
+SCENE / FILM → CRAFT OBSERVATION → EMPATHY / IMITATION EFFECT
+USER → FILM RATING / QUESTION RESPONSE / REVIEW / NOTE
+```
 
 ## 2. Core entities
 
@@ -36,7 +42,7 @@ Suggested fields:
 - countries;
 - languages;
 - genres;
-- synopsis;
+- premise / spoiler-safe synopsis relation;
 - release metadata;
 - poster/hero asset relations;
 - spoiler policy;
@@ -56,25 +62,15 @@ Fields:
 - source / verification;
 - canonical-for-review flag.
 
-Moral events and timestamps should ultimately attach to an edition, not only the abstract film.
+Scenes, timestamps and edition-specific evidence should attach to an edition, not only the abstract film.
 
 ### Person
 
 Actors, directors, writers, cinematographers, composers and editorial contributors should be separate entities where relevant.
 
-### Character
-
-- film / franchise relation;
-- performer relation;
-- role type;
-- short description;
-- arc summary;
-- moral arc classification;
-- spoiler state.
-
 ### Scene
 
-A scene is an evidence container.
+A scene is a primary evidence container.
 
 Fields:
 
@@ -90,9 +86,344 @@ Fields:
 - transcript/excerpt references only where legally appropriate;
 - verification state.
 
-### Moral Event
+## 3. Story / plot entities
 
-A structured morally significant action, omission, decision or consequence occurring in a scene.
+### Story Summary
+
+Versioned summaries at different spoiler depths:
+
+- premise;
+- extended synopsis;
+- full synopsis.
+
+### Story Structure
+
+Candidate fields:
+
+- central dramatic question;
+- protagonist goal;
+- central conflict;
+- stakes;
+- resolution type;
+- ending state;
+- coherence notes;
+- methodology/analysis version.
+
+### Plot Beat
+
+Optional structured event for meaningful turning points.
+
+Fields:
+
+- film/edition relation;
+- sequence/scene relation;
+- beat type;
+- description;
+- spoiler level;
+- causal predecessor/successor relations;
+- affected characters/relationships;
+- confidence.
+
+Do not force every film into one fixed screenplay paradigm.
+
+## 4. Character entities
+
+### Character
+
+Suggested fields/relations:
+
+- film / franchise relation;
+- performer relation;
+- dramatic role;
+- short description;
+- initial state;
+- desire;
+- fear;
+- loyalties;
+- contradiction;
+- strengths/weaknesses;
+- self-image;
+- narrative point-of-view weight;
+- role-model / cautionary / ambiguous function;
+- ending state;
+- spoiler state.
+
+### Character Arc
+
+A versioned interpretive object.
+
+Possible arc-event tags:
+
+- challenge;
+- temptation;
+- compromise;
+- fall;
+- revelation;
+- resistance;
+- sacrifice;
+- repentance;
+- repair;
+- hardening;
+- transformation;
+- restoration.
+
+### Psychological Observation
+
+Descriptive mechanism, not diagnosis by default.
+
+Examples:
+
+- fear;
+- shame/guilt;
+- pride;
+- attachment;
+- self-preservation;
+- conformity;
+- anger;
+- revenge;
+- rationalization;
+- self-deception;
+- social pressure;
+- motivational coherence.
+
+## 5. Relationship entities
+
+### Relationship
+
+Relationships are first-class domain objects.
+
+Candidate types:
+
+- marriage;
+- romance / dating;
+- parent-child;
+- sibling;
+- friendship;
+- mentor-student;
+- peer group;
+- leader-follower;
+- authority-subordinate;
+- caregiver-dependent;
+- rival;
+- exploiter-victim;
+- community/group belonging.
+
+Fields/relations:
+
+- participants;
+- relationship type(s);
+- initial state;
+- trust/honesty state;
+- power asymmetry;
+- responsibility structure;
+- commitment/fidelity where applicable;
+- conflict pattern;
+- repair/reconciliation pattern;
+- ending state;
+- narrative framing;
+- spoiler level;
+- confidence.
+
+### Relationship Event
+
+Scene-level change to a relationship.
+
+Possible fields:
+
+- relationship_id;
+- scene_id;
+- event type;
+- before/after state;
+- trust change;
+- power change;
+- responsibility fulfilled/neglected;
+- conflict/repair;
+- consequence;
+- film framing;
+- evidence;
+- confidence.
+
+This powers `Relationship Trace` / `Relationship Observatory` UI.
+
+## 6. Family, youth and social-model entities
+
+### Social Model Observation
+
+A structured observation about how the film portrays a recurring social role/system.
+
+Candidate subject types:
+
+- parenthood;
+- family system;
+- adolescence/youth;
+- friendship;
+- romance;
+- marriage;
+- authority;
+- education;
+- work/vocation;
+- community;
+- religious/spiritual institution;
+- justice/law.
+
+Candidate fields:
+
+- subject type;
+- film/scene/character/relationship relations;
+- descriptive claim;
+- narrative framing;
+- consequence pattern;
+- confidence;
+- evidence;
+- normative assessment relation where applicable.
+
+### Youth / Formation Observation
+
+Potential tags:
+
+- peer pressure;
+- authority relation;
+- rebellion;
+- healthy autonomy;
+- responsibility;
+- work/school attitude;
+- risk behavior;
+- sexuality/romance;
+- substances;
+- digital behavior;
+- self-control;
+- teachability;
+- maturation;
+- adult role-model presence.
+
+This is analysis, not an age rating.
+
+## 7. Theme / meaning entities
+
+### Theme
+
+A recurring subject/tension.
+
+Examples:
+
+- guilt;
+- revenge;
+- fatherhood;
+- truth;
+- identity;
+- belonging;
+- justice;
+- sacrifice;
+- forgiveness;
+- mortality;
+- hope.
+
+### Narrative Question
+
+A question the film substantially explores.
+
+### Narrative Claim
+
+An evidence-backed interpretation of what the film appears to say.
+
+Fields:
+
+- claim text;
+- claim family/type;
+- scope;
+- confidence;
+- spoiler level;
+- supporting evidence;
+- counterevidence;
+- ending weight;
+- character/relationship/theme relations;
+- craft evidence;
+- review version.
+
+A film can contain competing claims.
+
+### Worldview Topic / Worldview Claim
+
+Possible families:
+
+- anthropology / human nature;
+- moral order;
+- freedom/responsibility;
+- meaning/purpose;
+- happiness/flourishing;
+- love/relationships;
+- family/generations;
+- authority/power;
+- justice;
+- spiritual/transcendent claims.
+
+Avoid one opaque `worldview_score`.
+
+## 8. Teaching / formation entities
+
+### Teaching Signal
+
+Represents how the film can shape a viewer's understanding beyond explicit dialogue.
+
+Candidate channels:
+
+- explicit lesson;
+- role model;
+- cautionary example;
+- reward;
+- punishment/cost;
+- normalization;
+- romanticization;
+- humor/comic permission;
+- ridicule;
+- repetition;
+- ending resolution;
+- unchallenged assumption;
+- countermodel.
+
+Fields:
+
+- subject;
+- signal type;
+- strength;
+- audience relevance where justified;
+- supporting evidence;
+- counterevidence;
+- confidence.
+
+Critical rule: `unchallenged` does not automatically equal `endorsed`.
+
+### Narrative Permission
+
+A broader classification of how the film's world treats a behavior/value/pattern.
+
+Candidate states:
+
+1. `CONDEMNED`
+2. `COSTLY`
+3. `QUESTIONED`
+4. `UNCHALLENGED`
+5. `NORMALIZED`
+6. `REWARDED`
+7. `CELEBRATED`
+8. `AMBIGUOUS`
+
+Optional modifiers:
+
+- romanticized;
+- aestheticized;
+- comic;
+- tragic;
+- satirical;
+- excused;
+- grieved;
+- culturally assumed.
+
+This is distinct from a specific event-level film stance.
+
+## 9. Moral Event
+
+A structured morally significant action, omission, decision, virtue or consequence occurring in a scene.
 
 An event should not be only `sin_type`.
 
@@ -110,6 +441,7 @@ Candidate structure:
 - culpability assessment;
 - severity assessment;
 - repentance / restitution state;
+- narrative stance;
 - confidence;
 - evidence links;
 - editorial notes;
@@ -117,7 +449,7 @@ Candidate structure:
 
 ### Moral Category
 
-Taxonomy node. Categories can be hierarchical and versioned.
+Hierarchical/versioned taxonomy.
 
 Examples:
 
@@ -140,9 +472,9 @@ Examples:
 - justice;
 - repentance.
 
-Do not force every category into “sin” because the platform also models virtues, pressures, restoration and morally neutral context.
+Do not force every category into “sin” because the platform also models virtues, pressures, restoration and neutral context.
 
-### Decision / Dilemma
+## 10. Decision / dilemma
 
 A decision is a structured object, not merely a paragraph.
 
@@ -164,15 +496,62 @@ Fields:
 - linked moral principles;
 - linked audience question.
 
-### Claim
+## 11. Craft Observation
 
-Editorial analysis should be broken into claims that can point to evidence.
+Film form can serve as evidence for meaning and reception.
 
-Examples:
+Candidate types:
 
-- “The film frames the violence as corrosive rather than admirable.”
-- “The character acts with substantial knowledge and low coercion.”
-- “The ending weakens the earlier condemnation of revenge.”
+- camera / POV;
+- blocking;
+- lighting;
+- performance;
+- editing;
+- music/sound;
+- production design;
+- genre convention;
+- humor/satire;
+- visual motif.
+
+Fields:
+
+- scene/film relation;
+- observation;
+- interpretive effect;
+- empathy effect;
+- imitation/aspiration effect where supported;
+- evidence;
+- confidence.
+
+### Empathy Pressure
+
+How strongly form asks the viewer to feel with/understand a character.
+
+Empathy is not endorsement.
+
+### Imitation Pressure
+
+How strongly form makes a behavior/lifestyle look aspirational, glamorous, socially rewarded or identity-conferring.
+
+This is especially relevant to youth/formation analysis.
+
+## 12. Claim
+
+Editorial analysis should be broken into claims that point to evidence.
+
+Claim types now include:
+
+- factual/plot;
+- character;
+- relationship;
+- psychological;
+- thematic;
+- worldview;
+- teaching/message;
+- narrative permission;
+- craft/reception;
+- moral;
+- biblical/normative.
 
 Fields:
 
@@ -181,11 +560,11 @@ Fields:
 - confidence;
 - spoiler level;
 - evidence relations;
-- supporting principle relations;
+- principle relations where normative;
 - counterevidence relations;
 - review version.
 
-### Biblical Principle
+## 13. Biblical Principle
 
 A normative principle should not be stored as a loose quote blob.
 
@@ -201,9 +580,17 @@ Candidate fields:
 
 Separate Scripture reference metadata from quoted translation text.
 
-### Editorial Review
+Normative conclusions should distinguish:
 
-Long-form synthesis that references structured entities rather than duplicating them.
+- direct biblical command/prohibition;
+- broader biblical principle;
+- wisdom judgment;
+- disputed application;
+- prudential judgment.
+
+## 14. Editorial Review and scores
+
+Long-form synthesis should reference structured entities rather than duplicate them.
 
 ### Editorial Score
 
@@ -211,24 +598,48 @@ A score is always attached to:
 
 - dimension definition;
 - rubric version;
-- subject (film, character, scene, event or decision);
+- subject (film, character, relationship, scene, event or decision);
 - value;
 - confidence;
 - rationale / claim links.
 
-Never create permanent schema columns such as `moral_score`, `psychological_score`, etc. Use versioned dimensions.
+Never create permanent schema columns such as `moral_score`, `psychological_score`, `family_score` etc. Use versioned dimensions.
 
-## 3. Score dimensions: likely candidates
+## 15. Candidate score/facet domains
 
-Not all are required for MVP.
+Not all are numeric and not all belong on every film.
 
-### Film craft
+### Film / craft
 
-- artistic quality;
+- cinematic quality;
+- storytelling;
 - narrative coherence;
-- character writing;
+- performances;
+- visual/sound craft.
+
+### Character / psychology
+
+- character depth;
 - psychological realism;
-- thematic coherence.
+- motivational coherence;
+- arc credibility.
+
+### Relationships / social portrayal
+
+- relationship depth/realism;
+- parent-child/family portrayal when central;
+- marriage/romance portrayal when central;
+- friendship/loyalty when central;
+- youth/formation when central;
+- authority/responsibility when central.
+
+### Ideas / meaning
+
+- thematic depth;
+- thematic coherence;
+- worldview/message clarity;
+- interpretive ambiguity;
+- discussion value.
 
 ### Moral analysis
 
@@ -236,20 +647,19 @@ Not all are required for MVP.
 - severity of depicted evil;
 - romanticization / normalization pressure;
 - complexity of moral decisions;
-- culpability density;
 - consequence visibility;
 - repentance / restitution;
 - redemptive movement.
 
 ### Interpretive confidence
 
-Every high-level judgment may carry confidence rather than pretending all interpretation is equally certain.
+High-level judgments may carry confidence rather than pretending all interpretation is equally certain.
 
-## 4. Film attitude model
+## 16. Film attitude model
 
-Represent the narrative stance separately from content incidence.
+Represent narrative stance separately from content incidence.
 
-Candidate categorical scale:
+Candidate event/topic scale:
 
 1. `CONDEMNS`
 2. `QUESTIONS`
@@ -269,48 +679,15 @@ Optional modifiers:
 - rewards;
 - punishes.
 
-A film can have different attitudes toward different categories or characters.
+A film can have different attitudes toward different categories, characters, relationships or behaviors.
 
-## 5. Psychological model
-
-Psychological analysis should describe mechanism without claiming diagnosis unless appropriately sourced and justified.
-
-Useful structured dimensions:
-
-- motivational coherence;
-- self-deception;
-- rationalization;
-- fear;
-- pride;
-- attachment / loyalty;
-- shame / guilt;
-- anger;
-- revenge drive;
-- self-preservation;
-- conformity;
-- coercive pressure;
-- empathy pressure created by filmmaking;
-- moral disengagement mechanisms.
-
-Potential moral-disengagement tags:
-
-- euphemistic labeling;
-- displacement of responsibility;
-- diffusion of responsibility;
-- dehumanization;
-- victim blaming;
-- advantageous comparison;
-- minimization of consequences.
-
-These are analytical tags, not clinical diagnoses.
-
-## 6. Navigation model
+## 17. Navigation model
 
 Long-term primary surfaces:
 
 ### Home
 
-Brand thesis + featured analysis + entry to atlas.
+Cinematic demonstration of the complete analysis model.
 
 ### Films
 
@@ -318,19 +695,27 @@ Index and Explore modes.
 
 ### Film Detail
 
-Progressive disclosure from spoiler-safe snapshot into deep analysis.
+Progressive disclosure from spoiler-safe story/meaning snapshot into deep analysis.
 
 ### Scene
 
-Deep link to a scene-level analysis / evidence object.
+Deep link to scene-level evidence/analysis.
 
 ### Characters
 
-Character moral/psychological arcs.
+Character/psychological/moral arcs.
 
-### Themes / Moral Topics
+### Relationships
 
-Examples: revenge, deception, justice, sacrifice, guilt, repentance.
+Potential later cross-film relationship discovery surface.
+
+### Topics / Themes
+
+Revenge, fatherhood, truth, guilt, marriage, belonging, justice, sacrifice, etc.
+
+### Youth / Family / Formation
+
+Later collection/atlas surface once the corpus supports it.
 
 ### Dilemmas
 
@@ -342,97 +727,152 @@ Normative principles with linked film examples.
 
 ### Compare
 
-Compare films, characters, decisions or Moral Cores.
+Compare films, characters, relationships, decisions or synthesis visualizations.
 
 ### Community
 
 Later phase: reviews, debates, lists, trusted contributions.
 
-## 7. Film page outline
+## 18. Film page outline
 
-Suggested canonical order:
+Suggested canonical content progression:
 
-1. Film Hero
-2. Spoiler-safe Verdict Snapshot
-3. Viewer film score (when community exists)
-4. Synopsis / Context
-5. What the Film Is Saying
-6. Moral Timeline
-7. Character Analysis
-8. Moral Events / Failures / Virtues
-9. Scene Autopsies
-10. Difficult Decisions
-11. Depiction vs Endorsement
-12. Psychological X-Ray
-13. Consequences
-14. Repentance / Restitution / Redemption
-15. Scripture / Moral Principles
-16. Counterevidence / Interpretive Uncertainty
-17. Final Verdict
-18. Community Reveal (later)
-19. Related Moral Parallels
+1. Film Hero / Living Frame
+2. Spoiler-safe Story at a Glance
+3. Verdict / Analysis Snapshot
+4. Viewer Film Score (when community exists)
+5. Synopsis / Context
+6. Plot Structure / Why the Story Matters
+7. Character Portraits / Arcs
+8. Relationship Observatory
+9. Family / Parents / Youth / Friendship / Authority modules where relevant
+10. Themes & Narrative Questions
+11. What the Film Appears to Say
+12. What the Film Teaches by Example
+13. Narrative Permission Map
+14. Craft & Meaning / Form Shapes Sympathy
+15. Moral Timeline
+16. Moral Events / Virtues / Failures
+17. Scene Autopsies
+18. Difficult Decisions
+19. Depiction vs Endorsement
+20. Psychological X-Ray
+21. Consequences
+22. Repentance / Restitution / Redemption
+23. Scripture / Biblical Principles
+24. Counterevidence / Interpretive Uncertainty
+25. Final Synthesis / Verdict
+26. Community Reveal (later)
+27. Related Narrative/Moral/Relationship Parallels
 
-This is a content model, not a requirement that every film render all sections.
+This is a component library, not a requirement that every film render all sections.
 
-## 8. Spoiler architecture
+## 19. Spoiler architecture
 
-Spoiler state must be first-class data.
+Spoiler state is first-class data.
 
 Suggested levels:
 
-- `NONE` — safe for someone who has not seen the film;
+- `NONE` — safe before viewing;
 - `MINOR` — premise / early setup;
 - `MAJOR` — significant developments;
 - `ENDING` — ending-specific;
 - `FULL` — unrestricted analysis.
 
-Users should be able to choose spoiler depth. Components, claims, moral events and decisions should respect it.
+Apply spoiler state to:
+
+- summaries;
+- plot beats;
+- character arcs;
+- relationship arcs;
+- themes/claims;
+- teaching signals;
+- moral events;
+- decisions;
+- ending/worldview conclusions.
 
 Do not implement spoilers only as CSS blur over text.
 
-## 9. Evidence architecture
+## 20. Evidence architecture
 
-Every strong editorial conclusion should eventually be traceable to evidence.
+Strong conclusions should be traceable to evidence.
 
 Evidence can include:
 
 - scene;
 - timestamp;
+- action;
+- plot consequence;
+- relationship change;
+- recurring pattern;
 - visual event;
 - dialogue paraphrase / legally allowed excerpt;
-- narrative consequence;
+- camera / editing / music / performance;
+- ending resolution;
 - recurring motif;
-- production or creator source where relevant;
-- Scripture / theological source for normative claim.
+- creator/production source where relevant and clearly distinguished from textual evidence;
+- Scripture / theological source for normative claims.
 
-This allows the UI to support “why do we say this?” interactions without cluttering the primary reading experience.
+This allows `Why do we say this?` interactions without cluttering primary reading.
 
-## 10. Versioning
+## 21. Versioning
 
-Version the things that affect interpretation or aggregation:
+Version things that affect interpretation or aggregation:
 
 - methodology;
 - rubric;
 - score dimension definitions;
-- moral category taxonomy;
+- category taxonomies;
 - editorial reviews;
+- story structures where materially revised;
+- character/relationship analyses;
 - moral events;
+- narrative claims;
+- teaching signals / narrative permissions;
 - questions and options;
 - major claims.
 
 A future methodology update must not silently reinterpret historical data.
 
-## 11. Proposed conceptual schema
+## 22. Proposed conceptual schema
 
 ```text
 films
 film_editions
 people
 film_credits
-characters
-character_relations
 scenes
-scene_characters
+
+story_summaries
+story_structures
+plot_beats
+plot_threads
+
+characters
+character_profiles
+character_arcs
+character_arc_events
+psychological_observations
+
+relationships
+relationship_types
+relationship_events
+relationship_states
+social_model_observations
+youth_formation_observations
+
+themes
+narrative_questions
+narrative_claims
+worldview_topics
+worldview_claims
+teaching_signals
+narrative_permissions
+role_model_assessments
+craft_observations
+empathy_observations
+imitation_observations
+discussion_topics
 
 moral_categories
 moral_category_versions
@@ -440,7 +880,6 @@ moral_events
 moral_event_versions
 moral_event_categories
 
-characters_arcs
 decisions
 decision_options
 decision_facts
@@ -487,41 +926,54 @@ abuse_signals
 contributor_reputation
 ```
 
-Exact database normalization should be decided during implementation; this document defines the semantic boundaries.
+Exact normalization is an implementation decision; this document defines semantic boundaries.
 
-## 12. API design principle
+## 23. API design principle
 
-Do not expose one gigantic “film page JSON” as the only source of truth.
+Do not expose one gigantic `film page JSON` as the only source of truth.
 
-Prefer stable domain endpoints / server functions for:
+Prefer stable domain endpoints/server functions for:
 
-- film core metadata;
+- film metadata;
+- story summary/structure;
+- characters;
+- relationships;
+- themes/questions/claims;
+- teaching signals / narrative permission;
 - editorial snapshot;
 - timeline;
 - scene analysis;
 - decisions;
+- biblical principles;
 - community aggregates;
 - comparison;
 - asset manifests.
 
-The frontend can compose these by route and progressively load heavy layers.
+Frontend can compose these by route and progressively load heavy layers.
 
-## 13. Search and discovery
+## 24. Search and discovery
 
-Search should eventually understand both canonical metadata and moral concepts.
+Search should eventually understand canonical metadata plus narrative/relational/moral concepts.
 
 Examples:
 
 - `revenge`
 - `lying to save a life`
 - `films with repentance`
-- `high moral ambiguity`
-- `editorial audience disagreement`
-- `character coerced into violence`
+- `absent fathers`
+- `parent child reconciliation`
+- `teen rebellion romanticized`
+- `friendship becomes complicity`
+- `marriage after betrayal`
+- `responsible adult role models`
+- `love requires truth`
+- `film normalizes dishonesty`
+- `ending reverses message`
+- `high discussion value family films`
 
-This is why moral topics, dilemmas and claims must be structured rather than buried only inside prose.
+This is why themes, relationships, teaching signals, dilemmas and claims must be structured rather than buried only inside prose.
 
-## 14. Data-quality states
+## 25. Data-quality states
 
 Important analytical records should support status such as:
 
@@ -534,16 +986,22 @@ Important analytical records should support status such as:
 
 Community suggestions should not overwrite editorial data directly.
 
-## 15. Immediate MVP data requirement
+## 26. Immediate MVP data requirement
 
-Even the one-film prototype should use real entities for:
+Even the one-film prototype should use real entities for at least:
 
 - Film;
 - Film Edition;
+- Story Summary / Story Structure;
 - Scene;
-- Moral Event;
 - Character;
-- Decision;
+- one Character Arc;
+- one Relationship + Relationship Events if central;
+- Theme / Narrative Question / Narrative Claim;
+- at least one Teaching Signal or Narrative Permission observation;
+- Moral Event;
+- Decision when the film contains a meaningful dilemma;
+- Craft Observation where form materially shapes interpretation;
 - Biblical Principle;
 - Editorial Review;
 - Score Dimension;
