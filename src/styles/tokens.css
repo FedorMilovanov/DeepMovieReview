@@ -1,0 +1,114 @@
+:root {
+  /* Surfaces */
+  --surface-canvas: #030303;
+  --surface-1: #070707;
+  --surface-2: #0b0b0b;
+  --surface-3: #11110f;
+  --surface-warm: #0d0b08;
+
+  /* Text */
+  --ink-1: #f2eee6;
+  --ink-2: #cbc5ba;
+  --ink-3: #9b978f;
+  --ink-4: #6f6b65;
+  --ink-inverse: #090909;
+
+  /* Semantic accents */
+  --accent-fracture: #8f2027;
+  --accent-fracture-bright: #b3313b;
+  --accent-restoration: #b9925b;
+  --accent-restoration-soft: #8b6d45;
+
+  /* Lines / optical structure */
+  --stroke-subtle: rgba(242, 238, 230, 0.10);
+  --stroke-default: rgba(242, 238, 230, 0.16);
+  --stroke-strong: rgba(242, 238, 230, 0.30);
+  --stroke-warm: rgba(185, 146, 91, 0.28);
+
+  /* Compatibility aliases for shell v0 */
+  --bg: var(--surface-canvas);
+  --bg-elevated: var(--surface-1);
+  --bg-soft: var(--surface-2);
+  --text: var(--ink-1);
+  --muted: var(--ink-3);
+  --line: var(--stroke-default);
+  --line-strong: var(--stroke-strong);
+  --crimson: var(--accent-fracture);
+  --amber: var(--accent-restoration);
+
+  /* Typography roles */
+  --font-display: "Arial Narrow", "Aptos Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-meta: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --display: var(--font-display);
+  --body: var(--font-body);
+
+  --type-display-1: clamp(3.6rem, 8.7vw, 9rem);
+  --type-display-2: clamp(2.65rem, 5.8vw, 6.2rem);
+  --type-display-3: clamp(1.7rem, 3.3vw, 3.2rem);
+  --type-lede: clamp(1.05rem, 1.55vw, 1.35rem);
+  --type-body: clamp(0.98rem, 1vw, 1.08rem);
+  --type-meta: 0.68rem;
+
+  --leading-display-tight: 0.90;
+  --leading-display: 0.96;
+  --leading-body: 1.68;
+  --tracking-display: -0.045em;
+  --tracking-meta: 0.15em;
+
+  /* Spatial rhythm */
+  --space-1: 0.35rem;
+  --space-2: 0.6rem;
+  --space-3: 0.9rem;
+  --space-4: 1.25rem;
+  --space-5: 1.75rem;
+  --space-6: 2.5rem;
+  --space-7: 3.5rem;
+  --space-8: 5rem;
+  --space-9: 7rem;
+  --space-10: 10rem;
+
+  /* Layout */
+  --container-max: 1440px;
+  --content-max: 760px;
+  --reading-max: 68ch;
+  --gutter: clamp(1.1rem, 3vw, 3rem);
+  --grid-gap: clamp(0.85rem, 1.6vw, 1.5rem);
+  --max: var(--container-max);
+  --pad: var(--gutter);
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-quiet: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 160ms;
+  --duration-standard: 280ms;
+  --duration-slow: 520ms;
+
+  /* Focus / selection */
+  --focus-color: #f2eee6;
+  --focus-offset: 4px;
+  --selection-bg: #e5dccd;
+  --selection-ink: #0b0a09;
+}
+
+@media (max-width: 720px) {
+  :root {
+    --type-display-1: clamp(2.9rem, 14vw, 4.9rem);
+    --type-display-2: clamp(2.2rem, 10vw, 3.7rem);
+    --type-display-3: clamp(1.55rem, 7vw, 2.35rem);
+    --gutter: clamp(1rem, 5vw, 1.4rem);
+    --space-9: 5.25rem;
+    --space-10: 7rem;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --stroke-subtle: rgba(242, 238, 230, 0.22);
+    --stroke-default: rgba(242, 238, 230, 0.34);
+    --stroke-strong: rgba(242, 238, 230, 0.58);
+    --ink-3: #bbb6ad;
+    --accent-fracture: #bf3b45;
+    --accent-restoration: #d0a96e;
+  }
+}
