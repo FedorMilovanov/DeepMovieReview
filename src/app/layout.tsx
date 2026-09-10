@@ -3,7 +3,8 @@ import { ExperienceDiagnostics } from "@/components/experience/experience-diagno
 import { ExperienceQualityProvider } from "@/components/experience/experience-quality-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { filmPackages } from "@/data/film-registry";
+import { requireFilmPackageBySlug } from "@/data/film-registry";
+import { homepageFeaturedFilmSlug } from "@/data/site-config";
 import "../styles/platform.css";
 import "../styles/tokens.css";
 import "./globals.css";
@@ -17,8 +18,10 @@ import "../styles/film-modules.css";
 import "../styles/film-verdict.css";
 import "../styles/experience.css";
 
-const hasPublishedFilms = filmPackages.some((filmPackage) => filmPackage.film.status === "published");
-const indexingEnabled = process.env.DMR_SITE_INDEXING_ENABLED === "true" && hasPublishedFilms;
+const homepageFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
+const indexingEnabled =
+  process.env.DMR_SITE_INDEXING_ENABLED === "true" &&
+  homepageFilmPackage.film.status === "published";
 
 export const metadata: Metadata = {
   title: {
