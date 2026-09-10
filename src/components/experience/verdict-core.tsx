@@ -1,7 +1,7 @@
 "use client";
 
 import { Float } from "@react-three/drei";
-import { Canvas, useFrame, type DefaultGLProps } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { motion } from "motion/react";
 import {
   Component,
@@ -16,6 +16,10 @@ import type { Mesh } from "three";
 import * as THREE from "three/webgpu";
 import { useExperienceQuality } from "@/components/experience/experience-quality-provider";
 import styles from "./verdict-core.module.css";
+
+type RendererFactoryProps = {
+  canvas: EventTarget;
+};
 
 class VerdictCoreBoundary extends Component<
   { children: ReactNode; fallback: ReactNode },
@@ -129,7 +133,7 @@ export function VerdictCore() {
   const frameloop = !documentVisible || !inViewport ? "never" : reducedMotion ? "demand" : "always";
   const fallback = <StaticCoreFallback />;
 
-  const createRenderer = useCallback(async (props: DefaultGLProps) => {
+  const createRenderer = useCallback(async (props: RendererFactoryProps) => {
     if (!(props.canvas instanceof HTMLCanvasElement)) {
       const reason = "VerdictCore requires a DOM canvas surface.";
       reportRendererFailure(reason);
