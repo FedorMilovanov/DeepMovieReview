@@ -100,7 +100,7 @@ export default function MethodologyPage() {
           ].map((state) => <span key={state} role="listitem">{state}</span>)}
         </div>
         <p className="sectionIntro">
-          These are categorical readings of a film's narrative treatment, not a red/green morality meter. Evidence and counterevidence remain necessary.
+          These are categorical readings of a film&apos;s narrative treatment, not a red/green morality meter. Evidence and counterevidence remain necessary.
         </p>
       </section>
 
