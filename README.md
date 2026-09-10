@@ -38,9 +38,9 @@ The shell now proves the main architectural boundaries that Film 001 will depend
 - build-time referential-integrity validation for evidence, sources, characters, decisions and analytical support;
 - canonical evidence records shared by interpretive claims instead of copied prose evidence;
 - structured Story, Characters, Relationships, Family/Youth, Meaning, Teaching Signals, Narrative Permission, Craft, Scene Autopsy, Decision, Moral Analysis, Biblical Synthesis, Final Synthesis and Sources/Method modules;
-- one spoiler projection stage that removes forbidden nested data **before** presentation; the projected module array is shared by outline and renderer;
+- one spoiler projection stage that removes forbidden nested data **before** presentation; the projected module array is shared by outline and renderer, and real featured-film homepage data is reduced to spoiler-safe `NONE` content before composition;
 - spoiler-aware deep-link cleanup when a hash targets content hidden by a lower spoiler level;
-- fixture/draft `noindex`, permanent `/labs/*` `noindex`, and a fail-closed launch gate that requires both `DMR_SITE_INDEXING_ENABLED=true` and the explicitly configured homepage feature to be `published`;
+- fixture/draft `noindex`, permanent `/labs/*` `noindex`, a fail-closed launch gate requiring `DMR_SITE_INDEXING_ENABLED=true` plus a published configured homepage feature, and a separate `DMR_PREVIEW_CONTENT_ENABLED=true` gate before non-published film routes exist in production;
 - adaptive experience runtime with Auto/Lite mode, reduced-motion control, document/offscreen awareness, renderer-backend reporting and measured quality downgrades;
 - WebGPU-oriented Verdict Core with WebGL2/static fallback behavior and no semantic content trapped in canvas;
 - visual asset manifest types with focal points, safe zones, depth maps, masks, provenance, responsive/DPR-aware variant selection and a fail-closed validated asset registry;
