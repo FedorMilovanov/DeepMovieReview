@@ -91,9 +91,9 @@ jobs:
               exit 1
             fi
           elif grep -Fq 'Open analysis' /tmp/home.html; then
-            site_state="published"
-            if grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
-              echo "Published configured homepage feature remained noindex despite the explicit launch flag."
+            site_state="published-preview"
+            if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
+              echo "Preview builds must remain noindex/nofollow even when the configured homepage film is published."
               exit 1
             fi
           else
@@ -210,18 +210,30 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Fq 'Read methodology' /tmp/public-home.html; then
-            echo "Public prelaunch homepage linked to preview content instead of the safe fallback CTA."
+          if grep -Fq 'Open analysis' /tmp/public-home.html; then
+            public_state="published"
+            if grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
+              echo "Published public homepage remained noindex despite launch flag and preview mode being disabled."
+              exit 1
+            fi
+          elif grep -Fq 'Read methodology' /tmp/public-home.html; then
+            public_state="prelaunch"
+            if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
+              echo "Public prelaunch homepage must remain noindex/nofollow."
+              exit 1
+            fi
+          else
+            echo "Public homepage did not expose a recognized published or prelaunch state."
             exit 1
           fi
-          if grep -Fq 'Open structural fixture' /tmp/public-home.html; then
-            echo "Public prelaunch homepage exposed a fixture route CTA."
-            exit 1
-          fi
-          if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
-            echo "Public prelaunch homepage must remain noindex/nofollow."
-            exit 1
-          fi
+          echo "Verified public homepage state: $public_state"
+
+          for preview_marker in 'Open structural fixture' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement'; do
+            if grep -Fq "$preview_marker" /tmp/public-home.html; then
+              echo "Public homepage leaked preview marker: $preview_marker"
+              exit 1
+            fi
+          done
 
           curl --fail --silent --show-error http://127.0.0.1:3211/films > /tmp/public-films.html
           if grep -Fq 'Pilot Film' /tmp/public-films.html; then
