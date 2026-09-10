@@ -244,6 +244,15 @@ try {
   await inspectBasic("home mobile");
   const overflow = await evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth");
   assertCheck("home mobile: no horizontal overflow", overflow);
+  const autopsyDefinitionOverlap = await evaluate(
+    "[...document.querySelectorAll('.autopsyGrid > div')].some((row) => {" +
+      "const term=row.querySelector('dt'); const value=row.querySelector('dd');" +
+      "if(!term||!value) return false;" +
+      "const a=term.getBoundingClientRect(); const b=value.getBoundingClientRect();" +
+      "return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;" +
+    "})"
+  );
+  assertCheck("home mobile: autopsy labels do not overlap values", !autopsyDefinitionOverlap);
   await capture("home-mobile", true);
 
   await navigate("/", 1280, 900, false, true);
