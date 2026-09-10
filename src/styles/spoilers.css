@@ -6,7 +6,7 @@
 }
 
 .spoilerControl {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
   padding-top: 1rem;
 }
 
@@ -22,30 +22,33 @@
   display: inline-flex;
   align-items: center;
   padding: 0.65rem 0.8rem;
-  border: 1px solid var(--line);
-  color: var(--muted);
+  border: 1px solid var(--stroke-default);
+  color: var(--ink-3);
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  transition: border-color 180ms ease, color 180ms ease, background 180ms ease;
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    background var(--duration-fast) var(--ease-standard);
 }
 
 .spoilerOption:hover,
 .spoilerOption:focus-visible {
-  color: var(--text);
-  border-color: var(--line-strong);
+  color: var(--ink-1);
+  border-color: var(--stroke-strong);
 }
 
 .spoilerOptionActive {
-  color: #080808;
-  background: var(--text);
-  border-color: var(--text);
+  color: var(--ink-inverse);
+  background: var(--ink-1);
+  border-color: var(--ink-1);
 }
 
 .spoilerOptionActive:hover,
 .spoilerOptionActive:focus-visible {
-  color: #080808;
-  border-color: var(--text);
+  color: var(--ink-inverse);
+  border-color: var(--ink-1);
 }
 
 .spoilerEvidence {
@@ -53,14 +56,14 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
+  background: var(--stroke-default);
+  border: 1px solid var(--stroke-default);
 }
 
 .spoilerEvidence article {
   min-height: 230px;
   padding: 1.25rem;
-  background: var(--bg);
+  background: var(--surface-canvas);
 }
 
 .spoilerEvidence h3 {
@@ -69,12 +72,12 @@
 }
 
 .spoilerEvidence p {
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 .spoilerOmissionNotice {
   margin: 1rem 0 0;
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 0.82rem;
 }
 
@@ -107,11 +110,5 @@
 
   .spoilerEvidence article {
     min-height: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spoilerOption {
-    transition: none;
   }
 }
