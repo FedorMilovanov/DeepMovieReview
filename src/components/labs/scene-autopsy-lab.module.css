@@ -1,0 +1,460 @@
+.labShell {
+  min-height: 100svh;
+  padding: clamp(4rem, 9vw, 8rem) var(--pad) clamp(6rem, 12vw, 10rem);
+  background:
+    radial-gradient(circle at 80% 12%, rgba(127, 23, 29, 0.065), transparent 30rem),
+    var(--bg);
+  color: var(--text);
+}
+
+.intro,
+.autopsy,
+.rules {
+  width: min(100%, var(--max));
+  margin-inline: auto;
+}
+
+.intro {
+  display: grid;
+  gap: 1.25rem;
+  padding-bottom: clamp(3.5rem, 8vw, 7rem);
+}
+
+.kicker,
+.sceneTopline span,
+.frameMeta,
+.inspectorTopline,
+.forensicRows span,
+.claimPanel > span,
+.ruleGrid article > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.intro h1,
+.sceneTopline h2,
+.evidenceInspector h3,
+.claimPanel h3,
+.rules h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+
+.intro h1 {
+  max-width: 13ch;
+  font-size: clamp(3rem, 7.8vw, 7.7rem);
+  line-height: 0.92;
+}
+
+.lede {
+  max-width: 56rem;
+  margin: 0;
+  color: #c6c0b7;
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+}
+
+.autopsy {
+  border-top: 1px solid var(--line);
+  padding-top: clamp(2rem, 5vw, 4rem);
+}
+
+.sceneTopline {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 2rem;
+}
+
+.sceneTopline > div {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.sceneTopline h2 {
+  font-size: clamp(2.1rem, 4.6vw, 5rem);
+  line-height: 0.95;
+}
+
+.sceneTopline p {
+  max-width: 26rem;
+  margin: 0;
+  color: var(--muted);
+  text-align: right;
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+  gap: 1px;
+  margin-top: clamp(2.5rem, 6vw, 5rem);
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.scenePanel,
+.evidenceInspector {
+  background: var(--bg);
+}
+
+.scenePanel {
+  position: relative;
+  min-height: 560px;
+  padding: 1rem;
+}
+
+.sceneArt {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  height: 100%;
+  min-height: 510px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 63% 28%, rgba(184, 141, 82, 0.1), transparent 16rem),
+    linear-gradient(145deg, #151719, #060606 58%, #11090a);
+}
+
+.doorway,
+.personA,
+.personB,
+.letter,
+.sceneLight {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.doorway {
+  right: 11%;
+  top: 10%;
+  width: 23%;
+  height: 72%;
+  border: 1px solid rgba(242, 238, 230, 0.12);
+  background: linear-gradient(90deg, rgba(0,0,0,0.1), rgba(184,141,82,0.045));
+}
+
+.personA,
+.personB {
+  bottom: 10%;
+  border-radius: 46% 46% 22% 22% / 20% 20% 10% 10%;
+  filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+}
+
+.personA {
+  right: 25%;
+  width: 17%;
+  height: 58%;
+  background:
+    radial-gradient(circle at 50% 12%, #393436 0 10%, transparent 11%),
+    linear-gradient(86deg, transparent 25%, #191617 26% 78%, transparent 79%);
+}
+
+.personB {
+  left: 34%;
+  width: 16%;
+  height: 51%;
+  background:
+    radial-gradient(circle at 50% 12%, #30343a 0 10%, transparent 11%),
+    linear-gradient(96deg, transparent 24%, #13171c 25% 77%, transparent 78%);
+}
+
+.letter {
+  left: 32%;
+  bottom: 20%;
+  width: 11%;
+  height: 6%;
+  transform: rotate(-9deg);
+  background: #a39b8f;
+  opacity: 0.56;
+  box-shadow: 0 0 25px rgba(242,238,230,0.06);
+}
+
+.sceneLight {
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.38), transparent 42%, transparent 70%, rgba(0,0,0,0.16)),
+    linear-gradient(180deg, rgba(0,0,0,0.08), transparent 55%, rgba(0,0,0,0.55));
+}
+
+.anchor {
+  position: absolute;
+  z-index: 8;
+  width: 38px;
+  height: 38px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(242, 238, 230, 0.48);
+  border-radius: 50%;
+  background: rgba(3, 3, 3, 0.72);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  transition: width 150ms ease, height 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.anchor:hover,
+.anchor:focus-visible,
+.anchor[data-active="true"] {
+  width: 48px;
+  height: 48px;
+  border-color: var(--text);
+  background: rgba(127, 23, 29, 0.72);
+}
+
+.anchor:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+.anchor span {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+.frameMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.8rem;
+}
+
+.evidenceInspector {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.4rem, 3vw, 2.4rem);
+}
+
+.inspectorTopline {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.evidenceInspector h3 {
+  max-width: 10ch;
+  margin-top: clamp(2rem, 5vw, 4rem);
+  font-size: clamp(2.2rem, 4.5vw, 4.8rem);
+  line-height: 0.92;
+}
+
+.evidenceInspector dl {
+  margin-top: auto;
+}
+
+.evidenceInspector dl > div {
+  padding: 1rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.evidenceInspector dt {
+  margin-bottom: 0.55rem;
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.evidenceInspector dd {
+  margin: 0;
+  color: #c9c4bb;
+  line-height: 1.55;
+}
+
+.evidenceList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 1px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.evidenceList button {
+  min-height: 110px;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 0.6rem;
+  align-items: start;
+  padding: 1rem;
+  border: 0;
+  background: var(--bg);
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.evidenceList button:hover,
+.evidenceList button:focus-visible,
+.evidenceList button[aria-pressed="true"] {
+  background: rgba(242, 238, 230, 0.045);
+}
+
+.evidenceList button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -4px;
+}
+
+.evidenceList button > span,
+.evidenceList button > small {
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.evidenceList button > strong {
+  font-weight: 500;
+}
+
+.evidenceList button > small {
+  grid-column: 2;
+}
+
+.forensicGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 1px;
+  margin-top: clamp(3rem, 7vw, 6rem);
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.forensicRows,
+.claimPanel {
+  background: var(--bg);
+}
+
+.forensicRows {
+  padding: clamp(1rem, 2.5vw, 2rem);
+}
+
+.forensicRows > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.35fr) 1fr;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.forensicRows > div:last-child { border-bottom: 0; }
+
+.forensicRows strong {
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.claimPanel {
+  min-height: 470px;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.4rem, 3vw, 2.6rem);
+}
+
+.claimPanel h3 {
+  max-width: 12ch;
+  margin-top: clamp(2rem, 5vw, 4rem);
+  font-size: clamp(2rem, 4.1vw, 4.5rem);
+  line-height: 0.94;
+}
+
+.claimPanel > p {
+  max-width: 42rem;
+  color: var(--muted);
+}
+
+.claimPanel aside {
+  margin-top: auto;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.claimPanel aside strong {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.claimPanel aside p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.rules {
+  margin-top: clamp(6rem, 12vw, 11rem);
+  padding-top: clamp(4rem, 8vw, 7rem);
+  border-top: 1px solid var(--line);
+}
+
+.rules h2 {
+  max-width: 15ch;
+  margin-top: 1.2rem;
+  font-size: clamp(2.2rem, 5vw, 5.2rem);
+  line-height: 0.95;
+}
+
+.ruleGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: clamp(2rem, 5vw, 4rem);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.ruleGrid article {
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1.3rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.ruleGrid strong {
+  font-family: var(--display);
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.ruleGrid p {
+  margin: auto 0 0;
+  color: var(--muted);
+}
+
+@media (max-width: 980px) {
+  .workspace,
+  .forensicGrid { grid-template-columns: 1fr; }
+  .scenePanel { min-height: 500px; }
+  .evidenceInspector { min-height: 420px; }
+  .evidenceList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ruleGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .sceneTopline { align-items: start; flex-direction: column; }
+  .sceneTopline p { text-align: left; }
+  .scenePanel { min-height: 420px; }
+  .sceneArt { min-height: 370px; }
+  .anchor { width: 44px; height: 44px; }
+  .evidenceList { grid-template-columns: 1fr; }
+  .forensicRows > div { grid-template-columns: 1fr; }
+  .ruleGrid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anchor { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .sceneArt,
+  .anchor,
+  .workspace,
+  .evidenceList,
+  .forensicGrid { forced-color-adjust: auto; }
+  .sceneLight { display: none; }
+}

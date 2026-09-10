@@ -1,0 +1,326 @@
+.labShell {
+  min-height: 100svh;
+  padding: clamp(4rem, 9vw, 8rem) var(--pad) clamp(6rem, 12vw, 10rem);
+  background:
+    radial-gradient(circle at 84% 12%, rgba(127, 23, 29, 0.065), transparent 30rem),
+    radial-gradient(circle at 16% 78%, rgba(184, 141, 82, 0.04), transparent 30rem),
+    var(--bg);
+  color: var(--text);
+}
+
+.intro,
+.field,
+.comprehension {
+  width: min(100%, var(--max));
+  margin-inline: auto;
+}
+
+.intro {
+  display: grid;
+  gap: 1.25rem;
+  padding-bottom: clamp(3.5rem, 8vw, 7rem);
+}
+
+.kicker,
+.fieldHeader span,
+.inspectorTopline,
+.signalGrid span,
+.counterevidence span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.intro h1,
+.fieldHeader h2,
+.inspector h3,
+.comprehension h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+
+.intro h1 {
+  max-width: 13ch;
+  font-size: clamp(3rem, 7.8vw, 7.7rem);
+  line-height: 0.92;
+}
+
+.lede {
+  max-width: 57rem;
+  margin: 0;
+  color: #c6c0b7;
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+}
+
+.field {
+  border-top: 1px solid var(--line);
+  padding-top: clamp(2rem, 5vw, 4rem);
+}
+
+.fieldHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 2rem;
+}
+
+.fieldHeader > div {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.fieldHeader h2 {
+  font-size: clamp(2.1rem, 4.6vw, 5rem);
+  line-height: 0.95;
+}
+
+.fieldHeader p {
+  max-width: 28rem;
+  margin: 0;
+  color: var(--muted);
+  text-align: right;
+}
+
+.stateGroups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: clamp(2.5rem, 6vw, 5rem);
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.stateGroup {
+  min-height: 180px;
+  padding: 1.2rem;
+  background: var(--bg);
+}
+
+.stateGroup h3 {
+  margin: 0 0 1.2rem;
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.stateChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stateChips span {
+  padding: 0.55rem 0.62rem;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+}
+
+.stateChips span[data-active="true"] {
+  border-color: var(--text);
+  color: var(--text);
+  background: rgba(242, 238, 230, 0.04);
+}
+
+.assessmentGrid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.62fr) minmax(0, 1.38fr);
+  gap: 1px;
+  margin-top: 1px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.subjectList,
+.inspector {
+  background: var(--bg);
+}
+
+.subjectList {
+  display: grid;
+  align-content: start;
+}
+
+.subjectList button {
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.1rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.subjectList button:last-child { border-bottom: 0; }
+
+.subjectList button:hover,
+.subjectList button:focus-visible,
+.subjectList button[aria-pressed="true"] {
+  background: rgba(242, 238, 230, 0.045);
+}
+
+.subjectList button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -4px;
+}
+
+.subjectList button > span,
+.subjectList button > small {
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.subjectList button strong {
+  font-weight: 500;
+}
+
+.inspector {
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.4rem, 3vw, 2.6rem);
+}
+
+.inspectorTopline {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.inspector h3 {
+  max-width: 12ch;
+  margin-top: clamp(2rem, 5vw, 4rem);
+  font-size: clamp(2.4rem, 5vw, 5.6rem);
+  line-height: 0.92;
+}
+
+.stateDefinition {
+  max-width: 48rem;
+  margin: 1.2rem 0 0;
+  color: #d2ccc1;
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+}
+
+.thesis {
+  max-width: 50rem;
+  margin: 1rem 0 0;
+  color: var(--muted);
+}
+
+.signalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: clamp(2rem, 5vw, 4rem);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.signalGrid > div {
+  min-height: 150px;
+  padding: 1rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.signalGrid p {
+  margin: 1rem 0 0;
+  color: #c5c0b6;
+}
+
+.counterevidence {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.counterevidence p {
+  max-width: 52rem;
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+}
+
+.comprehension {
+  margin-top: clamp(6rem, 12vw, 11rem);
+  padding-top: clamp(4rem, 8vw, 7rem);
+  border-top: 1px solid var(--line);
+}
+
+.comprehension h2 {
+  max-width: 15ch;
+  margin-top: 1.2rem;
+  font-size: clamp(2.2rem, 5vw, 5.2rem);
+  line-height: 0.95;
+}
+
+.ruleGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: clamp(2rem, 5vw, 4rem);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.ruleGrid article {
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  padding: 1.3rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.ruleGrid span {
+  color: var(--text);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.ruleGrid p {
+  margin: auto 0 0;
+  color: var(--muted);
+}
+
+@media (max-width: 980px) {
+  .stateGroups { grid-template-columns: 1fr; }
+  .stateGroup { min-height: 0; }
+  .assessmentGrid { grid-template-columns: 1fr; }
+  .inspector { min-height: 560px; }
+  .ruleGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .fieldHeader { align-items: start; flex-direction: column; }
+  .fieldHeader p { text-align: left; }
+  .subjectList button { grid-template-columns: 34px 1fr; }
+  .subjectList button > small { grid-column: 2; }
+  .inspectorTopline { flex-direction: column; }
+  .signalGrid { grid-template-columns: 1fr; }
+  .ruleGrid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .subjectList button { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .stateGroups,
+  .assessmentGrid,
+  .subjectList,
+  .inspector { forced-color-adjust: auto; }
+}
