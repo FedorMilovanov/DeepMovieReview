@@ -30,7 +30,15 @@ function isBlank(value: string | undefined): boolean {
 }
 
 function isSafeSourceHref(value: string): boolean {
-  return value.startsWith("https://") || value.startsWith("http://") || value.startsWith("/");
+  const href = value.trim();
+  if (href.startsWith("/") && !href.startsWith("//") && !href.includes("\\")) return true;
+
+  try {
+    const url = new URL(href);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
 }
 
 function checkSupport(
