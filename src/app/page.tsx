@@ -193,7 +193,7 @@ export default function HomePage() {
         <div className="discoveryLinks">
           <Link href="/films">Browse film shell</Link>
           <Link href="/#lenses">Explore lenses</Link>
-          <Link href="/#method">Read the method preview</Link>
+          <Link href="/methodology">Read the methodology</Link>
         </div>
       </section>
     </>
