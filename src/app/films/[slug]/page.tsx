@@ -12,6 +12,8 @@ type FilmPageProps = {
   searchParams: Promise<{ spoilers?: string | string[] }>;
 };
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return filmPackages.map((filmPackage) => ({ slug: filmPackage.film.slug }));
 }
