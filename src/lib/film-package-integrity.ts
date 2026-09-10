@@ -48,8 +48,8 @@ function nestedIds(filmModule: FilmModule): string[] {
   }
 }
 
-function sourceModule(filmPackage: FilmPackage): SourcesMethodModule | undefined {
-  return filmPackage.modules.find((candidate): candidate is SourcesMethodModule => candidate.kind === "sources-method");
+function sourceModules(filmPackage: FilmPackage): SourcesMethodModule[] {
+  return filmPackage.modules.filter((candidate): candidate is SourcesMethodModule => candidate.kind === "sources-method");
 }
 
 export function validateFilmPackage(filmPackage: FilmPackage): string[] {
@@ -58,21 +58,35 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   const evidence = filmPackage.evidence ?? [];
   const evidenceRawIds = evidence.map((item) => item.id);
   const evidenceIds = new Set(evidenceRawIds);
-  const sources = sourceModule(filmPackage);
+  const sourcesModules = sourceModules(filmPackage);
+  const sources = sourcesModules[0];
   const sourceRawIds = sources?.sources.map((item) => item.id) ?? [];
   const sourceIds = new Set(sourceRawIds);
+  const characterRawIds = filmPackage.modules.flatMap((filmModule) =>
+    filmModule.kind === "characters" ? filmModule.characters.map((character) => character.id) : [],
+  );
+  const characterIds = new Set(characterRawIds);
 
   for (const id of duplicateIds(filmPackage.modules.map((filmModule) => filmModule.id))) errors.push(`modules: duplicate module id "${id}".`);
   for (const id of duplicateIds(evidenceRawIds)) errors.push(`evidence: duplicate evidence id "${id}".`);
   for (const id of duplicateIds(sourceRawIds)) errors.push(`sources: duplicate source id "${id}".`);
+  for (const id of duplicateIds(characterRawIds)) errors.push(`characters: duplicate character id "${id}".`);
 
-  if (published && !sources) errors.push("published package requires a sources-method module.");
+  if (published && sourcesModules.length !== 1) {
+    errors.push(`published package requires exactly one sources-method module; found ${sourcesModules.length}.`);
+  }
   if (published && evidenceIds.size === 0) errors.push("published package requires canonical evidence records.");
+  if (published && !filmPackage.modules.some((filmModule) => filmModule.kind === "final-synthesis")) {
+    errors.push("published package requires a final-synthesis module.");
+  }
 
   for (const item of evidence) {
     if (!item.id.trim()) errors.push("evidence: id is required.");
     if (!item.label.trim()) errors.push(`evidence/${item.id}: label is required.`);
     if (!item.observation.trim()) errors.push(`evidence/${item.id}: observation is required.`);
+    if (published && (item.sourceIds?.length ?? 0) === 0) {
+      errors.push(`evidence/${item.id}: published evidence requires at least one source reference.`);
+    }
     for (const id of item.sourceIds ?? []) {
       if (!sourceIds.has(id)) errors.push(`evidence/${item.id}: unknown source id "${id}".`);
     }
@@ -89,9 +103,28 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
           checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published && interpretive);
         }
         break;
-      case "relationship":
-        for (const item of filmModule.events) checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+      case "relationship": {
+        if (published && !filmModule.participantIds) {
+          errors.push(`${filmModule.id}: published relationship requires participantIds.`);
+        }
+        if (filmModule.participantIds) {
+          const participants = [...filmModule.participantIds];
+          if (duplicateIds(participants).length > 0) {
+            errors.push(`${filmModule.id}: relationship participants must be distinct character ids.`);
+          }
+          for (const id of participants) {
+            if (!characterIds.has(id)) errors.push(`${filmModule.id}: unknown participant character id "${id}".`);
+          }
+        }
+        for (const item of filmModule.events) {
+          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+          const dimensions = (item.dimensions ?? []).map((shift) => shift.dimension);
+          for (const dimension of duplicateIds(dimensions)) {
+            errors.push(`${filmModule.id}/${item.id}: duplicate relationship dimension "${dimension}".`);
+          }
+        }
         break;
+      }
       case "family-youth":
         for (const item of filmModule.observations) checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
         break;
@@ -129,6 +162,12 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         }
         break;
       case "decision":
+        for (const id of duplicateIds(filmModule.decidingCharacters ?? [])) {
+          errors.push(`${filmModule.id}: duplicate deciding character id "${id}".`);
+        }
+        for (const id of filmModule.decidingCharacters ?? []) {
+          if (!characterIds.has(id)) errors.push(`${filmModule.id}: unknown deciding character id "${id}".`);
+        }
         if (filmModule.editorialJudgment) checkSupport(filmModule.editorialJudgment.support, `${filmModule.id}/editorial-judgment`, evidenceIds, errors, published);
         break;
       case "moral-analysis":
