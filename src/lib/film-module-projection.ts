@@ -64,7 +64,13 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
       const editorialJudgment = module.editorialJudgment && canRevealSpoiler(level, module.editorialJudgment.spoilerLevel)
         ? module.editorialJudgment
         : undefined;
-      return { ...module, options, facts, pressures, dutiesOrGoods, editorialJudgment };
+      return options.length > 0 ||
+        facts.length > 0 ||
+        pressures.length > 0 ||
+        dutiesOrGoods.length > 0 ||
+        editorialJudgment
+        ? { ...module, options, facts, pressures, dutiesOrGoods, editorialJudgment }
+        : null;
     }
     case "moral-analysis": {
       const events = visible(module.events, level);
