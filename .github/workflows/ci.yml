@@ -38,3 +38,54 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Production route smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=3210 npm run start -- -p 3210 > /tmp/deep-movie-review-next.log 2>&1 &
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3210/ > /tmp/home.html; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [[ "$ready" != "true" ]]; then
+            echo "Production server did not become ready."
+            cat /tmp/deep-movie-review-next.log
+            exit 1
+          fi
+
+          if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
+            echo "Pre-launch homepage must remain noindex/nofollow until a published film exists."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error 'http://127.0.0.1:3210/films/pilot-film?spoilers=NONE' > /tmp/pilot-none.html
+          grep -Fq 'Pilot Film' /tmp/pilot-none.html
+          if grep -Fq 'Evidence before conclusion.' /tmp/pilot-none.html; then
+            echo "MAJOR spoiler content leaked into spoilers=NONE."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error 'http://127.0.0.1:3210/films/pilot-film?spoilers=FULL' > /tmp/pilot-full.html
+          if ! grep -Fq 'Evidence before conclusion.' /tmp/pilot-full.html; then
+            echo "FULL spoiler projection did not render the MAJOR autopsy module."
+            exit 1
+          fi
+
+          not_found_status=$(curl --silent --output /tmp/not-found.html --write-out '%{http_code}' http://127.0.0.1:3210/films/not-a-film)
+          if [[ "$not_found_status" != "404" ]]; then
+            echo "Unknown film route returned HTTP $not_found_status instead of 404."
+            exit 1
+          fi
