@@ -1,0 +1,418 @@
+.labShell {
+  min-height: 100svh;
+  padding: clamp(4rem, 9vw, 8rem) var(--pad) clamp(6rem, 12vw, 10rem);
+  background:
+    radial-gradient(circle at 80% 10%, rgba(127, 23, 29, 0.06), transparent 30rem),
+    var(--bg);
+  color: var(--text);
+}
+
+.intro,
+.experience,
+.rules {
+  width: min(100%, var(--max));
+  margin-inline: auto;
+}
+
+.intro {
+  display: grid;
+  gap: 1.25rem;
+  padding-bottom: clamp(3.5rem, 8vw, 7rem);
+}
+
+.kicker,
+.frameTopline,
+.readingTopline,
+.annotation strong,
+.annotationList span,
+.ruleGrid article > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.intro h1,
+.lensReading h2,
+.rules h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+
+.intro h1 {
+  max-width: 12ch;
+  font-size: clamp(3rem, 7.8vw, 7.7rem);
+  line-height: 0.92;
+}
+
+.lede {
+  max-width: 56rem;
+  margin: 0;
+  color: #c6c0b7;
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+}
+
+.experience {
+  border-top: 1px solid var(--line);
+  padding-top: clamp(2rem, 5vw, 4rem);
+}
+
+.lensRail {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.lensButton {
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.9rem;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.lensButton > span {
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+}
+
+.lensButton > strong {
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.lensButton:hover,
+.lensButton:focus-visible,
+.lensButton[aria-selected="true"] {
+  background: rgba(242, 238, 230, 0.045);
+}
+
+.lensButton[aria-selected="true"] {
+  box-shadow: inset 0 -2px var(--text);
+}
+
+.lensButton:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: -4px;
+}
+
+.frameShell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(350px, 0.65fr);
+  gap: 1px;
+  margin-top: 1px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.frame,
+.lensReading {
+  background: var(--bg);
+}
+
+.frame {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 620px;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 64% 28%, rgba(184, 141, 82, 0.11), transparent 16rem),
+    linear-gradient(145deg, #151719, #060606 58%, #10090a);
+}
+
+.scene > span {
+  position: absolute;
+  display: block;
+}
+
+.door {
+  right: 9%;
+  top: 11%;
+  width: 24%;
+  height: 72%;
+  border: 1px solid rgba(242, 238, 230, 0.11);
+  background: linear-gradient(90deg, rgba(0,0,0,0.15), rgba(184,141,82,0.04));
+}
+
+.subjectA,
+.subjectB {
+  bottom: 10%;
+  border-radius: 46% 46% 22% 22% / 20% 20% 10% 10%;
+  filter: drop-shadow(0 20px 32px rgba(0,0,0,0.5));
+}
+
+.subjectA {
+  right: 25%;
+  width: 17%;
+  height: 57%;
+  background:
+    radial-gradient(circle at 50% 12%, #3b3436 0 10%, transparent 11%),
+    linear-gradient(86deg, transparent 25%, #191617 26% 78%, transparent 79%);
+}
+
+.subjectB {
+  left: 32%;
+  width: 16%;
+  height: 50%;
+  background:
+    radial-gradient(circle at 50% 12%, #30343a 0 10%, transparent 11%),
+    linear-gradient(96deg, transparent 24%, #13171c 25% 77%, transparent 78%);
+}
+
+.document {
+  left: 31%;
+  bottom: 19%;
+  width: 11%;
+  height: 5%;
+  transform: rotate(-8deg);
+  background: #a39b8f;
+  opacity: 0.48;
+}
+
+.horizon {
+  left: -5%;
+  right: -5%;
+  bottom: 17%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(242,238,230,0.12), transparent);
+}
+
+.frameTopline {
+  position: absolute;
+  z-index: 8;
+  left: 1rem;
+  right: 1rem;
+  top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.annotation {
+  position: absolute;
+  z-index: 7;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  max-width: min(300px, 38%);
+  transform: translate(-10px, -10px);
+}
+
+.annotationPoint {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(242,238,230,0.72);
+  border-radius: 50%;
+  background: rgba(3,3,3,0.7);
+  box-shadow: 0 0 0 5px rgba(3,3,3,0.32);
+}
+
+.annotation > div {
+  padding: 0.65rem;
+  border: 1px solid rgba(242,238,230,0.16);
+  background: rgba(3,3,3,0.82);
+  backdrop-filter: blur(9px);
+}
+
+.annotation p {
+  margin: 0.35rem 0 0;
+  color: #cbc5bb;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.relationshipTrace {
+  position: absolute;
+  z-index: 5;
+  left: 42%;
+  top: 50%;
+  width: 25%;
+  height: 1px;
+  transform: rotate(-4deg);
+  background: linear-gradient(90deg, rgba(242,238,230,0.1), rgba(127,23,29,0.85), rgba(242,238,230,0.1));
+  box-shadow: 0 0 24px rgba(127,23,29,0.24);
+}
+
+.cameraFrame {
+  position: absolute;
+  z-index: 4;
+  inset: 14% 18%;
+  border: 1px solid rgba(184,141,82,0.34);
+  pointer-events: none;
+}
+
+.cameraFrame::before,
+.cameraFrame::after {
+  content: "";
+  position: absolute;
+  background: rgba(184,141,82,0.25);
+}
+
+.cameraFrame::before {
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.cameraFrame::after {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.lensReading {
+  min-height: 620px;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.4rem, 3vw, 2.5rem);
+}
+
+.readingTopline {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.lensReading h2 {
+  max-width: 12ch;
+  margin-top: clamp(2rem, 5vw, 4rem);
+  font-size: clamp(2.2rem, 4.4vw, 4.8rem);
+  line-height: 0.93;
+}
+
+.lensReading > p {
+  max-width: 36rem;
+  color: var(--muted);
+}
+
+.annotationList {
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+}
+
+.annotationList > div {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.annotationList p {
+  margin: 0.45rem 0 0;
+  color: #c7c1b8;
+}
+
+.rules {
+  margin-top: clamp(6rem, 12vw, 11rem);
+  padding-top: clamp(4rem, 8vw, 7rem);
+  border-top: 1px solid var(--line);
+}
+
+.rules h2 {
+  max-width: 14ch;
+  margin-top: 1.2rem;
+  font-size: clamp(2.2rem, 5vw, 5.2rem);
+  line-height: 0.95;
+}
+
+.ruleGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: clamp(2rem, 5vw, 4rem);
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.ruleGrid article {
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1.3rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.ruleGrid strong {
+  font-family: var(--display);
+  font-size: clamp(1.25rem, 2vw, 1.8rem);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.ruleGrid p {
+  margin: auto 0 0;
+  color: var(--muted);
+}
+
+@media (max-width: 1080px) {
+  .lensRail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .frameShell { grid-template-columns: 1fr; }
+  .frame { min-height: 560px; }
+  .lensReading { min-height: 460px; }
+  .ruleGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .lensRail {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    border-left: 0;
+  }
+  .lensButton {
+    flex: 0 0 min(48vw, 190px);
+    scroll-snap-align: start;
+    border-left: 1px solid var(--line);
+  }
+  .frame { min-height: 470px; }
+  .annotation {
+    max-width: 52%;
+  }
+  .annotation > div {
+    display: none;
+  }
+  .annotationPoint {
+    width: 28px;
+    height: 28px;
+  }
+  .frameTopline { flex-direction: column; }
+  .readingTopline { flex-direction: column; }
+  .ruleGrid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lensButton { transition: none; }
+}
+
+@media (forced-colors: active) {
+  .annotation > div { backdrop-filter: none; }
+  .scene,
+  .annotation,
+  .lensButton { forced-color-adjust: auto; }
+}
