@@ -9,6 +9,7 @@ import "../styles/primitives.css";
 import "../styles/route-states.css";
 import "../styles/methodology.css";
 import "../styles/spoilers.css";
+import "../styles/film-modules.css";
 import "../styles/experience.css";
 
 export const metadata: Metadata = {
