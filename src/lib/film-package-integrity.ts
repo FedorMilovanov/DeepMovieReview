@@ -31,7 +31,8 @@ function isBlank(value: string | undefined): boolean {
 
 function isSafeSourceHref(value: string): boolean {
   const href = value.trim();
-  if (href.startsWith("/") && !href.startsWith("//") && !href.includes("\\")) return true;
+  if (href.includes("\\")) return false;
+  if (href.startsWith("/") && !href.startsWith("//")) return true;
 
   try {
     const url = new URL(href);
