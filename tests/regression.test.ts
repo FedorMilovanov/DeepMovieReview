@@ -88,7 +88,7 @@ test("ambiguous backslash source URLs are rejected before URL normalization", ()
 });
 
 test("character profile spoiler level removes protected wants/fears/contradiction before render", () => {
-  const module: CharactersModule = {
+  const charactersModule: CharactersModule = {
     id: "characters",
     kind: "characters",
     heading: "Characters",
@@ -115,7 +115,7 @@ test("character profile spoiler level removes protected wants/fears/contradictio
     ],
   };
 
-  const projected = projectFilmModule(module, "NONE");
+  const projected = projectFilmModule(charactersModule, "NONE");
   assert.ok(projected && projected.kind === "characters");
   assert.equal(projected.characters.length, 1);
   assert.equal(projected.characters[0]?.id, "safe");
