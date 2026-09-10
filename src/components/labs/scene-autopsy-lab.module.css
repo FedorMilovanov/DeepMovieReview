@@ -196,17 +196,11 @@
 }
 
 .anchor:hover,
-.anchor:focus-visible,
 .anchor[data-active="true"] {
   width: 48px;
   height: 48px;
   border-color: var(--text);
   background: rgba(127, 23, 29, 0.72);
-}
-
-.anchor:focus-visible {
-  outline: 2px solid var(--text);
-  outline-offset: 3px;
 }
 
 .anchor span {
