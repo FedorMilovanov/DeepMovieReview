@@ -5,6 +5,8 @@ import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
 import { canIndexSite } from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
+import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
+import { canRevealSpoiler, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
 import type { FilmPackage, CharactersModule } from "../src/lib/film-package";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
@@ -295,4 +297,88 @@ test("visual asset paths stay app-rooted and protocol-relative paths are rejecte
   });
 
   assert.ok(errors.some((error) => error.includes("bad") && error.includes("app-root")));
+});
+
+test("experience quality selection is deterministic across fallback scenarios", () => {
+  assert.equal(selectInitialTier({
+    backend: "none",
+    dpr: 1,
+    viewportWidth: 1440,
+    hardwareConcurrency: 16,
+    reducedMotion: false,
+    forcedColors: false,
+  }), "LITE");
+
+  assert.equal(selectInitialTier({
+    backend: "webgl2",
+    dpr: 1,
+    viewportWidth: 1440,
+    hardwareConcurrency: 8,
+    reducedMotion: false,
+    forcedColors: false,
+  }), "MEDIUM");
+
+  assert.equal(selectInitialTier({
+    backend: "webgl2",
+    dpr: 3,
+    viewportWidth: 390,
+    hardwareConcurrency: 8,
+    reducedMotion: false,
+    forcedColors: false,
+  }), "LITE");
+
+  assert.equal(selectInitialTier({
+    backend: "webgpu",
+    dpr: 2,
+    viewportWidth: 1440,
+    hardwareConcurrency: 12,
+    reducedMotion: false,
+    forcedColors: false,
+  }), "ULTRA");
+
+  assert.equal(selectInitialTier({
+    backend: "webgpu",
+    dpr: 2,
+    viewportWidth: 1440,
+    hardwareConcurrency: 12,
+    reducedMotion: true,
+    forcedColors: false,
+  }), "HIGH");
+
+  assert.equal(selectInitialTier({
+    backend: "webgpu",
+    dpr: 3,
+    viewportWidth: 390,
+    hardwareConcurrency: 12,
+    reducedMotion: false,
+    forcedColors: false,
+  }), "MEDIUM");
+
+  assert.equal(selectInitialTier({
+    backend: "webgpu",
+    dpr: 1,
+    viewportWidth: 1440,
+    hardwareConcurrency: 12,
+    reducedMotion: false,
+    forcedColors: true,
+  }), "LITE");
+});
+
+test("quality downgrade helpers never raise an already-lower tier", () => {
+  assert.equal(downgradeTier("ULTRA"), "HIGH");
+  assert.equal(downgradeTier("HIGH"), "MEDIUM");
+  assert.equal(downgradeTier("MEDIUM"), "LITE");
+  assert.equal(downgradeTier("LITE"), "LITE");
+  assert.equal(lowerOfTier("MEDIUM", "ULTRA"), "MEDIUM");
+  assert.equal(lowerOfTier("ULTRA", "MEDIUM"), "MEDIUM");
+});
+
+test("spoiler helpers normalize URL state and preserve monotonic reveal permissions", () => {
+  assert.equal(parseSpoilerLevel("minor"), "MINOR");
+  assert.equal(parseSpoilerLevel(["ENDING", "FULL"]), "ENDING");
+  assert.equal(parseSpoilerLevel("not-a-level"), "NONE");
+  assert.equal(canRevealSpoiler("NONE", "MINOR"), false);
+  assert.equal(canRevealSpoiler("FULL", "ENDING"), true);
+  assert.equal(withSpoilerQuery("/films/example", "NONE"), "/films/example");
+  assert.equal(withSpoilerQuery("/films/example", "MAJOR"), "/films/example?spoilers=major");
 });
