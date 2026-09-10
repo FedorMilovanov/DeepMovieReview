@@ -10,7 +10,7 @@ export default function FilmLoading() {
           <div className="routeMetaCellSkeleton" key={index} />
         ))}
       </div>
-      <p className="routeLoadingLabel">Preparing the film analysis shell…</p>
+      <p className="routeLoadingLabel">Preparing the film analysis…</p>
     </section>
   );
 }
