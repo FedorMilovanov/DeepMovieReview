@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
+import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
@@ -40,6 +41,8 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
 
   return (
     <>
+      <SpoilerDeepLinkGuard spoilerLevel={spoilerLevel} />
+
       <section className="sectionShell filmPageHero" aria-labelledby="film-title">
         <Link className="microLabel" href="/films">← Films</Link>
         <div className="sectionIndex">FILM / {film.status.toUpperCase()} / SCHEMA {filmPackage.schemaVersion}</div>
