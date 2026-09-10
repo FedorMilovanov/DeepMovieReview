@@ -12,7 +12,7 @@ export type HomepageViewModel = {
     summary: string;
     events: Array<{ id: string; label: string; change: string; tone: "trust" | "fracture" | "pressure" | "repair" }>;
   };
-  familyYouth: Array<{ label: string; observation: string }>;
+  familyYouth: Array<{ label: string; observation: string }> | null;
   meaning: {
     theme: string;
     question: string;
@@ -23,7 +23,7 @@ export type HomepageViewModel = {
   permissions: Array<{ subject: string; state: NarrativePermissionState; rationale: string }>;
   craft: Array<{ device: string; effect: string }>;
   sceneAutopsy: { label: string; act: string; motive: string; knowledge: string; pressure: string; consequence: string };
-  decision: { question: string; knownThen: string[]; revealedLater: string[] };
+  decision: { question: string; knownThen: string[]; revealedLater: string[] } | null;
   biblicalSynthesis: { observation: string; principle: string; application: string; qualification: string };
 };
 
@@ -35,6 +35,15 @@ const lenses: HomepageViewModel["lenses"] = [
   { key: "moral-world", label: "Moral world", prompt: "What is condemned, normalized, rewarded or left unchallenged?" },
   { key: "craft", label: "Craft", prompt: "How do camera, music, editing and performance shape sympathy?" },
 ];
+
+function optionalModuleOfKind<K extends FilmModuleKind>(
+  filmPackage: FilmPackage,
+  kind: K,
+): Extract<FilmModule, { kind: K }> | undefined {
+  return filmPackage.modules.find(
+    (candidate): candidate is Extract<FilmModule, { kind: K }> => candidate.kind === kind,
+  );
+}
 
 function moduleOfKind<K extends FilmModuleKind>(filmPackage: FilmPackage, kind: K): Extract<FilmModule, { kind: K }> {
   const filmModule = filmPackage.modules.find(
@@ -49,12 +58,12 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
   const story = moduleOfKind(filmPackage, "story");
   const characters = moduleOfKind(filmPackage, "characters");
   const relationship = moduleOfKind(filmPackage, "relationship");
-  const familyYouth = moduleOfKind(filmPackage, "family-youth");
+  const familyYouth = optionalModuleOfKind(filmPackage, "family-youth");
   const meaning = moduleOfKind(filmPackage, "meaning");
   const permission = moduleOfKind(filmPackage, "permission");
   const craft = moduleOfKind(filmPackage, "craft");
   const autopsy = moduleOfKind(filmPackage, "autopsy");
-  const decision = moduleOfKind(filmPackage, "decision");
+  const decision = optionalModuleOfKind(filmPackage, "decision");
   const biblical = moduleOfKind(filmPackage, "biblical-synthesis");
 
   return {
@@ -72,7 +81,9 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
       summary: relationship.summary,
       events: relationship.events.map(({ id, label, change, tone }) => ({ id, label, change, tone })),
     },
-    familyYouth: familyYouth.observations.map((item) => ({ label: item.subject, observation: item.claim })),
+    familyYouth: familyYouth
+      ? familyYouth.observations.map((item) => ({ label: item.subject, observation: item.claim }))
+      : null,
     meaning: {
       theme: meaning.theme,
       question: meaning.question,
@@ -90,13 +101,17 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
       pressure: autopsy.pressure,
       consequence: autopsy.consequence,
     },
-    decision: {
-      question: decision.prompt,
-      knownThen: decision.facts
-        .filter((fact) => fact.knowledgeState === "KNOWN_TO_CHARACTER" || fact.knowledgeState === "REASONABLY_INFERABLE")
-        .map((fact) => fact.text),
-      revealedLater: decision.facts.filter((fact) => fact.knowledgeState === "REVEALED_LATER").map((fact) => fact.text),
-    },
+    decision: decision
+      ? {
+          question: decision.prompt,
+          knownThen: decision.facts
+            .filter((fact) => fact.knowledgeState === "KNOWN_TO_CHARACTER" || fact.knowledgeState === "REASONABLY_INFERABLE")
+            .map((fact) => fact.text),
+          revealedLater: decision.facts
+            .filter((fact) => fact.knowledgeState === "REVEALED_LATER")
+            .map((fact) => fact.text),
+        }
+      : null,
     biblicalSynthesis: {
       observation: biblical.observation,
       principle: biblical.principle,
