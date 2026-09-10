@@ -5,7 +5,6 @@ import type {
   CraftModule,
   DecisionModule,
   FamilyYouthModule,
-  FinalSynthesisModule,
   MeaningModule,
   MoralAnalysisModule,
   PermissionModule,
@@ -335,32 +334,6 @@ export function BiblicalSynthesisModuleView({ module }: { module: BiblicalSynthe
         <li><span>Application</span><p>{module.application}</p></li>
         <li><span>Qualification</span><p>{module.qualification}</p></li>
       </ol>
-    </section>
-  );
-}
-
-export function FinalSynthesisModuleView({ module }: { module: FinalSynthesisModule }) {
-  return (
-    <section id={module.id} className="sectionShell sectionRule filmModule filmFinalSynthesis">
-      <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
-      <p className="filmFinalThesis">{module.thesis}</p>
-      <div className="filmSynthesisFacets" aria-label="Independent synthesis facets">
-        {module.facets.map((facet) => (
-          <article key={facet.key}>
-            <span>{facet.label}</span>
-            <strong>{facet.value}</strong>
-          </article>
-        ))}
-      </div>
-      <div className="filmFinalVerdict">
-        <span className="microLabel">FINAL SYNTHESIS / CONFIDENCE {module.confidence}</span>
-        <p>{module.verdict}</p>
-        {module.qualifications.length > 0 ? (
-          <ul>
-            {module.qualifications.map((qualification) => <li key={qualification}>{qualification}</li>)}
-          </ul>
-        ) : null}
-      </div>
     </section>
   );
 }
