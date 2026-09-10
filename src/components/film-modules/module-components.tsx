@@ -5,7 +5,9 @@ import type {
   CraftModule,
   DecisionModule,
   FamilyYouthModule,
+  FinalSynthesisModule,
   MeaningModule,
+  MoralAnalysisModule,
   PermissionModule,
   RelationshipModule,
   SourcesMethodModule,
@@ -298,6 +300,51 @@ export function DecisionModuleView({ module, spoilerLevel }: { module: DecisionM
   );
 }
 
+export function MoralAnalysisModuleView({ module, spoilerLevel }: { module: MoralAnalysisModule; spoilerLevel: SpoilerLevel }) {
+  const events = filterBySpoilerLevel(module.events, spoilerLevel);
+  const wrongdoingCount = events.filter((event) => event.valence === "WRONGDOING").length;
+
+  return (
+    <section id={module.id} className="sectionShell sectionRule filmModule filmMoralAnalysis">
+      <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
+      {module.summary ? <p className="sectionIntro">{module.summary}</p> : null}
+      <div className="filmMoralLedgerMeta" aria-label="Visible moral event summary">
+        <div><span>Visible significant events</span><strong>{events.length}</strong></div>
+        <div><span>Visible wrongdoing events</span><strong>{wrongdoingCount}</strong></div>
+        <p>Event count is descriptive. It is never used as a proxy for severity, film quality or narrative endorsement.</p>
+      </div>
+      <ol className="filmMoralLedger">
+        {events.map((event, index) => (
+          <li key={event.id}>
+            <div className="filmMoralEventTopline">
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <span>{event.category}</span>
+              <span>{humanizeEnum(event.valence)}</span>
+              <span>Confidence / {event.confidence}</span>
+            </div>
+            <h3>{event.act}</h3>
+            <dl className="filmMoralEventGrid">
+              {event.target ? <div><dt>Target</dt><dd>{event.target}</dd></div> : null}
+              {event.motive ? <div><dt>Motive</dt><dd>{event.motive}</dd></div> : null}
+              {event.intention ? <div><dt>Intention</dt><dd>{event.intention}</dd></div> : null}
+              {event.knowledge ? <div><dt>Knowledge</dt><dd>{event.knowledge}</dd></div> : null}
+              {event.freedom ? <div><dt>Freedom</dt><dd>{event.freedom}</dd></div> : null}
+              {event.pressure ? <div><dt>Pressure</dt><dd>{event.pressure}</dd></div> : null}
+              {event.foreseeability ? <div><dt>Foreseeability</dt><dd>{event.foreseeability}</dd></div> : null}
+              {event.consequence ? <div><dt>Consequence</dt><dd>{event.consequence}</dd></div> : null}
+              {event.responsibility ? <div><dt>Responsibility</dt><dd>{event.responsibility}</dd></div> : null}
+              {event.severity ? <div><dt>Wrongdoing severity</dt><dd>{event.severity}</dd></div> : null}
+              {event.culpability ? <div><dt>Culpability</dt><dd>{event.culpability}</dd></div> : null}
+              {event.repentance ? <div><dt>Repentance / repair</dt><dd>{humanizeEnum(event.repentance)}</dd></div> : null}
+              <div><dt>Narrative stance</dt><dd>{humanizeEnum(event.narrativeStance)}</dd></div>
+            </dl>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 export function BiblicalSynthesisModuleView({ module }: { module: BiblicalSynthesisModule }) {
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule biblicalSection">
@@ -309,6 +356,32 @@ export function BiblicalSynthesisModuleView({ module }: { module: BiblicalSynthe
         <li><span>Application</span><p>{module.application}</p></li>
         <li><span>Qualification</span><p>{module.qualification}</p></li>
       </ol>
+    </section>
+  );
+}
+
+export function FinalSynthesisModuleView({ module }: { module: FinalSynthesisModule }) {
+  return (
+    <section id={module.id} className="sectionShell sectionRule filmModule filmFinalSynthesis">
+      <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
+      <p className="filmFinalThesis">{module.thesis}</p>
+      <div className="filmSynthesisFacets" aria-label="Independent synthesis facets">
+        {module.facets.map((facet) => (
+          <article key={facet.key}>
+            <span>{facet.label}</span>
+            <strong>{facet.value}</strong>
+          </article>
+        ))}
+      </div>
+      <div className="filmFinalVerdict">
+        <span className="microLabel">FINAL SYNTHESIS / CONFIDENCE {module.confidence}</span>
+        <p>{module.verdict}</p>
+        {module.qualifications.length > 0 ? (
+          <ul>
+            {module.qualifications.map((qualification) => <li key={qualification}>{qualification}</li>)}
+          </ul>
+        ) : null}
+      </div>
     </section>
   );
 }

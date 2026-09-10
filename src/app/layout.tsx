@@ -3,6 +3,7 @@ import { ExperienceDiagnostics } from "@/components/experience/experience-diagno
 import { ExperienceQualityProvider } from "@/components/experience/experience-quality-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import "../styles/platform.css";
 import "./globals.css";
 import "../styles/tokens.css";
 import "../styles/primitives.css";
@@ -10,6 +11,7 @@ import "../styles/route-states.css";
 import "../styles/methodology.css";
 import "../styles/spoilers.css";
 import "../styles/film-modules.css";
+import "../styles/film-verdict.css";
 import "../styles/experience.css";
 
 export const metadata: Metadata = {

@@ -1,0 +1,440 @@
+.filmMoralAnalysis,
+.filmFinalSynthesis {
+  container-type: inline-size;
+  container-name: verdict-surface;
+  position: relative;
+  isolation: isolate;
+}
+
+.filmMoralAnalysis::before,
+.filmFinalSynthesis::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 8% -8% auto;
+  height: min(58rem, 74cqi);
+  pointer-events: none;
+  opacity: 0.55;
+  filter: blur(0.2px);
+  mask-image: linear-gradient(to bottom, #000, transparent 82%);
+}
+
+.filmMoralAnalysis::before {
+  background:
+    radial-gradient(circle at 18% 16%, color-mix(in oklab, var(--crimson) 22%, transparent), transparent 30%),
+    radial-gradient(circle at 74% 40%, rgb(255 255 255 / 0.035), transparent 26%);
+}
+
+.filmFinalSynthesis::before {
+  background:
+    radial-gradient(circle at 72% 18%, color-mix(in oklab, var(--amber) 18%, transparent), transparent 28%),
+    radial-gradient(circle at 18% 52%, color-mix(in oklab, var(--crimson) 10%, transparent), transparent 31%);
+}
+
+.filmMoralLedgerMeta {
+  margin-top: clamp(2.5rem, 6vw, 5.5rem);
+  display: grid;
+  grid-template-columns: minmax(150px, 0.24fr) minmax(150px, 0.24fr) minmax(280px, 1fr);
+  border-block: 1px solid var(--line);
+  background:
+    linear-gradient(110deg, rgb(255 255 255 / 0.025), transparent 44%),
+    color-mix(in oklab, var(--bg-elevated) 86%, transparent);
+  backdrop-filter: blur(18px) saturate(115%);
+}
+
+.filmMoralLedgerMeta > div,
+.filmMoralLedgerMeta > p {
+  min-height: 9rem;
+  margin: 0;
+  padding: clamp(1rem, 2.5cqi, 1.8rem);
+}
+
+.filmMoralLedgerMeta > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-inline-end: 1px solid var(--line);
+}
+
+.filmMoralLedgerMeta span {
+  color: var(--muted);
+  font-size: 0.63rem;
+  line-height: 1.35;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.filmMoralLedgerMeta strong {
+  font-family: var(--display);
+  font-size: clamp(2.8rem, 7cqi, 6.4rem);
+  font-weight: 500;
+  line-height: 0.72;
+  letter-spacing: -0.07em;
+  font-variant-numeric: tabular-nums;
+}
+
+.filmMoralLedgerMeta > p {
+  align-content: end;
+  max-width: 46rem;
+  color: #bbb5ab;
+  font-size: clamp(0.9rem, 1.3cqi, 1.08rem);
+}
+
+.filmMoralLedger {
+  counter-reset: moral-event;
+  list-style: none;
+  margin: clamp(3.5rem, 8vw, 7rem) 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line-strong);
+}
+
+.filmMoralLedger > li {
+  --event-accent: var(--text);
+  position: relative;
+  padding: clamp(1.5rem, 4cqi, 3.4rem) 0 clamp(2rem, 5cqi, 4.6rem);
+  border-bottom: 1px solid var(--line);
+}
+
+.filmMoralLedger > li::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at var(--dmr-pointer-x) var(--dmr-pointer-y), rgb(255 255 255 / 0.055), transparent 24%),
+    linear-gradient(90deg, color-mix(in oklab, var(--event-accent) 5%, transparent), transparent 38%);
+  transition: opacity 280ms var(--ease-dmr-precise);
+}
+
+.filmMoralLedger > li:hover::before,
+.filmMoralLedger > li:focus-within::before {
+  opacity: 1;
+}
+
+.filmMoralEventTopline {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 54px minmax(150px, 0.4fr) minmax(130px, 0.25fr) minmax(150px, 0.35fr);
+  gap: clamp(0.65rem, 2cqi, 2rem);
+  align-items: baseline;
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.filmMoralEventTopline > span:first-child {
+  color: color-mix(in oklab, var(--text) 74%, var(--muted));
+  font-family: var(--display);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.filmMoralLedger h3 {
+  position: relative;
+  z-index: 1;
+  max-width: 24ch;
+  margin-top: clamp(1.5rem, 4cqi, 3.4rem);
+  font-size: clamp(2rem, 5.4cqi, 5.3rem);
+  line-height: 0.94;
+  text-wrap: balance;
+}
+
+.filmMoralEventGrid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: clamp(2.4rem, 5cqi, 4.8rem);
+  border-top: 1px solid var(--line);
+}
+
+.filmMoralEventGrid > div {
+  min-height: 9rem;
+  margin: 0;
+  padding: 1rem clamp(0.8rem, 1.7cqi, 1.4rem) 1.3rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.filmMoralEventGrid > div:not(:nth-child(4n + 1)) {
+  padding-inline-start: clamp(0.8rem, 1.7cqi, 1.4rem);
+  border-inline-start: 1px solid var(--line);
+}
+
+.filmMoralEventGrid dt {
+  color: #77736c;
+}
+
+.filmMoralEventGrid dd {
+  margin-top: 1rem;
+  max-width: 30ch;
+  color: #d3cec4;
+  font-size: clamp(0.86rem, 1.2cqi, 1rem);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.filmFinalThesis {
+  max-width: 29ch;
+  margin: clamp(2.5rem, 7cqi, 6rem) 0 0;
+  color: #ddd6ca;
+  font-family: var(--display);
+  font-size: clamp(1.7rem, 4.1cqi, 4.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.filmSynthesisFacets {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-top: clamp(3rem, 7cqi, 6.5rem);
+  border-block: 1px solid var(--line-strong);
+}
+
+.filmSynthesisFacets > article {
+  min-width: 0;
+  min-height: clamp(10rem, 17cqi, 15rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: clamp(1rem, 2cqi, 1.6rem);
+  background:
+    linear-gradient(150deg, rgb(255 255 255 / 0.028), transparent 56%),
+    color-mix(in oklab, var(--bg) 96%, var(--amber) 4%);
+}
+
+.filmSynthesisFacets > article + article {
+  border-inline-start: 1px solid var(--line);
+}
+
+.filmSynthesisFacets span {
+  color: var(--muted);
+  font-size: 0.61rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.filmSynthesisFacets strong {
+  max-width: 13ch;
+  color: #e7dfd2;
+  font-family: var(--display);
+  font-size: clamp(1.05rem, 1.75cqi, 1.55rem);
+  font-weight: 500;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+
+.filmFinalVerdict {
+  position: relative;
+  overflow: hidden;
+  margin-top: clamp(4rem, 10cqi, 9rem);
+  padding: clamp(1.6rem, 4.5cqi, 4.5rem);
+  border: 1px solid color-mix(in oklab, var(--amber) 34%, var(--line));
+  background:
+    radial-gradient(circle at 78% 18%, color-mix(in oklab, var(--amber) 12%, transparent), transparent 27%),
+    linear-gradient(130deg, rgb(255 255 255 / 0.026), transparent 42%),
+    var(--bg-elevated);
+  box-shadow: 0 40px 110px rgb(0 0 0 / 0.48);
+}
+
+.filmFinalVerdict::after {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  pointer-events: none;
+  background: conic-gradient(from 220deg at 50% 50%, transparent 0 42%, rgb(184 141 82 / 0.055) 49%, transparent 56% 100%);
+  transform: rotate(-7deg);
+  mix-blend-mode: screen;
+}
+
+.filmFinalVerdict > * {
+  position: relative;
+  z-index: 1;
+}
+
+.filmFinalVerdict > p {
+  max-width: 26ch;
+  margin: clamp(2rem, 5cqi, 4.5rem) 0 0;
+  color: var(--text);
+  font-family: var(--display);
+  font-size: clamp(2rem, 5.7cqi, 6rem);
+  line-height: 0.93;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.filmFinalVerdict ul {
+  max-width: 62rem;
+  margin: clamp(2.5rem, 5cqi, 4rem) 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid color-mix(in oklab, var(--amber) 22%, var(--line));
+}
+
+.filmFinalVerdict li {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+  color: #aaa49a;
+  line-height: 1.55;
+}
+
+@supports (animation-timeline: view()) {
+  .filmMoralLedger > li,
+  .filmSynthesisFacets > article,
+  .filmFinalVerdict {
+    animation-name: dmr-verdict-enter;
+    animation-duration: 1ms;
+    animation-fill-mode: both;
+    animation-timing-function: linear;
+    animation-timeline: view();
+    animation-range: entry 4% cover 32%;
+  }
+
+  .filmSynthesisFacets > article:nth-child(2) { animation-range: entry 7% cover 34%; }
+  .filmSynthesisFacets > article:nth-child(3) { animation-range: entry 10% cover 36%; }
+  .filmSynthesisFacets > article:nth-child(4) { animation-range: entry 13% cover 38%; }
+  .filmSynthesisFacets > article:nth-child(5) { animation-range: entry 16% cover 40%; }
+  .filmSynthesisFacets > article:nth-child(6) { animation-range: entry 19% cover 42%; }
+
+  @keyframes dmr-verdict-enter {
+    from {
+      opacity: 0.25;
+      translate: 0 1.5rem;
+      filter: blur(5px);
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+      filter: blur(0);
+    }
+  }
+}
+
+@container verdict-surface (width < 70rem) {
+  .filmSynthesisFacets {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filmSynthesisFacets > article:nth-child(4) {
+    border-inline-start: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .filmSynthesisFacets > article:nth-child(n + 4) {
+    border-top: 1px solid var(--line);
+  }
+
+  .filmMoralEventGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filmMoralEventGrid > div:not(:nth-child(4n + 1)) {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  .filmMoralEventGrid > div:nth-child(even) {
+    padding-inline-start: clamp(0.8rem, 2cqi, 1.4rem);
+    border-inline-start: 1px solid var(--line);
+  }
+}
+
+@container verdict-surface (width < 48rem) {
+  .filmMoralLedgerMeta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filmMoralLedgerMeta > p {
+    grid-column: 1 / -1;
+    min-height: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .filmMoralEventTopline {
+    grid-template-columns: 38px 1fr;
+  }
+
+  .filmMoralEventTopline > span:nth-child(3),
+  .filmMoralEventTopline > span:nth-child(4) {
+    grid-column: 2;
+  }
+
+  .filmSynthesisFacets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filmSynthesisFacets > article,
+  .filmSynthesisFacets > article:nth-child(4) {
+    border-inline-start: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .filmSynthesisFacets > article:nth-child(even) {
+    border-inline-start: 1px solid var(--line);
+  }
+}
+
+@container verdict-surface (width < 32rem) {
+  .filmMoralLedgerMeta,
+  .filmMoralEventGrid,
+  .filmSynthesisFacets {
+    grid-template-columns: 1fr;
+  }
+
+  .filmMoralLedgerMeta > div,
+  .filmMoralEventGrid > div,
+  .filmMoralEventGrid > div:nth-child(even),
+  .filmSynthesisFacets > article,
+  .filmSynthesisFacets > article:nth-child(even) {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  .filmMoralLedgerMeta > div {
+    min-height: 7rem;
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .filmMoralLedgerMeta > p {
+    grid-column: auto;
+  }
+
+  .filmMoralEventGrid > div {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filmMoralLedger > li,
+  .filmSynthesisFacets > article,
+  .filmFinalVerdict {
+    animation: none !important;
+    translate: none !important;
+    filter: none !important;
+  }
+
+  .filmMoralLedger > li::before {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .filmMoralLedgerMeta,
+  .filmFinalVerdict,
+  .filmSynthesisFacets > article {
+    background: Canvas;
+    box-shadow: none;
+  }
+
+  .filmMoralAnalysis::before,
+  .filmFinalSynthesis::before,
+  .filmFinalVerdict::after,
+  .filmMoralLedger > li::before {
+    display: none;
+  }
+}
