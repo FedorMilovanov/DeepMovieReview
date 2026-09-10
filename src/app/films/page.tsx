@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { filmPackages } from "@/data/film-packages";
+import { filmPackages } from "@/data/film-registry";
 
 export const metadata: Metadata = {
   title: "Films",
