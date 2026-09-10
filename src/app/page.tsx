@@ -1,25 +1,29 @@
 import Link from "next/link";
-import { pilotFilmPackage } from "@/data/film-registry";
+import { requireFilmPackageBySlug } from "@/data/film-registry";
+import { homepageFeaturedFilmSlug } from "@/data/site-config";
 import { projectHomepage } from "@/lib/homepage-projection";
 
+const featuredFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
+
 export default function HomePage() {
-  const data = projectHomepage(pilotFilmPackage);
+  const data = projectHomepage(featuredFilmPackage);
+  const isPublished = data.featuredFilm.status === "published";
 
   return (
     <>
       <section className="heroSection sectionShell" aria-labelledby="hero-title">
-        <div className="eyebrow">Deep film analysis / shell v0</div>
+        <div className="eyebrow">Deep film analysis / {isPublished ? "featured analysis" : "structural preview"}</div>
         <div className="heroGrid">
           <div className="heroCopy">
             <p className="kicker">A film is more than what happens on screen.</p>
             <h1 id="hero-title">Stories teach through people, relationships, choices and consequences.</h1>
             <p className="lede">DeepMovieReview examines the whole film first — then argues its moral and biblical synthesis from evidence.</p>
             <div className="heroActions">
-              <Link className="buttonPrimary" href={`/films/${data.featuredFilm.slug}`}>Open fixture</Link>
+              <Link className="buttonPrimary" href={`/films/${data.featuredFilm.slug}`}>{isPublished ? "Open analysis" : "Open structural fixture"}</Link>
               <Link className="buttonGhost" href="#lenses">See the lenses</Link>
             </div>
           </div>
-          <div className="livingFrame" aria-label="Living Film Frame placeholder">
+          <div className="livingFrame" aria-label="Living Film Frame">
             <div className="frameMeta"><span>FRAME / 0001</span><span>2.39:1</span></div>
             <div className="frameVisual" aria-hidden="true">
               <div className="frameOrb frameOrbA" />
@@ -94,7 +98,7 @@ export default function HomePage() {
       </section>
 
       <section className="sectionShell sectionRule autopsySection" aria-labelledby="autopsy-title">
-        <div className="sectionIndex">09 / SCENE AUTOPSY</div><div className="autopsyFrame" aria-hidden="true"><span>SCENE / FIXTURE</span><div className="autopsyCrosshair" /></div>
+        <div className="sectionIndex">09 / SCENE AUTOPSY</div><div className="autopsyFrame" aria-hidden="true"><span>SCENE / {isPublished ? "EVIDENCE" : "FIXTURE"}</span><div className="autopsyCrosshair" /></div>
         <div className="autopsyCopy"><h2 id="autopsy-title">Evidence before conclusion.</h2><dl className="autopsyGrid"><div><dt>ACT</dt><dd>{data.sceneAutopsy.act}</dd></div><div><dt>MOTIVE</dt><dd>{data.sceneAutopsy.motive}</dd></div><div><dt>KNOWLEDGE</dt><dd>{data.sceneAutopsy.knowledge}</dd></div><div><dt>PRESSURE</dt><dd>{data.sceneAutopsy.pressure}</dd></div><div><dt>CONSEQUENCE</dt><dd>{data.sceneAutopsy.consequence}</dd></div></dl></div>
       </section>
 
@@ -109,8 +113,8 @@ export default function HomePage() {
       </section>
 
       <section className="sectionShell sectionRule discoverySection" aria-labelledby="discovery-title">
-        <div><div className="sectionIndex">12 / DISCOVERY</div><h2 id="discovery-title">Build the platform first. Then let every film deepen the atlas.</h2><p className="sectionIntro">Films will later connect through themes, relationships, dilemmas, narrative permissions and biblical principles.</p></div>
-        <div className="discoveryLinks"><Link href="/films">Browse film shell</Link><Link href="/#lenses">Explore lenses</Link><Link href="/methodology">Read the methodology</Link></div>
+        <div><div className="sectionIndex">12 / DISCOVERY</div><h2 id="discovery-title">Every finished analysis deepens the atlas.</h2><p className="sectionIntro">Films can connect through themes, relationships, dilemmas, narrative permissions and biblical principles without collapsing those dimensions into one score.</p></div>
+        <div className="discoveryLinks"><Link href="/films">Browse films</Link><Link href="/#lenses">Explore lenses</Link><Link href="/methodology">Read the methodology</Link></div>
       </section>
     </>
   );
