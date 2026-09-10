@@ -162,8 +162,14 @@ export function validateVisualAssetManifest(manifest: VisualAssetManifest): stri
   }
   if (manifest.subjectSafeZone && !isNormalizedRect(manifest.subjectSafeZone)) errors.push("subjectSafeZone is outside normalized bounds.");
 
-  if (!manifest.variants.some((variant) => variant.purpose === "display" && variantAllowedForTier(variant, "LITE"))) {
-    errors.push("At least one display variant available to LITE is required for static and GPU fallback.");
+  const hasUniversalLiteDisplay = manifest.variants.some(
+    (variant) =>
+      variant.purpose === "display" &&
+      variantAllowedForTier(variant, "LITE") &&
+      variant.media === undefined,
+  );
+  if (!hasUniversalLiteDisplay) {
+    errors.push("At least one unconditional display variant available to LITE is required for universal static and GPU fallback.");
   }
 
   for (const variant of manifest.variants) {
