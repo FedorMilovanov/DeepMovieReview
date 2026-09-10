@@ -107,6 +107,7 @@ export type CharactersModule = FilmModuleBase & {
     wants: string;
     fears: string;
     contradiction: string;
+    interpretiveSpoilerLevel?: SpoilerLevel;
     believes?: string;
     selfDeception?: string;
     arcSummary?: string;
