@@ -65,6 +65,18 @@ test("ambiguous backslash source URLs are rejected before URL normalization", ()
             href: "https:\\evil.example/path",
           },
           {
+            id: "ambiguous-source",
+            label: "Ambiguous source",
+            kind: "reference",
+            href: "https:evil.example/path",
+          },
+          {
+            id: "protocol-relative-source",
+            label: "Protocol-relative source",
+            kind: "reference",
+            href: "//evil.example/path",
+          },
+          {
             id: "good-source",
             label: "Good source",
             kind: "reference",
@@ -83,6 +95,8 @@ test("ambiguous backslash source URLs are rejected before URL normalization", ()
 
   const errors = validateFilmPackage(filmPackage);
   assert.equal(errors.filter((error) => error.includes("bad-source")).length, 1);
+  assert.equal(errors.filter((error) => error.includes("ambiguous-source")).length, 1);
+  assert.equal(errors.filter((error) => error.includes("protocol-relative-source")).length, 1);
   assert.equal(errors.some((error) => error.includes("good-source")), false);
   assert.equal(errors.some((error) => error.includes("good-internal")), false);
 });
@@ -441,4 +455,39 @@ test("published character profiles require canonical evidence support", () => {
     error.includes("characters/character-a") &&
     error.includes("published interpretive claims require evidence support")
   ));
+});
+
+test("decision modules disappear when the current spoiler level removes every usable nested item", () => {
+  const projected = projectFilmModule({
+    id: "decision-empty-at-none",
+    kind: "decision",
+    heading: "Decision",
+    spoilerLevel: "NONE",
+    prompt: "A spoiler-safe framing question",
+    options: [{
+      id: "option",
+      label: "Protected option",
+      availableAtDecisionTime: true,
+      spoilerLevel: "MINOR",
+    }],
+    facts: [{
+      id: "fact",
+      text: "Protected fact",
+      knowledgeState: "KNOWN_TO_CHARACTER",
+      spoilerLevel: "MINOR",
+    }],
+    pressures: [{
+      id: "pressure",
+      kind: "EMOTIONAL",
+      summary: "Protected pressure",
+      spoilerLevel: "MINOR",
+    }],
+    dutiesOrGoods: [{
+      id: "duty",
+      label: "Protected duty",
+      spoilerLevel: "MINOR",
+    }],
+  }, "NONE");
+
+  assert.equal(projected, null);
 });
