@@ -260,6 +260,16 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
       }
       case "moral-analysis":
         for (const item of filmModule.events) {
+          const actorIds = item.actorCharacterIds ?? [];
+          for (const id of duplicateIds(actorIds)) {
+            errors.push(`${filmModule.id}/${item.id}: duplicate actor character id "${id}".`);
+          }
+          for (const id of actorIds) {
+            if (!characterIds.has(id)) errors.push(`${filmModule.id}/${item.id}: unknown actor character id "${id}".`);
+          }
+          if (published && (item.valence === "WRONGDOING" || item.valence === "VIRTUE") && actorIds.length === 0) {
+            errors.push(`${filmModule.id}/${item.id}: published wrongdoing/virtue event requires at least one actor character id.`);
+          }
           checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
           if ((item.valence === "VIRTUE" || item.valence === "PRUDENTIAL") && (item.severity || item.culpability)) {
             errors.push(`${filmModule.id}/${item.id}: severity/culpability do not apply to virtue or prudential events.`);
