@@ -1,6 +1,6 @@
 import type { LensKey, NarrativePermissionState, ShellFilm } from "@/lib/content";
 import type { Confidence, FilmModule, FilmModuleKind, FilmPackage } from "@/lib/film-package";
-import { projectFilmModules } from "@/lib/film-module-projection";
+import { projectFilmModules } from "./film-module-projection";
 
 export type HomepageViewModel = {
   featuredFilm: ShellFilm;
@@ -77,6 +77,20 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
   const decision = optionalModuleOfKind(homepagePackage, "decision");
   const biblical = optionalModuleOfKind(homepagePackage, "biblical-synthesis");
 
+  const familyYouthItems = familyYouth
+    ? familyYouth.observations.map((item) => ({ label: item.subject, observation: item.claim }))
+    : [];
+  const knownThen = decision
+    ? decision.facts
+        .filter((fact) => fact.knowledgeState === "KNOWN_TO_CHARACTER" || fact.knowledgeState === "REASONABLY_INFERABLE")
+        .map((fact) => fact.text)
+    : [];
+  const revealedLater = decision
+    ? decision.facts
+        .filter((fact) => fact.knowledgeState === "REVEALED_LATER")
+        .map((fact) => fact.text)
+    : [];
+
   return {
     featuredFilm: filmPackage.film,
     lenses,
@@ -92,9 +106,7 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
       summary: relationship.summary,
       events: relationship.events.map(({ id, label, change, tone }) => ({ id, label, change, tone })),
     },
-    familyYouth: familyYouth
-      ? familyYouth.observations.map((item) => ({ label: item.subject, observation: item.claim }))
-      : null,
+    familyYouth: familyYouthItems.length > 0 ? familyYouthItems : null,
     meaning: {
       theme: meaning.theme,
       question: meaning.question,
@@ -114,15 +126,11 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
           consequence: autopsy.consequence,
         }
       : null,
-    decision: decision
+    decision: decision && (knownThen.length > 0 || revealedLater.length > 0)
       ? {
           question: decision.prompt,
-          knownThen: decision.facts
-            .filter((fact) => fact.knowledgeState === "KNOWN_TO_CHARACTER" || fact.knowledgeState === "REASONABLY_INFERABLE")
-            .map((fact) => fact.text),
-          revealedLater: decision.facts
-            .filter((fact) => fact.knowledgeState === "REVEALED_LATER")
-            .map((fact) => fact.text),
+          knownThen,
+          revealedLater,
         }
       : null,
     biblicalSynthesis: biblical
