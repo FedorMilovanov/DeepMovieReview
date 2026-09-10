@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
-import { canRevealSpoiler, parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
+import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
 type FilmPageProps = {
   params: Promise<{ slug: string }>;
@@ -62,11 +62,11 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
           <h2 id="film-outline-title">Addressable analysis, filtered to your spoiler level.</h2>
         </div>
         <nav className="filmOutline" aria-label={`${film.title} analysis sections`}>
-          {visibleModules.map((module, index) => (
-            <Link key={module.id} href={`${outlineBase}#${module.id}`} scroll>
+          {visibleModules.map((filmModule, index) => (
+            <Link key={filmModule.id} href={`${outlineBase}#${filmModule.id}`} scroll>
               <span>{String(index + 1).padStart(2, "0")}</span>
-              <strong>{module.eyebrow ?? module.kind}</strong>
-              <small>{module.heading}</small>
+              <strong>{filmModule.eyebrow ?? filmModule.kind}</strong>
+              <small>{filmModule.heading}</small>
             </Link>
           ))}
         </nav>
@@ -84,7 +84,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         {hiddenModuleCount > 0 ? (
           <p className="spoilerOmissionNotice" aria-live="polite">{hiddenModuleCount} analytical {hiddenModuleCount === 1 ? "module is" : "modules are"} omitted at the current spoiler level.</p>
         ) : (
-          <p className="spoilerOmissionNotice" aria-live="polite">All modules in this fixture are currently visible.</p>
+          <p className="spoilerOmissionNotice" aria-live="polite">All analysis modules are currently visible.</p>
         )}
       </section>
 
