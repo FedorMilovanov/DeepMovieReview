@@ -49,26 +49,33 @@ export function StoryModuleView({ module, spoilerLevel }: { module: StoryModule;
   );
 }
 
-export function CharactersModuleView({ module }: { module: CharactersModule }) {
+export function CharactersModuleView({ module, spoilerLevel }: { module: CharactersModule; spoilerLevel: SpoilerLevel }) {
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       <div className="characterGrid">
-        {module.characters.map((character) => (
-          <article className="characterCard" key={character.id}>
-            <div className="portraitPlaceholder" aria-hidden="true" />
-            <h3>{character.name}</h3>
-            <dl>
-              <div><dt>Wants</dt><dd>{character.wants}</dd></div>
-              <div><dt>Fears</dt><dd>{character.fears}</dd></div>
-              <div><dt>Contradiction</dt><dd>{character.contradiction}</dd></div>
-              {character.believes ? <div><dt>Believes</dt><dd>{character.believes}</dd></div> : null}
-              {character.selfDeception ? <div><dt>Self-deception</dt><dd>{character.selfDeception}</dd></div> : null}
-              {character.arcSummary ? <div><dt>Arc</dt><dd>{character.arcSummary}</dd></div> : null}
-              {character.roleInArgument ? <div><dt>Role</dt><dd>{character.roleInArgument}</dd></div> : null}
-            </dl>
-          </article>
-        ))}
+        {module.characters.map((character) => {
+          const showInterpretive = canRevealSpoiler(
+            spoilerLevel,
+            character.interpretiveSpoilerLevel ?? module.spoilerLevel,
+          );
+
+          return (
+            <article className="characterCard" key={character.id}>
+              <div className="portraitPlaceholder" aria-hidden="true" />
+              <h3>{character.name}</h3>
+              <dl>
+                <div><dt>Wants</dt><dd>{character.wants}</dd></div>
+                <div><dt>Fears</dt><dd>{character.fears}</dd></div>
+                <div><dt>Contradiction</dt><dd>{character.contradiction}</dd></div>
+                {showInterpretive && character.believes ? <div><dt>Believes</dt><dd>{character.believes}</dd></div> : null}
+                {showInterpretive && character.selfDeception ? <div><dt>Self-deception</dt><dd>{character.selfDeception}</dd></div> : null}
+                {showInterpretive && character.arcSummary ? <div><dt>Arc</dt><dd>{character.arcSummary}</dd></div> : null}
+                {showInterpretive && character.roleInArgument ? <div><dt>Role</dt><dd>{character.roleInArgument}</dd></div> : null}
+              </dl>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
