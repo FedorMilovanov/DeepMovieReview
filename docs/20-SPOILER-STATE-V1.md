@@ -1,7 +1,7 @@
 # DeepMovieReview — Spoiler State v1
 
-> Status: platform foundation  
-> Scope: spoiler visibility before real film packages are loaded.
+> Status: implemented platform foundation  
+> Scope: spoiler visibility contract used by the reusable film renderer before Film 001.
 
 ## 1. Principle
 
@@ -87,14 +87,14 @@ Future search indexing should either:
 
 ## 6. Deep links
 
-Future deep-link policy:
+Current deep-link policy:
 
-- every analytical section/entity has a stable ID;
-- a deep link to content above the current allowed level must not reveal it silently;
-- route should show an accessible interstitial/reveal action explaining the required level;
-- user can explicitly raise spoiler permission and continue to the same anchor.
+- every rendered analytical module has a stable ID;
+- hidden modules are removed before render;
+- `SpoilerDeepLinkGuard` clears stale hashes when a target is unavailable at the current spoiler level, including `hashchange` navigation;
+- user permission is never auto-escalated merely because a URL targets hidden content.
 
-Do not auto-escalate spoiler permission merely because a URL targets a hidden section.
+A richer explanatory interstitial may be added later, but silent reveal is already prohibited.
 
 ## 7. Session / account evolution
 
