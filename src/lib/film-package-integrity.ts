@@ -161,11 +161,11 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         }
         break;
       case "relationship": {
-        if (published && !filmModule.participantIds) {
-          errors.push(`${filmModule.id}: published relationship requires participantIds.`);
+        if (published && !filmModule.participantCharacterIds) {
+          errors.push(`${filmModule.id}: published relationship requires participantCharacterIds.`);
         }
-        if (filmModule.participantIds) {
-          const participants = [...filmModule.participantIds];
+        if (filmModule.participantCharacterIds) {
+          const participants = [...filmModule.participantCharacterIds];
           if (duplicateIds(participants).length > 0) {
             errors.push(`${filmModule.id}: relationship participants must be distinct character ids.`);
           }
