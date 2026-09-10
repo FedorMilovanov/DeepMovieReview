@@ -8,7 +8,7 @@
 
 .routeLoadingLabel {
   margin: 1.25rem 0 0;
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -20,8 +20,8 @@
 .routeMetaCellSkeleton {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(180deg, #0d0d0d, #070707);
-  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #0d0d0d, var(--surface-1));
+  border: 1px solid var(--stroke-default);
 }
 
 .routeSkeleton::after,
@@ -32,7 +32,7 @@
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.035), transparent);
   animation: routeStateSweep 1.6s ease-in-out infinite;
 }
 
@@ -74,8 +74,8 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
+  background: var(--stroke-default);
+  border: 1px solid var(--stroke-default);
 }
 
 .routeMetaCellSkeleton {
@@ -121,15 +121,5 @@
   .routeFilmHeroSkeleton {
     aspect-ratio: 16 / 10;
     min-height: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .routeSkeleton::after,
-  .routeCardSkeleton::after,
-  .routeFilmHeroSkeleton::after,
-  .routeMetaCellSkeleton::after {
-    animation: none;
-    display: none;
   }
 }
