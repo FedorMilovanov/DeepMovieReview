@@ -20,14 +20,20 @@ function currentHashId(): string | null {
  */
 export function SpoilerDeepLinkGuard({ spoilerLevel }: { spoilerLevel: SpoilerLevel }) {
   useEffect(() => {
-    const targetId = currentHashId();
-    if (!targetId || document.getElementById(targetId)) return;
+    function clearStaleHash() {
+      const targetId = currentHashId();
+      if (!targetId || document.getElementById(targetId)) return;
 
-    window.history.replaceState(
-      window.history.state,
-      "",
-      `${window.location.pathname}${window.location.search}`,
-    );
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${window.location.pathname}${window.location.search}`,
+      );
+    }
+
+    clearStaleHash();
+    window.addEventListener("hashchange", clearStaleHash);
+    return () => window.removeEventListener("hashchange", clearStaleHash);
   }, [spoilerLevel]);
 
   return null;
