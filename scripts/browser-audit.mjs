@@ -147,7 +147,7 @@ try {
     throw new Error("Document did not reach readyState=complete.");
   }
 
-  async function navigate(pathname, width, height, reducedMotion = false) {
+  async function navigate(pathname, width, height, reducedMotion = false, forcedColors = false) {
     await send("Emulation.setDeviceMetricsOverride", {
       width,
       height,
@@ -155,10 +155,16 @@ try {
       mobile: width < 600,
     });
     await send("Emulation.setEmulatedMedia", {
-      features: [{
-        name: "prefers-reduced-motion",
-        value: reducedMotion ? "reduce" : "no-preference",
-      }],
+      features: [
+        {
+          name: "prefers-reduced-motion",
+          value: reducedMotion ? "reduce" : "no-preference",
+        },
+        {
+          name: "forced-colors",
+          value: forcedColors ? "active" : "none",
+        },
+      ],
     });
     await send("Page.navigate", { url: baseUrl + pathname });
     await waitForDocumentReady();
@@ -229,6 +235,12 @@ try {
   const overflow = await evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth");
   assertCheck("home mobile: no horizontal overflow", overflow);
   await capture("home-mobile", true);
+
+  await navigate("/", 1280, 900, false, true);
+  await inspectBasic("home forced colors");
+  const forcedColorsActive = await evaluate("matchMedia('(forced-colors: active)').matches");
+  assertCheck("forced colors: browser media emulation active", forcedColorsActive);
+  await capture("home-forced-colors", false);
 
   await navigate("/labs/six-lenses", 1280, 900);
   const six = await inspectBasic("six lenses");
