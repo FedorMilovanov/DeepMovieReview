@@ -1,5 +1,5 @@
 import type { FilmModule } from "@/lib/film-package";
-import { canRevealSpoiler, type SpoilerLevel } from "@/lib/spoilers";
+import { canRevealSpoiler, type SpoilerLevel } from "./spoilers";
 
 function visible<T extends { spoilerLevel: SpoilerLevel }>(items: T[], level: SpoilerLevel): T[] {
   return items.filter((item) => canRevealSpoiler(level, item.spoilerLevel));
@@ -12,22 +12,29 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
   switch (module.kind) {
     case "story":
       return { ...module, beats: visible(module.beats, level) };
-    case "characters":
-      return {
-        ...module,
-        characters: module.characters.map((character) => {
-          const allowed = canRevealSpoiler(level, character.interpretiveSpoilerLevel ?? module.spoilerLevel);
-          if (allowed) return character;
-          return {
-            id: character.id,
-            name: character.name,
-            wants: character.wants,
-            fears: character.fears,
-            contradiction: character.contradiction,
-            interpretiveSpoilerLevel: character.interpretiveSpoilerLevel,
-          };
-        }),
-      };
+    case "characters": {
+      const characters = module.characters.flatMap((character) => {
+        const profileAllowed = canRevealSpoiler(level, character.profileSpoilerLevel ?? module.spoilerLevel);
+        if (!profileAllowed) return [];
+
+        const interpretationAllowed = canRevealSpoiler(
+          level,
+          character.interpretiveSpoilerLevel ?? character.profileSpoilerLevel ?? module.spoilerLevel,
+        );
+        if (interpretationAllowed) return [character];
+
+        return [{
+          id: character.id,
+          name: character.name,
+          wants: character.wants,
+          fears: character.fears,
+          contradiction: character.contradiction,
+          profileSpoilerLevel: character.profileSpoilerLevel,
+          interpretiveSpoilerLevel: character.interpretiveSpoilerLevel,
+        }];
+      });
+      return characters.length > 0 ? { ...module, characters } : null;
+    }
     case "relationship":
       return { ...module, events: visible(module.events, level) };
     case "family-youth": {
