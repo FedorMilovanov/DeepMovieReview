@@ -20,18 +20,8 @@ export type VisualAssetPurpose =
   | "share-card";
 
 export type ImageFormat = "avif" | "webp" | "png" | "jpg";
-
-export type NormalizedPoint = {
-  x: number;
-  y: number;
-};
-
-export type NormalizedRect = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
+export type NormalizedPoint = { x: number; y: number };
+export type NormalizedRect = { x: number; y: number; width: number; height: number };
 
 export type VisualAssetVariant = {
   id: string;
@@ -77,6 +67,7 @@ export type VisualAssetManifest = {
   role: VisualAssetRole;
   title: string;
   alt: string;
+  decorative?: boolean;
   aspectRatio: number;
   focalPoint: NormalizedPoint;
   mobileFocalPoint?: NormalizedPoint;
@@ -95,61 +86,46 @@ export type VisualAssetManifest = {
   provenance: VisualArtProvenance;
 };
 
-const TIER_RANK: Record<ExperienceTier, number> = {
-  LITE: 0,
-  MEDIUM: 1,
-  HIGH: 2,
-  ULTRA: 3,
-};
+const TIER_RANK: Record<ExperienceTier, number> = { LITE: 0, MEDIUM: 1, HIGH: 2, ULTRA: 3 };
 
 export function isNormalizedPoint(point: NormalizedPoint): boolean {
   return point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1;
 }
 
 export function isNormalizedRect(rect: NormalizedRect): boolean {
-  return (
-    rect.x >= 0 &&
-    rect.y >= 0 &&
-    rect.width >= 0 &&
-    rect.height >= 0 &&
-    rect.x + rect.width <= 1 &&
-    rect.y + rect.height <= 1
-  );
+  return rect.x >= 0 && rect.y >= 0 && rect.width >= 0 && rect.height >= 0 && rect.x + rect.width <= 1 && rect.y + rect.height <= 1;
 }
 
 export function variantAllowedForTier(variant: VisualAssetVariant, tier: ExperienceTier): boolean {
-  if (!variant.minTier) return true;
-  return TIER_RANK[tier] >= TIER_RANK[variant.minTier];
+  return !variant.minTier || TIER_RANK[tier] >= TIER_RANK[variant.minTier];
 }
 
 export function chooseDisplayVariant(
   manifest: VisualAssetManifest,
   options: {
     tier: ExperienceTier;
-    viewportWidth: number;
+    renderedWidth: number;
+    targetDpr?: number;
     preferredPurpose?: "display" | "gpu-texture";
+    mediaMatcher?: (query: string) => boolean;
   },
 ): VisualAssetVariant | undefined {
   const purpose = options.preferredPurpose ?? (options.tier === "LITE" ? "display" : "gpu-texture");
+  const targetPixels = Math.max(1, options.renderedWidth) * Math.max(1, options.targetDpr ?? 1);
   const candidates = manifest.variants
     .filter((variant) => variant.purpose === purpose)
     .filter((variant) => variantAllowedForTier(variant, options.tier))
+    .filter((variant) => !variant.media || Boolean(options.mediaMatcher?.(variant.media)))
     .sort((a, b) => a.width - b.width);
 
   if (candidates.length === 0 && purpose === "gpu-texture") {
     return chooseDisplayVariant(manifest, { ...options, preferredPurpose: "display" });
   }
-
-  return candidates.find((variant) => variant.width >= options.viewportWidth) ?? candidates.at(-1);
+  return candidates.find((variant) => variant.width >= targetPixels) ?? candidates.at(-1);
 }
 
 function hasValidDimensions(variant: VisualAssetVariant): boolean {
-  return (
-    Number.isFinite(variant.width) &&
-    Number.isFinite(variant.height) &&
-    variant.width > 0 &&
-    variant.height > 0
-  );
+  return Number.isFinite(variant.width) && Number.isFinite(variant.height) && variant.width > 0 && variant.height > 0;
 }
 
 export function validateVisualAssetManifest(manifest: VisualAssetManifest): string[] {
@@ -160,25 +136,18 @@ export function validateVisualAssetManifest(manifest: VisualAssetManifest): stri
 
   if (!manifest.id.trim()) errors.push("Manifest id is required.");
   if (!manifest.title.trim()) errors.push("Manifest title is required.");
-  if (!manifest.alt.trim()) errors.push("Accessible alt text is required.");
-  if (!Number.isFinite(manifest.aspectRatio) || manifest.aspectRatio <= 0) {
-    errors.push("aspectRatio must be a positive number.");
-  }
+  if (manifest.decorative && manifest.alt.trim()) errors.push("Decorative assets must use empty alt text.");
+  if (!manifest.decorative && !manifest.alt.trim()) errors.push("Informative assets require accessible alt text.");
+  if (manifest.role === "background" && manifest.decorative === undefined) errors.push("Background assets must explicitly declare whether they are decorative.");
+  if (!Number.isFinite(manifest.aspectRatio) || manifest.aspectRatio <= 0) errors.push("aspectRatio must be a positive number.");
   if (!isNormalizedPoint(manifest.focalPoint)) errors.push("focalPoint must use normalized 0..1 coordinates.");
-  if (manifest.mobileFocalPoint && !isNormalizedPoint(manifest.mobileFocalPoint)) {
-    errors.push("mobileFocalPoint must use normalized 0..1 coordinates.");
-  }
+  if (manifest.mobileFocalPoint && !isNormalizedPoint(manifest.mobileFocalPoint)) errors.push("mobileFocalPoint must use normalized 0..1 coordinates.");
   for (const [index, zone] of (manifest.textSafeZones ?? []).entries()) {
     if (!isNormalizedRect(zone)) errors.push(`textSafeZones[${index}] is outside normalized bounds.`);
   }
-  if (manifest.subjectSafeZone && !isNormalizedRect(manifest.subjectSafeZone)) {
-    errors.push("subjectSafeZone is outside normalized bounds.");
-  }
+  if (manifest.subjectSafeZone && !isNormalizedRect(manifest.subjectSafeZone)) errors.push("subjectSafeZone is outside normalized bounds.");
 
-  const hasLiteDisplayFallback = manifest.variants.some(
-    (variant) => variant.purpose === "display" && variantAllowedForTier(variant, "LITE"),
-  );
-  if (!hasLiteDisplayFallback) {
+  if (!manifest.variants.some((variant) => variant.purpose === "display" && variantAllowedForTier(variant, "LITE"))) {
     errors.push("At least one display variant available to LITE is required for static and GPU fallback.");
   }
 
@@ -188,9 +157,8 @@ export function validateVisualAssetManifest(manifest: VisualAssetManifest): stri
     assetIds.add(variant.id);
     if (!variant.src.startsWith("/")) errors.push(`Variant ${variant.id} must use an app-root asset path.`);
     if (!hasValidDimensions(variant)) errors.push(`Variant ${variant.id} has invalid dimensions.`);
-    if (variant.byteSize !== undefined && (!Number.isFinite(variant.byteSize) || variant.byteSize < 0)) {
-      errors.push(`Variant ${variant.id} has invalid byteSize.`);
-    }
+    if (variant.byteSize !== undefined && (!Number.isFinite(variant.byteSize) || variant.byteSize < 0)) errors.push(`Variant ${variant.id} has invalid byteSize.`);
+    if (variant.media !== undefined && !variant.media.trim()) errors.push(`Variant ${variant.id} has an empty media query.`);
   }
 
   if (manifest.depthMap) {
@@ -201,9 +169,6 @@ export function validateVisualAssetManifest(manifest: VisualAssetManifest): stri
     if (depthMap.purpose !== "depth-map") errors.push("depthMap must use purpose depth-map.");
     if (!depthMap.src.startsWith("/")) errors.push(`Depth-map ${depthMap.id} must use an app-root asset path.`);
     if (!hasValidDimensions(depthMap)) errors.push(`Depth-map ${depthMap.id} has invalid dimensions.`);
-    if (depthMap.byteSize !== undefined && (!Number.isFinite(depthMap.byteSize) || depthMap.byteSize < 0)) {
-      errors.push(`Depth-map ${depthMap.id} has invalid byteSize.`);
-    }
   }
 
   for (const mask of manifest.masks ?? []) {
@@ -221,6 +186,5 @@ export function validateVisualAssetManifest(manifest: VisualAssetManifest): stri
     if (!anchor.label.trim()) errors.push(`Anchor ${anchor.id} label is required.`);
     if (!isNormalizedPoint(anchor.point)) errors.push(`Anchor ${anchor.id} is outside normalized bounds.`);
   }
-
   return errors;
 }
