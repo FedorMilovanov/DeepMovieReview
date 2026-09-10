@@ -6,6 +6,7 @@ import "../styles/tokens.css";
 import "../styles/primitives.css";
 import "../styles/route-states.css";
 import "../styles/methodology.css";
+import "../styles/spoilers.css";
 
 export const metadata: Metadata = {
   title: {
