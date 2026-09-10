@@ -1,0 +1,133 @@
+.heroSection {
+  min-height: calc(100svh - 74px);
+  display: grid;
+  align-content: center;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+  gap: clamp(2rem, 5vw, 6rem);
+  align-items: end;
+}
+
+.heroCopy { padding-top: 4rem; }
+.heroActions { display: flex; gap: 0.75rem; margin-top: 2.2rem; flex-wrap: wrap; }
+
+.livingFrame {
+  aspect-ratio: 2.39 / 1;
+  min-height: 250px;
+  align-self: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.frameMeta {
+  position: absolute;
+  inset: 0.8rem 0.9rem auto;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  color: rgb(255 255 255 / 0.42);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+}
+
+.frameVisual {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 60% 45%, color-mix(in oklab, var(--accent-fracture) 24%, transparent), transparent 32%),
+    linear-gradient(180deg, var(--surface-3), var(--surface-canvas) 68%);
+}
+
+.frameOrb { position: absolute; border-radius: 50%; filter: blur(1px); opacity: 0.8; }
+.frameOrbA { width: 28%; aspect-ratio: 1; left: 20%; top: 18%; background: radial-gradient(circle at 35% 30%, #3f4144, var(--surface-3) 60%, var(--surface-canvas)); }
+.frameOrbB { width: 19%; aspect-ratio: 1; right: 18%; top: 27%; background: radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--accent-fracture) 38%, #343434), #151010 58%, var(--surface-canvas)); }
+.frameHorizon { position: absolute; left: -10%; right: -10%; bottom: 22%; height: 1px; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.25), transparent); box-shadow: 0 -18px 80px color-mix(in oklab, var(--accent-restoration) 10%, transparent); }
+.frameCaption { position: absolute; inset: auto 1rem 0.9rem; display: flex; justify-content: space-between; gap: 1rem; align-items: end; }
+.frameCaption strong { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.frameCaption span { color: rgb(255 255 255 / 0.55); max-width: 28rem; font-size: 0.7rem; text-align: right; }
+
+.lensGrid { margin-top: clamp(2rem, 6vw, 5rem); display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--stroke-default); border-left: 1px solid var(--stroke-default); }
+.lensItem { min-height: 230px; padding: clamp(1.2rem, 2.4vw, 2rem); border-right: 1px solid var(--stroke-default); border-bottom: 1px solid var(--stroke-default); display: flex; flex-direction: column; justify-content: space-between; }
+.lensItem p { color: var(--ink-3); max-width: 25rem; margin-bottom: 0; }
+.lensNumber { font-size: 0.65rem; color: var(--ink-4); }
+
+.splitSection { display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 0.9fr); gap: clamp(2rem, 7vw, 8rem); align-items: start; }
+.storyTrack, .relationshipTrace, .synthesisSteps { list-style: none; padding: 0; margin: 0; }
+.storyTrack li { display: grid; grid-template-columns: 48px 1fr; gap: 1rem; padding: 1.2rem 0; border-bottom: 1px solid var(--stroke-default); }
+.storyTrack li > span { color: var(--ink-3); font-size: 0.7rem; }
+.storyTrack strong { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
+.storyTrack p { margin: 0.35rem 0 0; color: var(--ink-3); }
+
+.characterGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--stroke-default); margin-top: 3rem; border: 1px solid var(--stroke-default); }
+.characterCard { padding: clamp(1.2rem, 3vw, 2.4rem); }
+.portraitPlaceholder { aspect-ratio: 16 / 7; margin-bottom: 2rem; background: radial-gradient(circle at 35% 50%, #232323 0 12%, transparent 13%), radial-gradient(circle at 70% 45%, color-mix(in oklab, var(--accent-fracture) 32%, #222) 0 11%, transparent 12%), linear-gradient(135deg, #0f0f0f, var(--surface-1)); border: 1px solid var(--stroke-default); }
+.characterCard dl > div, .autopsyGrid > div { display: grid; grid-template-columns: minmax(80px, 0.35fr) 1fr; gap: 1rem; border-top: 1px solid var(--stroke-default); padding: 0.9rem 0; }
+
+.relationshipPanel { margin-top: clamp(3rem, 7vw, 7rem); display: grid; grid-template-columns: 0.7fr 1.3fr; gap: clamp(2rem, 6vw, 7rem); padding: clamp(1.5rem, 4vw, 4rem); border: 1px solid var(--stroke-default); }
+.relationshipPanel p { color: var(--ink-3); }
+.traceEvent { position: relative; display: grid; grid-template-columns: 18px 1fr; gap: 1rem; padding: 0 0 2rem; }
+.traceEvent:not(:last-child)::after { content: ""; position: absolute; left: 6px; top: 14px; bottom: 0; width: 1px; }
+.traceDot { width: 13px; height: 13px; margin-top: 4px; border: 1px solid var(--stroke-strong); border-radius: 50%; background: var(--surface-1); z-index: 1; }
+.traceEvent p { margin: 0.25rem 0 0; color: var(--ink-3); }
+
+.stackList { border-top: 1px solid var(--stroke-default); }
+.stackList article { padding: 1.2rem 0; border-bottom: 1px solid var(--stroke-default); }
+.stackList p { margin: 0.45rem 0 0; color: var(--ink-2); }
+
+.meaningSection { min-height: 85svh; display: flex; flex-direction: column; justify-content: center; }
+.meaningSection h2 { max-width: 17ch; }
+.meaningGrid { margin-top: clamp(3rem, 6vw, 6rem); display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--stroke-default); border: 1px solid var(--stroke-default); }
+.meaningGrid > div { min-height: 150px; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.7rem; }
+.meaningGrid span { color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.65rem; }
+.meaningGrid strong { font-size: clamp(1.05rem, 1.8vw, 1.45rem); font-weight: 500; max-width: 34rem; }
+
+.permissionField { margin-top: 3rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.permissionField article { min-height: 240px; padding: 1.5rem; border: 1px solid var(--stroke-default); }
+.permissionState { display: inline-block; margin-bottom: 3rem; padding-bottom: 0.35rem; }
+.permissionField p { color: var(--ink-3); }
+
+.autopsySection { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+.autopsySection > .sectionIndex { grid-column: 1 / -1; }
+.autopsyFrame { aspect-ratio: 16 / 10; min-height: 340px; position: relative; display: grid; place-items: center; overflow: hidden; }
+.autopsyFrame > span { position: absolute; left: 1rem; top: 1rem; color: var(--ink-3); font-size: 0.62rem; letter-spacing: 0.12em; }
+.autopsyCrosshair { width: 70px; height: 70px; border: 1px solid rgb(255 255 255 / 0.35); position: relative; }
+.autopsyCrosshair::before, .autopsyCrosshair::after { content: ""; position: absolute; background: rgb(255 255 255 / 0.2); }
+.autopsyCrosshair::before { width: 1px; top: -100vh; bottom: -100vh; left: 50%; }
+.autopsyCrosshair::after { height: 1px; left: -100vw; right: -100vw; top: 50%; }
+.autopsyGrid > div:last-child { grid-column: 1 / -1; }
+
+.decisionSection h2 { max-width: 20ch; }
+.knowledgeGrid { margin-top: 3rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.knowledgeGrid article { border: 1px solid var(--stroke-default); min-height: 260px; padding: 1.5rem; }
+.knowledgeGrid p { color: var(--ink-2); }
+
+.biblicalSection { padding-top: clamp(7rem, 12vw, 13rem); padding-bottom: clamp(7rem, 12vw, 13rem); }
+.biblicalSection h2 { color: #eee5d7; }
+.synthesisSteps { margin-top: 4rem; max-width: 900px; }
+.synthesisSteps li { display: grid; grid-template-columns: 180px 1fr; gap: 2rem; padding: 1rem 0; }
+.synthesisSteps p { margin: 0; color: #c9c0b2; }
+
+.discoverySection { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 4rem; align-items: end; }
+.discoveryLinks { display: grid; border-top: 1px solid var(--stroke-default); }
+.discoveryLinks a { padding: 1rem 0; border-bottom: 1px solid var(--stroke-default); color: var(--ink-2); }
+.discoveryLinks a::after { content: "↗"; float: right; }
+
+@media (max-width: 900px) {
+  .heroGrid, .splitSection, .relationshipPanel, .autopsySection, .discoverySection { grid-template-columns: 1fr; }
+  .heroSection { min-height: auto; }
+  .livingFrame { order: -1; min-height: 210px; }
+  .lensGrid, .permissionField { grid-template-columns: repeat(2, 1fr); }
+  .characterGrid, .meaningGrid, .knowledgeGrid { grid-template-columns: 1fr; }
+  .autopsySection > .sectionIndex { grid-column: auto; }
+}
+
+@media (max-width: 620px) {
+  .lensGrid, .permissionField { grid-template-columns: 1fr; }
+  .lensItem { min-height: 190px; }
+  .frameCaption span { display: none; }
+  .relationshipPanel { padding: 1.2rem; }
+  .synthesisSteps li { grid-template-columns: 1fr; gap: 0.4rem; }
+}
