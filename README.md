@@ -40,12 +40,12 @@ The shell now proves the main architectural boundaries that Film 001 will depend
 - structured Story, Characters, Relationships, Family/Youth, Meaning, Teaching Signals, Narrative Permission, Craft, Scene Autopsy, Decision, Moral Analysis, Biblical Synthesis, Final Synthesis and Sources/Method modules;
 - one spoiler projection stage that removes forbidden nested data **before** presentation; the projected module array is shared by outline and renderer, and real featured-film homepage data is reduced to spoiler-safe `NONE` content before composition;
 - spoiler-aware deep-link cleanup when a hash targets content hidden by a lower spoiler level;
-- fixture/draft `noindex`, permanent `/labs/*` `noindex`, a fail-closed launch gate requiring `DMR_SITE_INDEXING_ENABLED=true` plus a published configured homepage feature, and a separate `DMR_PREVIEW_CONTENT_ENABLED=true` gate before non-published film routes exist in production;
+- fixture/draft `noindex`, permanent `/labs/*` `noindex`, a fail-closed launch gate requiring `DMR_SITE_INDEXING_ENABLED=true` plus a published configured homepage feature **with preview mode disabled**, and a separate `DMR_PREVIEW_CONTENT_ENABLED=true` gate before non-published film routes exist in production;
 - adaptive experience runtime with Auto/Lite mode, reduced-motion control, document/offscreen awareness, renderer-backend reporting and measured quality downgrades;
 - WebGPU-oriented Verdict Core with WebGL2/static fallback behavior and no semantic content trapped in canvas;
 - visual asset manifest types with focal points, safe zones, depth maps, masks, provenance, responsive/DPR-aware variant selection and a fail-closed validated asset registry;
 - semantic accessibility work for Six Lenses tabs and Scene Autopsy interaction;
-- CI gates for locked dependency install, typecheck, lint, production build and production-route smoke testing;
+- CI gates for locked dependency install, typecheck, domain regression tests, lint, preview production build/smoke, a real headless-Chrome DOM/accessibility/visual audit with screenshot evidence, and a clean public production rebuild/access-security smoke;
 - strict npm install-script allowlisting rather than implicitly executing newly introduced dependency scripts.
 
 ## Foundation documents
