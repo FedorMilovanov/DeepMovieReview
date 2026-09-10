@@ -1,17 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  FilmModuleList,
-  getVisibleFilmModules,
-} from "@/components/film-modules/film-module-renderer";
+import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
-import { filmPackages, getFilmPackageBySlug } from "@/data/film-packages";
-import {
-  canRevealSpoiler,
-  parseSpoilerLevel,
-  withSpoilerQuery,
-} from "@/lib/spoilers";
+import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
+import { canRevealSpoiler, parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
 type FilmPageProps = {
   params: Promise<{ slug: string }>;
@@ -29,6 +22,7 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
   return {
     title: filmPackage.film.title,
     description: `${filmPackage.film.title} — DeepMovieReview film shell.`,
+    robots: filmPackage.film.status === "published" ? undefined : { index: false, follow: false },
   };
 }
 
@@ -41,9 +35,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
   const spoilerLevel = parseSpoilerLevel(query.spoilers);
   const pathname = `/films/${film.slug}`;
   const visibleModules = getVisibleFilmModules(modules, spoilerLevel);
-  const hiddenModuleCount = modules.filter(
-    (module) => !canRevealSpoiler(spoilerLevel, module.spoilerLevel),
-  ).length;
+  const hiddenModuleCount = modules.length - visibleModules.length;
   const outlineBase = withSpoilerQuery(pathname, spoilerLevel);
 
   return (
@@ -60,9 +52,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
           <div><span>Question</span><strong>{film.thesisQuestion}</strong></div>
         </div>
         {film.status === "fixture" ? (
-          <p className="fixtureNotice">
-            This route proves the reusable film renderer only. Fixture language carries no published moral, psychological or biblical authority.
-          </p>
+          <p className="fixtureNotice">This route proves the reusable film renderer only. Fixture language carries no published moral, psychological or biblical authority.</p>
         ) : null}
       </section>
 
@@ -87,16 +77,12 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         <div className="spoilerHeading">
           <div>
             <h2 id="spoiler-title">Reveal only what the reader has allowed.</h2>
-            <p className="sectionIntro">
-              Module and item visibility is resolved from the same spoiler level before analytical content renders.
-            </p>
+            <p className="sectionIntro">Module and item visibility is resolved from the same spoiler level before analytical content renders.</p>
           </div>
           <SpoilerLevelControl pathname={pathname} current={spoilerLevel} />
         </div>
         {hiddenModuleCount > 0 ? (
-          <p className="spoilerOmissionNotice" aria-live="polite">
-            {hiddenModuleCount} analytical {hiddenModuleCount === 1 ? "module is" : "modules are"} omitted at the current spoiler level.
-          </p>
+          <p className="spoilerOmissionNotice" aria-live="polite">{hiddenModuleCount} analytical {hiddenModuleCount === 1 ? "module is" : "modules are"} omitted at the current spoiler level.</p>
         ) : (
           <p className="spoilerOmissionNotice" aria-live="polite">All modules in this fixture are currently visible.</p>
         )}
