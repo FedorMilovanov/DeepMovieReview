@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
-import { homepageFeaturedFilmSlug } from "@/data/site-config";
+import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { projectHomepage } from "@/lib/homepage-projection";
 
 const featuredFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
@@ -8,6 +8,7 @@ const featuredFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
 export default function HomePage() {
   const data = projectHomepage(featuredFilmPackage);
   const isPublished = data.featuredFilm.status === "published";
+  const canOpenFeaturedFilm = isPublished || isPreviewContentEnabled();
 
   return (
     <>
@@ -19,7 +20,11 @@ export default function HomePage() {
             <h1 id="hero-title">Stories teach through people, relationships, choices and consequences.</h1>
             <p className="lede">DeepMovieReview examines the whole film first — then argues its moral and biblical synthesis from evidence.</p>
             <div className="heroActions">
-              <Link className="buttonPrimary" href={`/films/${data.featuredFilm.slug}`}>{isPublished ? "Open analysis" : "Open structural fixture"}</Link>
+              {canOpenFeaturedFilm ? (
+                <Link className="buttonPrimary" href={`/films/${data.featuredFilm.slug}`}>{isPublished ? "Open analysis" : "Open structural fixture"}</Link>
+              ) : (
+                <Link className="buttonPrimary" href="/methodology">Read methodology</Link>
+              )}
               <Link className="buttonGhost" href="#lenses">See the lenses</Link>
             </div>
           </div>
