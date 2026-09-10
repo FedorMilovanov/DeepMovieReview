@@ -1,12 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import { useExperienceQuality } from "@/components/experience/experience-quality-provider";
 import styles from "./living-frame-lab.module.css";
 
 export function LivingFrameLab() {
   const frameRef = useRef<HTMLDivElement>(null);
-  const reducedMotionRef = useRef(false);
+  const pointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
+  const frameRequestRef = useRef<number | null>(null);
   const [showDepth, setShowDepth] = useState(false);
+  const { reducedMotion } = useExperienceQuality();
 
   const resetFrame = useCallback(() => {
     const frame = frameRef.current;
@@ -21,27 +30,34 @@ export function LivingFrameLab() {
     frame.style.setProperty("--light-y", "42%");
   }, []);
 
+  const cancelPendingFrame = useCallback(() => {
+    if (frameRequestRef.current !== null) {
+      window.cancelAnimationFrame(frameRequestRef.current);
+      frameRequestRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => {
-      reducedMotionRef.current = query.matches;
-      if (query.matches) resetFrame();
-    };
+    if (reducedMotion) {
+      cancelPendingFrame();
+      pointerRef.current = null;
+      resetFrame();
+    }
+  }, [cancelPendingFrame, reducedMotion, resetFrame]);
 
-    sync();
-    query.addEventListener("change", sync);
-    return () => query.removeEventListener("change", sync);
-  }, [resetFrame]);
+  useEffect(() => () => cancelPendingFrame(), [cancelPendingFrame]);
 
-  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.pointerType === "touch" || reducedMotionRef.current) return;
-
+  const flushPointer = useCallback(() => {
+    frameRequestRef.current = null;
     const frame = frameRef.current;
-    if (!frame) return;
+    const pointer = pointerRef.current;
+    if (!frame || !pointer || reducedMotion) return;
 
     const bounds = frame.getBoundingClientRect();
-    const localX = event.clientX - bounds.left;
-    const localY = event.clientY - bounds.top;
+    if (bounds.width <= 0 || bounds.height <= 0) return;
+
+    const localX = pointer.clientX - bounds.left;
+    const localY = pointer.clientY - bounds.top;
     const nx = (localX / bounds.width - 0.5) * 2;
     const ny = (localY / bounds.height - 0.5) * 2;
 
@@ -53,6 +69,20 @@ export function LivingFrameLab() {
     frame.style.setProperty("--far-y", `${ny * 1.8}px`);
     frame.style.setProperty("--light-x", `${localX}px`);
     frame.style.setProperty("--light-y", `${localY}px`);
+  }, [reducedMotion]);
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "touch" || reducedMotion) return;
+    pointerRef.current = { clientX: event.clientX, clientY: event.clientY };
+    if (frameRequestRef.current === null) {
+      frameRequestRef.current = window.requestAnimationFrame(flushPointer);
+    }
+  }
+
+  function handlePointerLeave() {
+    pointerRef.current = null;
+    cancelPendingFrame();
+    resetFrame();
   }
 
   return (
@@ -86,7 +116,7 @@ export function LivingFrameLab() {
           className={styles.frame}
           data-show-depth={showDepth}
           onPointerMove={handlePointerMove}
-          onPointerLeave={resetFrame}
+          onPointerLeave={handlePointerLeave}
         >
           <div className={`${styles.layer} ${styles.farLayer}`} data-depth-label="FAR / ENVIRONMENT" aria-hidden="true">
             <span className={styles.moon} />
