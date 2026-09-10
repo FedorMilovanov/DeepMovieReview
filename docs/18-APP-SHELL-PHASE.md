@@ -1,8 +1,8 @@
-# DeepMovieReview — Phase 0.5 App Shell
+# DeepMovieReview — Phase 0.7 App Shell Hardening
 
-> Status: active implementation phase  
-> Date: 2026-09-10  
-> Purpose: define the boundary between building the platform and producing individual film analyses.
+> Status: hardened foundation / Film 001 readiness  
+> Date: 2026-09-11  
+> Purpose: record the implemented platform boundary before the first authoritative film analysis.
 
 ## 1. Decision
 
@@ -129,7 +129,7 @@ Therefore the first film should enter once the machine is capable of receiving t
 
 ## 5. Shell implementation sequence
 
-### Shell A — semantic foundation — CURRENT
+### Shell A — semantic foundation — IMPLEMENTED
 
 Required:
 
@@ -144,11 +144,11 @@ Required:
 - reduced-motion baseline;
 - CI typecheck/lint/build gate.
 
-No Three.js dependency is required at this step.
+Shell A was deliberately proven without requiring GPU rendering. The current Phase 0.7 codebase has since added Three/R3F as progressive enhancement while preserving the semantic baseline.
 
-### Shell B — visual foundation
+### Shell B — visual foundation — SUBSTANTIALLY IMPLEMENTED
 
-After Shell A is stable:
+Implemented foundations include:
 
 - real design token refinement;
 - final font strategy;
@@ -159,9 +159,9 @@ After Shell A is stable:
 - loading/skeleton states;
 - image/asset component contract.
 
-### Shell C — GPU/runtime foundation
+### Shell C — GPU/runtime foundation — IMPLEMENTED BASELINE
 
-Only after semantic structure remains strong without canvas:
+The semantic structure remains strong without canvas; the current runtime now includes:
 
 - persistent GPU stage;
 - capability detection;
@@ -172,7 +172,7 @@ Only after semantic structure remains strong without canvas:
 - reduced-motion integration;
 - resource lifecycle instrumentation.
 
-### Shell D — signature reusable interactions
+### Shell D — signature reusable interactions — PARTIALLY IMPLEMENTED
 
 Prototype independently, then integrate only if useful:
 
