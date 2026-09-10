@@ -382,3 +382,63 @@ test("spoiler helpers normalize URL state and preserve monotonic reveal permissi
   assert.equal(withSpoilerQuery("/films/example", "NONE"), "/films/example");
   assert.equal(withSpoilerQuery("/films/example", "MAJOR"), "/films/example?spoilers=major");
 });
+
+test("published character profiles require canonical evidence support", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "published-character-support",
+      title: "Published Character Support",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "published",
+    },
+    evidence: [{
+      id: "evidence-1",
+      label: "Evidence",
+      observation: "Observed behavior",
+      sourceIds: ["source-1"],
+      spoilerLevel: "NONE",
+    }],
+    modules: [
+      {
+        id: "characters",
+        kind: "characters",
+        heading: "Characters",
+        spoilerLevel: "NONE",
+        characters: [{
+          id: "character-a",
+          name: "Character A",
+          wants: "Control",
+          fears: "Loss",
+          contradiction: "Protective and controlling",
+        }],
+      },
+      {
+        id: "sources",
+        kind: "sources-method",
+        heading: "Sources",
+        spoilerLevel: "NONE",
+        methodologyVersion: "v1",
+        editorialRevision: "r1",
+        analyzedEdition: "Edition",
+        lastReviewedAt: "2026-09-10",
+        sources: [{
+          id: "source-1",
+          label: "Film edition",
+          kind: "film-edition",
+        }],
+      },
+    ],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.some((error) =>
+    error.includes("characters/character-a") &&
+    error.includes("published interpretive claims require evidence support")
+  ));
+});
