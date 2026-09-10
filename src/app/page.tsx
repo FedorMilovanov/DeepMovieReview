@@ -77,10 +77,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="sectionShell sectionRule splitSection" aria-labelledby="family-title">
-        <div><div className="sectionIndex">05 / FAMILY + YOUTH</div><h2 id="family-title">What kind of adulthood does the story model?</h2><p className="sectionIntro">Parents, peers, authority, rebellion, autonomy and formation are analyzed as relationships and responsibilities.</p></div>
-        <div className="stackList">{data.familyYouth.map((item) => <article key={item.label}><span className="microLabel">{item.label}</span><p>{item.observation}</p></article>)}</div>
-      </section>
+      {data.familyYouth ? (
+        <section className="sectionShell sectionRule splitSection" aria-labelledby="family-title">
+          <div><div className="sectionIndex">05 / FAMILY + YOUTH</div><h2 id="family-title">What kind of adulthood does the story model?</h2><p className="sectionIntro">Parents, peers, authority, rebellion, autonomy and formation are analyzed as relationships and responsibilities.</p></div>
+          <div className="stackList">{data.familyYouth.map((item) => <article key={item.label}><span className="microLabel">{item.label}</span><p>{item.observation}</p></article>)}</div>
+        </section>
+      ) : null}
 
       <section className="sectionShell sectionRule meaningSection" aria-labelledby="meaning-title">
         <div className="sectionIndex">06 / MEANING</div><p className="microLabel">QUESTION</p><h2 id="meaning-title">{data.meaning.question}</h2>
@@ -102,10 +104,12 @@ export default function HomePage() {
         <div className="autopsyCopy"><h2 id="autopsy-title">Evidence before conclusion.</h2><dl className="autopsyGrid"><div><dt>ACT</dt><dd>{data.sceneAutopsy.act}</dd></div><div><dt>MOTIVE</dt><dd>{data.sceneAutopsy.motive}</dd></div><div><dt>KNOWLEDGE</dt><dd>{data.sceneAutopsy.knowledge}</dd></div><div><dt>PRESSURE</dt><dd>{data.sceneAutopsy.pressure}</dd></div><div><dt>CONSEQUENCE</dt><dd>{data.sceneAutopsy.consequence}</dd></div></dl></div>
       </section>
 
-      <section className="sectionShell sectionRule decisionSection" aria-labelledby="decision-title">
-        <div className="sectionIndex">10 / DECISION + KNOWLEDGE FOG</div><h2 id="decision-title">{data.decision.question}</h2>
-        <div className="knowledgeGrid"><article><span className="microLabel">KNOWN THEN</span>{data.decision.knownThen.map((item) => <p key={item}>{item}</p>)}</article><article className="fogPanel"><span className="microLabel">REVEALED LATER</span>{data.decision.revealedLater.map((item) => <p key={item}>{item}</p>)}</article></div>
-      </section>
+      {data.decision ? (
+        <section className="sectionShell sectionRule decisionSection" aria-labelledby="decision-title">
+          <div className="sectionIndex">10 / DECISION + KNOWLEDGE FOG</div><h2 id="decision-title">{data.decision.question}</h2>
+          <div className="knowledgeGrid"><article><span className="microLabel">KNOWN THEN</span>{data.decision.knownThen.map((item) => <p key={item}>{item}</p>)}</article><article className="fogPanel"><span className="microLabel">REVEALED LATER</span>{data.decision.revealedLater.map((item) => <p key={item}>{item}</p>)}</article></div>
+        </section>
+      ) : null}
 
       <section id="method" className="sectionShell sectionRule biblicalSection" aria-labelledby="biblical-title">
         <div className="sectionIndex">11 / BIBLICAL LENS + SYNTHESIS</div><h2 id="biblical-title">The norm comes after careful description.</h2>
