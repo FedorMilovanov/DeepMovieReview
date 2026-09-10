@@ -1,0 +1,153 @@
+.methodologyHero {
+  min-height: calc(86svh - 74px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.methodologyHero h1 {
+  max-width: 12ch;
+}
+
+.methodologyAxioms {
+  margin-top: clamp(2.5rem, 6vw, 5rem);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.methodologyAxioms article {
+  min-height: 230px;
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  background: var(--bg);
+}
+
+.methodologyAxioms h3 {
+  max-width: 18ch;
+}
+
+.methodologyAxioms p {
+  max-width: 40rem;
+  color: var(--muted);
+}
+
+.methodologyLensList {
+  margin-top: clamp(2.5rem, 6vw, 5rem);
+  border-top: 1px solid var(--line);
+}
+
+.methodologyLensList article {
+  display: grid;
+  grid-template-columns: 64px minmax(180px, 0.5fr) minmax(0, 1fr);
+  gap: clamp(1rem, 3vw, 3rem);
+  padding: 1.35rem 0;
+  border-bottom: 1px solid var(--line);
+  align-items: start;
+}
+
+.methodologyLensList article > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.methodologyLensList h3 {
+  font-size: clamp(1.25rem, 2.1vw, 2rem);
+}
+
+.methodologyLensList p {
+  margin: 0;
+  max-width: 54rem;
+  color: #c7c2b8;
+}
+
+.methodologyEvidence {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(420px, 1.2fr);
+  gap: clamp(2rem, 7vw, 8rem);
+}
+
+.methodologyEvidence ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.methodologyEvidence li {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 1.5rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.methodologyEvidence li > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.methodologyEvidence li p {
+  margin: 0;
+}
+
+.permissionScale {
+  margin-top: clamp(2.5rem, 5vw, 4.5rem);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.permissionScale span {
+  min-height: 100px;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--bg);
+  color: #c8c2b7;
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+.methodologyVersion h2 {
+  max-width: 17ch;
+}
+
+@media (max-width: 900px) {
+  .methodologyEvidence {
+    grid-template-columns: 1fr;
+  }
+
+  .permissionScale {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .methodologyAxioms {
+    grid-template-columns: 1fr;
+  }
+
+  .methodologyAxioms article {
+    min-height: 0;
+  }
+
+  .methodologyLensList article {
+    grid-template-columns: 42px 1fr;
+  }
+
+  .methodologyLensList article p {
+    grid-column: 2;
+  }
+
+  .methodologyEvidence li {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+}
