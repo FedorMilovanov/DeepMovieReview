@@ -119,3 +119,70 @@ jobs:
             echo "Unknown film route rendered film content instead of the not-found boundary."
             exit 1
           fi
+
+      - name: Build public surface without preview content
+        env:
+          DMR_PREVIEW_CONTENT_ENABLED: "false"
+        run: npm run build
+
+      - name: Public surface access smoke test
+        env:
+          DMR_PREVIEW_CONTENT_ENABLED: "false"
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=3211 npm run start -- -p 3211 > /tmp/deep-movie-review-public-next.log 2>&1 &
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3211/ > /tmp/public-home.html; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [[ "$ready" != "true" ]]; then
+            echo "Public production server did not become ready."
+            cat /tmp/deep-movie-review-public-next.log
+            exit 1
+          fi
+
+          if ! grep -Fq 'Read methodology' /tmp/public-home.html; then
+            echo "Public prelaunch homepage linked to preview content instead of the safe fallback CTA."
+            exit 1
+          fi
+          if grep -Fq 'Open structural fixture' /tmp/public-home.html; then
+            echo "Public prelaunch homepage exposed a fixture route CTA."
+            exit 1
+          fi
+          if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
+            echo "Public prelaunch homepage must remain noindex/nofollow."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error http://127.0.0.1:3211/films > /tmp/public-films.html
+          if grep -Fq 'Pilot Film' /tmp/public-films.html; then
+            echo "Public film index exposed fixture content."
+            exit 1
+          fi
+
+          preview_status=$(curl --silent --output /tmp/public-preview-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/pilot-film)
+          if [[ "$preview_status" != "200" && "$preview_status" != "404" ]]; then
+            echo "Protected preview route returned unexpected HTTP $preview_status."
+            exit 1
+          fi
+          if ! grep -Fq '404 / NOT FOUND' /tmp/public-preview-route.html; then
+            echo "Protected preview route did not resolve to the not-found boundary."
+            exit 1
+          fi
+          if grep -Fq 'Pilot Film' /tmp/public-preview-route.html; then
+            echo "Protected preview route leaked fixture film content."
+            exit 1
+          fi
