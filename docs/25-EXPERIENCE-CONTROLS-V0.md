@@ -1,7 +1,7 @@
 # DeepMovieReview — Experience Controls v0
 
-> Status: pre-GPU user-control foundation  
-> Purpose: keep high-end visuals optional, testable and respectful of motion preferences before signature GPU effects are introduced.
+> Status: implemented user-control foundation  
+> Purpose: keep high-end visuals optional, testable and respectful of motion preferences while GPU enhancement is active.
 
 ## 1. Principle
 
@@ -67,7 +67,7 @@ It does **not** require:
 
 ## 6. Lite contract
 
-`Lite` should eventually mean:
+`Lite` means:
 
 - no expensive persistent GPU scene unless needed for a trivial capability;
 - static/normal responsive images;
