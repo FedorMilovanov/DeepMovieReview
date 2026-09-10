@@ -21,8 +21,10 @@ jobs:
       DMR_SITE_INDEXING_ENABLED: "true"
       DMR_PREVIEW_CONTENT_ENABLED: "true"
     steps:
-      - name: Checkout
+      - name: Checkout exact revision
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -157,7 +159,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: browser-audit-${{ github.sha }}
+          name: browser-audit-${{ github.event.pull_request.head.sha || github.sha }}
           path: browser-audit/
           if-no-files-found: warn
           retention-days: 7
