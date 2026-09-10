@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.tests.json && node --test .test-build/tests/regression.test.js"
+    "test": "node scripts/run-regression-tests.mjs"
   },
   "dependencies": {
     "@react-three/drei": "10.7.8",
