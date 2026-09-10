@@ -4,29 +4,37 @@ import { filmPackages } from "@/data/film-registry";
 
 export const metadata: Metadata = {
   title: "Films",
-  description: "Film index shell for DeepMovieReview.",
+  description: "Film analyses from DeepMovieReview.",
 };
 
 export default function FilmsPage() {
+  const publishedPackages = filmPackages.filter((filmPackage) => filmPackage.film.status === "published");
+  const isPrelaunch = publishedPackages.length === 0;
+  const visiblePackages = isPrelaunch ? filmPackages : publishedPackages;
+
   return (
     <section className="sectionShell filmIndexHero" aria-labelledby="films-title">
       <div className="sectionIndex">FILMS / INDEX</div>
       <h1 id="films-title">Films</h1>
       <p className="sectionIntro">
-        The platform shell comes first. Real analyses will be loaded into this index as structured content packages.
+        {isPrelaunch
+          ? "The platform shell comes first. Real analyses will be loaded into this index as structured content packages."
+          : "Published analyses connect story, people, relationships, ideas, craft, moral reasoning and biblical synthesis."}
       </p>
-      <p className="fixtureNotice">
-        Current entries are fixtures for route, layout and renderer-contract testing. They are not published reviews.
-      </p>
+      {isPrelaunch ? (
+        <p className="fixtureNotice">
+          Current entries are fixtures for route, layout and renderer-contract testing. They are not published reviews.
+        </p>
+      ) : null}
       <div className="filmList">
-        {filmPackages.map((filmPackage, index) => {
+        {visiblePackages.map((filmPackage, index) => {
           const { film, modules } = filmPackage;
           return (
             <Link className="filmRow" href={`/films/${film.slug}`} key={film.slug}>
               <span className="filmRowIndex">{String(index + 1).padStart(3, "0")}</span>
               <strong>{film.title}</strong>
               <span className="filmRowMeta">
-                {film.year} · {film.status} · {modules.length} modules
+                {film.year} · {isPrelaunch ? film.status : "published"} · {modules.length} modules
               </span>
             </Link>
           );
