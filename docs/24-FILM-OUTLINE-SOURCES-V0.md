@@ -41,7 +41,7 @@ or a clean URL without the query parameter for `NONE`.
 
 Future entity-level deep links should follow the same principle.
 
-A link targeting content above the current permission must not silently reveal it; the future deep-link gate should explain the required spoiler level and allow an explicit escalation.
+A link targeting content above the current permission must not silently reveal it. The implemented deep-link guard removes stale/unavailable hashes rather than escalating permission. A richer explanatory escalation UI remains optional follow-up work.
 
 ## 4. Sources & Method module
 
