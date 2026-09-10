@@ -5,6 +5,7 @@ import {
   MeaningModuleView,
   PermissionModuleView,
   RelationshipModuleView,
+  SourcesMethodModuleView,
   StoryModuleView,
 } from "@/components/film-modules/module-components";
 import { assertNever, type FilmModule } from "@/lib/film-package";
@@ -14,6 +15,10 @@ type FilmModuleRendererProps = {
   module: FilmModule;
   spoilerLevel: SpoilerLevel;
 };
+
+export function getVisibleFilmModules(modules: FilmModule[], spoilerLevel: SpoilerLevel) {
+  return modules.filter((module) => canRevealSpoiler(spoilerLevel, module.spoilerLevel));
+}
 
 export function FilmModuleRenderer({ module, spoilerLevel }: FilmModuleRendererProps) {
   if (!canRevealSpoiler(spoilerLevel, module.spoilerLevel)) return null;
@@ -33,13 +38,15 @@ export function FilmModuleRenderer({ module, spoilerLevel }: FilmModuleRendererP
       return <AutopsyModuleView module={module} />;
     case "biblical-synthesis":
       return <BiblicalSynthesisModuleView module={module} />;
+    case "sources-method":
+      return <SourcesMethodModuleView module={module} />;
     default:
       return assertNever(module);
   }
 }
 
 export function FilmModuleList({ modules, spoilerLevel }: { modules: FilmModule[]; spoilerLevel: SpoilerLevel }) {
-  const visibleModules = modules.filter((module) => canRevealSpoiler(spoilerLevel, module.spoilerLevel));
+  const visibleModules = getVisibleFilmModules(modules, spoilerLevel);
 
   return (
     <>
