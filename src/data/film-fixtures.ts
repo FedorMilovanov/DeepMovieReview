@@ -396,6 +396,7 @@ export const pilotFilmPackage: FilmPackage = {
       events: [
         {
           id: "moral-concealment",
+          actorCharacterIds: ["character-a"],
           category: "DECEPTION / CONTROL",
           valence: "WRONGDOING",
           act: "A material truth is withheld in order to retain unilateral control.",
@@ -418,6 +419,7 @@ export const pilotFilmPackage: FilmPackage = {
         },
         {
           id: "moral-costly-honesty",
+          actorCharacterIds: ["character-a"],
           category: "TRUTHFULNESS / REPAIR",
           valence: "VIRTUE",
           act: "A costly truth is disclosed despite the risk of immediate relational loss.",
