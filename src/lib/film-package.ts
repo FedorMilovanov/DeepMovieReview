@@ -173,7 +173,7 @@ export type RelationshipModule = FilmModuleBase & {
   label: string;
   summary: string;
   /** Stable character IDs; required by the publish validator. */
-  participantIds?: [string, string];
+  participantCharacterIds?: [string, string];
   events: Array<{
     id: string;
     label: string;
