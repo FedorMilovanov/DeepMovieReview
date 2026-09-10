@@ -4,7 +4,7 @@ import { ExperienceQualityProvider } from "@/components/experience/experience-qu
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
-import { homepageFeaturedFilmSlug } from "@/data/site-config";
+import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 // This side-effect import executes the fail-closed visual manifest registry assertion.
 import "@/data/visual-assets";
 import "../styles/platform.css";
@@ -21,6 +21,14 @@ import "../styles/film-verdict.css";
 import "../styles/experience.css";
 
 const homepageFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
+const previewContentEnabled = isPreviewContentEnabled();
+
+if (homepageFilmPackage.film.status === "draft" && !previewContentEnabled) {
+  throw new Error(
+    `Configured homepage feature "${homepageFeaturedFilmSlug}" is draft content. Enable DMR_PREVIEW_CONTENT_ENABLED only for an intentional preview build, or publish/select a safe homepage feature.`,
+  );
+}
+
 const indexingEnabled =
   process.env.DMR_SITE_INDEXING_ENABLED === "true" &&
   homepageFilmPackage.film.status === "published";
