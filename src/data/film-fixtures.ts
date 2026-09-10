@@ -118,6 +118,7 @@ export const pilotFilmPackage: FilmPackage = {
       spoilerLevel: "NONE",
       label: "Character A ↔ Character B",
       summary: "A compact relationship trace proving the interaction model without pretending to be a finished review.",
+      participantCharacterIds: ["character-a", "character-b"],
       events: [
         {
           id: "rel-1",
