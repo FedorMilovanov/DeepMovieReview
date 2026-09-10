@@ -18,6 +18,7 @@ import "../styles/film-verdict.css";
 import "../styles/experience.css";
 
 const hasPublishedFilms = filmPackages.some((filmPackage) => filmPackage.film.status === "published");
+const indexingEnabled = process.env.DMR_SITE_INDEXING_ENABLED === "true" && hasPublishedFilms;
 
 export const metadata: Metadata = {
   title: {
@@ -26,7 +27,7 @@ export const metadata: Metadata = {
   },
   description:
     "Deep analysis of cinema: story, people, relationships, ideas, craft, moral structure and biblical synthesis.",
-  robots: hasPublishedFilms
+  robots: indexingEnabled
     ? { index: true, follow: true }
     : {
         index: false,
