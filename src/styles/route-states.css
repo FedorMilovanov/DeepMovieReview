@@ -1,0 +1,135 @@
+.routeLoading,
+.routeError {
+  min-height: calc(100svh - 74px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.routeLoadingLabel {
+  margin: 1.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.routeSkeleton,
+.routeCardSkeleton,
+.routeFilmHeroSkeleton,
+.routeMetaCellSkeleton {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0d0d0d, #070707);
+  border: 1px solid var(--line);
+}
+
+.routeSkeleton::after,
+.routeCardSkeleton::after,
+.routeFilmHeroSkeleton::after,
+.routeMetaCellSkeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.035), transparent);
+  animation: routeStateSweep 1.6s ease-in-out infinite;
+}
+
+.routeSkeletonWide {
+  width: min(920px, 82vw);
+  height: clamp(3.2rem, 7vw, 7rem);
+}
+
+.routeSkeletonMedium {
+  width: min(640px, 68vw);
+  height: 1.25rem;
+  margin-top: 1.15rem;
+}
+
+.routeGridSkeleton {
+  margin-top: clamp(2.5rem, 5vw, 4.5rem);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.routeCardSkeleton {
+  aspect-ratio: 4 / 5;
+}
+
+.routeLoadingFilm {
+  justify-content: flex-start;
+}
+
+.routeFilmHeroSkeleton {
+  width: 100%;
+  aspect-ratio: 2.39 / 1;
+  min-height: 240px;
+  margin-bottom: clamp(2rem, 4vw, 4rem);
+}
+
+.routeMetaSkeleton {
+  margin-top: clamp(2rem, 4vw, 3.5rem);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+}
+
+.routeMetaCellSkeleton {
+  min-height: 120px;
+  border: 0;
+}
+
+.routeError h1 {
+  max-width: 12ch;
+}
+
+.routeErrorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.routeErrorActions button {
+  cursor: pointer;
+}
+
+@keyframes routeStateSweep {
+  0% { transform: translateX(-100%); }
+  55%, 100% { transform: translateX(100%); }
+}
+
+@media (max-width: 900px) {
+  .routeGridSkeleton {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .routeMetaSkeleton {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .routeGridSkeleton {
+    grid-template-columns: 1fr;
+  }
+
+  .routeFilmHeroSkeleton {
+    aspect-ratio: 16 / 10;
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .routeSkeleton::after,
+  .routeCardSkeleton::after,
+  .routeFilmHeroSkeleton::after,
+  .routeMetaCellSkeleton::after {
+    animation: none;
+    display: none;
+  }
+}
