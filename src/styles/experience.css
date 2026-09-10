@@ -25,9 +25,133 @@ html[data-document-visible="false"] .experienceDiagnostics {
   opacity: 0.55;
 }
 
+.experienceControls {
+  position: relative;
+  min-width: min(100%, 260px);
+  color: var(--muted);
+}
+
+.experienceControls summary {
+  list-style: none;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.experienceControls summary::-webkit-details-marker {
+  display: none;
+}
+
+.experienceControls summary > span {
+  color: var(--text);
+  font-size: 0.62rem;
+}
+
+.experienceControls[open] summary {
+  border-color: var(--line-strong);
+}
+
+.experienceControlsPanel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.6rem);
+  z-index: 80;
+  width: min(92vw, 430px);
+  padding: 1rem;
+  border: 1px solid var(--line-strong);
+  background: rgba(5, 5, 5, 0.97);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.5);
+}
+
+.experienceControls fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.experienceControls fieldset + fieldset {
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.experienceControls legend {
+  margin-bottom: 0.6rem;
+  color: var(--muted);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.experienceControls label {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.7rem 0;
+  cursor: pointer;
+}
+
+.experienceControls label + label {
+  border-top: 1px solid var(--line);
+}
+
+.experienceControls input {
+  margin: 0.2rem 0 0;
+  accent-color: var(--text);
+}
+
+.experienceControls label span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.experienceControls label strong {
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.experienceControls label small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+html[data-experience-mode="lite"] .frameOrb,
+html[data-experience-mode="lite"] .autopsyCrosshair {
+  transition: none !important;
+}
+
+html[data-reduced-motion="true"] .frameOrb,
+html[data-reduced-motion="true"] .lensItem,
+html[data-reduced-motion="true"] .buttonPrimary,
+html[data-reduced-motion="true"] .buttonGhost {
+  transition-duration: 0.01ms !important;
+}
+
 @media (max-width: 640px) {
   .experienceDiagnostics {
     right: 0.75rem;
     max-width: none;
+  }
+
+  .experienceControls {
+    width: 100%;
+  }
+
+  .experienceControlsPanel {
+    left: 0;
+    right: 0;
+    width: auto;
   }
 }
