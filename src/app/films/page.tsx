@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { FilmMediaFrame } from "@/components/film-media-frame";
+import { FilmTransitionLink } from "@/components/film-transition-link";
 import { filmPackages } from "@/data/film-registry";
 import { isPreviewContentEnabled } from "@/data/site-config";
 
@@ -35,13 +36,19 @@ export default function FilmsPage() {
         {visiblePackages.map((filmPackage, index) => {
           const { film, modules } = filmPackage;
           return (
-            <Link className="filmRow" href={`/films/${film.slug}`} key={film.slug}>
+            <FilmTransitionLink
+              className="filmRow"
+              href={`/films/${film.slug}`}
+              key={film.slug}
+              slug={film.slug}
+            >
               <span className="filmRowIndex">{String(index + 1).padStart(3, "0")}</span>
-              <strong>{film.title}</strong>
+              <FilmMediaFrame slug={film.slug} variant="index" />
+              <span className="filmRowTitle"><strong>{film.title}</strong></span>
               <span className="filmRowMeta">
                 {film.year} · {film.status} · {modules.length} modules
               </span>
-            </Link>
+            </FilmTransitionLink>
           );
         })}
       </div>
