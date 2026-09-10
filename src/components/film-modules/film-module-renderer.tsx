@@ -1,3 +1,4 @@
+import { FinalSynthesisModuleView } from "@/components/film-modules/final-synthesis-view";
 import {
   AutopsyModuleView,
   BiblicalSynthesisModuleView,
@@ -5,7 +6,6 @@ import {
   CraftModuleView,
   DecisionModuleView,
   FamilyYouthModuleView,
-  FinalSynthesisModuleView,
   MeaningModuleView,
   MoralAnalysisModuleView,
   PermissionModuleView,
