@@ -2,11 +2,15 @@ import {
   AutopsyModuleView,
   BiblicalSynthesisModuleView,
   CharactersModuleView,
+  CraftModuleView,
+  DecisionModuleView,
+  FamilyYouthModuleView,
   MeaningModuleView,
   PermissionModuleView,
   RelationshipModuleView,
   SourcesMethodModuleView,
   StoryModuleView,
+  TeachingSignalsModuleView,
 } from "@/components/film-modules/module-components";
 import { assertNever, type FilmModule } from "@/lib/film-package";
 import { canRevealSpoiler, type SpoilerLevel } from "@/lib/spoilers";
@@ -27,15 +31,23 @@ export function FilmModuleRenderer({ module, spoilerLevel }: FilmModuleRendererP
     case "story":
       return <StoryModuleView module={module} spoilerLevel={spoilerLevel} />;
     case "characters":
-      return <CharactersModuleView module={module} />;
+      return <CharactersModuleView module={module} spoilerLevel={spoilerLevel} />;
     case "relationship":
       return <RelationshipModuleView module={module} spoilerLevel={spoilerLevel} />;
+    case "family-youth":
+      return <FamilyYouthModuleView module={module} spoilerLevel={spoilerLevel} />;
     case "meaning":
       return <MeaningModuleView module={module} />;
+    case "teaching-signals":
+      return <TeachingSignalsModuleView module={module} spoilerLevel={spoilerLevel} />;
     case "permission":
       return <PermissionModuleView module={module} spoilerLevel={spoilerLevel} />;
+    case "craft":
+      return <CraftModuleView module={module} spoilerLevel={spoilerLevel} />;
     case "autopsy":
       return <AutopsyModuleView module={module} />;
+    case "decision":
+      return <DecisionModuleView module={module} spoilerLevel={spoilerLevel} />;
     case "biblical-synthesis":
       return <BiblicalSynthesisModuleView module={module} />;
     case "sources-method":
