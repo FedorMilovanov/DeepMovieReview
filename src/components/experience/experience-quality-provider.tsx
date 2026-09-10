@@ -24,10 +24,14 @@ import {
 export type ExperienceMode = "auto" | "lite";
 export type MotionPreference = "system" | "reduced";
 
+type RuntimeBackend = Exclude<GraphicsBackend, "unknown">;
+
 type ExperienceQualityContextValue = ExperienceQualityState & {
   experienceMode: ExperienceMode;
   motionPreference: MotionPreference;
   reportFrameSample: (frameMs: number) => void;
+  reportRendererBackend: (backend: Exclude<RuntimeBackend, "none">) => void;
+  reportRendererFailure: (reason: string) => void;
   setExperienceMode: (mode: ExperienceMode) => void;
   setMotionPreference: (preference: MotionPreference) => void;
 };
@@ -52,7 +56,7 @@ let volatileMotionPreference: MotionPreference = "system";
 
 const ExperienceQualityContext = createContext<ExperienceQualityContextValue | null>(null);
 
-function detectBackend(): GraphicsBackend {
+function detectBackendOnce(): RuntimeBackend {
   const maybeWebGpuNavigator = navigator as Navigator & { gpu?: unknown };
   if (maybeWebGpuNavigator.gpu) return "webgpu";
 
@@ -61,10 +65,13 @@ function detectBackend(): GraphicsBackend {
   return webgl2 ? "webgl2" : "none";
 }
 
-function readCapabilities(forceReducedMotion = false): ExperienceCapabilities {
+function readCapabilities(
+  backend: GraphicsBackend,
+  forceReducedMotion = false,
+): ExperienceCapabilities {
   const systemReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   return {
-    backend: detectBackend(),
+    backend,
     dpr: Math.min(window.devicePixelRatio || 1, 4),
     viewportWidth: window.innerWidth,
     hardwareConcurrency: navigator.hardwareConcurrency,
@@ -92,7 +99,7 @@ function storePreference(key: string, value: string) {
   try {
     window.localStorage.setItem(key, value);
   } catch {
-    // Preferences remain usable for the current page even when persistence is unavailable.
+    // Current-page preference still works when persistence is unavailable.
   }
 }
 
@@ -139,39 +146,69 @@ export function ExperienceQualityProvider({ children }: { children: ReactNode })
     readStoredMotionPreference,
     () => "system" as MotionPreference,
   );
+  const detectedBackendRef = useRef<RuntimeBackend | null>(null);
+  const rendererBackendRef = useRef<RuntimeBackend | null>(null);
   const slowFramesRef = useRef(0);
   const lastDowngradeRef = useRef(0);
+  const resizeFrameRef = useRef<number | null>(null);
+
+  const getEffectiveBackend = useCallback((): RuntimeBackend => {
+    if (rendererBackendRef.current) return rendererBackendRef.current;
+    if (!detectedBackendRef.current) detectedBackendRef.current = detectBackendOnce();
+    return detectedBackendRef.current;
+  }, []);
+
+  const measureCapabilities = useCallback(
+    () => readCapabilities(getEffectiveBackend(), motionPreference === "reduced"),
+    [getEffectiveBackend, motionPreference],
+  );
+
+  const applyCapabilities = useCallback((allowUpgrade: boolean) => {
+    const capabilities = measureCapabilities();
+    const capabilityTier = selectInitialTier(capabilities);
+    const allowedTier = experienceMode === "lite" ? "LITE" : capabilityTier;
+
+    setState((current) => {
+      const nextTier = allowUpgrade
+        ? allowedTier
+        : current.backend === "unknown"
+          ? allowedTier
+          : lowerOfTier(current.tier, allowedTier);
+
+      const constraintLoweredTier = nextTier !== current.tier && !allowUpgrade;
+
+      return {
+        ...current,
+        ...capabilities,
+        tier: nextTier,
+        downgradeReason:
+          experienceMode === "lite"
+            ? "User selected Lite experience"
+            : constraintLoweredTier
+              ? "Capability or accessibility constraint lowered the allowed quality tier"
+              : allowUpgrade
+                ? undefined
+                : current.downgradeReason,
+        documentVisible: document.visibilityState !== "hidden",
+      };
+    });
+  }, [experienceMode, measureCapabilities]);
 
   useEffect(() => {
+    if (!detectedBackendRef.current) detectedBackendRef.current = detectBackendOnce();
+
     const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     const forcedColorsQuery = window.matchMedia("(forced-colors: active)");
 
-    const updateCapabilities = () => {
-      const capabilities = readCapabilities(motionPreference === "reduced");
-      const capabilityTier = selectInitialTier(capabilities);
-      const allowedTier = experienceMode === "lite" ? "LITE" : capabilityTier;
-
-      setState((current) => {
-        const nextTier =
-          current.backend === "unknown"
-            ? allowedTier
-            : lowerOfTier(current.tier, allowedTier);
-
-        return {
-          ...current,
-          ...capabilities,
-          tier: nextTier,
-          downgradeReason:
-            nextTier !== current.tier
-              ? experienceMode === "lite"
-                ? "User selected Lite experience"
-                : "Capability or accessibility constraint lowered the allowed quality tier"
-              : current.downgradeReason,
-          documentVisible: document.visibilityState !== "hidden",
-        };
+    const updateForResize = () => {
+      if (resizeFrameRef.current !== null) return;
+      resizeFrameRef.current = window.requestAnimationFrame(() => {
+        resizeFrameRef.current = null;
+        applyCapabilities(false);
       });
     };
 
+    const updateForAccessibilityChange = () => applyCapabilities(true);
     const updateVisibility = () => {
       setState((current) => ({
         ...current,
@@ -179,19 +216,23 @@ export function ExperienceQualityProvider({ children }: { children: ReactNode })
       }));
     };
 
-    updateCapabilities();
-    window.addEventListener("resize", updateCapabilities, { passive: true });
+    applyCapabilities(true);
+    window.addEventListener("resize", updateForResize, { passive: true });
     document.addEventListener("visibilitychange", updateVisibility);
-    reducedMotionQuery.addEventListener("change", updateCapabilities);
-    forcedColorsQuery.addEventListener("change", updateCapabilities);
+    reducedMotionQuery.addEventListener("change", updateForAccessibilityChange);
+    forcedColorsQuery.addEventListener("change", updateForAccessibilityChange);
 
     return () => {
-      window.removeEventListener("resize", updateCapabilities);
+      window.removeEventListener("resize", updateForResize);
       document.removeEventListener("visibilitychange", updateVisibility);
-      reducedMotionQuery.removeEventListener("change", updateCapabilities);
-      forcedColorsQuery.removeEventListener("change", updateCapabilities);
+      reducedMotionQuery.removeEventListener("change", updateForAccessibilityChange);
+      forcedColorsQuery.removeEventListener("change", updateForAccessibilityChange);
+      if (resizeFrameRef.current !== null) {
+        window.cancelAnimationFrame(resizeFrameRef.current);
+        resizeFrameRef.current = null;
+      }
     };
-  }, [experienceMode, motionPreference]);
+  }, [applyCapabilities]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -208,40 +249,50 @@ export function ExperienceQualityProvider({ children }: { children: ReactNode })
     publishPreferenceChange();
     slowFramesRef.current = 0;
     lastDowngradeRef.current = 0;
-
-    if (mode === "auto") {
-      const capabilities = readCapabilities(motionPreference === "reduced");
-      setState((current) => ({
-        ...current,
-        ...capabilities,
-        tier: selectInitialTier(capabilities),
-        downgradeReason: undefined,
-      }));
-    } else {
-      setState((current) => ({
-        ...current,
-        tier: "LITE",
-        downgradeReason: "User selected Lite experience",
-      }));
-    }
-  }, [motionPreference]);
+  }, []);
 
   const setMotionPreference = useCallback((preference: MotionPreference) => {
     storePreference(STORAGE_MOTION_PREFERENCE, preference);
     publishPreferenceChange();
-    const capabilities = readCapabilities(preference === "reduced");
+    slowFramesRef.current = 0;
+    lastDowngradeRef.current = 0;
+  }, []);
+
+  const reportRendererBackend = useCallback((backend: Exclude<RuntimeBackend, "none">) => {
+    const previousDetected = detectedBackendRef.current;
+    rendererBackendRef.current = backend;
+    const capabilities = readCapabilities(backend, motionPreference === "reduced");
+    const allowedTier = experienceMode === "lite" ? "LITE" : selectInitialTier(capabilities);
+
     setState((current) => ({
       ...current,
       ...capabilities,
-      tier: experienceMode === "lite" ? "LITE" : lowerOfTier(current.tier, selectInitialTier(capabilities)),
+      tier: lowerOfTier(current.tier, allowedTier),
+      downgradeReason:
+        previousDetected && previousDetected !== backend
+          ? `Renderer initialized with ${backend.toUpperCase()} fallback`
+          : current.downgradeReason,
     }));
-  }, [experienceMode]);
+  }, [experienceMode, motionPreference]);
+
+  const reportRendererFailure = useCallback((reason: string) => {
+    rendererBackendRef.current = "none";
+    slowFramesRef.current = 0;
+    setState((current) => ({
+      ...current,
+      backend: "none",
+      tier: "LITE",
+      downgradeReason: reason,
+    }));
+  }, []);
 
   const reportFrameSample = useCallback((frameMs: number) => {
     if (!Number.isFinite(frameMs) || frameMs <= 0) return;
 
     setState((current) => {
-      if (current.tier === "LITE" || experienceMode === "lite") return current;
+      if (!current.documentVisible || current.tier === "LITE" || experienceMode === "lite") {
+        return current;
+      }
 
       const budget = frameBudgetForTier(current.tier);
       if (frameMs > budget) {
@@ -252,14 +303,14 @@ export function ExperienceQualityProvider({ children }: { children: ReactNode })
 
       const now = performance.now();
       const cooldownPassed = now - lastDowngradeRef.current > 5000;
-      if (slowFramesRef.current < 12 || !cooldownPassed) return current;
+      if (slowFramesRef.current < 6 || !cooldownPassed) return current;
 
       slowFramesRef.current = 0;
       lastDowngradeRef.current = now;
       return {
         ...current,
         tier: downgradeTier(current.tier),
-        downgradeReason: `Sustained frame time above ${budget}ms budget`,
+        downgradeReason: `Sustained p90 frame time above ${budget}ms budget`,
       };
     });
   }, [experienceMode]);
@@ -270,10 +321,21 @@ export function ExperienceQualityProvider({ children }: { children: ReactNode })
       experienceMode,
       motionPreference,
       reportFrameSample,
+      reportRendererBackend,
+      reportRendererFailure,
       setExperienceMode,
       setMotionPreference,
     }),
-    [experienceMode, motionPreference, reportFrameSample, setExperienceMode, setMotionPreference, state],
+    [
+      experienceMode,
+      motionPreference,
+      reportFrameSample,
+      reportRendererBackend,
+      reportRendererFailure,
+      setExperienceMode,
+      setMotionPreference,
+      state,
+    ],
   );
 
   return (
