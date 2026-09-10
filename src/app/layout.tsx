@@ -3,6 +3,7 @@ import { ExperienceDiagnostics } from "@/components/experience/experience-diagno
 import { ExperienceQualityProvider } from "@/components/experience/experience-quality-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { filmPackages } from "@/data/film-registry";
 import "../styles/platform.css";
 import "../styles/tokens.css";
 import "./globals.css";
@@ -16,6 +17,8 @@ import "../styles/film-modules.css";
 import "../styles/film-verdict.css";
 import "../styles/experience.css";
 
+const hasPublishedFilms = filmPackages.some((filmPackage) => filmPackage.film.status === "published");
+
 export const metadata: Metadata = {
   title: {
     default: "DeepMovieReview",
@@ -23,6 +26,13 @@ export const metadata: Metadata = {
   },
   description:
     "Deep analysis of cinema: story, people, relationships, ideas, craft, moral structure and biblical synthesis.",
+  robots: hasPublishedFilms
+    ? { index: true, follow: true }
+    : {
+        index: false,
+        follow: false,
+        googleBot: { index: false, follow: false },
+      },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
