@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FilmMediaFrame } from "@/components/film-media-frame";
 import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
 import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
@@ -55,6 +56,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
 
       <section className="sectionShell filmPageHero" aria-labelledby="film-title">
         <Link className="microLabel" href="/films">← Films</Link>
+        <FilmMediaFrame slug={film.slug} variant="hero" />
         <div className="sectionIndex">FILM / {film.status.toUpperCase()} / SCHEMA {filmPackage.schemaVersion}</div>
         <h1 id="film-title">{film.title}</h1>
         <p className="sectionIntro">{film.premise}</p>
