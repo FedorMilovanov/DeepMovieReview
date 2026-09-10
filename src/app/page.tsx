@@ -5,10 +5,65 @@ import { projectHomepage } from "@/lib/homepage-projection";
 
 const featuredFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
 
+function PublicPrelaunchHomePage() {
+  return (
+    <>
+      <section className="heroSection sectionShell" aria-labelledby="hero-title">
+        <div className="eyebrow">Deep film analysis / public prelaunch</div>
+        <div className="heroGrid">
+          <div className="heroCopy">
+            <p className="kicker">Film first. Evidence before verdict.</p>
+            <h1 id="hero-title">DeepMovieReview is preparing its first published analysis.</h1>
+            <p className="lede">
+              Preview fixtures and draft editorial work stay private to preview builds. The public surface exposes the method, not unfinished film judgments.
+            </p>
+            <div className="heroActions">
+              <Link className="buttonPrimary" href="/methodology">Read methodology</Link>
+              <Link className="buttonGhost" href="/films">Published films</Link>
+            </div>
+          </div>
+          <div className="livingFrame" aria-label="DeepMovieReview prelaunch frame">
+            <div className="frameMeta"><span>PUBLIC / PRELAUNCH</span><span>2.39:1</span></div>
+            <div className="frameVisual" aria-hidden="true">
+              <div className="frameOrb frameOrbA" />
+              <div className="frameOrb frameOrbB" />
+              <div className="frameHorizon" />
+            </div>
+            <div className="frameCaption">
+              <strong>Evidence before verdict.</strong>
+              <span>No fixture or draft film content is exposed on the public homepage.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="sectionShell sectionRule discoverySection" aria-labelledby="prelaunch-method-title">
+        <div>
+          <div className="sectionIndex">METHOD / BEFORE FILM 001</div>
+          <h2 id="prelaunch-method-title">Understand the story before judging it.</h2>
+          <p className="sectionIntro">
+            The method separates story, people, relationships, ideas, craft, moral reasoning and biblical synthesis before reaching a final editorial judgment.
+          </p>
+        </div>
+        <div className="discoveryLinks">
+          <Link href="/methodology">Read the methodology</Link>
+          <Link href="/films">Browse published films</Link>
+        </div>
+      </section>
+    </>
+  );
+}
+
 export default function HomePage() {
+  const previewContentEnabled = isPreviewContentEnabled();
+  const isPublished = featuredFilmPackage.film.status === "published";
+
+  if (!isPublished && !previewContentEnabled) {
+    return <PublicPrelaunchHomePage />;
+  }
+
   const data = projectHomepage(featuredFilmPackage);
-  const isPublished = data.featuredFilm.status === "published";
-  const canOpenFeaturedFilm = isPublished || isPreviewContentEnabled();
+  const canOpenFeaturedFilm = isPublished || previewContentEnabled;
 
   return (
     <>
