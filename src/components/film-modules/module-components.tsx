@@ -14,11 +14,6 @@ import type {
   StoryModule,
   TeachingSignalsModule,
 } from "@/lib/film-package";
-import {
-  canRevealSpoiler,
-  filterBySpoilerLevel,
-  type SpoilerLevel,
-} from "@/lib/spoilers";
 
 function ModuleHeader({ eyebrow, heading }: { eyebrow?: string; heading: string }) {
   return (
@@ -33,14 +28,13 @@ function humanizeEnum(value: string) {
   return value.replaceAll("_", " ");
 }
 
-export function StoryModuleView({ module, spoilerLevel }: { module: StoryModule; spoilerLevel: SpoilerLevel }) {
-  const beats = filterBySpoilerLevel(module.beats, spoilerLevel);
+export function StoryModuleView({ module }: { module: StoryModule }) {
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule filmModuleStory">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       <p className="sectionIntro">{module.summary}</p>
       <ol className="storyTrack">
-        {beats.map((beat, index) => (
+        {module.beats.map((beat, index) => (
           <li key={beat.id}>
             <span>{String(index + 1).padStart(2, "0")}</span>
             <div><strong>{beat.label}</strong><p>{beat.summary}</p></div>
@@ -51,40 +45,32 @@ export function StoryModuleView({ module, spoilerLevel }: { module: StoryModule;
   );
 }
 
-export function CharactersModuleView({ module, spoilerLevel }: { module: CharactersModule; spoilerLevel: SpoilerLevel }) {
+export function CharactersModuleView({ module }: { module: CharactersModule }) {
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       <div className="characterGrid">
-        {module.characters.map((character) => {
-          const showInterpretive = canRevealSpoiler(
-            spoilerLevel,
-            character.interpretiveSpoilerLevel ?? module.spoilerLevel,
-          );
-
-          return (
-            <article className="characterCard" key={character.id}>
-              <div className="portraitPlaceholder" aria-hidden="true" />
-              <h3>{character.name}</h3>
-              <dl>
-                <div><dt>Wants</dt><dd>{character.wants}</dd></div>
-                <div><dt>Fears</dt><dd>{character.fears}</dd></div>
-                <div><dt>Contradiction</dt><dd>{character.contradiction}</dd></div>
-                {showInterpretive && character.believes ? <div><dt>Believes</dt><dd>{character.believes}</dd></div> : null}
-                {showInterpretive && character.selfDeception ? <div><dt>Self-deception</dt><dd>{character.selfDeception}</dd></div> : null}
-                {showInterpretive && character.arcSummary ? <div><dt>Arc</dt><dd>{character.arcSummary}</dd></div> : null}
-                {showInterpretive && character.roleInArgument ? <div><dt>Role</dt><dd>{character.roleInArgument}</dd></div> : null}
-              </dl>
-            </article>
-          );
-        })}
+        {module.characters.map((character) => (
+          <article className="characterCard" key={character.id}>
+            <div className="portraitPlaceholder" aria-hidden="true" />
+            <h3>{character.name}</h3>
+            <dl>
+              <div><dt>Wants</dt><dd>{character.wants}</dd></div>
+              <div><dt>Fears</dt><dd>{character.fears}</dd></div>
+              <div><dt>Contradiction</dt><dd>{character.contradiction}</dd></div>
+              {character.believes ? <div><dt>Believes</dt><dd>{character.believes}</dd></div> : null}
+              {character.selfDeception ? <div><dt>Self-deception</dt><dd>{character.selfDeception}</dd></div> : null}
+              {character.arcSummary ? <div><dt>Arc</dt><dd>{character.arcSummary}</dd></div> : null}
+              {character.roleInArgument ? <div><dt>Role</dt><dd>{character.roleInArgument}</dd></div> : null}
+            </dl>
+          </article>
+        ))}
       </div>
     </section>
   );
 }
 
-export function RelationshipModuleView({ module, spoilerLevel }: { module: RelationshipModule; spoilerLevel: SpoilerLevel }) {
-  const events = filterBySpoilerLevel(module.events, spoilerLevel);
+export function RelationshipModuleView({ module }: { module: RelationshipModule }) {
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
@@ -94,7 +80,7 @@ export function RelationshipModuleView({ module, spoilerLevel }: { module: Relat
           <p>{module.summary}</p>
         </div>
         <ol className="relationshipTrace">
-          {events.map((event) => (
+          {module.events.map((event) => (
             <li className={`traceEvent trace-${event.tone}`} key={event.id}>
               <span className="traceDot" aria-hidden="true" />
               <div><strong>{event.label}</strong><p>{event.change}</p></div>
@@ -106,14 +92,13 @@ export function RelationshipModuleView({ module, spoilerLevel }: { module: Relat
   );
 }
 
-export function FamilyYouthModuleView({ module, spoilerLevel }: { module: FamilyYouthModule; spoilerLevel: SpoilerLevel }) {
-  const observations = filterBySpoilerLevel(module.observations, spoilerLevel);
+export function FamilyYouthModuleView({ module }: { module: FamilyYouthModule }) {
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule filmFormation">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       {module.summary ? <p className="sectionIntro">{module.summary}</p> : null}
       <div className="filmObservationGrid">
-        {observations.map((observation) => (
+        {module.observations.map((observation) => (
           <article key={observation.id}>
             <div className="filmObservationMeta">
               <span>{humanizeEnum(observation.domain)}</span>
@@ -147,13 +132,12 @@ export function MeaningModuleView({ module }: { module: MeaningModule }) {
   );
 }
 
-export function TeachingSignalsModuleView({ module, spoilerLevel }: { module: TeachingSignalsModule; spoilerLevel: SpoilerLevel }) {
-  const signals = filterBySpoilerLevel(module.signals, spoilerLevel);
+export function TeachingSignalsModuleView({ module }: { module: TeachingSignalsModule }) {
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule filmTeachingSignals">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       <div className="filmSignalList">
-        {signals.map((signal, index) => (
+        {module.signals.map((signal, index) => (
           <article key={signal.id}>
             <span className="filmSignalIndex">{String(index + 1).padStart(2, "0")}</span>
             <div>
@@ -171,13 +155,12 @@ export function TeachingSignalsModuleView({ module, spoilerLevel }: { module: Te
   );
 }
 
-export function PermissionModuleView({ module, spoilerLevel }: { module: PermissionModule; spoilerLevel: SpoilerLevel }) {
-  const assessments = filterBySpoilerLevel(module.assessments, spoilerLevel);
+export function PermissionModuleView({ module }: { module: PermissionModule }) {
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       <div className="permissionField">
-        {assessments.map((assessment) => (
+        {module.assessments.map((assessment) => (
           <article key={assessment.id}>
             <span className="permissionState">{assessment.state}</span>
             <h3>{assessment.subject}</h3>
@@ -189,14 +172,13 @@ export function PermissionModuleView({ module, spoilerLevel }: { module: Permiss
   );
 }
 
-export function CraftModuleView({ module, spoilerLevel }: { module: CraftModule; spoilerLevel: SpoilerLevel }) {
-  const observations = filterBySpoilerLevel(module.observations, spoilerLevel);
-  const pressureAssessments = filterBySpoilerLevel(module.pressureAssessments ?? [], spoilerLevel);
+export function CraftModuleView({ module }: { module: CraftModule }) {
+  const pressureAssessments = module.pressureAssessments ?? [];
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule filmCraft">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       <div className="filmCraftGrid">
-        {observations.map((observation) => (
+        {module.observations.map((observation) => (
           <article key={observation.id}>
             <div className="filmObservationMeta">
               <span>{humanizeEnum(observation.mechanism)}</span>
@@ -246,15 +228,13 @@ export function AutopsyModuleView({ module }: { module: AutopsyModule }) {
   );
 }
 
-export function DecisionModuleView({ module, spoilerLevel }: { module: DecisionModule; spoilerLevel: SpoilerLevel }) {
-  const facts = filterBySpoilerLevel(module.facts, spoilerLevel);
-  const pressures = filterBySpoilerLevel(module.pressures, spoilerLevel);
-  const dutiesOrGoods = filterBySpoilerLevel(module.dutiesOrGoods, spoilerLevel);
-  const knownFacts = facts.filter((fact) => fact.knowledgeState === "KNOWN_TO_CHARACTER" || fact.knowledgeState === "REASONABLY_INFERABLE");
-  const withheldFacts = facts.filter((fact) => fact.knowledgeState === "UNKNOWN_AT_TIME" || fact.knowledgeState === "REVEALED_LATER");
-  const showJudgment = module.editorialJudgment
-    ? canRevealSpoiler(spoilerLevel, module.editorialJudgment.spoilerLevel)
-    : false;
+export function DecisionModuleView({ module }: { module: DecisionModule }) {
+  const knownFacts = module.facts.filter(
+    (fact) => fact.knowledgeState === "KNOWN_TO_CHARACTER" || fact.knowledgeState === "REASONABLY_INFERABLE",
+  );
+  const withheldFacts = module.facts.filter(
+    (fact) => fact.knowledgeState === "UNKNOWN_AT_TIME" || fact.knowledgeState === "REVEALED_LATER",
+  );
 
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule filmDecision">
@@ -282,14 +262,14 @@ export function DecisionModuleView({ module, spoilerLevel }: { module: DecisionM
       <div className="filmDecisionContext">
         <article>
           <span className="microLabel">PRESSURES</span>
-          {pressures.map((pressure) => <p key={pressure.id}><strong>{humanizeEnum(pressure.kind)}</strong> {pressure.summary}</p>)}
+          {module.pressures.map((pressure) => <p key={pressure.id}><strong>{humanizeEnum(pressure.kind)}</strong> {pressure.summary}</p>)}
         </article>
         <article>
           <span className="microLabel">DUTIES / GOODS</span>
-          {dutiesOrGoods.map((duty) => <p key={duty.id}><strong>{duty.label}</strong>{duty.summary ? ` ${duty.summary}` : ""}</p>)}
+          {module.dutiesOrGoods.map((duty) => <p key={duty.id}><strong>{duty.label}</strong>{duty.summary ? ` ${duty.summary}` : ""}</p>)}
         </article>
       </div>
-      {showJudgment && module.editorialJudgment ? (
+      {module.editorialJudgment ? (
         <article className="filmDecisionJudgment">
           <span className="microLabel">EDITORIAL JUDGMENT / {module.editorialJudgment.confidence}</span>
           <p>{module.editorialJudgment.claim}</p>
@@ -300,21 +280,20 @@ export function DecisionModuleView({ module, spoilerLevel }: { module: DecisionM
   );
 }
 
-export function MoralAnalysisModuleView({ module, spoilerLevel }: { module: MoralAnalysisModule; spoilerLevel: SpoilerLevel }) {
-  const events = filterBySpoilerLevel(module.events, spoilerLevel);
-  const wrongdoingCount = events.filter((event) => event.valence === "WRONGDOING").length;
+export function MoralAnalysisModuleView({ module }: { module: MoralAnalysisModule }) {
+  const wrongdoingCount = module.events.filter((event) => event.valence === "WRONGDOING").length;
 
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule filmMoralAnalysis">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       {module.summary ? <p className="sectionIntro">{module.summary}</p> : null}
       <div className="filmMoralLedgerMeta" aria-label="Visible moral event summary">
-        <div><span>Visible significant events</span><strong>{events.length}</strong></div>
+        <div><span>Visible significant events</span><strong>{module.events.length}</strong></div>
         <div><span>Visible wrongdoing events</span><strong>{wrongdoingCount}</strong></div>
         <p>Event count is descriptive. It is never used as a proxy for severity, film quality or narrative endorsement.</p>
       </div>
       <ol className="filmMoralLedger">
-        {events.map((event, index) => (
+        {module.events.map((event, index) => (
           <li key={event.id}>
             <div className="filmMoralEventTopline">
               <span>{String(index + 1).padStart(2, "0")}</span>
