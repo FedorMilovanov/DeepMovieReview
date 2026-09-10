@@ -5,7 +5,9 @@ import {
   CraftModuleView,
   DecisionModuleView,
   FamilyYouthModuleView,
+  FinalSynthesisModuleView,
   MeaningModuleView,
+  MoralAnalysisModuleView,
   PermissionModuleView,
   RelationshipModuleView,
   SourcesMethodModuleView,
@@ -48,8 +50,12 @@ export function FilmModuleRenderer({ module, spoilerLevel }: FilmModuleRendererP
       return <AutopsyModuleView module={module} />;
     case "decision":
       return <DecisionModuleView module={module} spoilerLevel={spoilerLevel} />;
+    case "moral-analysis":
+      return <MoralAnalysisModuleView module={module} spoilerLevel={spoilerLevel} />;
     case "biblical-synthesis":
       return <BiblicalSynthesisModuleView module={module} />;
+    case "final-synthesis":
+      return <FinalSynthesisModuleView module={module} />;
     case "sources-method":
       return <SourcesMethodModuleView module={module} />;
     default:
