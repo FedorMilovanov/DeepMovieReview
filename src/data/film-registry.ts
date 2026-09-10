@@ -1,7 +1,4 @@
-import {
-  filmPackages as rawFilmPackages,
-  pilotFilmPackage as rawPilotFilmPackage,
-} from "@/data/film-packages";
+import { filmPackages as rawFilmPackages, pilotFilmPackage as rawPilotFilmPackage } from "@/data/film-fixtures";
 import { assertValidFilmRegistry } from "@/lib/film-package-integrity";
 
 assertValidFilmRegistry(rawFilmPackages);
