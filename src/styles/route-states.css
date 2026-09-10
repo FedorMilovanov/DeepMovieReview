@@ -123,3 +123,120 @@
     min-height: 0;
   }
 }
+
+
+.filmMediaFrame {
+  position: relative;
+  overflow: clip;
+  isolation: isolate;
+  border: 1px solid var(--stroke-default);
+  background:
+    radial-gradient(circle at 64% 46%, rgb(143 32 39 / 0.42), transparent 19%),
+    radial-gradient(circle at 44% 60%, rgb(185 146 91 / 0.14), transparent 26%),
+    linear-gradient(155deg, #121212 0%, #070707 46%, #020202 100%);
+}
+
+.filmMediaFrameIndex {
+  aspect-ratio: 2.39 / 1;
+  min-height: 58px;
+}
+
+.filmMediaFrameHero {
+  width: 100%;
+  aspect-ratio: 2.39 / 1;
+  min-height: 240px;
+  margin: clamp(1.5rem, 4vw, 3rem) 0;
+  box-shadow: var(--shadow-dmr-depth);
+}
+
+.filmMediaGlow,
+.filmMediaHorizon,
+.filmMediaFrameMark {
+  position: absolute;
+}
+
+.filmMediaGlow {
+  border-radius: 50%;
+  filter: blur(1px);
+}
+
+.filmMediaGlowPrimary {
+  width: 23%;
+  aspect-ratio: 1;
+  right: 19%;
+  top: 20%;
+  background: rgb(143 32 39 / 0.68);
+}
+
+.filmMediaGlowSecondary {
+  width: 18%;
+  aspect-ratio: 1;
+  left: 38%;
+  bottom: 18%;
+  background: rgb(185 146 91 / 0.2);
+}
+
+.filmMediaHorizon {
+  left: 0;
+  right: 0;
+  top: 63%;
+  border-top: 1px solid rgb(255 255 255 / 0.14);
+  transform: rotate(-2deg);
+}
+
+.filmMediaFrameMark {
+  left: 0.7rem;
+  bottom: 0.55rem;
+  z-index: 2;
+  max-width: calc(100% - 1.4rem);
+  overflow: hidden;
+  color: rgb(255 255 255 / 0.5);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-route-transition="active"]::after {
+  content: "";
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 10000;
+  width: 34%;
+  height: 2px;
+  background: var(--accent-restoration);
+  pointer-events: none;
+  animation: routePendingTrace 0.72s var(--ease-dmr-cinematic) infinite alternate;
+}
+
+::view-transition-group(.film-media-transition) {
+  z-index: 80;
+}
+
+@keyframes routePendingTrace {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(290%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-route-transition="active"]::after {
+    display: none;
+  }
+
+  ::view-transition-group(.film-media-transition),
+  ::view-transition-old(.film-media-transition),
+  ::view-transition-new(.film-media-transition) {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .filmMediaFrameHero {
+    aspect-ratio: 16 / 10;
+    min-height: 0;
+  }
+
+  .filmMediaFrameMark {
+    font-size: 0.5rem;
+  }
+}
