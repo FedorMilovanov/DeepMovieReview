@@ -102,6 +102,10 @@ export function VerdictCore() {
               camera={{ position: [0, 0, 4.5], fov: 38, near: 0.1, far: 20 }}
               shadows={tier === "ULTRA" || tier === "HIGH"}
               gl={async (props) => {
+                if (!(props.canvas instanceof HTMLCanvasElement)) {
+                  throw new Error("VerdictCore requires a DOM canvas surface.");
+                }
+
                 const renderer = new THREE.WebGPURenderer({
                   canvas: props.canvas,
                   alpha: true,
