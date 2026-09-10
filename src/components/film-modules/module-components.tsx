@@ -5,6 +5,7 @@ import type {
   MeaningModule,
   PermissionModule,
   RelationshipModule,
+  SourcesMethodModule,
   StoryModule,
 } from "@/lib/film-package";
 import { filterBySpoilerLevel, type SpoilerLevel } from "@/lib/spoilers";
@@ -149,6 +150,31 @@ export function BiblicalSynthesisModuleView({ module }: { module: BiblicalSynthe
         <li><span>Scripture</span><p>{module.scriptureRefs.join(" · ")}</p></li>
         <li><span>Application</span><p>{module.application}</p></li>
         <li><span>Qualification</span><p>{module.qualification}</p></li>
+      </ol>
+    </section>
+  );
+}
+
+export function SourcesMethodModuleView({ module }: { module: SourcesMethodModule }) {
+  return (
+    <section id={module.id} className="sectionShell sectionRule filmModule filmSourcesMethod">
+      <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
+      <div className="filmMethodMeta">
+        <div><span>Methodology</span><strong>{module.methodologyVersion}</strong></div>
+        <div><span>Editorial revision</span><strong>{module.editorialRevision}</strong></div>
+        <div><span>Analyzed edition</span><strong>{module.analyzedEdition}</strong></div>
+        <div><span>Last reviewed</span><strong>{module.lastReviewedAt ?? "Not published"}</strong></div>
+      </div>
+      <ol className="filmSourceList">
+        {module.sources.map((source) => (
+          <li key={source.id}>
+            <span className="microLabel">{source.kind}</span>
+            <div>
+              {source.href ? <a href={source.href}>{source.label}</a> : <strong>{source.label}</strong>}
+              {source.locator ? <p>{source.locator}</p> : null}
+            </div>
+          </li>
+        ))}
       </ol>
     </section>
   );

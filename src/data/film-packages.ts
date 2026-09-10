@@ -98,6 +98,24 @@ export const pilotFilmPackage: FilmPackage = {
       application: homepageFixture.biblicalSynthesis.application,
       qualification: homepageFixture.biblicalSynthesis.qualification,
     },
+    {
+      id: "sources-method",
+      kind: "sources-method",
+      heading: "Sources, edition and method version.",
+      eyebrow: "TRANSPARENCY",
+      spoilerLevel: "NONE",
+      methodologyVersion: "working-v0.2",
+      editorialRevision: "fixture-r1",
+      analyzedEdition: "No canonical film edition selected — structural fixture only",
+      sources: [
+        {
+          id: "fixture-source-1",
+          label: "Fixture data package",
+          kind: "editorial-note",
+          locator: "Synthetic shell data; not a published review source.",
+        },
+      ],
+    },
   ],
 };
 
@@ -128,6 +146,24 @@ export const secondFixturePackage: FilmPackage = {
       apparentClaim: "No. The film package should select modules while the renderer remains stable.",
       counterevidence: "Some future films may require genuinely new module types, which should be added deliberately to the registry.",
       confidence: "HIGH",
+    },
+    {
+      id: "second-sources-method",
+      kind: "sources-method",
+      heading: "Sources, edition and method version.",
+      eyebrow: "TRANSPARENCY",
+      spoilerLevel: "NONE",
+      methodologyVersion: "working-v0.2",
+      editorialRevision: "fixture-r1",
+      analyzedEdition: "Structural fixture",
+      sources: [
+        {
+          id: "second-fixture-source",
+          label: "Second renderer fixture",
+          kind: "editorial-note",
+          locator: "Exists only to prove optional module composition.",
+        },
+      ],
     },
   ],
 };

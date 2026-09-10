@@ -8,7 +8,8 @@ export type FilmModuleKind =
   | "meaning"
   | "permission"
   | "autopsy"
-  | "biblical-synthesis";
+  | "biblical-synthesis"
+  | "sources-method";
 
 export type FilmModuleBase = {
   id: string;
@@ -95,6 +96,21 @@ export type BiblicalSynthesisModule = FilmModuleBase & {
   qualification: string;
 };
 
+export type SourcesMethodModule = FilmModuleBase & {
+  kind: "sources-method";
+  methodologyVersion: string;
+  editorialRevision: string;
+  analyzedEdition: string;
+  lastReviewedAt?: string;
+  sources: Array<{
+    id: string;
+    label: string;
+    kind: "film-edition" | "scripture" | "reference" | "editorial-note";
+    locator?: string;
+    href?: string;
+  }>;
+};
+
 export type FilmModule =
   | StoryModule
   | CharactersModule
@@ -102,7 +118,8 @@ export type FilmModule =
   | MeaningModule
   | PermissionModule
   | AutopsyModule
-  | BiblicalSynthesisModule;
+  | BiblicalSynthesisModule
+  | SourcesMethodModule;
 
 export type FilmPackage = {
   schemaVersion: 1;

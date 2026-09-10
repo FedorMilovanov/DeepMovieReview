@@ -1,10 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FilmModuleList } from "@/components/film-modules/film-module-renderer";
+import {
+  FilmModuleList,
+  getVisibleFilmModules,
+} from "@/components/film-modules/film-module-renderer";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-packages";
-import { canRevealSpoiler, parseSpoilerLevel } from "@/lib/spoilers";
+import {
+  canRevealSpoiler,
+  parseSpoilerLevel,
+  withSpoilerQuery,
+} from "@/lib/spoilers";
 
 type FilmPageProps = {
   params: Promise<{ slug: string }>;
@@ -33,9 +40,11 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
   const { film, modules } = filmPackage;
   const spoilerLevel = parseSpoilerLevel(query.spoilers);
   const pathname = `/films/${film.slug}`;
+  const visibleModules = getVisibleFilmModules(modules, spoilerLevel);
   const hiddenModuleCount = modules.filter(
     (module) => !canRevealSpoiler(spoilerLevel, module.spoilerLevel),
   ).length;
+  const outlineBase = withSpoilerQuery(pathname, spoilerLevel);
 
   return (
     <>
@@ -55,6 +64,22 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
             This route proves the reusable film renderer only. Fixture language carries no published moral, psychological or biblical authority.
           </p>
         ) : null}
+      </section>
+
+      <section className="sectionShell sectionRule filmOutlineSection" aria-labelledby="film-outline-title">
+        <div>
+          <div className="sectionIndex">FILM / OUTLINE</div>
+          <h2 id="film-outline-title">Addressable analysis, filtered to your spoiler level.</h2>
+        </div>
+        <nav className="filmOutline" aria-label={`${film.title} analysis sections`}>
+          {visibleModules.map((module, index) => (
+            <Link key={module.id} href={`${outlineBase}#${module.id}`} scroll>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{module.eyebrow ?? module.kind}</strong>
+              <small>{module.heading}</small>
+            </Link>
+          ))}
+        </nav>
       </section>
 
       <section className="sectionShell sectionRule" aria-labelledby="spoiler-title">
