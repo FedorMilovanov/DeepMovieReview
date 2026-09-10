@@ -3,11 +3,13 @@
   "compilerOptions": {
     "noEmit": false,
     "incremental": false,
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "Node16",
+    "moduleResolution": "Node16",
     "target": "ES2022",
     "outDir": ".test-build",
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "tests/**/*.test.ts",
