@@ -123,7 +123,9 @@ jobs:
       - name: Build public surface without preview content
         env:
           DMR_PREVIEW_CONTENT_ENABLED: "false"
-        run: npm run build
+        run: |
+          rm -rf .next
+          npm run build
 
       - name: Public surface access smoke test
         env:
