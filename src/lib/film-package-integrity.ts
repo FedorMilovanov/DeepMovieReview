@@ -165,8 +165,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         for (const item of filmModule.characters) {
           if (isBlank(item.id)) errors.push(`${filmModule.id}: character id is required.`);
           if (published && isBlank(item.name)) errors.push(`${filmModule.id}/${item.id}: published character requires a name.`);
-          const interpretive = Boolean(item.believes || item.selfDeception || item.arcSummary || item.roleInArgument);
-          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published && interpretive);
+          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
         }
         break;
       case "relationship": {
