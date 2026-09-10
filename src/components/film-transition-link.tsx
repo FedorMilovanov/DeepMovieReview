@@ -19,7 +19,7 @@ function waitForNavigation(pathname: string): Promise<void> {
 
     function check() {
       if (window.location.pathname === pathname || performance.now() >= deadline) {
-        requestAnimationFrame(() => requestAnimationFrame(resolve));
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
         return;
       }
       requestAnimationFrame(check);
@@ -62,7 +62,7 @@ export function FilmTransitionLink({
 
     void (async () => {
       try {
-        const controls = await animateView(
+        await animateView(
           async () => {
             router.push(href);
             await waitForNavigation(target.pathname);
@@ -74,7 +74,7 @@ export function FilmTransitionLink({
           .old({ opacity: [1, 0.92] }, { duration: 0.2 })
           .new({ opacity: [0.9, 1] }, { duration: 0.28 });
 
-        await controls.finished;
+        await new Promise((resolve) => window.setTimeout(resolve, 520));
       } finally {
         delete document.documentElement.dataset.routeTransition;
       }
