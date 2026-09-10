@@ -37,6 +37,8 @@ jobs:
         run: npm run lint
 
       - name: Build
+        env:
+          DMR_SITE_INDEXING_ENABLED: "true"
         run: npm run build
 
       - name: Production route smoke test
@@ -67,7 +69,17 @@ jobs:
           fi
 
           if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
-            echo "Pre-launch homepage must remain noindex/nofollow until a published film exists."
+            echo "Homepage must remain noindex/nofollow when the configured featured film is not published, even when the launch flag is enabled."
+            exit 1
+          fi
+          if ! grep -Fq 'Open structural fixture' /tmp/home.html; then
+            echo "Homepage is not rendering the explicitly configured structural feature state."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error http://127.0.0.1:3210/labs/six-lenses > /tmp/lab.html
+          if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/lab.html; then
+            echo "R&D lab routes must remain noindex/nofollow."
             exit 1
           fi
 
