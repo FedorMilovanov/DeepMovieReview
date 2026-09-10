@@ -172,6 +172,8 @@ export type RelationshipModule = FilmModuleBase & {
   kind: "relationship";
   label: string;
   summary: string;
+  /** Stable character IDs; required by the publish validator. */
+  participantIds?: [string, string];
   events: Array<{
     id: string;
     label: string;
@@ -282,6 +284,7 @@ export type AutopsyModule = FilmModuleBase & {
 export type DecisionModule = FilmModuleBase & {
   kind: "decision";
   prompt: string;
+  /** Stable IDs from the characters module, not display names. */
   decidingCharacters?: string[];
   options: Array<{
     id: string;
