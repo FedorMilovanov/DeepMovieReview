@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
+import { canIndexSite } from "@/lib/site-publication-policy";
 // This side-effect import executes the fail-closed visual manifest registry assertion.
 import "@/data/visual-assets";
 import "../styles/platform.css";
@@ -29,9 +30,11 @@ if (homepageFilmPackage.film.status === "draft" && !previewContentEnabled) {
   );
 }
 
-const indexingEnabled =
-  process.env.DMR_SITE_INDEXING_ENABLED === "true" &&
-  homepageFilmPackage.film.status === "published";
+const indexingEnabled = canIndexSite({
+  siteIndexingRequested: process.env.DMR_SITE_INDEXING_ENABLED === "true",
+  previewContentEnabled,
+  homepageStatus: homepageFilmPackage.film.status,
+});
 
 export const metadata: Metadata = {
   title: {
