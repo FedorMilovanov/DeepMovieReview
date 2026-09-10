@@ -34,13 +34,13 @@ The visual direction remains **Cinematic Moral Forensics**, but the product is b
 The shell now proves the main architectural boundaries that Film 001 will depend on:
 
 - Next.js App Router + strict TypeScript foundation;
-- one canonical `FilmPackage` registry used by routes and homepage projections;
+- one canonical `FilmPackage` registry used by routes and homepage projections; optional homepage slices such as Family/Youth and Decision stay nullable rather than forcing every film into every module;
 - build-time referential-integrity validation for evidence, sources, characters, decisions and analytical support;
 - canonical evidence records shared by interpretive claims instead of copied prose evidence;
 - structured Story, Characters, Relationships, Family/Youth, Meaning, Teaching Signals, Narrative Permission, Craft, Scene Autopsy, Decision, Moral Analysis, Biblical Synthesis, Final Synthesis and Sources/Method modules;
 - one spoiler projection stage that removes forbidden nested data **before** presentation; the projected module array is shared by outline and renderer;
 - spoiler-aware deep-link cleanup when a hash targets content hidden by a lower spoiler level;
-- fixture/draft `noindex`, plus a global pre-launch indexing gate until at least one film is actually published;
+- fixture/draft `noindex`, permanent `/labs/*` `noindex`, and a fail-closed launch gate that requires both `DMR_SITE_INDEXING_ENABLED=true` and the explicitly configured homepage feature to be `published`;
 - adaptive experience runtime with Auto/Lite mode, reduced-motion control, document/offscreen awareness, renderer-backend reporting and measured quality downgrades;
 - WebGPU-oriented Verdict Core with WebGL2/static fallback behavior and no semantic content trapped in canvas;
 - visual asset manifest types with focal points, safe zones, depth maps, masks, provenance, responsive/DPR-aware variant selection and a fail-closed validated asset registry;
@@ -126,7 +126,7 @@ Community data is deliberately a later phase, but its separation is already an a
 
 ## Current phase and next work
 
-Current phase: **Phase 0.5 — hardened app shell → Film 001 readiness**.
+Current phase: **Phase 0.7 — hardened app shell / launch-contract cleanup → Film 001 readiness**.
 
 The immediate next steps are:
 
