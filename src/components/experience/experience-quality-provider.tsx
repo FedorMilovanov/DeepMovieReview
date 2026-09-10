@@ -246,6 +246,8 @@ export function ExperienceQualityProvider({ children }: { children: ReactNode })
   }, [experienceMode, motionPreference, state.backend, state.documentVisible, state.reducedMotion, state.tier]);
 
   const setExperienceMode = useCallback((mode: ExperienceMode) => {
+    rendererBackendRef.current = null;
+    detectedBackendRef.current = null;
     storePreference(STORAGE_EXPERIENCE_MODE, mode);
     publishPreferenceChange();
     slowFramesRef.current = 0;
@@ -253,6 +255,8 @@ export function ExperienceQualityProvider({ children }: { children: ReactNode })
   }, []);
 
   const setMotionPreference = useCallback((preference: MotionPreference) => {
+    rendererBackendRef.current = null;
+    detectedBackendRef.current = null;
     storePreference(STORAGE_MOTION_PREFERENCE, preference);
     publishPreferenceChange();
     slowFramesRef.current = 0;
