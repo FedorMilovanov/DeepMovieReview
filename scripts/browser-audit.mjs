@@ -59,6 +59,7 @@ chrome.stderr.on("data", (chunk) => {
 
 const checks = [];
 const browserErrors = [];
+const networkErrors = [];
 let socket;
 
 function record(name, passed, details = undefined) {
@@ -92,6 +93,14 @@ try {
       if (message.error) reject(new Error(message.error.message ?? "CDP command failed"));
       else resolvePending(message.result ?? {});
       return;
+    }
+
+    if (message.method === "Network.responseReceived" && message.params?.response?.status >= 400) {
+      networkErrors.push({
+        status: message.params.response.status,
+        url: message.params.response.url,
+        type: message.params.type,
+      });
     }
 
     if (message.method === "Runtime.exceptionThrown") {
@@ -222,6 +231,7 @@ try {
   }
 
   await send("Page.enable");
+  await send("Network.enable");
   await send("Runtime.enable");
   await send("Log.enable");
   await send("Accessibility.enable");
@@ -307,6 +317,7 @@ try {
   assertCheck("reduced motion: experience runtime reflects system preference", reducedMotionState.dataset === "true", reducedMotionState);
   await capture("film-reduced-motion", false);
 
+  assertCheck("browser network: no failed HTTP resources", networkErrors.length === 0, networkErrors);
   assertCheck("browser console/runtime: no errors", browserErrors.length === 0, browserErrors);
 } catch (error) {
   record("browser audit execution", false, error instanceof Error ? error.stack ?? error.message : String(error));
@@ -317,6 +328,7 @@ try {
     passed: checks.every((check) => check.passed),
     checks,
     browserErrors,
+    networkErrors,
     chromeStderr: chromeStderr.slice(-12000),
   };
   writeFileSync(resolve(outDir, "report.json"), JSON.stringify(report, null, 2));
