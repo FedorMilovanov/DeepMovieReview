@@ -29,18 +29,18 @@ function checkSupport(
   }
 }
 
-function nestedIds(module: FilmModule): string[] {
-  switch (module.kind) {
-    case "story": return module.beats.map((item) => item.id);
-    case "characters": return module.characters.map((item) => item.id);
-    case "relationship": return module.events.map((item) => item.id);
-    case "family-youth": return module.observations.map((item) => item.id);
-    case "teaching-signals": return module.signals.map((item) => item.id);
-    case "permission": return module.assessments.map((item) => item.id);
-    case "craft": return [...module.observations.map((item) => item.id), ...(module.pressureAssessments ?? []).map((item) => item.id)];
-    case "autopsy": return (module.anchors ?? []).map((item) => item.id);
-    case "decision": return [...module.options.map((item) => item.id), ...module.facts.map((item) => item.id), ...module.pressures.map((item) => item.id), ...module.dutiesOrGoods.map((item) => item.id)];
-    case "moral-analysis": return module.events.map((item) => item.id);
+function nestedIds(filmModule: FilmModule): string[] {
+  switch (filmModule.kind) {
+    case "story": return filmModule.beats.map((item) => item.id);
+    case "characters": return filmModule.characters.map((item) => item.id);
+    case "relationship": return filmModule.events.map((item) => item.id);
+    case "family-youth": return filmModule.observations.map((item) => item.id);
+    case "teaching-signals": return filmModule.signals.map((item) => item.id);
+    case "permission": return filmModule.assessments.map((item) => item.id);
+    case "craft": return [...filmModule.observations.map((item) => item.id), ...(filmModule.pressureAssessments ?? []).map((item) => item.id)];
+    case "autopsy": return (filmModule.anchors ?? []).map((item) => item.id);
+    case "decision": return [...filmModule.options.map((item) => item.id), ...filmModule.facts.map((item) => item.id), ...filmModule.pressures.map((item) => item.id), ...filmModule.dutiesOrGoods.map((item) => item.id)];
+    case "moral-analysis": return filmModule.events.map((item) => item.id);
     case "meaning":
     case "biblical-synthesis":
     case "final-synthesis":
@@ -49,7 +49,7 @@ function nestedIds(module: FilmModule): string[] {
 }
 
 function sourceModule(filmPackage: FilmPackage): SourcesMethodModule | undefined {
-  return filmPackage.modules.find((module): module is SourcesMethodModule => module.kind === "sources-method");
+  return filmPackage.modules.find((candidate): candidate is SourcesMethodModule => candidate.kind === "sources-method");
 }
 
 export function validateFilmPackage(filmPackage: FilmPackage): string[] {
@@ -62,7 +62,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   const sourceRawIds = sources?.sources.map((item) => item.id) ?? [];
   const sourceIds = new Set(sourceRawIds);
 
-  for (const id of duplicateIds(filmPackage.modules.map((module) => module.id))) errors.push(`modules: duplicate module id "${id}".`);
+  for (const id of duplicateIds(filmPackage.modules.map((filmModule) => filmModule.id))) errors.push(`modules: duplicate module id "${id}".`);
   for (const id of duplicateIds(evidenceRawIds)) errors.push(`evidence: duplicate evidence id "${id}".`);
   for (const id of duplicateIds(sourceRawIds)) errors.push(`sources: duplicate source id "${id}".`);
 
@@ -78,69 +78,69 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     }
   }
 
-  for (const module of filmPackage.modules) {
-    if (!module.id.trim()) errors.push(`module/${module.kind}: id is required.`);
-    for (const id of duplicateIds(nestedIds(module))) errors.push(`module/${module.id}: duplicate nested id "${id}".`);
+  for (const filmModule of filmPackage.modules) {
+    if (!filmModule.id.trim()) errors.push(`module/${filmModule.kind}: id is required.`);
+    for (const id of duplicateIds(nestedIds(filmModule))) errors.push(`module/${filmModule.id}: duplicate nested id "${id}".`);
 
-    switch (module.kind) {
+    switch (filmModule.kind) {
       case "characters":
-        for (const item of module.characters) {
+        for (const item of filmModule.characters) {
           const interpretive = Boolean(item.believes || item.selfDeception || item.arcSummary || item.roleInArgument);
-          checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published && interpretive);
+          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published && interpretive);
         }
         break;
       case "relationship":
-        for (const item of module.events) checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
+        for (const item of filmModule.events) checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
         break;
       case "family-youth":
-        for (const item of module.observations) checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
+        for (const item of filmModule.observations) checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
         break;
       case "meaning":
-        checkSupport(module.support, module.id, evidenceIds, errors, published);
+        checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
         break;
       case "teaching-signals":
-        for (const item of module.signals) checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
+        for (const item of filmModule.signals) checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
         break;
       case "permission":
-        for (const item of module.assessments) {
-          if (published && !item.confidence) errors.push(`${module.id}/${item.id}: published permission assessment requires confidence.`);
-          checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
+        for (const item of filmModule.assessments) {
+          if (published && !item.confidence) errors.push(`${filmModule.id}/${item.id}: published permission assessment requires confidence.`);
+          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
         }
         break;
       case "craft": {
-        const observationIds = new Set(module.observations.map((item) => item.id));
-        for (const item of module.observations) checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
-        for (const item of module.pressureAssessments ?? []) {
+        const observationIds = new Set(filmModule.observations.map((item) => item.id));
+        for (const item of filmModule.observations) checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+        for (const item of filmModule.pressureAssessments ?? []) {
           for (const id of item.craftObservationIds) {
-            if (!observationIds.has(id)) errors.push(`${module.id}/${item.id}: unknown craft observation id "${id}".`);
+            if (!observationIds.has(id)) errors.push(`${filmModule.id}/${item.id}: unknown craft observation id "${id}".`);
           }
-          checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
+          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
         }
         break;
       }
       case "autopsy":
-        if (published && !module.confidence) errors.push(`${module.id}: published autopsy requires confidence.`);
-        checkSupport(module.support, module.id, evidenceIds, errors, published);
-        for (const anchor of module.anchors ?? []) {
-          if (!evidenceIds.has(anchor.evidenceId)) errors.push(`${module.id}/${anchor.id}: unknown evidence id "${anchor.evidenceId}".`);
+        if (published && !filmModule.confidence) errors.push(`${filmModule.id}: published autopsy requires confidence.`);
+        checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
+        for (const anchor of filmModule.anchors ?? []) {
+          if (!evidenceIds.has(anchor.evidenceId)) errors.push(`${filmModule.id}/${anchor.id}: unknown evidence id "${anchor.evidenceId}".`);
           if (anchor.point && (anchor.point.x < 0 || anchor.point.x > 1 || anchor.point.y < 0 || anchor.point.y > 1)) {
-            errors.push(`${module.id}/${anchor.id}: anchor point must use normalized 0..1 coordinates.`);
+            errors.push(`${filmModule.id}/${anchor.id}: anchor point must use normalized 0..1 coordinates.`);
           }
         }
         break;
       case "decision":
-        if (module.editorialJudgment) checkSupport(module.editorialJudgment.support, `${module.id}/editorial-judgment`, evidenceIds, errors, published);
+        if (filmModule.editorialJudgment) checkSupport(filmModule.editorialJudgment.support, `${filmModule.id}/editorial-judgment`, evidenceIds, errors, published);
         break;
       case "moral-analysis":
-        for (const item of module.events) {
-          checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
+        for (const item of filmModule.events) {
+          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
           if ((item.valence === "VIRTUE" || item.valence === "PRUDENTIAL") && (item.severity || item.culpability)) {
-            errors.push(`${module.id}/${item.id}: severity/culpability do not apply to virtue or prudential events.`);
+            errors.push(`${filmModule.id}/${item.id}: severity/culpability do not apply to virtue or prudential events.`);
           }
         }
         break;
-      case "biblical-synthesis": checkSupport(module.support, module.id, evidenceIds, errors, published); break;
-      case "final-synthesis": checkSupport(module.support, module.id, evidenceIds, errors, published); break;
+      case "biblical-synthesis": checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published); break;
+      case "final-synthesis": checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published); break;
       case "story":
       case "sources-method": break;
     }
