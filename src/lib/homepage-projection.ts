@@ -1,5 +1,6 @@
 import type { LensKey, NarrativePermissionState, ShellFilm } from "@/lib/content";
 import type { Confidence, FilmModule, FilmModuleKind, FilmPackage } from "@/lib/film-package";
+import { projectFilmModules } from "@/lib/film-module-projection";
 
 export type HomepageViewModel = {
   featuredFilm: ShellFilm;
@@ -22,9 +23,9 @@ export type HomepageViewModel = {
   };
   permissions: Array<{ subject: string; state: NarrativePermissionState; rationale: string }>;
   craft: Array<{ device: string; effect: string }>;
-  sceneAutopsy: { label: string; act: string; motive: string; knowledge: string; pressure: string; consequence: string };
+  sceneAutopsy: { label: string; act: string; motive: string; knowledge: string; pressure: string; consequence: string } | null;
   decision: { question: string; knownThen: string[]; revealedLater: string[] } | null;
-  biblicalSynthesis: { observation: string; principle: string; application: string; qualification: string };
+  biblicalSynthesis: { observation: string; principle: string; application: string; qualification: string } | null;
 };
 
 const lenses: HomepageViewModel["lenses"] = [
@@ -53,18 +54,28 @@ function moduleOfKind<K extends FilmModuleKind>(filmPackage: FilmPackage, kind: 
   return filmModule;
 }
 
-/** Homepage is a read-model projected from the canonical FilmPackage. */
+/**
+ * Homepage is a read-model projected from the canonical FilmPackage.
+ * Synthetic fixtures may expose the whole shell; real film content is always
+ * reduced to spoiler-safe NONE data before homepage composition.
+ */
 export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
-  const story = moduleOfKind(filmPackage, "story");
-  const characters = moduleOfKind(filmPackage, "characters");
-  const relationship = moduleOfKind(filmPackage, "relationship");
-  const familyYouth = optionalModuleOfKind(filmPackage, "family-youth");
-  const meaning = moduleOfKind(filmPackage, "meaning");
-  const permission = moduleOfKind(filmPackage, "permission");
-  const craft = moduleOfKind(filmPackage, "craft");
-  const autopsy = moduleOfKind(filmPackage, "autopsy");
-  const decision = optionalModuleOfKind(filmPackage, "decision");
-  const biblical = moduleOfKind(filmPackage, "biblical-synthesis");
+  const homepageModules =
+    filmPackage.film.status === "fixture"
+      ? filmPackage.modules
+      : projectFilmModules(filmPackage.modules, "NONE");
+  const homepagePackage: FilmPackage = { ...filmPackage, modules: homepageModules };
+
+  const story = moduleOfKind(homepagePackage, "story");
+  const characters = moduleOfKind(homepagePackage, "characters");
+  const relationship = moduleOfKind(homepagePackage, "relationship");
+  const familyYouth = optionalModuleOfKind(homepagePackage, "family-youth");
+  const meaning = moduleOfKind(homepagePackage, "meaning");
+  const permission = moduleOfKind(homepagePackage, "permission");
+  const craft = moduleOfKind(homepagePackage, "craft");
+  const autopsy = optionalModuleOfKind(homepagePackage, "autopsy");
+  const decision = optionalModuleOfKind(homepagePackage, "decision");
+  const biblical = optionalModuleOfKind(homepagePackage, "biblical-synthesis");
 
   return {
     featuredFilm: filmPackage.film,
@@ -93,14 +104,16 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
     },
     permissions: permission.assessments.map(({ subject, state, rationale }) => ({ subject, state, rationale })),
     craft: craft.observations.map((item) => ({ device: item.observation, effect: item.interpretiveEffect })),
-    sceneAutopsy: {
-      label: autopsy.sceneLabel,
-      act: autopsy.act,
-      motive: autopsy.motive,
-      knowledge: autopsy.knowledge,
-      pressure: autopsy.pressure,
-      consequence: autopsy.consequence,
-    },
+    sceneAutopsy: autopsy
+      ? {
+          label: autopsy.sceneLabel,
+          act: autopsy.act,
+          motive: autopsy.motive,
+          knowledge: autopsy.knowledge,
+          pressure: autopsy.pressure,
+          consequence: autopsy.consequence,
+        }
+      : null,
     decision: decision
       ? {
           question: decision.prompt,
@@ -112,11 +125,13 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
             .map((fact) => fact.text),
         }
       : null,
-    biblicalSynthesis: {
-      observation: biblical.observation,
-      principle: biblical.principle,
-      application: biblical.application,
-      qualification: biblical.qualification,
-    },
+    biblicalSynthesis: biblical
+      ? {
+          observation: biblical.observation,
+          principle: biblical.principle,
+          application: biblical.application,
+          qualification: biblical.qualification,
+        }
+      : null,
   };
 }
