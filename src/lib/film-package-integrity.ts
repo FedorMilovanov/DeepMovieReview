@@ -1,4 +1,19 @@
-import type { ClaimSupport, FilmModule, FilmPackage, SourcesMethodModule } from "@/lib/film-package";
+import type {
+  ClaimSupport,
+  FilmModule,
+  FilmPackage,
+  FinalSynthesisFacetKey,
+  SourcesMethodModule,
+} from "@/lib/film-package";
+
+const REQUIRED_FINAL_FACETS: FinalSynthesisFacetKey[] = [
+  "CRAFT",
+  "MORAL_CLARITY",
+  "DEPICTED_EVIL",
+  "ROMANTICIZATION",
+  "DECISION_COMPLEXITY",
+  "REDEMPTIVE_DIRECTION",
+];
 
 function duplicateIds(values: string[]): string[] {
   const seen = new Set<string>();
@@ -8,6 +23,14 @@ function duplicateIds(values: string[]): string[] {
     seen.add(value);
   }
   return [...duplicates];
+}
+
+function isBlank(value: string | undefined): boolean {
+  return !value?.trim();
+}
+
+function isSafeSourceHref(value: string): boolean {
+  return value.startsWith("https://") || value.startsWith("http://") || value.startsWith("/");
 }
 
 function checkSupport(
@@ -59,19 +82,29 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   const evidenceRawIds = evidence.map((item) => item.id);
   const evidenceIds = new Set(evidenceRawIds);
   const sourcesModules = sourceModules(filmPackage);
-  const sources = sourcesModules[0];
-  const sourceRawIds = sources?.sources.map((item) => item.id) ?? [];
+  const allSources = sourcesModules.flatMap((sourceModule) => sourceModule.sources);
+  const sourceRawIds = allSources.map((item) => item.id);
   const sourceIds = new Set(sourceRawIds);
   const characterRawIds = filmPackage.modules.flatMap((filmModule) =>
     filmModule.kind === "characters" ? filmModule.characters.map((character) => character.id) : [],
   );
   const characterIds = new Set(characterRawIds);
 
+  if (isBlank(filmPackage.film.slug)) errors.push("film: slug is required.");
+  if (isBlank(filmPackage.film.title)) errors.push("film: title is required.");
+  if (published && isBlank(filmPackage.film.director)) errors.push("film: published package requires director attribution.");
+  if (published && filmPackage.film.genre.length === 0) errors.push("film: published package requires at least one genre.");
+  if (published && isBlank(filmPackage.film.premise)) errors.push("film: published package requires a premise.");
+  if (published && isBlank(filmPackage.film.thesisQuestion)) errors.push("film: published package requires a thesis question.");
+
   for (const id of duplicateIds(filmPackage.modules.map((filmModule) => filmModule.id))) errors.push(`modules: duplicate module id "${id}".`);
   for (const id of duplicateIds(evidenceRawIds)) errors.push(`evidence: duplicate evidence id "${id}".`);
   for (const id of duplicateIds(sourceRawIds)) errors.push(`sources: duplicate source id "${id}".`);
   for (const id of duplicateIds(characterRawIds)) errors.push(`characters: duplicate character id "${id}".`);
 
+  if (sourcesModules.length > 1) {
+    errors.push(`package requires at most one sources-method module; found ${sourcesModules.length}.`);
+  }
   if (published && sourcesModules.length !== 1) {
     errors.push(`published package requires exactly one sources-method module; found ${sourcesModules.length}.`);
   }
@@ -80,12 +113,30 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     errors.push("published package requires a final-synthesis module.");
   }
 
+  for (const sourceModule of sourcesModules) {
+    if (published && isBlank(sourceModule.methodologyVersion)) errors.push(`${sourceModule.id}: methodologyVersion is required for published analysis.`);
+    if (published && isBlank(sourceModule.editorialRevision)) errors.push(`${sourceModule.id}: editorialRevision is required for published analysis.`);
+    if (published && isBlank(sourceModule.analyzedEdition)) errors.push(`${sourceModule.id}: analyzedEdition is required for published analysis.`);
+    if (published && isBlank(sourceModule.lastReviewedAt)) errors.push(`${sourceModule.id}: lastReviewedAt is required for published analysis.`);
+
+    for (const source of sourceModule.sources) {
+      if (isBlank(source.id)) errors.push(`${sourceModule.id}: source id is required.`);
+      if (isBlank(source.label)) errors.push(`${sourceModule.id}/${source.id}: source label is required.`);
+      if (source.href && !isSafeSourceHref(source.href)) {
+        errors.push(`${sourceModule.id}/${source.id}: source href must be http(s) or an app-root path.`);
+      }
+    }
+  }
+
   for (const item of evidence) {
-    if (!item.id.trim()) errors.push("evidence: id is required.");
-    if (!item.label.trim()) errors.push(`evidence/${item.id}: label is required.`);
-    if (!item.observation.trim()) errors.push(`evidence/${item.id}: observation is required.`);
+    if (isBlank(item.id)) errors.push("evidence: id is required.");
+    if (isBlank(item.label)) errors.push(`evidence/${item.id}: label is required.`);
+    if (isBlank(item.observation)) errors.push(`evidence/${item.id}: observation is required.`);
     if (published && (item.sourceIds?.length ?? 0) === 0) {
       errors.push(`evidence/${item.id}: published evidence requires at least one source reference.`);
+    }
+    for (const id of duplicateIds(item.sourceIds ?? [])) {
+      errors.push(`evidence/${item.id}: duplicate source reference "${id}".`);
     }
     for (const id of item.sourceIds ?? []) {
       if (!sourceIds.has(id)) errors.push(`evidence/${item.id}: unknown source id "${id}".`);
@@ -93,12 +144,18 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   }
 
   for (const filmModule of filmPackage.modules) {
-    if (!filmModule.id.trim()) errors.push(`module/${filmModule.kind}: id is required.`);
+    if (isBlank(filmModule.id)) errors.push(`module/${filmModule.kind}: id is required.`);
+    if (published && isBlank(filmModule.heading)) errors.push(`module/${filmModule.id}: published module requires a heading.`);
     for (const id of duplicateIds(nestedIds(filmModule))) errors.push(`module/${filmModule.id}: duplicate nested id "${id}".`);
 
     switch (filmModule.kind) {
+      case "story":
+        if (published && filmModule.beats.length === 0) errors.push(`${filmModule.id}: published story module requires at least one beat.`);
+        break;
       case "characters":
         for (const item of filmModule.characters) {
+          if (isBlank(item.id)) errors.push(`${filmModule.id}: character id is required.`);
+          if (published && isBlank(item.name)) errors.push(`${filmModule.id}/${item.id}: published character requires a name.`);
           const interpretive = Boolean(item.believes || item.selfDeception || item.arcSummary || item.roleInArgument);
           checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published && interpretive);
         }
@@ -116,11 +173,17 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
             if (!characterIds.has(id)) errors.push(`${filmModule.id}: unknown participant character id "${id}".`);
           }
         }
+        if (published && filmModule.events.length === 0) errors.push(`${filmModule.id}: published relationship requires at least one event.`);
         for (const item of filmModule.events) {
           checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
           const dimensions = (item.dimensions ?? []).map((shift) => shift.dimension);
           for (const dimension of duplicateIds(dimensions)) {
             errors.push(`${filmModule.id}/${item.id}: duplicate relationship dimension "${dimension}".`);
+          }
+          for (const shift of item.dimensions ?? []) {
+            if (isBlank(shift.before) || isBlank(shift.after)) {
+              errors.push(`${filmModule.id}/${item.id}/${shift.dimension}: relationship dimension shifts require before and after values.`);
+            }
           }
         }
         break;
@@ -144,6 +207,12 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         const observationIds = new Set(filmModule.observations.map((item) => item.id));
         for (const item of filmModule.observations) checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
         for (const item of filmModule.pressureAssessments ?? []) {
+          if (published && item.craftObservationIds.length === 0) {
+            errors.push(`${filmModule.id}/${item.id}: published pressure assessment requires craft observation references.`);
+          }
+          for (const id of duplicateIds(item.craftObservationIds)) {
+            errors.push(`${filmModule.id}/${item.id}: duplicate craft observation reference "${id}".`);
+          }
           for (const id of item.craftObservationIds) {
             if (!observationIds.has(id)) errors.push(`${filmModule.id}/${item.id}: unknown craft observation id "${id}".`);
           }
@@ -153,6 +222,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
       }
       case "autopsy":
         if (published && !filmModule.confidence) errors.push(`${filmModule.id}: published autopsy requires confidence.`);
+        if (published && (filmModule.anchors?.length ?? 0) === 0) errors.push(`${filmModule.id}: published autopsy requires at least one evidence anchor.`);
         checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
         for (const anchor of filmModule.anchors ?? []) {
           if (!evidenceIds.has(anchor.evidenceId)) errors.push(`${filmModule.id}/${anchor.id}: unknown evidence id "${anchor.evidenceId}".`);
@@ -161,26 +231,57 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
           }
         }
         break;
-      case "decision":
+      case "decision": {
+        if (published && (filmModule.decidingCharacters?.length ?? 0) === 0) {
+          errors.push(`${filmModule.id}: published decision requires at least one deciding character id.`);
+        }
         for (const id of duplicateIds(filmModule.decidingCharacters ?? [])) {
           errors.push(`${filmModule.id}: duplicate deciding character id "${id}".`);
         }
         for (const id of filmModule.decidingCharacters ?? []) {
           if (!characterIds.has(id)) errors.push(`${filmModule.id}: unknown deciding character id "${id}".`);
         }
+        if (published && filmModule.options.length < 2) {
+          errors.push(`${filmModule.id}: published decision requires at least two explicit options.`);
+        }
+        if (published && !filmModule.options.some((option) => option.availableAtDecisionTime)) {
+          errors.push(`${filmModule.id}: published decision requires at least one option available at decision time.`);
+        }
         if (filmModule.editorialJudgment) checkSupport(filmModule.editorialJudgment.support, `${filmModule.id}/editorial-judgment`, evidenceIds, errors, published);
         break;
+      }
       case "moral-analysis":
         for (const item of filmModule.events) {
           checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
           if ((item.valence === "VIRTUE" || item.valence === "PRUDENTIAL") && (item.severity || item.culpability)) {
             errors.push(`${filmModule.id}/${item.id}: severity/culpability do not apply to virtue or prudential events.`);
           }
+          if (published && item.valence === "WRONGDOING" && !item.severity) {
+            errors.push(`${filmModule.id}/${item.id}: published wrongdoing requires severity.`);
+          }
+          if (published && item.valence === "WRONGDOING" && !item.culpability) {
+            errors.push(`${filmModule.id}/${item.id}: published wrongdoing requires culpability.`);
+          }
         }
         break;
-      case "biblical-synthesis": checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published); break;
-      case "final-synthesis": checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published); break;
-      case "story":
+      case "biblical-synthesis":
+        if (published && filmModule.scriptureRefs.length === 0) errors.push(`${filmModule.id}: published biblical synthesis requires Scripture references.`);
+        for (const ref of duplicateIds(filmModule.scriptureRefs)) errors.push(`${filmModule.id}: duplicate Scripture reference "${ref}".`);
+        checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
+        break;
+      case "final-synthesis": {
+        const facetKeys = filmModule.facets.map((facet) => facet.key);
+        for (const key of duplicateIds(facetKeys)) errors.push(`${filmModule.id}: duplicate synthesis facet "${key}".`);
+        if (published) {
+          for (const key of REQUIRED_FINAL_FACETS) {
+            if (!facetKeys.includes(key)) errors.push(`${filmModule.id}: published synthesis is missing facet "${key}".`);
+          }
+          if (isBlank(filmModule.thesis)) errors.push(`${filmModule.id}: published synthesis requires a thesis.`);
+          if (isBlank(filmModule.verdict)) errors.push(`${filmModule.id}: published synthesis requires a verdict.`);
+        }
+        checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
+        break;
+      }
       case "sources-method": break;
     }
   }
