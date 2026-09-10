@@ -7,8 +7,8 @@ export function FinalSynthesisModuleView({ module }: { module: FinalSynthesisMod
       <div className="sectionIndex">{module.eyebrow ?? "FINAL SYNTHESIS"}</div>
       <h2>{module.heading}</h2>
 
-      <div className="mt-12 grid gap-px lg:grid-cols-[minmax(0,0.88fr)_minmax(320px,1.12fr)]">
-        <div className="flex flex-col justify-end border-y border-white/10 py-6 lg:pr-8">
+      <div className="filmFinalCoreGrid">
+        <div className="filmFinalCoreThesis">
           <span className="microLabel">THESIS / NO MASTER SCORE</span>
           <p className="filmFinalThesis">{module.thesis}</p>
         </div>
