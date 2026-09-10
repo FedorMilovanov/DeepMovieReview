@@ -24,6 +24,7 @@ Current root contract:
 type FilmPackage = {
   schemaVersion: 1;
   film: ShellFilm;
+  evidence?: EvidenceRecord[];
   modules: FilmModule[];
 };
 ```
@@ -32,30 +33,24 @@ type FilmPackage = {
 
 ## 3. Current module union
 
-v0 proves these typed modules:
+The reusable renderer now supports the full Phase 0.7 foundation set:
 
 - Story;
 - Characters;
 - Relationship;
+- Family / Youth / Social Formation;
 - Meaning;
+- Teaching Signals;
 - Narrative Permission;
+- Craft / Form;
 - Scene Autopsy;
-- Biblical Synthesis.
-
-This is deliberately smaller than the final ontology.
-
-Future candidates include:
-
-- Family / Youth / Formation;
-- Form Shapes Sympathy;
 - Decision / Knowledge Fog;
-- Moral Timeline;
-- Psychological X-Ray;
-- Moral Event cluster;
-- Final Verdict;
-- Sources / Methodology version.
+- Moral Analysis;
+- Biblical Synthesis;
+- Final Synthesis;
+- Sources / Method.
 
-Add a new type only when at least one real film proves the need.
+Not every film must contain every optional analytical slice. Published packages are validated against stronger evidence, source and referential-integrity rules before they can enter the registry.
 
 ## 4. Discriminated union
 
@@ -73,9 +68,9 @@ A new module kind should therefore produce a TypeScript failure until the regist
 
 ## 5. Spoiler behavior
 
-Modules are filtered by their root spoiler level before render.
+One projection boundary in `src/lib/film-module-projection.ts` removes both root modules and protected nested records before presentation. The outline and renderer consume the same projected array.
 
-Modules containing granular events can also filter internal records:
+Granular filtering currently covers:
 
 - story beats;
 - relationship events;
