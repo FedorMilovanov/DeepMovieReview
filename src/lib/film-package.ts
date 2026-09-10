@@ -159,6 +159,9 @@ export type CharactersModule = FilmModuleBase & {
     wants: string;
     fears: string;
     contradiction: string;
+    /** Hide the whole profile when wants/fears/contradiction would themselves reveal protected story information. */
+    profileSpoilerLevel?: SpoilerLevel;
+    /** Additional boundary for deeper beliefs/arc interpretation after the basic profile is visible. */
     interpretiveSpoilerLevel?: SpoilerLevel;
     believes?: string;
     selfDeception?: string;
