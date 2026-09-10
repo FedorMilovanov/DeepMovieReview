@@ -164,8 +164,8 @@ export function SixLensesLab() {
           tabIndex={0}
           className={styles.frameShell}
         >
-          <div className={styles.frame}>
-            <div className={styles.scene} aria-hidden="true">
+          <div className={styles.frame} aria-hidden="true">
+            <div className={styles.scene}>
               <span className={styles.door} />
               <span className={styles.subjectA} />
               <span className={styles.subjectB} />
@@ -177,8 +177,8 @@ export function SixLensesLab() {
               <span>LENS / {selected.id}</span>
             </div>
 
-            {selected.id === "RELATIONSHIPS" ? <span className={styles.relationshipTrace} aria-hidden="true" /> : null}
-            {selected.id === "CRAFT" ? <span className={styles.cameraFrame} aria-hidden="true" /> : null}
+            {selected.id === "RELATIONSHIPS" ? <span className={styles.relationshipTrace} /> : null}
+            {selected.id === "CRAFT" ? <span className={styles.cameraFrame} /> : null}
 
             {selected.annotations.map((annotation) => (
               <div
@@ -187,7 +187,7 @@ export function SixLensesLab() {
                 data-target={annotation.target}
                 style={{ left: `${annotation.x}%`, top: `${annotation.y}%` }}
               >
-                <span className={styles.annotationPoint} aria-hidden="true" />
+                <span className={styles.annotationPoint} />
                 <div>
                   <strong>{annotation.label}</strong>
                   <p>{annotation.value}</p>
