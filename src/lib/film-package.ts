@@ -310,6 +310,8 @@ export type MoralAnalysisModule = FilmModuleBase & {
   summary?: string;
   events: Array<{
     id: string;
+    /** Stable character IDs for the moral agent(s), when the event has an attributable actor. */
+    actorCharacterIds?: string[];
     category: string;
     valence: MoralValence;
     act: string;
