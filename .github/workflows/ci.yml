@@ -16,7 +16,7 @@ concurrency:
 jobs:
   app-shell:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       DMR_SITE_INDEXING_ENABLED: "true"
       DMR_PREVIEW_CONTENT_ENABLED: "true"
@@ -35,6 +35,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Domain regression tests
+        run: npm test
 
       - name: Lint
         run: npm run lint
@@ -119,6 +122,45 @@ jobs:
             echo "Unknown film route rendered film content instead of the not-found boundary."
             exit 1
           fi
+
+      - name: Browser visual and accessibility audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf browser-audit
+          PORT=3212 npm run start -- -p 3212 > /tmp/deep-movie-review-browser-next.log 2>&1 &
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3212/ > /dev/null; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [[ "$ready" != "true" ]]; then
+            echo "Browser-audit production server did not become ready."
+            cat /tmp/deep-movie-review-browser-next.log
+            exit 1
+          fi
+
+          BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs
+
+      - name: Upload browser audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-audit-${{ github.sha }}
+          path: browser-audit/
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Build public surface without preview content
         env:
