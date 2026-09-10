@@ -1,0 +1,88 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/*
+ * DeepMovieReview platform bridge.
+ *
+ * Tailwind is intentionally used without Preflight because the application already
+ * owns a precise cinematic reset/base layer. Signature editorial and optical scenes
+ * remain authored in CSS Modules/TSL; Tailwind provides zero-runtime utilities and a
+ * shared token API for fast composition.
+ */
+@theme inline {
+  --font-body: var(--body);
+  --font-display: var(--display);
+
+  --color-dmr-canvas: var(--bg);
+  --color-dmr-elevated: var(--bg-elevated);
+  --color-dmr-soft: var(--bg-soft);
+  --color-dmr-ink: var(--text);
+  --color-dmr-muted: var(--muted);
+  --color-dmr-crimson: var(--crimson);
+  --color-dmr-amber: var(--amber);
+
+  --shadow-dmr-depth: 0 34px 110px rgb(0 0 0 / 0.58);
+  --shadow-dmr-float: 0 18px 60px rgb(0 0 0 / 0.38);
+
+  --ease-dmr-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-dmr-precise: cubic-bezier(0.2, 0, 0, 1);
+
+  --breakpoint-cinema: 90rem;
+}
+
+/* Typed custom properties keep optical animation on the compositor where possible. */
+@property --dmr-pointer-x {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+
+@property --dmr-pointer-y {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+
+@property --dmr-glow-strength {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --dmr-depth {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --dmr-reveal {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@utility dmr-surface-container {
+  container-type: inline-size;
+  container-name: dmr-surface;
+}
+
+@utility dmr-gpu-layer {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+@utility dmr-optical-text {
+  text-wrap: balance;
+  font-feature-settings: "kern" 1, "liga" 1;
+  font-kerning: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dmr-glow-strength: 0;
+    --dmr-depth: 0;
+    --dmr-reveal: 1;
+  }
+}
