@@ -1,10 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { rmSync } from "node:fs";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
 const buildDir = ".test-build";
-const tsc = require.resolve("typescript/bin/tsc");
+const tsc = process.platform === "win32" ? "tsc.cmd" : "tsc";
 
 function run(command, args) {
   const result = spawnSync(command, args, { stdio: "inherit" });
@@ -16,7 +13,7 @@ rmSync(buildDir, { recursive: true, force: true });
 
 let status = 1;
 try {
-  const compileStatus = run(process.execPath, [tsc, "-p", "tsconfig.tests.json"]);
+  const compileStatus = run(tsc, ["-p", "tsconfig.tests.json"]);
   if (compileStatus !== 0) {
     status = compileStatus;
   } else {
