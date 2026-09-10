@@ -429,6 +429,7 @@ An event should not be only `sin_type`.
 
 Candidate structure:
 
+- actor character relation(s), using stable IDs where the event has an attributable moral agent;
 - act / omission type;
 - target / victim / beneficiary;
 - motive(s);

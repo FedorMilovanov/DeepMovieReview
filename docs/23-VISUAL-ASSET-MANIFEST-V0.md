@@ -228,7 +228,7 @@ Exact budgets must be measured on real art, but the default discipline is:
 - positive aspect ratio;
 - normalized focal points;
 - normalized safe zones;
-- at least one `display` variant for Lite/GPU fallback;
+- at least one unconditional `display` variant available to Lite for universal static/GPU fallback; media-specific variants may only refine that baseline;
 - duplicate variant IDs;
 - valid dimensions;
 - app-root paths;

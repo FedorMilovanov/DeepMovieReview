@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import styles from "./six-lenses-lab.module.css";
 
 type LensId = "STORY" | "PEOPLE" | "RELATIONSHIPS" | "IDEAS" | "MORAL WORLD" | "CRAFT";
@@ -57,7 +57,7 @@ const LENSES: Lens[] = [
     question: "What question about life is the story testing through this conflict?",
     summary: "Ideas are argued through events and outcomes, not extracted from one line of dialogue.",
     annotations: [
-      { id: "ideas-question", label: "QUESTION", value: "Can protection remain love when it removes another persons agency?", x: 52, y: 26, target: "SPACE" },
+      { id: "ideas-question", label: "QUESTION", value: "Can protection remain love when it removes another person's agency?", x: 52, y: 26, target: "SPACE" },
       { id: "ideas-counter", label: "COUNTEREVIDENCE", value: "Immediate disclosure may also expose the other person to real danger.", x: 28, y: 70, target: "SPACE" },
     ],
   },
@@ -85,7 +85,40 @@ const LENSES: Lens[] = [
 
 export function SixLensesLab() {
   const [selectedId, setSelectedId] = useState<LensId>("STORY");
-  const selected = LENSES.find((lens) => lens.id === selectedId) ?? LENSES[0];
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const selectedIndex = LENSES.findIndex((lens) => lens.id === selectedId);
+  const selected = LENSES[selectedIndex] ?? LENSES[0];
+
+  function activateTab(index: number) {
+    const normalizedIndex = (index + LENSES.length) % LENSES.length;
+    const lens = LENSES[normalizedIndex];
+    if (!lens) return;
+    setSelectedId(lens.id);
+    tabRefs.current[normalizedIndex]?.focus();
+  }
+
+  function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    switch (event.key) {
+      case "ArrowRight":
+        event.preventDefault();
+        activateTab(index + 1);
+        break;
+      case "ArrowLeft":
+        event.preventDefault();
+        activateTab(index - 1);
+        break;
+      case "Home":
+        event.preventDefault();
+        activateTab(0);
+        break;
+      case "End":
+        event.preventDefault();
+        activateTab(LENSES.length - 1);
+        break;
+    }
+  }
+
+  const selectedTabId = `six-lenses-tab-${selectedIndex}`;
 
   return (
     <div className={styles.labShell}>
@@ -99,29 +132,40 @@ export function SixLensesLab() {
 
       <section className={styles.experience} aria-labelledby="six-lenses-title">
         <div className={styles.lensRail} role="tablist" aria-label="Film analysis lenses">
-          {LENSES.map((lens) => (
-            <button
-              key={lens.id}
-              type="button"
-              role="tab"
-              aria-selected={selected.id === lens.id}
-              aria-controls="six-lenses-panel"
-              className={styles.lensButton}
-              onPointerEnter={(event) => {
-                if (event.pointerType !== "touch") setSelectedId(lens.id);
-              }}
-              onFocus={() => setSelectedId(lens.id)}
-              onClick={() => setSelectedId(lens.id)}
-            >
-              <span>{lens.number}</span>
-              <strong>{lens.id}</strong>
-            </button>
-          ))}
+          {LENSES.map((lens, index) => {
+            const active = selected.id === lens.id;
+            const tabId = `six-lenses-tab-${index}`;
+            return (
+              <button
+                key={lens.id}
+                ref={(element) => { tabRefs.current[index] = element; }}
+                id={tabId}
+                type="button"
+                role="tab"
+                tabIndex={active ? 0 : -1}
+                aria-selected={active}
+                aria-controls="six-lenses-panel"
+                className={styles.lensButton}
+                onFocus={() => setSelectedId(lens.id)}
+                onClick={() => setSelectedId(lens.id)}
+                onKeyDown={(event) => handleTabKeyDown(event, index)}
+              >
+                <span>{lens.number}</span>
+                <strong>{lens.id}</strong>
+              </button>
+            );
+          })}
         </div>
 
-        <div id="six-lenses-panel" role="tabpanel" className={styles.frameShell}>
-          <div className={styles.frame}>
-            <div className={styles.scene} aria-hidden="true">
+        <div
+          id="six-lenses-panel"
+          role="tabpanel"
+          aria-labelledby={selectedTabId}
+          tabIndex={0}
+          className={styles.frameShell}
+        >
+          <div className={styles.frame} aria-hidden="true">
+            <div className={styles.scene}>
               <span className={styles.door} />
               <span className={styles.subjectA} />
               <span className={styles.subjectB} />
@@ -133,8 +177,8 @@ export function SixLensesLab() {
               <span>LENS / {selected.id}</span>
             </div>
 
-            {selected.id === "RELATIONSHIPS" ? <span className={styles.relationshipTrace} aria-hidden="true" /> : null}
-            {selected.id === "CRAFT" ? <span className={styles.cameraFrame} aria-hidden="true" /> : null}
+            {selected.id === "RELATIONSHIPS" ? <span className={styles.relationshipTrace} /> : null}
+            {selected.id === "CRAFT" ? <span className={styles.cameraFrame} /> : null}
 
             {selected.annotations.map((annotation) => (
               <div
@@ -143,7 +187,7 @@ export function SixLensesLab() {
                 data-target={annotation.target}
                 style={{ left: `${annotation.x}%`, top: `${annotation.y}%` }}
               >
-                <span className={styles.annotationPoint} aria-hidden="true" />
+                <span className={styles.annotationPoint} />
                 <div>
                   <strong>{annotation.label}</strong>
                   <p>{annotation.value}</p>
@@ -177,7 +221,7 @@ export function SixLensesLab() {
         <div className={styles.ruleGrid}>
           <article><span>01</span><strong>One scene</strong><p>No separate heavyweight render or image download for each lens.</p></article>
           <article><span>02</span><strong>Different questions</strong><p>Each lens changes the analytical task, not only annotation color.</p></article>
-          <article><span>03</span><strong>Keyboard first-class</strong><p>Focus changes the same state that pointer hover changes.</p></article>
+          <article><span>03</span><strong>Keyboard first-class</strong><p>Arrow keys, Home and End navigate the same tab state that pointer activation changes.</p></article>
           <article><span>04</span><strong>Mobile stays singular</strong><p>One selected lens and its annotation list remain readable without six card columns.</p></article>
         </div>
       </section>

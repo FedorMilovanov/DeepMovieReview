@@ -1,6 +1,6 @@
 # DeepMovieReview — coding agent entrypoint
 
-Before changing product behavior or visual language, read:
+Before changing product behavior, data contracts or visual language, read:
 
 1. `README.md`
 2. `docs/09-AGENT-BUILD-RULES.md`
@@ -11,22 +11,33 @@ Before changing product behavior or visual language, read:
 
 ## Current implementation phase
 
-Phase 0.5 — App Shell.
+Phase 0.7 — architecture cleanup / vertical-slice readiness.
 
-The immediate goal is a semantic, responsive, accessible platform shell before premium GPU effects and before any deep real-film editorial analysis.
+The semantic shell, bounded visual R&D, adaptive experience layer and reusable FilmPackage renderer exist. The immediate goal is to finish hardening these foundations before Film 001 introduces authoritative editorial content or production art.
 
-## Current rules
+## Non-negotiable implementation boundaries
 
-- Next.js App Router + strict TypeScript.
-- Prefer Server Components by default.
-- Meaningful content stays in semantic DOM.
-- Do not introduce WebGPU/Three.js into the global shell until the plain DOM/CSS homepage is stable.
-- Do not hard-code authoritative film analysis inside React components; use typed content/domain fixtures or adapters.
-- `fixture` content is structural test data, not a published editorial judgment.
-- Preserve `Depiction ≠ Endorsement`, `Explanation ≠ Justification`, `Representation ≠ Prescription`, `Editorial ≠ Crowd`.
-- Respect reduced motion and touch from the first implementation.
-- No new animation library without documenting its unique ownership/responsibility.
+- Next.js 16.3.x App Router + strict TypeScript. Prefer Server Components unless browser state or interaction requires a client boundary.
+- Meaningful content, navigation, evidence and conclusions stay in semantic DOM. GPU is progressive enhancement.
+- Application routes and projections read film data only through `src/data/film-registry.ts`.
+- `src/data/film-fixtures.ts` is the raw construction source for structural fixtures. Do not import it from routes or presentation components.
+- `src/lib/film-package.ts` is the canonical runtime content contract. Do not reintroduce a parallel homepage/editorial schema.
+- Homepage content is a read-model produced by `src/lib/homepage-projection.ts`, not a second hand-authored review. Do not make optional analytical slices mandatory merely to satisfy homepage composition.
+- `src/lib/film-package-integrity.ts` is a publish/build gate. Never bypass or weaken referential validation to make fixture data compile.
+- High-level interpretive claims in published packages must trace to canonical evidence/source records.
+- Stable IDs, not display names, own cross-entity references. Relationships use `participantCharacterIds`; decisions and attributable moral events use stable character IDs.
+- Spoilers are a data projection boundary. Filter nested protected content through `src/lib/film-module-projection.ts` before it enters the render tree. Real film data projected onto the homepage is spoiler-safe by default; do not bypass that projection for visual convenience.
+- `ExperienceQualityProvider` owns runtime quality, renderer backend, Lite/reduced-motion preferences and degradation. Do not create a second motion/capability state machine.
+- Motion owns DOM/layout animation; Three/R3F owns GPU/3D. Do not overlap animation ownership for the same element without an explicit architectural reason.
+- `fixture` content is structural test data, never a published moral, psychological or biblical judgment. `/labs/*` remains permanently `noindex`; public indexing requires the explicit launch flag, a published configured homepage feature **and preview content disabled**. Preview builds are never indexable. `noindex` is not access control: production fixture/draft film routes require `DMR_PREVIEW_CONTENT_ENABLED=true`, and a public prelaunch homepage must not project fixture/draft FilmPackage content.
+- Preserve `Depiction ≠ Endorsement`, `Explanation ≠ Justification`, `Representation ≠ Prescription`, `Editorial ≠ Crowd`, and `Moral Severity ≠ Film Quality`.
+
+## Quality gates
+
+Before calling a branch merge-ready, the exact PR head must pass locked install, typecheck, domain regression tests, lint, preview production build/smoke, the headless-Chrome browser/accessibility audit, a clean public production rebuild and public access/security smoke checks. Do not infer correctness from an older green commit after the head has moved.
+
+Any new dependency with an install lifecycle script requires explicit review and a version-pinned `allowScripts` entry; `.npmrc` keeps unreviewed install scripts fail-closed.
 
 ## Next.js specifics
 
-This project targets Next.js 16.3.x. Remember that route `params` / `searchParams` are asynchronous in modern App Router patterns. Keep client boundaries narrow and serializable.
+Route `params` and `searchParams` are asynchronous. Keep client boundaries narrow and serializable. Film slugs are generated from the validated registry; unknown slugs are not valid dynamic content. Remember that Next.js streamed `notFound()` responses can carry HTTP 200 while rendering the canonical not-found boundary, so tests must verify the semantic not-found result rather than assuming status alone.

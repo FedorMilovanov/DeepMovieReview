@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "incremental": false,
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "target": "ES2022",
+    "outDir": ".test-build",
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "tests/**/*.test.ts",
+    "src/lib/content.ts",
+    "src/lib/film-package.ts",
+    "src/lib/spoilers.ts",
+    "src/lib/film-module-projection.ts",
+    "src/lib/homepage-projection.ts",
+    "src/lib/film-package-integrity.ts",
+    "src/lib/site-publication-policy.ts",
+    "src/lib/experience-quality.ts",
+    "src/lib/visual-assets.ts"
+  ]
+}

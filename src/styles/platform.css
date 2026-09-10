@@ -78,11 +78,3 @@
   font-feature-settings: "kern" 1, "liga" 1;
   font-kerning: normal;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --dmr-glow-strength: 0;
-    --dmr-depth: 0;
-    --dmr-reveal: 1;
-  }
-}

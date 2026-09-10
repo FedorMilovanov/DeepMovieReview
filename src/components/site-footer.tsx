@@ -4,8 +4,8 @@ export function SiteFooter() {
   return (
     <footer className="siteFooter">
       <div>
-        <p>DeepMovieReview · foundation build</p>
-        <p>Film first. Evidence before verdict.</p>
+        <p>DeepMovieReview · Film first. Evidence before verdict.</p>
+        <p>Story, people, meaning, moral reasoning and biblical synthesis.</p>
       </div>
       <ExperienceControls />
     </footer>

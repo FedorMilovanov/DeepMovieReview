@@ -16,10 +16,25 @@ concurrency:
 jobs:
   app-shell:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
+    env:
+      DMR_SITE_INDEXING_ENABLED: "true"
+      DMR_PREVIEW_CONTENT_ENABLED: "true"
     steps:
-      - name: Checkout
+      - name: Checkout exact revision
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git rev-parse HEAD)"
+          echo "Expected revision: $expected"
+          echo "Checked out revision: $actual"
+          test "$actual" = "$expected"
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -33,8 +48,209 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Domain regression tests
+        run: npm test
+
       - name: Lint
         run: npm run lint
 
       - name: Build
         run: npm run build
+
+      - name: Production route smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=3210 npm run start -- -p 3210 > /tmp/deep-movie-review-next.log 2>&1 &
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3210/ > /tmp/home.html; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [[ "$ready" != "true" ]]; then
+            echo "Production server did not become ready."
+            cat /tmp/deep-movie-review-next.log
+            exit 1
+          fi
+
+          if grep -Fq 'Open structural fixture' /tmp/home.html; then
+            site_state="prelaunch"
+            if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
+              echo "Prelaunch homepage must remain noindex/nofollow even when the launch flag is enabled."
+              exit 1
+            fi
+          elif grep -Fq 'Open analysis' /tmp/home.html; then
+            site_state="published-preview"
+            if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
+              echo "Preview builds must remain noindex/nofollow even when the configured homepage film is published."
+              exit 1
+            fi
+          else
+            echo "Homepage did not expose a recognized configured feature state."
+            exit 1
+          fi
+          echo "Verified homepage state: $site_state"
+
+          curl --fail --silent --show-error http://127.0.0.1:3210/labs/six-lenses > /tmp/lab.html
+          if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/lab.html; then
+            echo "R&D lab routes must remain noindex/nofollow."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error 'http://127.0.0.1:3210/films/pilot-film?spoilers=NONE' > /tmp/pilot-none.html
+          grep -Fq 'Pilot Film' /tmp/pilot-none.html
+          if grep -Fq 'Evidence before conclusion.' /tmp/pilot-none.html; then
+            echo "MAJOR spoiler content leaked into spoilers=NONE."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error 'http://127.0.0.1:3210/films/pilot-film?spoilers=FULL' > /tmp/pilot-full.html
+          if ! grep -Fq 'Evidence before conclusion.' /tmp/pilot-full.html; then
+            echo "FULL spoiler projection did not render the MAJOR autopsy module."
+            exit 1
+          fi
+
+          not_found_status=$(curl --silent --output /tmp/not-found.html --write-out '%{http_code}' http://127.0.0.1:3210/films/not-a-film)
+          if [[ "$not_found_status" != "200" && "$not_found_status" != "404" ]]; then
+            echo "Unknown film route returned unexpected HTTP $not_found_status."
+            exit 1
+          fi
+          if ! grep -Fq '404 / NOT FOUND' /tmp/not-found.html; then
+            echo "Unknown film route did not render the canonical not-found UI."
+            exit 1
+          fi
+          if grep -Fq 'Pilot Film' /tmp/not-found.html; then
+            echo "Unknown film route rendered film content instead of the not-found boundary."
+            exit 1
+          fi
+
+      - name: Browser visual and accessibility audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf browser-audit
+          PORT=3212 npm run start -- -p 3212 > /tmp/deep-movie-review-browser-next.log 2>&1 &
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3212/ > /dev/null; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [[ "$ready" != "true" ]]; then
+            echo "Browser-audit production server did not become ready."
+            cat /tmp/deep-movie-review-browser-next.log
+            exit 1
+          fi
+
+          BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs
+
+      - name: Upload browser audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-audit-${{ github.event.pull_request.head.sha || github.sha }}
+          path: browser-audit/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Build public surface without preview content
+        env:
+          DMR_PREVIEW_CONTENT_ENABLED: "false"
+        run: |
+          rm -rf .next
+          npm run build
+
+      - name: Public surface access smoke test
+        env:
+          DMR_PREVIEW_CONTENT_ENABLED: "false"
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=3211 npm run start -- -p 3211 > /tmp/deep-movie-review-public-next.log 2>&1 &
+          server_pid=$!
+
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3211/ > /tmp/public-home.html; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [[ "$ready" != "true" ]]; then
+            echo "Public production server did not become ready."
+            cat /tmp/deep-movie-review-public-next.log
+            exit 1
+          fi
+
+          if grep -Fq 'Open analysis' /tmp/public-home.html; then
+            public_state="published"
+            if grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
+              echo "Published public homepage remained noindex despite launch flag and preview mode being disabled."
+              exit 1
+            fi
+          elif grep -Fq 'Read methodology' /tmp/public-home.html; then
+            public_state="prelaunch"
+            if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
+              echo "Public prelaunch homepage must remain noindex/nofollow."
+              exit 1
+            fi
+          else
+            echo "Public homepage did not expose a recognized published or prelaunch state."
+            exit 1
+          fi
+          echo "Verified public homepage state: $public_state"
+
+          for preview_marker in 'Open structural fixture' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement'; do
+            if grep -Fq "$preview_marker" /tmp/public-home.html; then
+              echo "Public homepage leaked preview marker: $preview_marker"
+              exit 1
+            fi
+          done
+
+          curl --fail --silent --show-error http://127.0.0.1:3211/films > /tmp/public-films.html
+          if grep -Fq 'Pilot Film' /tmp/public-films.html; then
+            echo "Public film index exposed fixture content."
+            exit 1
+          fi
+
+          preview_status=$(curl --silent --output /tmp/public-preview-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/pilot-film)
+          if [[ "$preview_status" != "200" && "$preview_status" != "404" ]]; then
+            echo "Protected preview route returned unexpected HTTP $preview_status."
+            exit 1
+          fi
+          if ! grep -Fq '404 / NOT FOUND' /tmp/public-preview-route.html; then
+            echo "Protected preview route did not resolve to the not-found boundary."
+            exit 1
+          fi
+          if grep -Fq 'Pilot Film' /tmp/public-preview-route.html; then
+            echo "Protected preview route leaked fixture film content."
+            exit 1
+          fi

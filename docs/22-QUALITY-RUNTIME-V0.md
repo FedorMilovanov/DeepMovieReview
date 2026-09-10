@@ -1,7 +1,7 @@
 # DeepMovieReview — Experience Quality Runtime v0
 
-> Status: pre-GPU platform foundation  
-> Purpose: make future high-end effects adaptive by default rather than retrofitting performance later.
+> Status: implemented GPU-aware platform foundation  
+> Purpose: keep high-end effects adaptive, measurable and fail-soft before Film 001.
 
 ## 1. State model
 
@@ -16,7 +16,7 @@ The root client provider exposes:
 - forced-colors state;
 - document visibility;
 - downgrade reason;
-- `reportFrameSample(frameMs)` for future GPU modules.
+- `reportFrameSample(frameMs)` for GPU modules, plus renderer backend/failure reporting.
 
 This is presentation/runtime state, not editorial data.
 
@@ -49,7 +49,7 @@ High-quality static imagery and typography can remain high quality.
 
 ## 4. Runtime downgrade
 
-Future GPU modules report measured frame time through `reportFrameSample`.
+GPU modules report measured frame time through `reportFrameSample`.
 
 v0 behavior:
 
@@ -112,11 +112,10 @@ Every tier must preserve the same editorial content and navigation.
 
 v0 does not:
 
-- install Three.js;
-- create a render loop;
-- benchmark GPU vendors;
-- infer memory size;
-- expose a public quality selector;
-- guarantee a target FPS from hardware heuristics alone.
+- benchmark or rank GPU vendors;
+- infer VRAM or device memory from unreliable heuristics;
+- guarantee a target FPS from hardware hints alone;
+- trap semantic content inside the canvas;
+- automatically oscillate quality upward after a downgrade.
 
-Real device measurement remains authoritative.
+Three/R3F and the Verdict Core now exercise the runtime through WebGPU/WebGL2/static fallback paths. Auto/Lite and System/Reduced user controls are implemented separately from automatic degradation. Real-device measurement remains authoritative.

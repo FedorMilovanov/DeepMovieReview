@@ -4,12 +4,14 @@ import Link from "next/link";
 
 export default function AppError({ reset }: { reset: () => void }) {
   return (
-    <section className="sectionShell routeError" role="alert" aria-labelledby="route-error-title">
-      <div className="sectionIndex">ERROR / RECOVERABLE</div>
-      <h1 id="route-error-title">This view could not be assembled.</h1>
-      <p className="sectionIntro">
-        The platform shell is still available. Retry this route, return to the film index, or go back to the homepage.
-      </p>
+    <section className="sectionShell routeError" aria-labelledby="route-error-title">
+      <div role="alert" aria-atomic="true">
+        <div className="sectionIndex">ERROR / RECOVERABLE</div>
+        <h1 id="route-error-title">This view could not be assembled.</h1>
+        <p className="sectionIntro">
+          Retry this view, return to the film index, or go back to the homepage.
+        </p>
+      </div>
       <div className="routeErrorActions">
         <button className="buttonPrimary" type="button" onClick={reset}>
           Retry

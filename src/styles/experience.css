@@ -8,9 +8,9 @@
   gap: 0.35rem 0.6rem;
   max-width: min(90vw, 620px);
   padding: 0.55rem 0.7rem;
-  border: 1px solid var(--line-strong);
-  background: rgba(3, 3, 3, 0.92);
-  color: var(--muted);
+  border: 1px solid var(--stroke-strong);
+  background: rgb(3 3 3 / 0.92);
+  color: var(--ink-3);
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -18,7 +18,7 @@
 }
 
 .experienceDiagnostics strong {
-  color: var(--text);
+  color: var(--ink-1);
 }
 
 html[data-document-visible="false"] .experienceDiagnostics {
@@ -28,7 +28,7 @@ html[data-document-visible="false"] .experienceDiagnostics {
 .experienceControls {
   position: relative;
   min-width: min(100%, 260px);
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 .experienceControls summary {
@@ -39,7 +39,7 @@ html[data-document-visible="false"] .experienceDiagnostics {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.65rem 0.8rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--stroke-default);
   cursor: pointer;
   font-size: 0.7rem;
   letter-spacing: 0.08em;
@@ -51,12 +51,12 @@ html[data-document-visible="false"] .experienceDiagnostics {
 }
 
 .experienceControls summary > span {
-  color: var(--text);
+  color: var(--ink-1);
   font-size: 0.62rem;
 }
 
 .experienceControls[open] summary {
-  border-color: var(--line-strong);
+  border-color: var(--stroke-strong);
 }
 
 .experienceControlsPanel {
@@ -66,9 +66,9 @@ html[data-document-visible="false"] .experienceDiagnostics {
   z-index: 80;
   width: min(92vw, 430px);
   padding: 1rem;
-  border: 1px solid var(--line-strong);
-  background: rgba(5, 5, 5, 0.97);
-  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--stroke-strong);
+  background: rgb(5 5 5 / 0.97);
+  box-shadow: 0 22px 70px rgb(0 0 0 / 0.5);
 }
 
 .experienceControls fieldset {
@@ -80,12 +80,12 @@ html[data-document-visible="false"] .experienceDiagnostics {
 .experienceControls fieldset + fieldset {
   margin-top: 1.2rem;
   padding-top: 1.2rem;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
 }
 
 .experienceControls legend {
   margin-bottom: 0.6rem;
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 0.64rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -101,12 +101,12 @@ html[data-document-visible="false"] .experienceDiagnostics {
 }
 
 .experienceControls label + label {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
 }
 
 .experienceControls input {
   margin: 0.2rem 0 0;
-  accent-color: var(--text);
+  accent-color: var(--ink-1);
 }
 
 .experienceControls label span {
@@ -116,27 +116,54 @@ html[data-document-visible="false"] .experienceDiagnostics {
 }
 
 .experienceControls label strong {
-  color: var(--text);
+  color: var(--ink-1);
   font-size: 0.82rem;
   font-weight: 500;
 }
 
 .experienceControls label small {
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 0.72rem;
   line-height: 1.45;
 }
 
 html[data-experience-mode="lite"] .frameOrb,
 html[data-experience-mode="lite"] .autopsyCrosshair {
-  transition: none !important;
+  transition: none;
 }
 
-html[data-reduced-motion="true"] .frameOrb,
-html[data-reduced-motion="true"] .lensItem,
-html[data-reduced-motion="true"] .buttonPrimary,
-html[data-reduced-motion="true"] .buttonGhost {
+html[data-reduced-motion="true"] {
+  --dmr-glow-strength: 0;
+  --dmr-depth: 0;
+  --dmr-reveal: 1;
+  scroll-behavior: auto;
+}
+
+html[data-reduced-motion="true"] *,
+html[data-reduced-motion="true"] *::before,
+html[data-reduced-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dmr-glow-strength: 0;
+    --dmr-depth: 0;
+    --dmr-reveal: 1;
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @media (max-width: 640px) {

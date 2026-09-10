@@ -1,74 +1,108 @@
 # DeepMovieReview
 
-**DeepMovieReview** is a planned interactive platform for deep analysis of cinema as stories about people. It combines story/plot analysis, characters, psychology, relationships, family/youth/social models, themes, narrative messages, filmmaking craft, scene-level moral analysis, difficult decisions, biblical principles, editorial verdicts and — later — independent audience/community data.
+**DeepMovieReview** is an interactive platform for deep analysis of cinema as stories about people. It combines plot and story structure, characters and psychology, relationships, family/youth/social formation, themes and worldview claims, narrative teaching signals, filmmaking craft, scene-level moral analysis, difficult decisions, biblical principles, editorial synthesis and — later — a clearly separate audience/community layer.
 
-This repository is currently in **foundation / research / architecture** stage. Do not treat the present docs as a finished public methodology; they are the working specification to build and calibrate from.
+The repository is currently in **foundation implementation / app-shell hardening**. The present content is fixture data used to prove the architecture; it is not a published film judgment or a finished public methodology.
 
 ## Core thesis
 
-The project is intentionally **not** a simple sin counter, parental-content checklist, or Christian reskin of a conventional movie-rating platform.
+DeepMovieReview is intentionally **not** a sin counter, parental-content checklist, or Christian reskin of a conventional movie-rating platform.
 
-Three interpretive axioms:
+Interpretive axioms:
 
 - **Depiction ≠ Endorsement**
 - **Explanation ≠ Justification**
 - **Representation ≠ Prescription**
 
-Additional product invariants:
+Product invariants:
 
 - **Editorial ≠ Crowd**
 - **Moral Severity ≠ Film Quality**
 - **Popularity ≠ Biblical Authority**
+- claims should be traceable to evidence
+- spoiler state is structured data, not a CSS blur
+- GPU effects enhance meaning but never own it
 
 The intended analytical progression is:
 
-`FILM → STORY → PEOPLE → RELATIONSHIPS → IDEAS → WHAT THE FILM TEACHES / NORMALIZES → CRAFT / SYMPATHY → MORAL FORENSICS → BIBLICAL LENS → SYNTHESIS`.
+`FILM → STORY → PEOPLE → RELATIONSHIPS → IDEAS → TEACHING / NARRATIVE PERMISSION → CRAFT / SYMPATHY → MORAL FORENSICS → BIBLICAL LENS → SYNTHESIS`
 
-The visual direction remains **Cinematic Moral Forensics**, but the product scope is broader than moral events: the film must first be understood as film, story, human relationships and a set of claims about life.
+The visual direction remains **Cinematic Moral Forensics**, but the product is broader than moral-event counting. A film must first be understood as film: story, people, relationships, form, values and claims about life.
+
+## Current implemented foundation
+
+The shell now proves the main architectural boundaries that Film 001 will depend on:
+
+- Next.js App Router + strict TypeScript foundation;
+- one canonical `FilmPackage` registry used by routes and homepage projections; optional homepage slices such as Family/Youth and Decision stay nullable rather than forcing every film into every module;
+- build-time referential-integrity validation for evidence, sources, characters, decisions and analytical support;
+- canonical evidence records shared by interpretive claims instead of copied prose evidence;
+- structured Story, Characters, Relationships, Family/Youth, Meaning, Teaching Signals, Narrative Permission, Craft, Scene Autopsy, Decision, Moral Analysis, Biblical Synthesis, Final Synthesis and Sources/Method modules;
+- one spoiler projection stage that removes forbidden nested data **before** presentation; the projected module array is shared by outline and renderer, and real featured-film homepage data is reduced to spoiler-safe `NONE` content before composition;
+- spoiler-aware deep-link cleanup when a hash targets content hidden by a lower spoiler level;
+- fixture/draft `noindex`, permanent `/labs/*` `noindex`, a fail-closed launch gate requiring `DMR_SITE_INDEXING_ENABLED=true` plus a published configured homepage feature **with preview mode disabled**, and a separate `DMR_PREVIEW_CONTENT_ENABLED=true` gate before non-published film routes exist in production; when preview mode is disabled, the public prelaunch homepage does not project fixture/draft film data at all;
+- adaptive experience runtime with Auto/Lite mode, reduced-motion control, document/offscreen awareness, renderer-backend reporting and measured quality downgrades;
+- WebGPU-oriented Verdict Core with WebGL2/static fallback behavior and no semantic content trapped in canvas;
+- visual asset manifest types with focal points, safe zones, depth maps, masks, provenance, responsive/DPR-aware variant selection and a fail-closed validated asset registry;
+- semantic accessibility work for Six Lenses tabs and Scene Autopsy interaction;
+- CI gates for locked dependency install, typecheck, domain regression tests, lint, preview production build/smoke, a real headless-Chrome DOM/accessibility/visual audit with screenshot evidence, and a clean public production rebuild/access-security smoke;
+- strict npm install-script allowlisting rather than implicitly executing newly introduced dependency scripts.
 
 ## Foundation documents
 
-Read in this order:
+Start with these documents:
 
-1. [`docs/00-PROJECT-CHARTER.md`](docs/00-PROJECT-CHARTER.md) — product thesis, expanded scope, differentiation and non-goals.
+1. [`docs/00-PROJECT-CHARTER.md`](docs/00-PROJECT-CHARTER.md) — thesis, scope, differentiation and non-goals.
 2. [`docs/01-VISUAL-CONSTITUTION.md`](docs/01-VISUAL-CONSTITUTION.md) — art direction, visual grammar and signature interactions.
-3. [`docs/11-HOMEPAGE-ARCHITECTURE.md`](docs/11-HOMEPAGE-ARCHITECTURE.md) — full 22-stage homepage research architecture.
-4. [`docs/14-HOMEPAGE-LAUNCH-CUT-V1.md`](docs/14-HOMEPAGE-LAUNCH-CUT-V1.md) — selected 12-stage launch homepage with near-production interaction/layout requirements.
-5. [`docs/15-HOMEPAGE-DATA-CONTRACTS.md`](docs/15-HOMEPAGE-DATA-CONTRACTS.md) — structured data projections for Story, Relationships, Family/Youth, Meaning, Narrative Permission, Craft, Scene Autopsy, Decision and Biblical synthesis.
-6. [`docs/16-HOMEPAGE-ASSET-MOTION-PERFORMANCE-SPEC.md`](docs/16-HOMEPAGE-ASSET-MOTION-PERFORMANCE-SPEC.md) — GPT/editorial asset pipeline, depth/masks, motion ownership, quality tiers, responsive behavior and performance gates.
-7. [`docs/17-HOMEPAGE-RD-BACKLOG.md`](docs/17-HOMEPAGE-RD-BACKLOG.md) — bounded implementation spikes for agents.
-8. [`docs/12-ANALYSIS-ONTOLOGY-V2.md`](docs/12-ANALYSIS-ONTOLOGY-V2.md) — broadened whole-film ontology for story, characters, relationships, family/youth, themes, teaching signals, craft and moral/biblical analysis.
-9. [`docs/02-INFORMATION-ARCHITECTURE.md`](docs/02-INFORMATION-ARCHITECTURE.md) — canonical long-term domain graph and conceptual schema.
-10. [`docs/03-RATING-METHODOLOGY.md`](docs/03-RATING-METHODOLOGY.md) — v0.2 analysis/rating methodology including relationships, narrative permission, messages and audience-score separation.
-11. [`docs/04-COMMUNITY-AND-AUDIENCE.md`](docs/04-COMMUNITY-AND-AUDIENCE.md) — future viewer score, decision voting, Moral Mirror, Audience Field and anti-brigading foundations.
-12. [`docs/05-TECHNICAL-ARCHITECTURE.md`](docs/05-TECHNICAL-ARCHITECTURE.md) — Next.js/React/Three.js direction, persistent GPU stage, WebGPU/WebGL2/Lite tiers, accessibility/performance.
-13. [`docs/06-EXPERIENCE-BLUEPRINT.md`](docs/06-EXPERIENCE-BLUEPRINT.md) — expanded film-page library with story, relationships, messages, craft, moral forensics and biblical modules.
-14. [`docs/07-ROADMAP.md`](docs/07-ROADMAP.md) — phased delivery plan from one-film vertical slice to larger atlases/community.
-15. [`docs/08-REFERENCE-AUDIT.md`](docs/08-REFERENCE-AUDIT.md) — broad current visual, technical, ratings and competitor reference bank.
-16. [`docs/13-HOMEPAGE-AND-CONTENT-RESEARCH-AUDIT.md`](docs/13-HOMEPAGE-AND-CONTENT-RESEARCH-AUDIT.md) — focused September 2026 audit supporting the homepage and expanded content model.
-17. [`docs/09-AGENT-BUILD-RULES.md`](docs/09-AGENT-BUILD-RULES.md) — non-negotiable guardrails for coding/design agents, including anti-sin-counter safeguards.
-18. [`docs/10-OPEN-QUESTIONS.md`](docs/10-OPEN-QUESTIONS.md) — unresolved decisions and next audit targets.
+3. [`docs/11-HOMEPAGE-ARCHITECTURE.md`](docs/11-HOMEPAGE-ARCHITECTURE.md) — full homepage research architecture.
+4. [`docs/14-HOMEPAGE-LAUNCH-CUT-V1.md`](docs/14-HOMEPAGE-LAUNCH-CUT-V1.md) — selected launch sequence and interaction/layout requirements.
+5. [`docs/15-HOMEPAGE-DATA-CONTRACTS.md`](docs/15-HOMEPAGE-DATA-CONTRACTS.md) — structured homepage projections and canonical-domain boundaries.
+6. [`docs/16-HOMEPAGE-ASSET-MOTION-PERFORMANCE-SPEC.md`](docs/16-HOMEPAGE-ASSET-MOTION-PERFORMANCE-SPEC.md) — asset, depth/mask, motion, quality-tier and performance rules.
+7. [`docs/12-ANALYSIS-ONTOLOGY-V2.md`](docs/12-ANALYSIS-ONTOLOGY-V2.md) — whole-film analytical ontology.
+8. [`docs/02-INFORMATION-ARCHITECTURE.md`](docs/02-INFORMATION-ARCHITECTURE.md) — long-term domain graph and conceptual schema.
+9. [`docs/03-RATING-METHODOLOGY.md`](docs/03-RATING-METHODOLOGY.md) — analysis/rating methodology and separation of independent dimensions.
+10. [`docs/04-COMMUNITY-AND-AUDIENCE.md`](docs/04-COMMUNITY-AND-AUDIENCE.md) — future viewer score, voting and anti-brigading foundations.
+11. [`docs/05-TECHNICAL-ARCHITECTURE.md`](docs/05-TECHNICAL-ARCHITECTURE.md) — Next.js/React/Three.js architecture and progressive enhancement.
+12. [`docs/06-EXPERIENCE-BLUEPRINT.md`](docs/06-EXPERIENCE-BLUEPRINT.md) — film-page experience library.
+13. [`docs/07-ROADMAP.md`](docs/07-ROADMAP.md) — phased delivery plan.
+14. [`docs/08-REFERENCE-AUDIT.md`](docs/08-REFERENCE-AUDIT.md) — visual, technical, ratings and competitor reference bank.
+15. [`docs/13-HOMEPAGE-AND-CONTENT-RESEARCH-AUDIT.md`](docs/13-HOMEPAGE-AND-CONTENT-RESEARCH-AUDIT.md) — focused September 2026 homepage/content research.
+16. [`docs/09-AGENT-BUILD-RULES.md`](docs/09-AGENT-BUILD-RULES.md) — non-negotiable implementation guardrails.
+17. [`AGENTS.md`](AGENTS.md) — current coding-agent entrypoint and implemented invariants.
+
+Implementation-state documents:
+
+- [`docs/18-APP-SHELL-PHASE.md`](docs/18-APP-SHELL-PHASE.md)
+- [`docs/19-DESIGN-SYSTEM-V1.md`](docs/19-DESIGN-SYSTEM-V1.md)
+- [`docs/20-SPOILER-STATE-V1.md`](docs/20-SPOILER-STATE-V1.md)
+- [`docs/21-FILM-PACKAGE-RENDERER-V0.md`](docs/21-FILM-PACKAGE-RENDERER-V0.md)
+- [`docs/22-QUALITY-RUNTIME-V0.md`](docs/22-QUALITY-RUNTIME-V0.md)
+- [`docs/23-VISUAL-ASSET-MANIFEST-V0.md`](docs/23-VISUAL-ASSET-MANIFEST-V0.md)
+- [`docs/24-FILM-OUTLINE-SOURCES-V0.md`](docs/24-FILM-OUTLINE-SOURCES-V0.md)
+- [`docs/25-CINEMATIC-UI-PLATFORM-2026.md`](docs/25-CINEMATIC-UI-PLATFORM-2026.md)
+- [`docs/25-EXPERIENCE-CONTROLS-V0.md`](docs/25-EXPERIENCE-CONTROLS-V0.md)
+- [`docs/26-FILM-DOMAIN-MODULES-V0.md`](docs/26-FILM-DOMAIN-MODULES-V0.md)
+
+[`docs/10-OPEN-QUESTIONS.md`](docs/10-OPEN-QUESTIONS.md) remains the backlog of unresolved product/methodology decisions rather than a statement of implemented behavior.
 
 ## Homepage Launch Cut v1
 
-The current homepage launch sequence is deliberately narrower than the 22-stage research storyboard:
+The launch grammar is deliberately narrower than the full research storyboard:
 
 `ARRIVAL / LIVING FRAME → SIX LENSES → STORY → PEOPLE + RELATIONSHIP OBSERVATORY → FAMILY / YOUTH → MEANING → NARRATIVE PERMISSION → FORM SHAPES SYMPATHY → SCENE AUTOPSY → KNOWLEDGE FOG / DECISION → BIBLICAL LENS + SYNTHESIS → DISCOVERY`
 
-The homepage intentionally delays Moral Core, full Moral Timeline, community layers and dense score dashboards until the visitor understands the film-first analytical breadth.
+The homepage intentionally delays Moral Core, the full Moral Timeline, community layers and dense score dashboards until the visitor understands the film-first analytical breadth.
 
 ## Whole-film analytical lenses
 
-The product should be able to examine a film across at least these connected lenses:
-
-- **STORY** — premise, conflict, plot structure, causality, ending.
-- **PEOPLE** — characters, desires, fears, contradictions, arcs, psychological realism.
-- **RELATIONSHIPS** — marriage, romance, parents/children, friendship, peers, authority, trust, responsibility, conflict and repair.
-- **FAMILY / YOUTH / FORMATION** — parent responsibility, adult role models, peer pressure, rebellion/autonomy, maturation and consequences.
-- **IDEAS / MEANING** — themes, narrative questions, worldview claims, meaning and purpose.
-- **TEACHING / NARRATIVE PERMISSION** — what is modeled, rewarded, costly, unchallenged, normalized, ridiculed or celebrated.
-- **CRAFT / FORM** — how camera, editing, music, performance, genre and visual framing shape sympathy and imitation pressure.
-- **MORAL FORENSICS** — acts, motives, knowledge, freedom, consequences, responsibility, repentance and redemption.
+- **STORY** — premise, conflict, causality, structure and ending.
+- **PEOPLE** — desires, fears, contradictions, beliefs, self-deception and arcs.
+- **RELATIONSHIPS** — trust, truthfulness, power, boundaries, responsibility, conflict and repair.
+- **FAMILY / YOUTH / FORMATION** — parents, authority, peer pressure, autonomy/rebellion, maturity and adult examples.
+- **IDEAS / MEANING** — themes, narrative questions, worldview claims, purpose and meaning.
+- **TEACHING / NARRATIVE PERMISSION** — what is rewarded, costly, normalized, questioned, ridiculed, romanticized or left unchallenged.
+- **CRAFT / FORM** — how camera, editing, music, performance, humor and genre shape sympathy and imitation pressure.
+- **MORAL FORENSICS** — acts, motives, knowledge, freedom, pressure, consequences, responsibility, repentance and redemption.
 - **BIBLICAL LENS** — Scripture-grounded principles, qualifications, application and final synthesis.
 
 ## Signature interaction vocabulary
@@ -82,50 +116,25 @@ The visual system uses a small semantic grammar rather than arbitrary effects:
 - **FOG** — limited knowledge / uncertainty
 - **CORE** — structured synthesis / fingerprint
 - **LIGHT** — truth / disclosure
-- **FIELD** — proposed primitive for messages/permissions/audience distributions; adopt only if it proves reusable
+- **FIELD** — only where a field/distribution visualization genuinely expresses the data
 
-Primary signature systems include:
+Primary signature systems include Living Film Frame, Six Lenses, Relationship Observatory, Message Field, Narrative Permission Map, Moral Lens, Scene Autopsy, Film Dissection, Moral Core, Moral Timeline, Decision Chamber / Knowledge Fog and — later — Audience Field / Moral Mirror.
 
-- Living Film Frame
-- Six Lenses
-- Relationship Observatory / Relationship Trace
-- Message Field
-- Narrative Permission Map
-- Moral Lens
-- Scene Autopsy
-- Film Dissection
-- Moral Core
-- Moral Timeline
-- Decision Chamber / Knowledge Fog
-- Audience Field (later)
-- Moral Mirror (later)
+## Audience/community layer
 
-## Initial implementation strategy
+Community data is deliberately a later phase, but its separation is already an architectural invariant. Future audience ratings, dilemma votes, comments or corrections must not overwrite editorial analysis and must never be weighted by agreement with the editors. Popularity is descriptive data, not biblical authority.
 
-Do **not** begin by building a giant movie database or social network.
+## Current phase and next work
 
-The first meaningful milestone is one production-quality film vertical slice proving both whole-film analysis and the signature visual system.
+Current phase: **Phase 0.7 — hardened app shell / launch-contract cleanup → Film 001 readiness**.
 
-Homepage implementation should begin as bounded R&D, not one giant branch. The first coding package is intentionally limited to:
+The immediate next steps are:
 
-1. semantic homepage shell and rhythm;
-2. Living Frame;
-3. Relationship Observatory static/SVG prototype;
-4. Narrative Permission static prototype;
-5. Scene Autopsy semantic/static prototype;
-6. quality-tier/reduced-motion foundations.
+- finish cleanup/a11y/browser verification of the shell;
+- keep the canonical fixture aligned with the domain contracts while it remains the test package;
+- choose and research Film 001 as a separate editorial project;
+- replace placeholder visual assets with art-directed masters plus derived depth/mask/responsive variants;
+- calibrate the first real editorial rubric against the methodology before publishing numeric aggregates;
+- evolve the current TypeScript contracts into persistent database/API schemas only after the Film 001 vertical slice proves which entities are truly required.
 
-Only effects that pass comprehension, mobile, accessibility and performance gates should enter the integrated homepage.
-
-## Status
-
-Current phase: **Phase 0 — Foundation / audit / architecture → implementation-prep**.
-
-Next major decisions/work:
-
-- choose the pilot film;
-- create one canonical pilot-film fixture matching the homepage data contracts;
-- implement the first bounded homepage R&D package from `17-HOMEPAGE-RD-BACKLOG.md`;
-- turn the v0.2 ontology into an ER/schema proposal;
-- define the first calibrated editorial rubric;
-- generate/art-direct the first Hero, Relationship and Scene Autopsy master assets and derived depth/mask variants.
+Do **not** begin by building a giant movie database or social network. The next meaningful milestone is one production-quality film vertical slice that proves both the analytical method and the signature visual system.

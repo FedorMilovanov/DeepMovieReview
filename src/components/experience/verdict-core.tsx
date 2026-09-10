@@ -3,11 +3,23 @@
 import { Float } from "@react-three/drei";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { motion } from "motion/react";
-import { Component, Suspense, useRef, type ReactNode } from "react";
+import {
+  Component,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { Mesh } from "three";
 import * as THREE from "three/webgpu";
 import { useExperienceQuality } from "@/components/experience/experience-quality-provider";
 import styles from "./verdict-core.module.css";
+
+type RendererFactoryProps = {
+  canvas: EventTarget;
+};
 
 class VerdictCoreBoundary extends Component<
   { children: ReactNode; fallback: ReactNode },
@@ -28,6 +40,13 @@ function StaticCoreFallback() {
   return <div className={styles.fallback} aria-hidden="true" />;
 }
 
+function percentile(values: readonly number[], ratio: number) {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * ratio) - 1));
+  return sorted[index];
+}
+
 function CoreMesh({
   freeze,
   reportFrameSample,
@@ -36,7 +55,8 @@ function CoreMesh({
   reportFrameSample: (frameMs: number) => void;
 }) {
   const meshRef = useRef<Mesh>(null);
-  const sampleCounter = useRef(0);
+  const frameWindowRef = useRef<number[]>([]);
+  const reportCounterRef = useRef(0);
 
   useFrame((state, delta) => {
     const mesh = meshRef.current;
@@ -48,10 +68,16 @@ function CoreMesh({
       mesh.rotation.z = Math.cos(state.clock.elapsedTime * 0.17) * 0.035;
     }
 
-    sampleCounter.current += 1;
-    if (sampleCounter.current >= 30) {
-      sampleCounter.current = 0;
-      reportFrameSample(delta * 1000);
+    if (freeze) return;
+
+    const frameWindow = frameWindowRef.current;
+    frameWindow.push(delta * 1000);
+    if (frameWindow.length > 90) frameWindow.shift();
+
+    reportCounterRef.current += 1;
+    if (reportCounterRef.current >= 30 && frameWindow.length >= 30) {
+      reportCounterRef.current = 0;
+      reportFrameSample(percentile(frameWindow, 0.9));
     }
   });
 
@@ -84,15 +110,73 @@ export function VerdictCore() {
     forcedColors,
     documentVisible,
     reportFrameSample,
+    reportRendererBackend,
+    reportRendererFailure,
   } = useExperienceQuality();
+  const shellRef = useRef<HTMLDivElement>(null);
+  const [inViewport, setInViewport] = useState(true);
+
+  useEffect(() => {
+    const element = shellRef.current;
+    if (!element || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setInViewport(entry?.isIntersecting ?? false),
+      { rootMargin: "200px 0px", threshold: 0.01 },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   const gpuEnabled = backend !== "unknown" && backend !== "none" && tier !== "LITE" && !forcedColors;
   const maxDpr = tier === "ULTRA" ? Math.min(dpr, 2) : tier === "HIGH" ? Math.min(dpr, 1.6) : 1.25;
-  const frameloop = !documentVisible ? "never" : reducedMotion ? "demand" : "always";
+  const frameloop = !documentVisible || !inViewport ? "never" : reducedMotion ? "demand" : "always";
   const fallback = <StaticCoreFallback />;
 
+  const createRenderer = useCallback(async (props: RendererFactoryProps) => {
+    if (!(props.canvas instanceof HTMLCanvasElement)) {
+      const reason = "VerdictCore requires a DOM canvas surface.";
+      reportRendererFailure(reason);
+      throw new Error(reason);
+    }
+
+    try {
+      const renderer = new THREE.WebGPURenderer({
+        canvas: props.canvas,
+        alpha: true,
+        antialias: true,
+        powerPreference: "high-performance",
+        forceWebGL: backend === "webgl2",
+      });
+      await renderer.init();
+
+      const rendererBackend = renderer.backend as { isWebGPUBackend?: boolean };
+      reportRendererBackend(rendererBackend.isWebGPUBackend ? "webgpu" : "webgl2");
+
+      renderer.setClearColor(0x000000, 0);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = tier === "ULTRA" ? 1 : 0.92;
+      return renderer;
+    } catch (error) {
+      const reason = error instanceof Error
+        ? `Renderer initialization failed: ${error.message}`
+        : "Renderer initialization failed.";
+      reportRendererFailure(reason);
+      throw error;
+    }
+  }, [backend, reportRendererBackend, reportRendererFailure, tier]);
+
+  const opticsAnimate = !reducedMotion && inViewport && documentVisible
+    ? { rotate: [0, 2.5, 0], opacity: [0.68, 0.9, 0.68] }
+    : { rotate: 0, opacity: 0.68 };
+
   return (
-    <div className={styles.shell} aria-label="Adaptive cinematic verdict visualization">
+    <div
+      ref={shellRef}
+      className={styles.shell}
+      aria-label="Adaptive cinematic verdict visualization"
+      data-render-visible={inViewport}
+    >
       {gpuEnabled ? (
         <VerdictCoreBoundary fallback={fallback}>
           <div className={styles.canvas} aria-hidden="true">
@@ -101,23 +185,7 @@ export function VerdictCore() {
               frameloop={frameloop}
               camera={{ position: [0, 0, 4.5], fov: 38, near: 0.1, far: 20 }}
               shadows={tier === "ULTRA" || tier === "HIGH"}
-              gl={async (props) => {
-                if (!(props.canvas instanceof HTMLCanvasElement)) {
-                  throw new Error("VerdictCore requires a DOM canvas surface.");
-                }
-
-                const renderer = new THREE.WebGPURenderer({
-                  canvas: props.canvas,
-                  alpha: true,
-                  antialias: true,
-                  powerPreference: "high-performance",
-                });
-                await renderer.init();
-                renderer.setClearColor(0x000000, 0);
-                renderer.toneMapping = THREE.ACESFilmicToneMapping;
-                renderer.toneMappingExposure = tier === "ULTRA" ? 1 : 0.92;
-                return renderer;
-              }}
+              gl={createRenderer}
               fallback={fallback}
             >
               <ambientLight intensity={0.42} />
@@ -136,8 +204,8 @@ export function VerdictCore() {
       <motion.div
         className={styles.optics}
         aria-hidden="true"
-        animate={reducedMotion ? undefined : { rotate: [0, 2.5, 0], opacity: [0.68, 0.9, 0.68] }}
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        animate={opticsAnimate}
+        transition={{ duration: 12, repeat: reducedMotion ? 0 : Infinity, ease: "easeInOut" }}
       />
       <div className={styles.meta} aria-hidden="true">
         <span>VERDICT CORE / ADAPTIVE</span>

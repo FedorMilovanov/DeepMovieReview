@@ -1,3 +1,5 @@
+import { filmPackages } from "@/data/film-registry";
+import { assertValidVisualAssetRegistry } from "@/lib/visual-asset-integrity";
 import type { VisualAssetManifest } from "@/lib/visual-assets";
 
 export const fixtureHeroAsset: VisualAssetManifest = {
@@ -97,7 +99,13 @@ export const fixtureHeroAsset: VisualAssetManifest = {
   },
 };
 
-export const visualAssetManifests: VisualAssetManifest[] = [fixtureHeroAsset];
+const rawVisualAssetManifests: VisualAssetManifest[] = [fixtureHeroAsset];
+const knownFilmSlugs = filmPackages.map((filmPackage) => filmPackage.film.slug);
+
+assertValidVisualAssetRegistry(rawVisualAssetManifests, knownFilmSlugs);
+
+/** Canonical validated read surface for visual assets. */
+export const visualAssetManifests = rawVisualAssetManifests;
 
 export function getVisualAssetManifest(id: string) {
   return visualAssetManifests.find((manifest) => manifest.id === id);

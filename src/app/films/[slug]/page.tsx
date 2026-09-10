@@ -1,53 +1,58 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  FilmModuleList,
-  getVisibleFilmModules,
-} from "@/components/film-modules/film-module-renderer";
+import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
+import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
-import { filmPackages, getFilmPackageBySlug } from "@/data/film-packages";
-import {
-  canRevealSpoiler,
-  parseSpoilerLevel,
-  withSpoilerQuery,
-} from "@/lib/spoilers";
+import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
+import { isPreviewContentEnabled } from "@/data/site-config";
+import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
 type FilmPageProps = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ spoilers?: string | string[] }>;
 };
 
+export const dynamicParams = false;
+
 export function generateStaticParams() {
-  return filmPackages.map((filmPackage) => ({ slug: filmPackage.film.slug }));
+  const previewContentEnabled = isPreviewContentEnabled();
+  return filmPackages
+    .filter((filmPackage) => previewContentEnabled || filmPackage.film.status === "published")
+    .map((filmPackage) => ({ slug: filmPackage.film.slug }));
 }
 
 export async function generateMetadata({ params }: FilmPageProps): Promise<Metadata> {
   const { slug } = await params;
   const filmPackage = getFilmPackageBySlug(slug);
-  if (!filmPackage) return {};
+  if (!filmPackage || (filmPackage.film.status !== "published" && !isPreviewContentEnabled())) return {};
+  const { film } = filmPackage;
   return {
-    title: filmPackage.film.title,
-    description: `${filmPackage.film.title} — DeepMovieReview film shell.`,
+    title: film.title,
+    description:
+      film.status === "published"
+        ? `${film.title} (${film.year}) — ${film.premise}`
+        : `${film.title} — DeepMovieReview structural film shell.`,
+    robots: film.status === "published" ? undefined : { index: false, follow: false },
   };
 }
 
 export default async function FilmPage({ params, searchParams }: FilmPageProps) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const filmPackage = getFilmPackageBySlug(slug);
-  if (!filmPackage) notFound();
+  if (!filmPackage || (filmPackage.film.status !== "published" && !isPreviewContentEnabled())) notFound();
 
   const { film, modules } = filmPackage;
   const spoilerLevel = parseSpoilerLevel(query.spoilers);
   const pathname = `/films/${film.slug}`;
   const visibleModules = getVisibleFilmModules(modules, spoilerLevel);
-  const hiddenModuleCount = modules.filter(
-    (module) => !canRevealSpoiler(spoilerLevel, module.spoilerLevel),
-  ).length;
+  const hiddenModuleCount = modules.length - visibleModules.length;
   const outlineBase = withSpoilerQuery(pathname, spoilerLevel);
 
   return (
     <>
+      <SpoilerDeepLinkGuard spoilerLevel={spoilerLevel} />
+
       <section className="sectionShell filmPageHero" aria-labelledby="film-title">
         <Link className="microLabel" href="/films">← Films</Link>
         <div className="sectionIndex">FILM / {film.status.toUpperCase()} / SCHEMA {filmPackage.schemaVersion}</div>
@@ -60,9 +65,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
           <div><span>Question</span><strong>{film.thesisQuestion}</strong></div>
         </div>
         {film.status === "fixture" ? (
-          <p className="fixtureNotice">
-            This route proves the reusable film renderer only. Fixture language carries no published moral, psychological or biblical authority.
-          </p>
+          <p className="fixtureNotice">This route proves the reusable film renderer only. Fixture language carries no published moral, psychological or biblical authority.</p>
         ) : null}
       </section>
 
@@ -72,11 +75,11 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
           <h2 id="film-outline-title">Addressable analysis, filtered to your spoiler level.</h2>
         </div>
         <nav className="filmOutline" aria-label={`${film.title} analysis sections`}>
-          {visibleModules.map((module, index) => (
-            <Link key={module.id} href={`${outlineBase}#${module.id}`} scroll>
+          {visibleModules.map((filmModule, index) => (
+            <Link key={filmModule.id} href={`${outlineBase}#${filmModule.id}`} scroll>
               <span>{String(index + 1).padStart(2, "0")}</span>
-              <strong>{module.eyebrow ?? module.kind}</strong>
-              <small>{module.heading}</small>
+              <strong>{filmModule.eyebrow ?? filmModule.kind}</strong>
+              <small>{filmModule.heading}</small>
             </Link>
           ))}
         </nav>
@@ -87,22 +90,18 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         <div className="spoilerHeading">
           <div>
             <h2 id="spoiler-title">Reveal only what the reader has allowed.</h2>
-            <p className="sectionIntro">
-              Module and item visibility is resolved from the same spoiler level before analytical content renders.
-            </p>
+            <p className="sectionIntro">Module and item visibility is resolved from the same spoiler level before analytical content renders.</p>
           </div>
           <SpoilerLevelControl pathname={pathname} current={spoilerLevel} />
         </div>
         {hiddenModuleCount > 0 ? (
-          <p className="spoilerOmissionNotice" aria-live="polite">
-            {hiddenModuleCount} analytical {hiddenModuleCount === 1 ? "module is" : "modules are"} omitted at the current spoiler level.
-          </p>
+          <p className="spoilerOmissionNotice" aria-live="polite">{hiddenModuleCount} analytical {hiddenModuleCount === 1 ? "module is" : "modules are"} omitted at the current spoiler level.</p>
         ) : (
-          <p className="spoilerOmissionNotice" aria-live="polite">All modules in this fixture are currently visible.</p>
+          <p className="spoilerOmissionNotice" aria-live="polite">All analysis modules are currently visible.</p>
         )}
       </section>
 
-      <FilmModuleList modules={modules} spoilerLevel={spoilerLevel} />
+      <FilmModuleList modules={visibleModules} />
     </>
   );
 }

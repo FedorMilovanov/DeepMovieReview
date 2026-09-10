@@ -176,6 +176,21 @@
   text-wrap: pretty;
 }
 
+.filmFinalCoreGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.88fr) minmax(320px, 1.12fr);
+  gap: 1px;
+  margin-top: 3rem;
+}
+
+.filmFinalCoreThesis {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.5rem 2rem 1.5rem 0;
+  border-block: 1px solid var(--line);
+}
+
 .filmFinalThesis {
   max-width: 29ch;
   margin: clamp(2.5rem, 7cqi, 6rem) 0 0;
@@ -315,6 +330,14 @@
 }
 
 @container verdict-surface (width < 70rem) {
+  .filmFinalCoreGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .filmFinalCoreThesis {
+    padding-inline-end: 0;
+  }
+
   .filmSynthesisFacets {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

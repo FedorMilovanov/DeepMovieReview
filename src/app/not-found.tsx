@@ -5,7 +5,7 @@ export default function NotFound() {
     <section className="sectionShell filmPageHero">
       <div className="sectionIndex">404 / NOT FOUND</div>
       <h1>Nothing in this frame.</h1>
-      <p className="sectionIntro">The requested route does not exist in the current platform shell.</p>
+      <p className="sectionIntro">The requested page does not exist or is not available.</p>
       <div className="heroActions">
         <Link className="buttonPrimary" href="/">Home</Link>
         <Link className="buttonGhost" href="/films">Films</Link>
