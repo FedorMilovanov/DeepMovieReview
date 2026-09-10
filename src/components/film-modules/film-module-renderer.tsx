@@ -31,7 +31,7 @@ export function FilmModuleRenderer({ module, spoilerLevel }: FilmModuleRendererP
     case "story":
       return <StoryModuleView module={module} spoilerLevel={spoilerLevel} />;
     case "characters":
-      return <CharactersModuleView module={module} />;
+      return <CharactersModuleView module={module} spoilerLevel={spoilerLevel} />;
     case "relationship":
       return <RelationshipModuleView module={module} spoilerLevel={spoilerLevel} />;
     case "family-youth":
