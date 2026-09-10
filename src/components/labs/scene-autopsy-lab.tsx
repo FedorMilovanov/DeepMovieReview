@@ -102,18 +102,16 @@ export function SceneAutopsyLab() {
               <span className={styles.letter} aria-hidden="true" />
               <span className={styles.sceneLight} aria-hidden="true" />
               {ANCHORS.map((anchor) => (
-                <button
-                  type="button"
+                <span
                   key={anchor.id}
                   className={styles.anchor}
                   style={{ left: `${anchor.x}%`, top: `${anchor.y}%` }}
                   data-active={selected.id === anchor.id}
-                  tabIndex={-1}
                   aria-hidden="true"
-                  onClick={() => setSelectedId(anchor.id)}
+                  onPointerDown={() => setSelectedId(anchor.id)}
                 >
                   <span>{anchor.index}</span>
-                </button>
+                </span>
               ))}
             </div>
             <div className={styles.frameMeta}>
