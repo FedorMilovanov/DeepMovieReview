@@ -1,9 +1,4 @@
-import type {
-  ClaimSupport,
-  FilmModule,
-  FilmPackage,
-  SourcesMethodModule,
-} from "@/lib/film-package";
+import type { ClaimSupport, FilmModule, FilmPackage, SourcesMethodModule } from "@/lib/film-package";
 
 function duplicateIds(values: string[]): string[] {
   const seen = new Set<string>();
@@ -27,46 +22,29 @@ function checkSupport(
     return;
   }
   if (support.evidenceIds.length === 0) errors.push(`${path}: evidenceIds must not be empty.`);
-  for (const id of [...support.evidenceIds, ...(support.counterevidenceIds ?? [])]) {
+  const refs = [...support.evidenceIds, ...(support.counterevidenceIds ?? [])];
+  for (const id of duplicateIds(refs)) errors.push(`${path}: duplicate evidence reference "${id}".`);
+  for (const id of refs) {
     if (!evidenceIds.has(id)) errors.push(`${path}: unknown evidence id "${id}".`);
   }
 }
 
 function nestedIds(module: FilmModule): string[] {
   switch (module.kind) {
-    case "story":
-      return module.beats.map((item) => item.id);
-    case "characters":
-      return module.characters.map((item) => item.id);
-    case "relationship":
-      return module.events.map((item) => item.id);
-    case "family-youth":
-      return module.observations.map((item) => item.id);
-    case "teaching-signals":
-      return module.signals.map((item) => item.id);
-    case "permission":
-      return module.assessments.map((item) => item.id);
-    case "craft":
-      return [
-        ...module.observations.map((item) => item.id),
-        ...(module.pressureAssessments ?? []).map((item) => item.id),
-      ];
-    case "autopsy":
-      return (module.anchors ?? []).map((item) => item.id);
-    case "decision":
-      return [
-        ...module.options.map((item) => item.id),
-        ...module.facts.map((item) => item.id),
-        ...module.pressures.map((item) => item.id),
-        ...module.dutiesOrGoods.map((item) => item.id),
-      ];
-    case "moral-analysis":
-      return module.events.map((item) => item.id);
+    case "story": return module.beats.map((item) => item.id);
+    case "characters": return module.characters.map((item) => item.id);
+    case "relationship": return module.events.map((item) => item.id);
+    case "family-youth": return module.observations.map((item) => item.id);
+    case "teaching-signals": return module.signals.map((item) => item.id);
+    case "permission": return module.assessments.map((item) => item.id);
+    case "craft": return [...module.observations.map((item) => item.id), ...(module.pressureAssessments ?? []).map((item) => item.id)];
+    case "autopsy": return (module.anchors ?? []).map((item) => item.id);
+    case "decision": return [...module.options.map((item) => item.id), ...module.facts.map((item) => item.id), ...module.pressures.map((item) => item.id), ...module.dutiesOrGoods.map((item) => item.id)];
+    case "moral-analysis": return module.events.map((item) => item.id);
     case "meaning":
     case "biblical-synthesis":
     case "final-synthesis":
-    case "sources-method":
-      return [];
+    case "sources-method": return [];
   }
 }
 
@@ -74,37 +52,35 @@ function sourceModule(filmPackage: FilmPackage): SourcesMethodModule | undefined
   return filmPackage.modules.find((module): module is SourcesMethodModule => module.kind === "sources-method");
 }
 
-/**
- * Validates cross-module IDs and evidence/source references. Fixtures may omit
- * editorial evidence while the UI is being developed; published packages may not.
- */
 export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   const errors: string[] = [];
   const published = filmPackage.film.status === "published";
-  const moduleIds = filmPackage.modules.map((module) => module.id);
-  const evidenceIds = new Set((filmPackage.evidence ?? []).map((item) => item.id));
+  const evidence = filmPackage.evidence ?? [];
+  const evidenceRawIds = evidence.map((item) => item.id);
+  const evidenceIds = new Set(evidenceRawIds);
   const sources = sourceModule(filmPackage);
-  const sourceIds = new Set(sources?.sources.map((item) => item.id) ?? []);
+  const sourceRawIds = sources?.sources.map((item) => item.id) ?? [];
+  const sourceIds = new Set(sourceRawIds);
 
-  for (const id of duplicateIds(moduleIds)) errors.push(`modules: duplicate module id "${id}".`);
-  for (const id of duplicateIds([...evidenceIds])) errors.push(`evidence: duplicate evidence id "${id}".`);
+  for (const id of duplicateIds(filmPackage.modules.map((module) => module.id))) errors.push(`modules: duplicate module id "${id}".`);
+  for (const id of duplicateIds(evidenceRawIds)) errors.push(`evidence: duplicate evidence id "${id}".`);
+  for (const id of duplicateIds(sourceRawIds)) errors.push(`sources: duplicate source id "${id}".`);
 
   if (published && !sources) errors.push("published package requires a sources-method module.");
   if (published && evidenceIds.size === 0) errors.push("published package requires canonical evidence records.");
 
-  for (const evidence of filmPackage.evidence ?? []) {
-    if (!evidence.id.trim()) errors.push("evidence: id is required.");
-    if (!evidence.observation.trim()) errors.push(`evidence/${evidence.id}: observation is required.`);
-    for (const id of evidence.sourceIds ?? []) {
-      if (!sourceIds.has(id)) errors.push(`evidence/${evidence.id}: unknown source id "${id}".`);
+  for (const item of evidence) {
+    if (!item.id.trim()) errors.push("evidence: id is required.");
+    if (!item.label.trim()) errors.push(`evidence/${item.id}: label is required.`);
+    if (!item.observation.trim()) errors.push(`evidence/${item.id}: observation is required.`);
+    for (const id of item.sourceIds ?? []) {
+      if (!sourceIds.has(id)) errors.push(`evidence/${item.id}: unknown source id "${id}".`);
     }
   }
 
   for (const module of filmPackage.modules) {
     if (!module.id.trim()) errors.push(`module/${module.kind}: id is required.`);
-    for (const id of duplicateIds(nestedIds(module))) {
-      errors.push(`module/${module.id}: duplicate nested id "${id}".`);
-    }
+    for (const id of duplicateIds(nestedIds(module))) errors.push(`module/${module.id}: duplicate nested id "${id}".`);
 
     switch (module.kind) {
       case "characters":
@@ -114,22 +90,16 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         }
         break;
       case "relationship":
-        for (const item of module.events) {
-          checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
-        }
+        for (const item of module.events) checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
         break;
       case "family-youth":
-        for (const item of module.observations) {
-          checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
-        }
+        for (const item of module.observations) checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
         break;
       case "meaning":
         checkSupport(module.support, module.id, evidenceIds, errors, published);
         break;
       case "teaching-signals":
-        for (const item of module.signals) {
-          checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
-        }
+        for (const item of module.signals) checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
         break;
       case "permission":
         for (const item of module.assessments) {
@@ -139,9 +109,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         break;
       case "craft": {
         const observationIds = new Set(module.observations.map((item) => item.id));
-        for (const item of module.observations) {
-          checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
-        }
+        for (const item of module.observations) checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
         for (const item of module.pressureAssessments ?? []) {
           for (const id of item.craftObservationIds) {
             if (!observationIds.has(id)) errors.push(`${module.id}/${item.id}: unknown craft observation id "${id}".`);
@@ -161,27 +129,20 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         }
         break;
       case "decision":
-        if (module.editorialJudgment) {
-          checkSupport(module.editorialJudgment.support, `${module.id}/editorial-judgment`, evidenceIds, errors, published);
-        }
+        if (module.editorialJudgment) checkSupport(module.editorialJudgment.support, `${module.id}/editorial-judgment`, evidenceIds, errors, published);
         break;
       case "moral-analysis":
         for (const item of module.events) {
           checkSupport(item.support, `${module.id}/${item.id}`, evidenceIds, errors, published);
-          if (item.valence !== "WRONGDOING" && (item.severity || item.culpability)) {
-            errors.push(`${module.id}/${item.id}: severity/culpability are reserved for wrongdoing events.`);
+          if ((item.valence === "VIRTUE" || item.valence === "PRUDENTIAL") && (item.severity || item.culpability)) {
+            errors.push(`${module.id}/${item.id}: severity/culpability do not apply to virtue or prudential events.`);
           }
         }
         break;
-      case "biblical-synthesis":
-        checkSupport(module.support, module.id, evidenceIds, errors, published);
-        break;
-      case "final-synthesis":
-        checkSupport(module.support, module.id, evidenceIds, errors, published);
-        break;
+      case "biblical-synthesis": checkSupport(module.support, module.id, evidenceIds, errors, published); break;
+      case "final-synthesis": checkSupport(module.support, module.id, evidenceIds, errors, published); break;
       case "story":
-      case "sources-method":
-        break;
+      case "sources-method": break;
     }
   }
 
@@ -190,9 +151,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
 
 export function assertValidFilmRegistry(packages: FilmPackage[]): void {
   const errors: string[] = [];
-  for (const slug of duplicateIds(packages.map((item) => item.film.slug))) {
-    errors.push(`registry: duplicate film slug "${slug}".`);
-  }
+  for (const slug of duplicateIds(packages.map((item) => item.film.slug))) errors.push(`registry: duplicate film slug "${slug}".`);
   for (const filmPackage of packages) {
     errors.push(...validateFilmPackage(filmPackage).map((error) => `${filmPackage.film.slug}: ${error}`));
   }
