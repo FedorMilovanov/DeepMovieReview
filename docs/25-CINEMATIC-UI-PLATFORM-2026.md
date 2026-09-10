@@ -1,7 +1,7 @@
 # DeepMovieReview — Cinematic UI Platform 2026
 
-> Status: platform contract
-> Date: 2026-09-10
+> Status: platform contract  
+> Date: 2026-09-10  
 > Purpose: define the production UI, motion and GPU stack before Film 001 is authored.
 
 ## 1. Platform decision
@@ -10,10 +10,11 @@ DeepMovieReview uses a hybrid presentation stack rather than forcing every surfa
 
 ### Core application
 
-- Next.js `16.3.4`
-- React / React DOM `19.2.8`
-- TypeScript `5.9.x`
-- Node.js `22+`
+- Next.js `16.3.4` — current stable Active LTS;
+- React / React DOM `19.2.8`;
+- TypeScript `7.0.2` — current stable native compiler;
+- Node.js `24.x` LTS for local development, CI and deployment;
+- GitHub Actions `checkout@v7` / `setup-node@v7` on `ubuntu-24.04`.
 
 ### Styling and layout
 
@@ -44,6 +45,10 @@ No global scroll hijacking is allowed.
 - TSL/node materials for signature shaders and future post-processing instead of hand-maintaining separate WGSL/GLSL versions where possible.
 
 Alpha/canary versions are not used on the production path merely because they are newer. Stable current releases win unless a measured requirement cannot be met otherwise.
+
+### Lint compatibility boundary
+
+ESLint is pinned to `9.39.5` while `eslint-config-next@16.3.4` still depends on ecosystem plugins whose ESLint 10 compatibility is incomplete. ESLint 10 is newer, but adopting it by suppressing peer/API incompatibilities would reduce reliability rather than improve the toolchain. Revisit this pin when the stable Next.js lint dependency graph is fully ESLint-10-compatible.
 
 ## 2. Rendering tiers
 
@@ -88,6 +93,7 @@ Forced colors and reduced motion can independently suppress visual effects regar
 7. Do not create a canvas per ordinary card. Prefer one persistent/featured surface where the experience justifies it.
 8. Do not use OrbitControls for decorative production experiences unless direct model inspection is the actual product task.
 9. Touch and keyboard cannot depend on hover-only meaning.
+10. Unexpected OffscreenCanvas paths must fail closed to the CSS fallback rather than weakening renderer types.
 
 ## 4. CSS architecture
 
@@ -166,7 +172,8 @@ It currently proves:
 - reduced-motion freeze;
 - LITE / forced-colors CSS fallback;
 - error-boundary fallback if renderer initialization fails;
-- frame sampling back into Experience Quality.
+- frame sampling back into Experience Quality;
+- strict DOM-canvas narrowing instead of unsafe type coercion.
 
 The v0 geometry is deliberately abstract. Film-specific imagery, generated depth assets, TSL material language and final art direction come later and must not require changing the semantic Final Synthesis contract.
 
@@ -180,13 +187,14 @@ The v0 geometry is deliberately abstract. Film-specific imagery, generated depth
 - no WebGPU-only hard requirement;
 - no Three.js effect that removes content when GPU support is absent;
 - no utility-class-only rule for signature scenes;
-- no unbounded high-DPR rendering.
+- no unbounded high-DPR rendering;
+- no unsafe TypeScript casts simply to make renderer integrations compile.
 
 ## 9. Acceptance before Film 001
 
 The platform is ready for the first real film only when:
 
-- install, typecheck, lint and production build are green on one exact head;
+- install, TypeScript 7 typecheck, lint and production build are green on one exact head under Node 24;
 - Tailwind utilities compile without disturbing existing shell styles;
 - the Verdict Core fails safely on LITE / no-GPU / reduced-motion paths;
 - Moral Analysis and Final Synthesis render from the reusable film package registry;
