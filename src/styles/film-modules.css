@@ -1,0 +1,41 @@
+.filmModule {
+  scroll-margin-top: 92px;
+}
+
+.filmModuleQuestion {
+  margin-top: 1rem;
+  max-width: 24ch;
+  font-size: clamp(1.6rem, 3.3vw, 3.2rem);
+  line-height: 1.05;
+}
+
+.filmModuleStory .storyTrack {
+  margin-top: clamp(2rem, 5vw, 4rem);
+  max-width: 920px;
+}
+
+.filmModule .relationshipPanel,
+.filmModule .characterGrid,
+.filmModule .permissionField,
+.filmModule .meaningGrid {
+  margin-top: clamp(2.5rem, 6vw, 5rem);
+}
+
+.filmModule.autopsySection .autopsyCopy > p {
+  max-width: 54rem;
+  color: #c8c3b9;
+}
+
+.filmModule.autopsySection .autopsyCopy > p strong {
+  color: var(--text);
+}
+
+@media (max-width: 720px) {
+  .filmModule {
+    scroll-margin-top: 72px;
+  }
+
+  .filmModuleQuestion {
+    font-size: clamp(1.45rem, 7vw, 2.2rem);
+  }
+}
