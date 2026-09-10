@@ -99,10 +99,12 @@ export default function HomePage() {
         <div className="stackList">{data.craft.map((item) => <article key={item.device}><span className="microLabel">{item.device}</span><p>{item.effect}</p></article>)}</div>
       </section>
 
-      <section className="sectionShell sectionRule autopsySection" aria-labelledby="autopsy-title">
-        <div className="sectionIndex">09 / SCENE AUTOPSY</div><div className="autopsyFrame" aria-hidden="true"><span>SCENE / {isPublished ? "EVIDENCE" : "FIXTURE"}</span><div className="autopsyCrosshair" /></div>
-        <div className="autopsyCopy"><h2 id="autopsy-title">Evidence before conclusion.</h2><dl className="autopsyGrid"><div><dt>ACT</dt><dd>{data.sceneAutopsy.act}</dd></div><div><dt>MOTIVE</dt><dd>{data.sceneAutopsy.motive}</dd></div><div><dt>KNOWLEDGE</dt><dd>{data.sceneAutopsy.knowledge}</dd></div><div><dt>PRESSURE</dt><dd>{data.sceneAutopsy.pressure}</dd></div><div><dt>CONSEQUENCE</dt><dd>{data.sceneAutopsy.consequence}</dd></div></dl></div>
-      </section>
+      {data.sceneAutopsy ? (
+        <section className="sectionShell sectionRule autopsySection" aria-labelledby="autopsy-title">
+          <div className="sectionIndex">09 / SCENE AUTOPSY</div><div className="autopsyFrame" aria-hidden="true"><span>SCENE / {isPublished ? "EVIDENCE" : "FIXTURE"}</span><div className="autopsyCrosshair" /></div>
+          <div className="autopsyCopy"><h2 id="autopsy-title">Evidence before conclusion.</h2><dl className="autopsyGrid"><div><dt>ACT</dt><dd>{data.sceneAutopsy.act}</dd></div><div><dt>MOTIVE</dt><dd>{data.sceneAutopsy.motive}</dd></div><div><dt>KNOWLEDGE</dt><dd>{data.sceneAutopsy.knowledge}</dd></div><div><dt>PRESSURE</dt><dd>{data.sceneAutopsy.pressure}</dd></div><div><dt>CONSEQUENCE</dt><dd>{data.sceneAutopsy.consequence}</dd></div></dl></div>
+        </section>
+      ) : null}
 
       {data.decision ? (
         <section className="sectionShell sectionRule decisionSection" aria-labelledby="decision-title">
@@ -111,10 +113,12 @@ export default function HomePage() {
         </section>
       ) : null}
 
-      <section id="method" className="sectionShell sectionRule biblicalSection" aria-labelledby="biblical-title">
-        <div className="sectionIndex">11 / BIBLICAL LENS + SYNTHESIS</div><h2 id="biblical-title">The norm comes after careful description.</h2>
-        <ol className="synthesisSteps"><li><span>Observation</span><p>{data.biblicalSynthesis.observation}</p></li><li><span>Principle</span><p>{data.biblicalSynthesis.principle}</p></li><li><span>Application</span><p>{data.biblicalSynthesis.application}</p></li><li><span>Qualification</span><p>{data.biblicalSynthesis.qualification}</p></li></ol>
-      </section>
+      {data.biblicalSynthesis ? (
+        <section id="method" className="sectionShell sectionRule biblicalSection" aria-labelledby="biblical-title">
+          <div className="sectionIndex">11 / BIBLICAL LENS + SYNTHESIS</div><h2 id="biblical-title">The norm comes after careful description.</h2>
+          <ol className="synthesisSteps"><li><span>Observation</span><p>{data.biblicalSynthesis.observation}</p></li><li><span>Principle</span><p>{data.biblicalSynthesis.principle}</p></li><li><span>Application</span><p>{data.biblicalSynthesis.application}</p></li><li><span>Qualification</span><p>{data.biblicalSynthesis.qualification}</p></li></ol>
+        </section>
+      ) : null}
 
       <section className="sectionShell sectionRule discoverySection" aria-labelledby="discovery-title">
         <div><div className="sectionIndex">12 / DISCOVERY</div><h2 id="discovery-title">Every finished analysis deepens the atlas.</h2><p className="sectionIntro">Films can connect through themes, relationships, dilemmas, narrative permissions and biblical principles without collapsing those dimensions into one score.</p></div>
