@@ -216,13 +216,14 @@ export function ExperienceQualityProvider({ children }: { children: ReactNode })
       }));
     };
 
-    applyCapabilities(true);
+    const initialFrame = window.requestAnimationFrame(() => applyCapabilities(true));
     window.addEventListener("resize", updateForResize, { passive: true });
     document.addEventListener("visibilitychange", updateVisibility);
     reducedMotionQuery.addEventListener("change", updateForAccessibilityChange);
     forcedColorsQuery.addEventListener("change", updateForAccessibilityChange);
 
     return () => {
+      window.cancelAnimationFrame(initialFrame);
       window.removeEventListener("resize", updateForResize);
       document.removeEventListener("visibilitychange", updateVisibility);
       reducedMotionQuery.removeEventListener("change", updateForAccessibilityChange);
