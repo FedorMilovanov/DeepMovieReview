@@ -37,11 +37,11 @@ const lenses: HomepageViewModel["lenses"] = [
 ];
 
 function moduleOfKind<K extends FilmModuleKind>(filmPackage: FilmPackage, kind: K): Extract<FilmModule, { kind: K }> {
-  const module = filmPackage.modules.find(
+  const filmModule = filmPackage.modules.find(
     (candidate): candidate is Extract<FilmModule, { kind: K }> => candidate.kind === kind,
   );
-  if (!module) throw new Error(`Homepage projection for ${filmPackage.film.slug} requires module "${kind}".`);
-  return module;
+  if (!filmModule) throw new Error(`Homepage projection for ${filmPackage.film.slug} requires module "${kind}".`);
+  return filmModule;
 }
 
 /** Homepage is a read-model projected from the canonical FilmPackage. */
