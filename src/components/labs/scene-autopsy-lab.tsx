@@ -95,7 +95,7 @@ export function SceneAutopsyLab() {
 
         <div className={styles.workspace}>
           <div className={styles.scenePanel}>
-            <div className={styles.sceneArt} role="img" aria-label="Abstract fixture scene showing two people, a doorway and a concealed document">
+            <div className={styles.sceneArt}>
               <span className={styles.doorway} aria-hidden="true" />
               <span className={styles.personA} aria-hidden="true" />
               <span className={styles.personB} aria-hidden="true" />
@@ -108,8 +108,8 @@ export function SceneAutopsyLab() {
                   className={styles.anchor}
                   style={{ left: `${anchor.x}%`, top: `${anchor.y}%` }}
                   data-active={selected.id === anchor.id}
-                  aria-label={`${anchor.index}. ${anchor.label}`}
-                  aria-pressed={selected.id === anchor.id}
+                  tabIndex={-1}
+                  aria-hidden="true"
                   onClick={() => setSelectedId(anchor.id)}
                 >
                   <span>{anchor.index}</span>
@@ -122,7 +122,7 @@ export function SceneAutopsyLab() {
             </div>
           </div>
 
-          <article className={styles.evidenceInspector}>
+          <article id="scene-evidence-inspector" className={styles.evidenceInspector} aria-live="polite">
             <div className={styles.inspectorTopline}>
               <span>EVIDENCE / {selected.index}</span>
               <span>{selected.kind}</span>
@@ -136,12 +136,13 @@ export function SceneAutopsyLab() {
           </article>
         </div>
 
-        <div className={styles.evidenceList} aria-label="Accessible evidence list">
+        <div className={styles.evidenceList} aria-label="Scene evidence anchors">
           {ANCHORS.map((anchor) => (
             <button
               key={anchor.id}
               type="button"
               aria-pressed={selected.id === anchor.id}
+              aria-controls="scene-evidence-inspector"
               onClick={() => setSelectedId(anchor.id)}
             >
               <span>{anchor.index}</span>
@@ -178,7 +179,7 @@ export function SceneAutopsyLab() {
           <article><span>01</span><strong>Anchor ≠ claim</strong><p>A visual point identifies evidence; interpretation remains a separate argued record.</p></article>
           <article><span>02</span><strong>Knowledge stays scoped</strong><p>What the viewer sees cannot silently become what the character knew.</p></article>
           <article><span>03</span><strong>Counterevidence remains visible</strong><p>The interface must make overclaiming harder, not prettier.</p></article>
-          <article><span>04</span><strong>Mobile uses the list</strong><p>Anchors may open the same panel, but all evidence stays reachable without precision tapping.</p></article>
+          <article><span>04</span><strong>One keyboard path</strong><p>The evidence list is the canonical keyboard and assistive-technology control surface; visual anchors remain pointer affordances.</p></article>
         </div>
       </section>
     </div>
