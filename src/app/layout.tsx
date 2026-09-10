@@ -5,6 +5,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
 import { homepageFeaturedFilmSlug } from "@/data/site-config";
+// This side-effect import executes the fail-closed visual manifest registry assertion.
+import "@/data/visual-assets";
 import "../styles/platform.css";
 import "../styles/tokens.css";
 import "./globals.css";
