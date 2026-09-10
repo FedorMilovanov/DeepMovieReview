@@ -5,6 +5,7 @@ import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules
 import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
+import { isPreviewContentEnabled } from "@/data/site-config";
 import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
 type FilmPageProps = {
@@ -15,13 +16,16 @@ type FilmPageProps = {
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return filmPackages.map((filmPackage) => ({ slug: filmPackage.film.slug }));
+  const previewContentEnabled = isPreviewContentEnabled();
+  return filmPackages
+    .filter((filmPackage) => previewContentEnabled || filmPackage.film.status === "published")
+    .map((filmPackage) => ({ slug: filmPackage.film.slug }));
 }
 
 export async function generateMetadata({ params }: FilmPageProps): Promise<Metadata> {
   const { slug } = await params;
   const filmPackage = getFilmPackageBySlug(slug);
-  if (!filmPackage) return {};
+  if (!filmPackage || (filmPackage.film.status !== "published" && !isPreviewContentEnabled())) return {};
   const { film } = filmPackage;
   return {
     title: film.title,
@@ -36,7 +40,7 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
 export default async function FilmPage({ params, searchParams }: FilmPageProps) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const filmPackage = getFilmPackageBySlug(slug);
-  if (!filmPackage) notFound();
+  if (!filmPackage || (filmPackage.film.status !== "published" && !isPreviewContentEnabled())) notFound();
 
   const { film, modules } = filmPackage;
   const spoilerLevel = parseSpoilerLevel(query.spoilers);
