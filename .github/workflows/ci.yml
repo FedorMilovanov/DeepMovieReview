@@ -68,14 +68,23 @@ jobs:
             exit 1
           fi
 
-          if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
-            echo "Homepage must remain noindex/nofollow when the configured featured film is not published, even when the launch flag is enabled."
+          if grep -Fq 'Open structural fixture' /tmp/home.html; then
+            site_state="prelaunch"
+            if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
+              echo "Prelaunch homepage must remain noindex/nofollow even when the launch flag is enabled."
+              exit 1
+            fi
+          elif grep -Fq 'Open analysis' /tmp/home.html; then
+            site_state="published"
+            if grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
+              echo "Published configured homepage feature remained noindex despite the explicit launch flag."
+              exit 1
+            fi
+          else
+            echo "Homepage did not expose a recognized configured feature state."
             exit 1
           fi
-          if ! grep -Fq 'Open structural fixture' /tmp/home.html; then
-            echo "Homepage is not rendering the explicitly configured structural feature state."
-            exit 1
-          fi
+          echo "Verified homepage state: $site_state"
 
           curl --fail --silent --show-error http://127.0.0.1:3210/labs/six-lenses > /tmp/lab.html
           if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/lab.html; then
