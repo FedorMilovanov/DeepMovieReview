@@ -93,7 +93,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         )}
       </section>
 
-      <FilmModuleList modules={modules} spoilerLevel={spoilerLevel} />
+      <FilmModuleList modules={visibleModules} />
     </>
   );
 }
