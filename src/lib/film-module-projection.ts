@@ -5,10 +5,7 @@ function visible<T extends { spoilerLevel: SpoilerLevel }>(items: T[], level: Sp
   return items.filter((item) => canRevealSpoiler(level, item.spoilerLevel));
 }
 
-/**
- * Returns the exact module data that may enter the render tree for a spoiler level.
- * Hidden nested content is removed here rather than merely hidden in JSX.
- */
+/** Hidden nested content is removed before it can enter the render tree. */
 export function projectFilmModule(module: FilmModule, level: SpoilerLevel): FilmModule | null {
   if (!canRevealSpoiler(level, module.spoilerLevel)) return null;
 
@@ -21,8 +18,14 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
         characters: module.characters.map((character) => {
           const allowed = canRevealSpoiler(level, character.interpretiveSpoilerLevel ?? module.spoilerLevel);
           if (allowed) return character;
-          const { believes: _believes, selfDeception: _selfDeception, arcSummary: _arcSummary, roleInArgument: _role, support: _support, ...safe } = character;
-          return safe;
+          return {
+            id: character.id,
+            name: character.name,
+            wants: character.wants,
+            fears: character.fears,
+            contradiction: character.contradiction,
+            interpretiveSpoilerLevel: character.interpretiveSpoilerLevel,
+          };
         }),
       };
     case "relationship":
