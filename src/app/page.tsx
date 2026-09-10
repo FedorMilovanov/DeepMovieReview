@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { pilotFilmPackage } from "@/data/film-packages";
+import { pilotFilmPackage } from "@/data/film-registry";
 import { projectHomepage } from "@/lib/homepage-projection";
 
 export default function HomePage() {
