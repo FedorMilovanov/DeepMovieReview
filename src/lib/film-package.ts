@@ -3,6 +3,39 @@ import type { SpoilerLevel } from "@/lib/spoilers";
 
 export type Confidence = "HIGH" | "MEDIUM" | "LOW";
 
+/**
+ * Canonical evidence is stored once at package level. Interpretive claims point to
+ * these records instead of copying observations into each module independently.
+ */
+export type EvidenceRecord = {
+  id: string;
+  label: string;
+  observation: string;
+  sceneId?: string;
+  timestamp?: string;
+  sourceIds?: string[];
+  spoilerLevel: SpoilerLevel;
+};
+
+export type ClaimSupport = {
+  evidenceIds: string[];
+  counterevidenceIds?: string[];
+};
+
+export type RelationshipDimension =
+  | "TRUST"
+  | "TRUTHFULNESS"
+  | "POWER"
+  | "BOUNDARIES"
+  | "RESPONSIBILITY"
+  | "REPAIR";
+
+export type RelationshipDimensionShift = {
+  dimension: RelationshipDimension;
+  before: string;
+  after: string;
+};
+
 export type SocialFormationDomain =
   | "PARENTAL_PRESENCE"
   | "PARENTAL_EXAMPLE"
@@ -78,12 +111,7 @@ export type RepentanceState =
   | "REPAIR"
   | "HARDENING"
   | "AMBIGUOUS";
-export type MoralNarrativeStance =
-  | "CONDEMNS"
-  | "QUESTIONS"
-  | "AMBIVALENT"
-  | "NORMALIZES"
-  | "CELEBRATES";
+export type MoralNarrativeStance = "CONDEMNS" | "QUESTIONS" | "AMBIVALENT" | "NORMALIZES" | "CELEBRATES";
 
 export type FinalSynthesisFacetKey =
   | "CRAFT"
@@ -120,12 +148,7 @@ export type FilmModuleBase = {
 export type StoryModule = FilmModuleBase & {
   kind: "story";
   summary: string;
-  beats: Array<{
-    id: string;
-    label: string;
-    summary: string;
-    spoilerLevel: SpoilerLevel;
-  }>;
+  beats: Array<{ id: string; label: string; summary: string; spoilerLevel: SpoilerLevel }>;
 };
 
 export type CharactersModule = FilmModuleBase & {
@@ -141,6 +164,7 @@ export type CharactersModule = FilmModuleBase & {
     selfDeception?: string;
     arcSummary?: string;
     roleInArgument?: string;
+    support?: ClaimSupport;
   }>;
 };
 
@@ -153,6 +177,8 @@ export type RelationshipModule = FilmModuleBase & {
     label: string;
     change: string;
     tone: "trust" | "fracture" | "pressure" | "repair";
+    dimensions?: RelationshipDimensionShift[];
+    support?: ClaimSupport;
     spoilerLevel: SpoilerLevel;
   }>;
 };
@@ -167,6 +193,7 @@ export type FamilyYouthModule = FilmModuleBase & {
     claim: string;
     counterevidence?: string;
     confidence: Confidence;
+    support?: ClaimSupport;
     spoilerLevel: SpoilerLevel;
   }>;
 };
@@ -178,6 +205,7 @@ export type MeaningModule = FilmModuleBase & {
   apparentClaim: string;
   counterevidence: string;
   confidence: Confidence;
+  support?: ClaimSupport;
 };
 
 export type TeachingSignalsModule = FilmModuleBase & {
@@ -189,6 +217,7 @@ export type TeachingSignalsModule = FilmModuleBase & {
     interpretation: string;
     counterevidence?: string;
     confidence: Confidence;
+    support?: ClaimSupport;
     spoilerLevel: SpoilerLevel;
   }>;
 };
@@ -200,6 +229,9 @@ export type PermissionModule = FilmModuleBase & {
     subject: string;
     state: NarrativePermissionState;
     rationale: string;
+    confidence?: Confidence;
+    counterevidence?: string;
+    support?: ClaimSupport;
     spoilerLevel: SpoilerLevel;
   }>;
 };
@@ -212,6 +244,7 @@ export type CraftModule = FilmModuleBase & {
     observation: string;
     interpretiveEffect: string;
     confidence: Confidence;
+    support?: ClaimSupport;
     spoilerLevel: SpoilerLevel;
   }>;
   pressureAssessments?: Array<{
@@ -221,6 +254,7 @@ export type CraftModule = FilmModuleBase & {
     rationale: string;
     craftObservationIds: string[];
     confidence: Confidence;
+    support?: ClaimSupport;
     spoilerLevel: SpoilerLevel;
   }>;
 };
@@ -235,6 +269,14 @@ export type AutopsyModule = FilmModuleBase & {
   consequence: string;
   claim: string;
   counterevidence?: string;
+  confidence?: Confidence;
+  support?: ClaimSupport;
+  anchors?: Array<{
+    id: string;
+    label: string;
+    evidenceId: string;
+    point?: { x: number; y: number };
+  }>;
 };
 
 export type DecisionModule = FilmModuleBase & {
@@ -246,29 +288,16 @@ export type DecisionModule = FilmModuleBase & {
     label: string;
     description?: string;
     availableAtDecisionTime: boolean;
+    spoilerLevel?: SpoilerLevel;
   }>;
-  facts: Array<{
-    id: string;
-    text: string;
-    knowledgeState: DecisionKnowledgeState;
-    spoilerLevel: SpoilerLevel;
-  }>;
-  pressures: Array<{
-    id: string;
-    kind: DecisionPressureKind;
-    summary: string;
-    spoilerLevel: SpoilerLevel;
-  }>;
-  dutiesOrGoods: Array<{
-    id: string;
-    label: string;
-    summary?: string;
-    spoilerLevel: SpoilerLevel;
-  }>;
+  facts: Array<{ id: string; text: string; knowledgeState: DecisionKnowledgeState; spoilerLevel: SpoilerLevel }>;
+  pressures: Array<{ id: string; kind: DecisionPressureKind; summary: string; spoilerLevel: SpoilerLevel }>;
+  dutiesOrGoods: Array<{ id: string; label: string; summary?: string; spoilerLevel: SpoilerLevel }>;
   editorialJudgment?: {
     claim: string;
     qualification?: string;
     confidence: Confidence;
+    support?: ClaimSupport;
     spoilerLevel: SpoilerLevel;
   };
 };
@@ -295,6 +324,7 @@ export type MoralAnalysisModule = FilmModuleBase & {
     repentance?: RepentanceState;
     narrativeStance: MoralNarrativeStance;
     confidence: Confidence;
+    support?: ClaimSupport;
     spoilerLevel: SpoilerLevel;
   }>;
 };
@@ -306,19 +336,17 @@ export type BiblicalSynthesisModule = FilmModuleBase & {
   scriptureRefs: string[];
   application: string;
   qualification: string;
+  support?: ClaimSupport;
 };
 
 export type FinalSynthesisModule = FilmModuleBase & {
   kind: "final-synthesis";
   thesis: string;
-  facets: Array<{
-    key: FinalSynthesisFacetKey;
-    label: string;
-    value: string;
-  }>;
+  facets: Array<{ key: FinalSynthesisFacetKey; label: string; value: string }>;
   verdict: string;
   qualifications: string[];
   confidence: Confidence;
+  support?: ClaimSupport;
 };
 
 export type SourcesMethodModule = FilmModuleBase & {
@@ -355,6 +383,8 @@ export type FilmModule =
 export type FilmPackage = {
   schemaVersion: 1;
   film: ShellFilm;
+  /** Stable evidence graph shared by every analytical module. */
+  evidence?: EvidenceRecord[];
   modules: FilmModule[];
 };
 
