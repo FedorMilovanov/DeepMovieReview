@@ -3,6 +3,7 @@ import { ExperienceDiagnostics } from "@/components/experience/experience-diagno
 import { ExperienceQualityProvider } from "@/components/experience/experience-quality-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import "../styles/platform.css";
 import "./globals.css";
 import "../styles/tokens.css";
 import "../styles/primitives.css";
