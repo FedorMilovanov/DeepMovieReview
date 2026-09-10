@@ -33,10 +33,11 @@ function isSafeSourceHref(value: string): boolean {
   const href = value.trim();
   if (href.includes("\\")) return false;
   if (href.startsWith("/") && !href.startsWith("//")) return true;
+  if (!/^https?:\/\//i.test(href)) return false;
 
   try {
     const url = new URL(href);
-    return url.protocol === "https:" || url.protocol === "http:";
+    return (url.protocol === "https:" || url.protocol === "http:") && Boolean(url.hostname);
   } catch {
     return false;
   }
