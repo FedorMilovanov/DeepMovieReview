@@ -1,29 +1,51 @@
-import type { HomepageFixture, LensKey } from "@/lib/content";
-import type { FilmModule, FilmModuleKind, FilmPackage } from "@/lib/film-package";
+import type { LensKey, NarrativePermissionState, ShellFilm } from "@/lib/content";
+import type { Confidence, FilmModule, FilmModuleKind, FilmPackage } from "@/lib/film-package";
 
-const lenses: HomepageFixture["lenses"] = [
+export type HomepageViewModel = {
+  featuredFilm: ShellFilm;
+  lenses: Array<{ key: LensKey; label: string; prompt: string }>;
+  storyBeats: Array<{ label: string; summary: string; spoilerSafe: boolean }>;
+  characters: Array<{ id: string; name: string; wants: string; fears: string; contradiction: string }>;
+  relationship: {
+    id: string;
+    label: string;
+    summary: string;
+    events: Array<{ id: string; label: string; change: string; tone: "trust" | "fracture" | "pressure" | "repair" }>;
+  };
+  familyYouth: Array<{ label: string; observation: string }>;
+  meaning: {
+    theme: string;
+    question: string;
+    apparentClaim: string;
+    counterevidence: string;
+    confidence: Confidence;
+  };
+  permissions: Array<{ subject: string; state: NarrativePermissionState; rationale: string }>;
+  craft: Array<{ device: string; effect: string }>;
+  sceneAutopsy: { label: string; act: string; motive: string; knowledge: string; pressure: string; consequence: string };
+  decision: { question: string; knownThen: string[]; revealedLater: string[] };
+  biblicalSynthesis: { observation: string; principle: string; application: string; qualification: string };
+};
+
+const lenses: HomepageViewModel["lenses"] = [
   { key: "story", label: "Story", prompt: "What happens, and why does each turn matter?" },
   { key: "people", label: "People", prompt: "What do the characters want, fear, believe and become?" },
   { key: "relationships", label: "Relationships", prompt: "How do trust, power, loyalty and repair change?" },
   { key: "ideas", label: "Ideas", prompt: "What questions about life does the film appear to answer?" },
   { key: "moral-world", label: "Moral world", prompt: "What is condemned, normalized, rewarded or left unchallenged?" },
   { key: "craft", label: "Craft", prompt: "How do camera, music, editing and performance shape sympathy?" },
-] satisfies Array<{ key: LensKey; label: string; prompt: string }>;
+];
 
-function moduleOfKind<K extends FilmModuleKind>(
-  filmPackage: FilmPackage,
-  kind: K,
-): Extract<FilmModule, { kind: K }> {
-  const module = filmPackage.modules.find((candidate): candidate is Extract<FilmModule, { kind: K }> => candidate.kind === kind);
+function moduleOfKind<K extends FilmModuleKind>(filmPackage: FilmPackage, kind: K): Extract<FilmModule, { kind: K }> {
+  const module = filmPackage.modules.find(
+    (candidate): candidate is Extract<FilmModule, { kind: K }> => candidate.kind === kind,
+  );
   if (!module) throw new Error(`Homepage projection for ${filmPackage.film.slug} requires module "${kind}".`);
   return module;
 }
 
-/**
- * Homepage is a read-model projected from the canonical FilmPackage. It is not a
- * second editorial source of truth.
- */
-export function projectHomepage(filmPackage: FilmPackage): HomepageFixture {
+/** Homepage is a read-model projected from the canonical FilmPackage. */
+export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
   const story = moduleOfKind(filmPackage, "story");
   const characters = moduleOfKind(filmPackage, "characters");
   const relationship = moduleOfKind(filmPackage, "relationship");
@@ -43,17 +65,10 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageFixture {
       summary: beat.summary,
       spoilerSafe: beat.spoilerLevel === "NONE",
     })),
-    characters: characters.characters.map(({ id, name, wants, fears, contradiction }) => ({
-      id,
-      name,
-      wants,
-      fears,
-      contradiction,
-    })),
+    characters: characters.characters.map(({ id, name, wants, fears, contradiction }) => ({ id, name, wants, fears, contradiction })),
     relationship: {
       id: relationship.id,
       label: relationship.label,
-      people: [characters.characters[0]?.name ?? "Character A", characters.characters[1]?.name ?? "Character B"],
       summary: relationship.summary,
       events: relationship.events.map(({ id, label, change, tone }) => ({ id, label, change, tone })),
     },
