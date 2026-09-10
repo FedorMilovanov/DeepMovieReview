@@ -1,7 +1,7 @@
 "use client";
 
 import { Float } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, type DefaultGLProps } from "@react-three/fiber";
 import { motion } from "motion/react";
 import {
   Component,
@@ -129,7 +129,7 @@ export function VerdictCore() {
   const frameloop = !documentVisible || !inViewport ? "never" : reducedMotion ? "demand" : "always";
   const fallback = <StaticCoreFallback />;
 
-  const createRenderer = useCallback(async (props: { canvas: HTMLCanvasElement | OffscreenCanvas }) => {
+  const createRenderer = useCallback(async (props: DefaultGLProps) => {
     if (!(props.canvas instanceof HTMLCanvasElement)) {
       const reason = "VerdictCore requires a DOM canvas surface.";
       reportRendererFailure(reason);
