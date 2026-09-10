@@ -66,6 +66,33 @@ export type DecisionPressureKind =
   | "INFORMATIONAL"
   | "OTHER";
 
+export type MoralValence = "WRONGDOING" | "VIRTUE" | "MIXED" | "PRUDENTIAL";
+export type MoralSeverity = "LOW" | "MODERATE" | "SERIOUS" | "GRAVE";
+export type MoralCulpability = "LOW" | "PARTIAL" | "SUBSTANTIAL" | "HIGH" | "UNCERTAIN";
+export type RepentanceState =
+  | "NONE"
+  | "RECOGNITION"
+  | "REMORSE"
+  | "CONFESSION"
+  | "RESTITUTION"
+  | "REPAIR"
+  | "HARDENING"
+  | "AMBIGUOUS";
+export type MoralNarrativeStance =
+  | "CONDEMNS"
+  | "QUESTIONS"
+  | "AMBIVALENT"
+  | "NORMALIZES"
+  | "CELEBRATES";
+
+export type FinalSynthesisFacetKey =
+  | "CRAFT"
+  | "MORAL_CLARITY"
+  | "DEPICTED_EVIL"
+  | "ROMANTICIZATION"
+  | "DECISION_COMPLEXITY"
+  | "REDEMPTIVE_DIRECTION";
+
 export type FilmModuleKind =
   | "story"
   | "characters"
@@ -77,7 +104,9 @@ export type FilmModuleKind =
   | "craft"
   | "autopsy"
   | "decision"
+  | "moral-analysis"
   | "biblical-synthesis"
+  | "final-synthesis"
   | "sources-method";
 
 export type FilmModuleBase = {
@@ -244,6 +273,32 @@ export type DecisionModule = FilmModuleBase & {
   };
 };
 
+export type MoralAnalysisModule = FilmModuleBase & {
+  kind: "moral-analysis";
+  summary?: string;
+  events: Array<{
+    id: string;
+    category: string;
+    valence: MoralValence;
+    act: string;
+    target?: string;
+    motive?: string;
+    intention?: string;
+    knowledge?: string;
+    freedom?: string;
+    pressure?: string;
+    foreseeability?: string;
+    consequence?: string;
+    responsibility?: string;
+    severity?: MoralSeverity;
+    culpability?: MoralCulpability;
+    repentance?: RepentanceState;
+    narrativeStance: MoralNarrativeStance;
+    confidence: Confidence;
+    spoilerLevel: SpoilerLevel;
+  }>;
+};
+
 export type BiblicalSynthesisModule = FilmModuleBase & {
   kind: "biblical-synthesis";
   observation: string;
@@ -251,6 +306,19 @@ export type BiblicalSynthesisModule = FilmModuleBase & {
   scriptureRefs: string[];
   application: string;
   qualification: string;
+};
+
+export type FinalSynthesisModule = FilmModuleBase & {
+  kind: "final-synthesis";
+  thesis: string;
+  facets: Array<{
+    key: FinalSynthesisFacetKey;
+    label: string;
+    value: string;
+  }>;
+  verdict: string;
+  qualifications: string[];
+  confidence: Confidence;
 };
 
 export type SourcesMethodModule = FilmModuleBase & {
@@ -279,7 +347,9 @@ export type FilmModule =
   | CraftModule
   | AutopsyModule
   | DecisionModule
+  | MoralAnalysisModule
   | BiblicalSynthesisModule
+  | FinalSynthesisModule
   | SourcesMethodModule;
 
 export type FilmPackage = {
