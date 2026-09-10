@@ -17,6 +17,9 @@ jobs:
   app-shell:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      DMR_SITE_INDEXING_ENABLED: "true"
+      DMR_PREVIEW_CONTENT_ENABLED: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -37,8 +40,6 @@ jobs:
         run: npm run lint
 
       - name: Build
-        env:
-          DMR_SITE_INDEXING_ENABLED: "true"
         run: npm run build
 
       - name: Production route smoke test
