@@ -85,7 +85,15 @@ jobs:
           fi
 
           not_found_status=$(curl --silent --output /tmp/not-found.html --write-out '%{http_code}' http://127.0.0.1:3210/films/not-a-film)
-          if [[ "$not_found_status" != "404" ]]; then
-            echo "Unknown film route returned HTTP $not_found_status instead of 404."
+          if [[ "$not_found_status" != "200" && "$not_found_status" != "404" ]]; then
+            echo "Unknown film route returned unexpected HTTP $not_found_status."
+            exit 1
+          fi
+          if ! grep -Fq '404 / NOT FOUND' /tmp/not-found.html; then
+            echo "Unknown film route did not render the canonical not-found UI."
+            exit 1
+          fi
+          if grep -Fq 'Pilot Film' /tmp/not-found.html; then
+            echo "Unknown film route rendered film content instead of the not-found boundary."
             exit 1
           fi
