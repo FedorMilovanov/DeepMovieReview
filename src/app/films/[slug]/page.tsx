@@ -22,10 +22,14 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
   const { slug } = await params;
   const filmPackage = getFilmPackageBySlug(slug);
   if (!filmPackage) return {};
+  const { film } = filmPackage;
   return {
-    title: filmPackage.film.title,
-    description: `${filmPackage.film.title} — DeepMovieReview film shell.`,
-    robots: filmPackage.film.status === "published" ? undefined : { index: false, follow: false },
+    title: film.title,
+    description:
+      film.status === "published"
+        ? `${film.title} (${film.year}) — ${film.premise}`
+        : `${film.title} — DeepMovieReview structural film shell.`,
+    robots: film.status === "published" ? undefined : { index: false, follow: false },
   };
 }
 
