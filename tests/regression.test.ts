@@ -684,6 +684,119 @@ test("published character deep fields require interpretive support separately fr
   ));
 });
 
+test("LOCKED real-film Story summary and beats require canonical evidence support", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "story-evidence-support",
+      title: "Story Evidence Support",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    modules: [{
+      id: "story",
+      kind: "story",
+      heading: "Story",
+      spoilerLevel: "NONE",
+      summary: "Unsupported story synthesis.",
+      beats: [{
+        id: "beat-1",
+        label: "Beat",
+        summary: "Unsupported plot beat.",
+        spoilerLevel: "NONE",
+      }],
+    }, {
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Locked master",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes(
+    "story/summary: real-film interpretive claims require canonical evidence support."
+  ));
+  assert.ok(errors.includes(
+    "story/beat-1: real-film interpretive claims require canonical evidence support."
+  ));
+});
+
+test("LOCKED real-film Story module requires at least one plot beat", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "story-empty",
+      title: "Story Empty",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    modules: [{
+      id: "story",
+      kind: "story",
+      heading: "Story",
+      spoilerLevel: "NONE",
+      summary: "Summary",
+      summarySupport: { evidenceIds: ["missing"] },
+      beats: [],
+    }, {
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Locked master",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("story: real-film story module requires at least one plot beat."));
+});
+
 test("decision modules disappear when the current spoiler level removes every usable nested item", () => {
   const projected = projectFilmModule({
     id: "decision-empty-at-none",
