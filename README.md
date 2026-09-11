@@ -82,6 +82,9 @@ Implementation-state documents:
 - [`docs/25-CINEMATIC-UI-PLATFORM-2026.md`](docs/25-CINEMATIC-UI-PLATFORM-2026.md)
 - [`docs/25-EXPERIENCE-CONTROLS-V0.md`](docs/25-EXPERIENCE-CONTROLS-V0.md)
 - [`docs/26-FILM-DOMAIN-MODULES-V0.md`](docs/26-FILM-DOMAIN-MODULES-V0.md)
+- [`docs/27-LIVING-FRAME-RD-RESULTS.md`](docs/27-LIVING-FRAME-RD-RESULTS.md) — measured A/B/C Living Frame decision.
+- [`docs/28-PILOT-FILM-SELECTION.md`](docs/28-PILOT-FILM-SELECTION.md) — Film 001 selection and research boundary.
+- [`docs/29-FILM-001-INGEST-STATUS.md`](docs/29-FILM-001-INGEST-STATUS.md) — active edition/evidence ingest gate.
 
 [`docs/10-OPEN-QUESTIONS.md`](docs/10-OPEN-QUESTIONS.md) remains the backlog of unresolved product/methodology decisions rather than a statement of implemented behavior.
 
