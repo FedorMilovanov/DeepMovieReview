@@ -63,6 +63,8 @@ Build a bare 12-stage native-scroll shell with no premium GPU effects.
 
 # R&D-02 — Living Frame
 
+> **Completed decision:** use **B / segmented planes** as the launch path and **C / Lite static** for Lite/Reduced Motion. Do not make A / depth mesh the production default. See `27-LIVING-FRAME-RD-RESULTS.md`.
+
 ## Goal
 
 Prove hero depth/light interaction and determine whether depth mesh, layered planes or simpler treatment is best.
