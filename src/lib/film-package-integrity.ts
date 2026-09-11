@@ -342,7 +342,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         for (const item of filmModule.characters) {
           if (isBlank(item.id)) errors.push(`${filmModule.id}: character id is required.`);
           if (published && isBlank(item.name)) errors.push(`${filmModule.id}/${item.id}: published character requires a name.`);
-          checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, published);
+          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
         }
         break;
       case "relationship": {
@@ -496,7 +496,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
           if (published && (item.valence === "WRONGDOING" || item.valence === "VIRTUE") && actorIds.length === 0) {
             errors.push(`${filmModule.id}/${item.id}: published wrongdoing/virtue event requires at least one actor character id.`);
           }
-          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+          checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, published);
           if ((item.valence === "VIRTUE" || item.valence === "PRUDENTIAL") && (item.severity || item.culpability)) {
             errors.push(`${filmModule.id}/${item.id}: severity/culpability do not apply to virtue or prudential events.`);
           }
