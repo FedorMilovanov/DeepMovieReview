@@ -303,6 +303,8 @@ try {
   const livingDefaultVariant = await evaluate("document.querySelector('[data-living-frame-rd]')?.dataset.effectiveVariant");
   assertCheck("living frame: segmented planes are the default comparison path", livingDefaultVariant === "B", livingDefaultVariant);
 
+  await evaluate("document.querySelector('[data-living-frame-rd] [data-variant]')?.scrollIntoView({block:'center'})");
+  await sleep(200);
   const livingFrameBounds = JSON.parse(await evaluate(
     "JSON.stringify((() => {" +
       "const r=document.querySelector('[data-living-frame-rd] [data-variant]')?.getBoundingClientRect();" +
@@ -339,6 +341,8 @@ try {
   const livingGpuStatus = await evaluate("document.querySelector('[data-gpu-status]')?.dataset.gpuStatus");
   assertCheck("living frame A: GPU depth-mesh path initializes in audit Chrome", livingGpuStatus === "active", livingGpuStatus);
 
+  await evaluate("document.querySelector('[data-gpu-status]')?.scrollIntoView({block:'center'})");
+  await sleep(200);
   const gpuFrameBounds = JSON.parse(await evaluate(
     "JSON.stringify((() => {" +
       "const r=document.querySelector('[data-gpu-status]')?.getBoundingClientRect();" +
