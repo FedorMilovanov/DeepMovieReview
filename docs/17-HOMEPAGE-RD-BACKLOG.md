@@ -1,8 +1,9 @@
 # DeepMovieReview — Homepage R&D Backlog
 
-> Status: execution backlog v0.1  
+> Status: historical R&D planning record; superseded by the Phase 0.7 implementation state  
 > Date: 2026-09-09  
-> Purpose: split Homepage Launch Cut v1 into bounded prototypes that multiple agents can implement without silently redesigning the product.
+> Reconciled: 2026-09-11  
+> Purpose: preserve the original bounded prototype plan without presenting it as the current build queue. Current implementation state lives in `docs/18-APP-SHELL-PHASE.md`; current Film 001 ingest state lives in `docs/29-FILM-001-INGEST-STATUS.md`.
 
 ---
 
@@ -469,9 +470,11 @@ No owner may silently redefine editorial taxonomy to simplify their component.
 
 ---
 
-## Recommended immediate next build package
+## Historical recommended build package — superseded
 
-The first coding package should contain only:
+This was the first coding package proposed before the current Phase 0.7 shell, signature labs, quality runtime and Film 001 ingest gates existed. It is retained as planning history, **not** as the current next-work checklist.
+
+The original package contained:
 
 - R&D-01 Homepage shell;
 - R&D-02 Living Frame;

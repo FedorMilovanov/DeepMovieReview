@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
@@ -2300,4 +2301,30 @@ test("real-film claim support cannot depend on more revealing evidence", () => {
   assert.ok(errors.includes(
     'autopsy-low/anchor-minor: anchor evidence "evidence-minor" spoiler level "MINOR" exceeds autopsy level "NONE".'
   ));
+});
+
+test("documentation concrete repository file references resolve", () => {
+  const markdownFiles = [
+    "README.md",
+    "AGENTS.md",
+    ...readdirSync("docs")
+      .filter((name) => name.endsWith(".md"))
+      .map((name) => "docs/" + name),
+  ];
+  const concreteRepoPath =
+    /`((?:src|scripts|tests|docs|\.github)\/[^`\n]+?\.(?:ts|tsx|md|mjs|cjs|js|jsx|json|yml|yaml|css))`/g;
+  const missing: string[] = [];
+
+  for (const markdownFile of markdownFiles) {
+    const markdown = readFileSync(markdownFile, "utf8");
+
+    for (const match of markdown.matchAll(concreteRepoPath)) {
+      const reference = match[1];
+      if (reference && !existsSync(reference)) {
+        missing.push(markdownFile + ": " + reference);
+      }
+    }
+  }
+
+  assert.deepEqual(missing, []);
 });

@@ -1,7 +1,7 @@
 # DeepMovieReview — Visual Asset Manifest v0
 
-> Status: pre-art / pre-GPU production contract  
-> Purpose: make generated/editorial imagery reusable, responsive, inspectable and quality-aware before Film 001 art production begins.
+> Status: implemented GPU-capable manifest foundation / Film 001 production art pending  
+> Purpose: keep generated/editorial imagery reusable, responsive, inspectable and quality-aware as Film 001 art production begins.
 
 ## 1. Principle
 
