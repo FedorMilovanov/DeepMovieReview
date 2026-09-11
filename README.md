@@ -36,7 +36,7 @@ The shell now proves the main architectural boundaries that Film 001 will depend
 - Next.js App Router + strict TypeScript foundation;
 - one canonical `FilmPackage` registry used by routes and homepage projections; optional homepage slices such as Family/Youth and Decision stay nullable rather than forcing every film into every module;
 - build-time referential-integrity validation for evidence, sources, characters, decisions and analytical support;
-- machine-readable real-film edition locking: `TARGET_ONLY` packages cannot contain canonical scenes/evidence, while `LOCKED` evidence must cite the exact locked `film-edition` source;
+- machine-readable real-film edition locking: `TARGET_ONLY` packages cannot contain analytical modules beyond `sources-method`, canonical scenes or evidence; `LOCKED` evidence must cite the exact locked `film-edition` source;
 - canonical edition-bound `scenes[]` with numeric time ranges and verification state; real-film evidence scene references must resolve to verified scenes and numeric evidence timestamps are range-checked;
 - spoiler monotonicity from scene → evidence/autopsy: derived scene content may stay at the same level or become more restricted, never less restricted than its canonical scene;
 - publication locator integrity: published real-film scenes must be VERIFIED and every published evidence record must include a canonical scene ID plus numeric timestamp in the locked master;
