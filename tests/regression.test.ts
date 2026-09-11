@@ -649,6 +649,8 @@ test("published character deep fields require interpretive support separately fr
       spoilerLevel: "NONE",
       thesis: "Thesis",
       verdict: "Verdict",
+      qualifications: [],
+      confidence: "HIGH",
       facets: [
         { key: "CRAFT", label: "Craft", value: "Value" },
         { key: "MORAL_CLARITY", label: "Moral clarity", value: "Value" },
