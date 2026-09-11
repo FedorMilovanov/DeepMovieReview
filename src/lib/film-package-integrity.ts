@@ -136,6 +136,9 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
 
   for (const scene of scenes) {
     if (isBlank(scene.id)) errors.push("scenes: scene id is required.");
+    if (published && realFilm && scene.verificationState !== "VERIFIED") {
+      errors.push(`scene/${scene.id}: published real-film scenes must be VERIFIED.`);
+    }
     if (isBlank(scene.shortLabel)) errors.push(`scene/${scene.id}: shortLabel is required.`);
     if (!Number.isInteger(scene.sequenceIndex) || scene.sequenceIndex < 0) {
       errors.push(`scene/${scene.id}: sequenceIndex must be a non-negative integer.`);
@@ -255,6 +258,12 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     }
 
     if (realFilm) {
+      if (published && !item.sceneId) {
+        errors.push(`evidence/${item.id}: published real-film evidence requires a canonical sceneId.`);
+      }
+      if (published && item.timestampSeconds === undefined) {
+        errors.push(`evidence/${item.id}: published real-film evidence requires timestampSeconds.`);
+      }
       if (item.timestamp !== undefined) {
         errors.push(`evidence/${item.id}: real-film evidence must use timestampSeconds instead of legacy timestamp text.`);
       }
