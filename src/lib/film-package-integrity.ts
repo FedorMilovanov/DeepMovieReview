@@ -88,6 +88,11 @@ function sourceModules(filmPackage: FilmPackage): SourcesMethodModule[] {
 export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   const errors: string[] = [];
   const published = filmPackage.film.status === "published";
+  const realFilm = filmPackage.film.status !== "fixture";
+  const scenes = filmPackage.scenes ?? [];
+  const sceneRawIds = scenes.map((scene) => scene.id);
+  const sceneIds = new Set(sceneRawIds);
+  const scenesById = new Map(scenes.map((scene) => [scene.id, scene]));
   const evidence = filmPackage.evidence ?? [];
   const evidenceRawIds = evidence.map((item) => item.id);
   const evidenceIds = new Set(evidenceRawIds);
@@ -109,6 +114,10 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   if (published && isBlank(filmPackage.film.thesisQuestion)) errors.push("film: published package requires a thesis question.");
 
   for (const id of duplicateIds(filmPackage.modules.map((filmModule) => filmModule.id))) errors.push(`modules: duplicate module id "${id}".`);
+  for (const id of duplicateIds(sceneRawIds)) errors.push(`scenes: duplicate scene id "${id}".`);
+  for (const index of duplicateIds(scenes.map((scene) => String(scene.sequenceIndex)))) {
+    errors.push(`scenes: duplicate sequence index "${index}".`);
+  }
   for (const id of duplicateIds(evidenceRawIds)) errors.push(`evidence: duplicate evidence id "${id}".`);
   for (const id of duplicateIds(sourceRawIds)) errors.push(`sources: duplicate source id "${id}".`);
   for (const id of duplicateIds(characterRawIds)) errors.push(`characters: duplicate character id "${id}".`);
@@ -124,7 +133,25 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     errors.push("published package requires a final-synthesis module.");
   }
 
-  if (filmPackage.film.status !== "fixture") {
+  for (const scene of scenes) {
+    if (isBlank(scene.id)) errors.push("scenes: scene id is required.");
+    if (isBlank(scene.shortLabel)) errors.push(`scene/${scene.id}: shortLabel is required.`);
+    if (!Number.isInteger(scene.sequenceIndex) || scene.sequenceIndex < 0) {
+      errors.push(`scene/${scene.id}: sequenceIndex must be a non-negative integer.`);
+    }
+    if (!Number.isFinite(scene.startTimestampSeconds) || scene.startTimestampSeconds < 0) {
+      errors.push(`scene/${scene.id}: startTimestampSeconds must be a non-negative finite number.`);
+    }
+    if (scene.endTimestampSeconds !== undefined) {
+      if (!Number.isFinite(scene.endTimestampSeconds) || scene.endTimestampSeconds <= scene.startTimestampSeconds) {
+        errors.push(`scene/${scene.id}: endTimestampSeconds must be greater than startTimestampSeconds.`);
+      }
+    } else if (scene.verificationState === "VERIFIED") {
+      errors.push(`scene/${scene.id}: VERIFIED scene requires endTimestampSeconds.`);
+    }
+  }
+
+  if (realFilm) {
     const edition = filmPackage.ingest?.edition;
     if (!edition) {
       errors.push("film: real-film package requires ingest.edition metadata.");
@@ -139,14 +166,31 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
       if (edition.state === "TARGET_ONLY") {
         if (isBlank(edition.note)) errors.push("film: TARGET_ONLY edition state requires a note.");
         if (published) errors.push("film: published package requires a LOCKED edition.");
+        if (scenes.length > 0) {
+          errors.push("film: canonical scene registry requires a LOCKED edition, not TARGET_ONLY.");
+        }
         if (evidence.length > 0) {
           errors.push("film: canonical evidence requires a LOCKED edition, not TARGET_ONLY.");
         }
       } else {
         if (isBlank(edition.editionIdentity)) errors.push("film: LOCKED edition requires editionIdentity.");
-        if (isBlank(edition.measuredRuntime)) errors.push("film: LOCKED edition requires measuredRuntime.");
+        if (!Number.isFinite(edition.measuredRuntimeSeconds) || edition.measuredRuntimeSeconds <= 0) {
+          errors.push("film: LOCKED edition requires positive measuredRuntimeSeconds.");
+        }
         if (isBlank(edition.timestampConvention)) errors.push("film: LOCKED edition requires timestampConvention.");
         if (isBlank(edition.verifiedAt)) errors.push("film: LOCKED edition requires verifiedAt.");
+
+        for (const scene of scenes) {
+          if (scene.startTimestampSeconds >= edition.measuredRuntimeSeconds) {
+            errors.push(`scene/${scene.id}: startTimestampSeconds must be inside the locked edition runtime.`);
+          }
+          if (
+            scene.endTimestampSeconds !== undefined &&
+            scene.endTimestampSeconds > edition.measuredRuntimeSeconds
+          ) {
+            errors.push(`scene/${scene.id}: endTimestampSeconds exceeds the locked edition runtime.`);
+          }
+        }
 
         for (const item of evidence) {
           if (!(item.sourceIds ?? []).includes(edition.sourceId)) {
@@ -186,6 +230,40 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     }
     for (const id of item.sourceIds ?? []) {
       if (!sourceIds.has(id)) errors.push(`evidence/${item.id}: unknown source id "${id}".`);
+    }
+
+    if (item.timestampSeconds !== undefined && (!Number.isFinite(item.timestampSeconds) || item.timestampSeconds < 0)) {
+      errors.push(`evidence/${item.id}: timestampSeconds must be a non-negative finite number.`);
+    }
+
+    if (realFilm) {
+      if (item.timestamp !== undefined) {
+        errors.push(`evidence/${item.id}: real-film evidence must use timestampSeconds instead of legacy timestamp text.`);
+      }
+      if (item.timestampSeconds !== undefined && !item.sceneId) {
+        errors.push(`evidence/${item.id}: timestampSeconds requires a canonical sceneId.`);
+      }
+      if (item.sceneId) {
+        const scene = scenesById.get(item.sceneId);
+        if (!scene) {
+          errors.push(`evidence/${item.id}: unknown scene id "${item.sceneId}".`);
+        } else {
+          if (scene.verificationState !== "VERIFIED") {
+            errors.push(`evidence/${item.id}: canonical evidence cannot reference unverified scene "${item.sceneId}".`);
+          }
+          if (item.timestampSeconds !== undefined) {
+            if (item.timestampSeconds < scene.startTimestampSeconds) {
+              errors.push(`evidence/${item.id}: timestampSeconds falls before scene "${item.sceneId}".`);
+            }
+            if (
+              scene.endTimestampSeconds !== undefined &&
+              item.timestampSeconds > scene.endTimestampSeconds
+            ) {
+              errors.push(`evidence/${item.id}: timestampSeconds falls after scene "${item.sceneId}".`);
+            }
+          }
+        }
+      }
     }
   }
 
@@ -268,6 +346,15 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
       case "autopsy":
         if (published && !filmModule.confidence) errors.push(`${filmModule.id}: published autopsy requires confidence.`);
         if (published && (filmModule.anchors?.length ?? 0) === 0) errors.push(`${filmModule.id}: published autopsy requires at least one evidence anchor.`);
+        if (published && !filmModule.sceneId) errors.push(`${filmModule.id}: published autopsy requires a canonical sceneId.`);
+        if (filmModule.sceneId && realFilm) {
+          const scene = scenesById.get(filmModule.sceneId);
+          if (!scene) {
+            errors.push(`${filmModule.id}: unknown scene id "${filmModule.sceneId}".`);
+          } else if (scene.verificationState !== "VERIFIED") {
+            errors.push(`${filmModule.id}: autopsy cannot reference unverified scene "${filmModule.sceneId}".`);
+          }
+        }
         checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
         for (const anchor of filmModule.anchors ?? []) {
           if (!evidenceIds.has(anchor.evidenceId)) errors.push(`${filmModule.id}/${anchor.id}: unknown evidence id "${anchor.evidenceId}".`);
