@@ -75,9 +75,11 @@ Secondary sources may support:
 
 They may **not** silently replace observation of the final cut.
 
-Every future high-level claim in a published package must trace through:
+Every high-level interpretive claim in a real-film package, including draft authoring after the master is locked, must trace through:
 
-`claim → evidence record → source / locked film edition`
+`claim → evidence record → verified scene → locked film edition`
+
+Draft status is not a license for unsupported analysis. Fixtures remain flexible because they are structural test data, not film judgments.
 
 When an interpretation depends on a filmmaker interview rather than on-screen evidence, that distinction must remain explicit.
 
