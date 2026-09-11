@@ -91,7 +91,6 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   const realFilm = filmPackage.film.status !== "fixture";
   const scenes = filmPackage.scenes ?? [];
   const sceneRawIds = scenes.map((scene) => scene.id);
-  const sceneIds = new Set(sceneRawIds);
   const scenesById = new Map(scenes.map((scene) => [scene.id, scene]));
   const evidence = filmPackage.evidence ?? [];
   const evidenceRawIds = evidence.map((item) => item.id);
