@@ -40,7 +40,7 @@ The gate is machine-readable through `FilmPackage.ingest.edition`:
 - real-film evidence may use `timestampSeconds` only with a canonical `sceneId`, and the point must fall inside the verified scene range;
 - scene-linked evidence and Scene Autopsy modules cannot use a lower spoiler level than the canonical scene they derive from;
 - publication requires every real-film scene to be `VERIFIED`;
-- publication requires every real-film evidence record to carry both a canonical `sceneId` and numeric `timestampSeconds`, so another editor can reproduce the observation in the locked master;
+- every real-film canonical evidence record, including draft evidence, must carry both a canonical `sceneId` and numeric `timestampSeconds`, so another editor can reproduce the observation in the locked master;
 - explicit-level real-film claims cannot cite support/counterevidence with a higher spoiler level than the claim; Craft pressure assessments cannot cite more revealing craft observations; Scene Autopsy anchors cannot cite more revealing evidence;
 - character evidence is split into `profileSupport` and `interpretiveSupport`, each checked against its own spoiler boundary; published base profiles require profile support, while published deep interpretation fields require separate interpretive support;
 - `interpretiveSpoilerLevel` cannot be lower than the character profile boundary; deeper interpretation may stay equally restricted or become more restricted, never less;

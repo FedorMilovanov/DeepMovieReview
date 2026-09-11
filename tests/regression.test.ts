@@ -1002,6 +1002,58 @@ test("LOCKED real-film analytical summaries require canonical support", () => {
   ));
 });
 
+test("LOCKED real-film draft evidence requires verified scene and numeric timestamp locators", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "locked-draft-unlocated-evidence",
+      title: "Locked Draft Unlocated Evidence",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    evidence: [{
+      id: "unlocated",
+      label: "Unlocated",
+      observation: "Canonical real-film evidence must be reproducibly locatable even before publication.",
+      sourceIds: ["film-master"],
+      spoilerLevel: "NONE",
+    }],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Locked master",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("evidence/unlocated: real-film evidence requires a canonical sceneId."));
+  assert.ok(errors.includes("evidence/unlocated: real-film evidence requires timestampSeconds."));
+});
+
 test("LOCKED edition source must resolve to a film-edition source", () => {
   const filmPackage: FilmPackage = {
     schemaVersion: 1,
@@ -1814,8 +1866,8 @@ test("published real-film packages reject draft scenes and unlocated evidence", 
 
   const errors = validateFilmPackage(filmPackage);
   assert.ok(errors.includes("scene/scene-draft: published real-film scenes must be VERIFIED."));
-  assert.ok(errors.includes("evidence/unlocated-evidence: published real-film evidence requires a canonical sceneId."));
-  assert.ok(errors.includes("evidence/unlocated-evidence: published real-film evidence requires timestampSeconds."));
+  assert.ok(errors.includes("evidence/unlocated-evidence: real-film evidence requires a canonical sceneId."));
+  assert.ok(errors.includes("evidence/unlocated-evidence: real-film evidence requires timestampSeconds."));
 });
 
 
