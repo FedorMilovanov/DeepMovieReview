@@ -41,6 +41,7 @@ The shell now proves the main architectural boundaries that Film 001 will depend
 - spoiler monotonicity from scene → evidence/autopsy: derived scene content may stay at the same level or become more restricted, never less restricted than its canonical scene;
 - publication locator integrity: published real-film scenes must be VERIFIED and every published evidence record must include a canonical scene ID plus numeric timestamp in the locked master;
 - claim-support spoiler integrity for real films: explicit-level claims, Craft pressure assessments and Scene Autopsy anchors cannot depend on more revealing referenced evidence/observations;
+- split character evidence graphs: base profile fields use `profileSupport`, deeper beliefs/arc interpretation use `interpretiveSupport`, and each layer is validated against its own spoiler ceiling;
 - canonical evidence records shared by interpretive claims instead of copied prose evidence;
 - structured Story, Characters, Relationships, Family/Youth, Meaning, Teaching Signals, Narrative Permission, Craft, Scene Autopsy, Decision, Moral Analysis, Biblical Synthesis, Final Synthesis and Sources/Method modules;
 - one spoiler projection stage that removes forbidden nested data **before** presentation; the projected module array is shared by outline and renderer, and real featured-film homepage data is reduced to spoiler-safe `NONE` content before composition;
