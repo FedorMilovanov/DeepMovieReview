@@ -29,7 +29,7 @@ const INITIAL_METRICS: Record<LivingFrameVariant, VariantMetrics> = {
   C: { p95FrameMs: 0, frameSamples: 0, p95PointerMs: 0, pointerSamples: 0 },
 };
 
-const DEPTH_MESH_TEXTURE_BYTES = 512 * 256 * 4 + 256 * 128;
+const DEPTH_MESH_TEXTURE_BYTES = 512 * 214 * 4 + 256 * 107;
 
 function percentile(values: readonly number[], ratio: number) {
   if (values.length === 0) return 0;
@@ -233,7 +233,7 @@ export function LivingFrameLab() {
   const variantCopy: Record<LivingFrameVariant, { label: string; detail: string }> = {
     A: {
       label: "A / Depth mesh",
-      detail: "Procedural master + 96×40 displaced mesh + depth texture. Highest complexity and distortion risk.",
+      detail: "2.39:1 procedural master + 96×40 displaced mesh + matched depth texture. Highest complexity and distortion risk.",
     },
     B: {
       label: "B / Segmented planes",
