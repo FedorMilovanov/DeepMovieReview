@@ -534,6 +534,38 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         if (published && !filmModule.options.some((option) => option.availableAtDecisionTime)) {
           errors.push(`${filmModule.id}: published decision requires at least one option available at decision time.`);
         }
+        for (const option of filmModule.options) {
+          checkScopedSupport(
+            option.support,
+            `${filmModule.id}/option/${option.id}`,
+            option.spoilerLevel ?? filmModule.spoilerLevel,
+            realFilm,
+          );
+        }
+        for (const fact of filmModule.facts) {
+          checkScopedSupport(
+            fact.support,
+            `${filmModule.id}/fact/${fact.id}`,
+            fact.spoilerLevel,
+            realFilm,
+          );
+        }
+        for (const pressure of filmModule.pressures) {
+          checkScopedSupport(
+            pressure.support,
+            `${filmModule.id}/pressure/${pressure.id}`,
+            pressure.spoilerLevel,
+            realFilm,
+          );
+        }
+        for (const duty of filmModule.dutiesOrGoods) {
+          checkScopedSupport(
+            duty.support,
+            `${filmModule.id}/duty/${duty.id}`,
+            duty.spoilerLevel,
+            realFilm,
+          );
+        }
         if (filmModule.editorialJudgment) {
           checkScopedSupport(
             filmModule.editorialJudgment.support,

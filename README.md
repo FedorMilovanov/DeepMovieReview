@@ -43,6 +43,7 @@ The shell now proves the main architectural boundaries that Film 001 will depend
 - evidence-backed real-film authoring: interpretive ClaimSupport is required during LOCKED draft work, not deferred until publication;
 - module-summary provenance: Relationship, Family/Youth and Moral Analysis summary prose has dedicated `summarySupport` instead of inheriting evidence implicitly from nested items;
 - evidence-backed Story structure: real-film Story summary and every plot beat carry canonical ClaimSupport, tying plot structure to verified scene/timestamp evidence;
+- evidence-backed Decision / Knowledge Fog: options, knowledge facts, pressures and duties/goods each carry canonical ClaimSupport instead of relying only on the final editorial judgment;
 - claim-support spoiler integrity for real films: explicit-level claims, Craft pressure assessments and Scene Autopsy anchors cannot depend on more revealing referenced evidence/observations;
 - split character evidence graphs: base profile fields use `profileSupport`, deeper beliefs/arc interpretation use `interpretiveSupport`, and each layer is validated against its own spoiler ceiling;
 - canonical evidence records shared by interpretive claims instead of copied prose evidence;

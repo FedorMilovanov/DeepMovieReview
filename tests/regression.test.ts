@@ -797,6 +797,130 @@ test("LOCKED real-film Story module requires at least one plot beat", () => {
   assert.ok(errors.includes("story: real-film story module requires at least one plot beat."));
 });
 
+test("LOCKED real-film Decision context records require canonical support", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "decision-evidence-support",
+      title: "Decision Evidence Support",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [{
+      id: "scene-1",
+      sequenceIndex: 0,
+      startTimestampSeconds: 100,
+      endTimestampSeconds: 180,
+      shortLabel: "Decision scene",
+      spoilerLevel: "NONE",
+      verificationState: "VERIFIED",
+    }],
+    evidence: [
+      {
+        id: "evidence-none",
+        label: "Safe decision evidence",
+        observation: "Safe observation",
+        sceneId: "scene-1",
+        timestampSeconds: 110,
+        sourceIds: ["film-master"],
+        spoilerLevel: "NONE",
+      },
+      {
+        id: "evidence-minor",
+        label: "Protected decision evidence",
+        observation: "Protected observation",
+        sceneId: "scene-1",
+        timestampSeconds: 120,
+        sourceIds: ["film-master"],
+        spoilerLevel: "MINOR",
+      },
+    ],
+    modules: [
+      {
+        id: "decision",
+        kind: "decision",
+        heading: "Decision",
+        spoilerLevel: "NONE",
+        prompt: "What could the character reasonably choose?",
+        options: [{
+          id: "option-supported",
+          label: "Supported option",
+          availableAtDecisionTime: true,
+          support: { evidenceIds: ["evidence-none"] },
+          spoilerLevel: "NONE",
+        }, {
+          id: "option-downgrade",
+          label: "Spoiler-downgraded option",
+          availableAtDecisionTime: true,
+          support: { evidenceIds: ["evidence-minor"] },
+          spoilerLevel: "NONE",
+        }],
+        facts: [{
+          id: "fact-unsupported",
+          text: "Unsupported knowledge claim",
+          knowledgeState: "KNOWN_TO_CHARACTER",
+          spoilerLevel: "NONE",
+        }],
+        pressures: [{
+          id: "pressure-unsupported",
+          kind: "EMOTIONAL",
+          summary: "Unsupported pressure claim",
+          spoilerLevel: "NONE",
+        }],
+        dutiesOrGoods: [{
+          id: "duty-unsupported",
+          label: "Unsupported duty/good claim",
+          spoilerLevel: "NONE",
+        }],
+      },
+      {
+        id: "sources",
+        kind: "sources-method",
+        heading: "Sources",
+        spoilerLevel: "NONE",
+        methodologyVersion: "draft",
+        editorialRevision: "draft",
+        analyzedEdition: "Locked master",
+        sources: [{
+          id: "film-master",
+          label: "Locked master",
+          kind: "film-edition",
+        }],
+      },
+    ],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes(
+    'decision/option/option-downgrade: support evidence "evidence-minor" spoiler level "MINOR" exceeds claim level "NONE".'
+  ));
+  assert.ok(errors.includes(
+    "decision/fact/fact-unsupported: real-film interpretive claims require canonical evidence support."
+  ));
+  assert.ok(errors.includes(
+    "decision/pressure/pressure-unsupported: real-film interpretive claims require canonical evidence support."
+  ));
+  assert.ok(errors.includes(
+    "decision/duty/duty-unsupported: real-film interpretive claims require canonical evidence support."
+  ));
+  assert.equal(errors.some((error) => error.startsWith("decision/option/option-supported:")), false);
+});
+
 test("decision modules disappear when the current spoiler level removes every usable nested item", () => {
   const projected = projectFilmModule({
     id: "decision-empty-at-none",
