@@ -38,10 +38,17 @@ export const theTrumanShowDraftPackage: FilmPackage = {
       sources: [
         {
           id: "truman-target-edition",
-          label: "Paramount 25th Anniversary 4K UHD release metadata",
+          label: "Target editorial master — Paramount 25th Anniversary 4K UHD (2023)",
           kind: "film-edition",
           locator:
-            "Target edition metadata: 1998 film, 103 min release listing, native 4K, original/presented aspect ratio 1.85:1. Editorial master identity still must be locked before timestamps are authored.",
+            "Target only. Exact disc/region or file identity, playback duration and timestamp zero point must be locked before this source can support canonical scene evidence.",
+        },
+        {
+          id: "truman-4k-release-metadata",
+          label: "Blu-ray.com — Paramount 25th Anniversary 4K release metadata",
+          kind: "reference",
+          locator:
+            "Secondary edition metadata: 1998 film, 103 min listing, native 4K, original/presented aspect ratio 1.85:1. Not a substitute for the editorial viewing master.",
           href: "https://www.blu-ray.com/movies/The-Truman-Show-4K-Blu-ray/337202/",
         },
         {
