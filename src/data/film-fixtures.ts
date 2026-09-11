@@ -94,7 +94,7 @@ export const pilotFilmPackage: FilmPackage = {
           believes: "Safety can be secured by retaining control.",
           selfDeception: "Calls control protection when fear is also driving the choice.",
           arcSummary: "The fixture tests whether control can yield to accountable care.",
-          support: { evidenceIds: ["ev-concealment", "ev-control"], counterevidenceIds: ["ev-repair"] },
+          interpretiveSupport: { evidenceIds: ["ev-concealment", "ev-control"], counterevidenceIds: ["ev-repair"] },
         },
         {
           id: "character-b",
@@ -106,7 +106,7 @@ export const pilotFilmPackage: FilmPackage = {
           believes: "Truth is necessary for durable trust.",
           selfDeception: "Treats demands for honesty as if vulnerability were already mutual.",
           arcSummary: "The fixture tests whether truth can be joined to patience and reciprocity.",
-          support: { evidenceIds: ["ev-control"], counterevidenceIds: ["ev-repair"] },
+          interpretiveSupport: { evidenceIds: ["ev-control"], counterevidenceIds: ["ev-repair"] },
         },
       ],
     },

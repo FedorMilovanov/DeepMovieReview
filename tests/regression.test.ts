@@ -473,7 +473,213 @@ test("published character profiles require canonical evidence support", () => {
 
   const errors = validateFilmPackage(filmPackage);
   assert.ok(errors.some((error) =>
-    error.includes("characters/character-a") &&
+    error.includes("characters/character-a/profile") &&
+    error.includes("published interpretive claims require evidence support")
+  ));
+});
+
+test("character profile and interpretation support obey independent spoiler ceilings", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "character-support-split",
+      title: "Character Support Split",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [{
+      id: "scene-safe",
+      sequenceIndex: 0,
+      startTimestampSeconds: 100,
+      endTimestampSeconds: 180,
+      shortLabel: "Safe scene",
+      spoilerLevel: "NONE",
+      verificationState: "VERIFIED",
+    }],
+    evidence: [
+      {
+        id: "evidence-none",
+        label: "Safe evidence",
+        observation: "Safe observation",
+        sceneId: "scene-safe",
+        timestampSeconds: 110,
+        sourceIds: ["film-master"],
+        spoilerLevel: "NONE",
+      },
+      {
+        id: "evidence-major",
+        label: "Protected evidence",
+        observation: "Protected observation",
+        sceneId: "scene-safe",
+        timestampSeconds: 120,
+        sourceIds: ["film-master"],
+        spoilerLevel: "MAJOR",
+      },
+    ],
+    modules: [
+      {
+        id: "characters",
+        kind: "characters",
+        heading: "Characters",
+        spoilerLevel: "NONE",
+        characters: [{
+          id: "character-a",
+          name: "Character A",
+          wants: "Truth",
+          fears: "Loss",
+          contradiction: "Protective but controlling",
+          profileSpoilerLevel: "NONE",
+          interpretiveSpoilerLevel: "MAJOR",
+          believes: "A protected interpretation",
+          profileSupport: { evidenceIds: ["evidence-major"] },
+          interpretiveSupport: { evidenceIds: ["evidence-major"] },
+        }, {
+          id: "character-b",
+          name: "Character B",
+          wants: "Truth",
+          fears: "Loss",
+          contradiction: "Contradiction",
+          profileSpoilerLevel: "MAJOR",
+          interpretiveSpoilerLevel: "NONE",
+          profileSupport: { evidenceIds: ["evidence-none"] },
+        }],
+      },
+      {
+        id: "sources",
+        kind: "sources-method",
+        heading: "Sources",
+        spoilerLevel: "NONE",
+        methodologyVersion: "draft",
+        editorialRevision: "draft",
+        analyzedEdition: "Locked master",
+        sources: [{
+          id: "film-master",
+          label: "Locked master",
+          kind: "film-edition",
+        }],
+      },
+    ],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes(
+    'characters/character-a/profile: support evidence "evidence-major" spoiler level "MAJOR" exceeds claim level "NONE".'
+  ));
+  assert.equal(errors.some((error) => error.startsWith("characters/character-a/interpretation: support evidence")), false);
+  assert.ok(errors.includes(
+    'characters/character-b: interpretiveSpoilerLevel "NONE" cannot be lower than profile level "MAJOR".'
+  ));
+});
+
+test("published character deep fields require interpretive support separately from profile support", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "published-character-deep-support",
+      title: "Published Character Deep Support",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "published",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [{
+      id: "scene-1",
+      sequenceIndex: 0,
+      startTimestampSeconds: 100,
+      endTimestampSeconds: 160,
+      shortLabel: "Verified scene",
+      spoilerLevel: "NONE",
+      verificationState: "VERIFIED",
+    }],
+    evidence: [{
+      id: "evidence-1",
+      label: "Evidence",
+      observation: "Observed behavior",
+      sceneId: "scene-1",
+      timestampSeconds: 120,
+      sourceIds: ["film-master"],
+      spoilerLevel: "NONE",
+    }],
+    modules: [{
+      id: "characters",
+      kind: "characters",
+      heading: "Characters",
+      spoilerLevel: "NONE",
+      characters: [{
+        id: "character-a",
+        name: "Character A",
+        wants: "Truth",
+        fears: "Loss",
+        contradiction: "Contradiction",
+        believes: "Deep interpretation",
+        profileSupport: { evidenceIds: ["evidence-1"] },
+      }],
+    }, {
+      id: "final",
+      kind: "final-synthesis",
+      heading: "Final",
+      spoilerLevel: "NONE",
+      thesis: "Thesis",
+      verdict: "Verdict",
+      qualifications: [],
+      confidence: "HIGH",
+      facets: [
+        { key: "CRAFT", label: "Craft", value: "Value" },
+        { key: "MORAL_CLARITY", label: "Moral clarity", value: "Value" },
+        { key: "DEPICTED_EVIL", label: "Depicted evil", value: "Value" },
+        { key: "ROMANTICIZATION", label: "Romanticization", value: "Value" },
+        { key: "DECISION_COMPLEXITY", label: "Decision complexity", value: "Value" },
+        { key: "REDEMPTIVE_DIRECTION", label: "Redemptive direction", value: "Value" },
+      ],
+      support: { evidenceIds: ["evidence-1"] },
+    }, {
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "v1",
+      editorialRevision: "r1",
+      analyzedEdition: "Locked master",
+      lastReviewedAt: "2026-09-11",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.some((error) =>
+    error.includes("characters/character-a/interpretation") &&
     error.includes("published interpretive claims require evidence support")
   ));
 });

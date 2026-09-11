@@ -342,7 +342,30 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         for (const item of filmModule.characters) {
           if (isBlank(item.id)) errors.push(`${filmModule.id}: character id is required.`);
           if (published && isBlank(item.name)) errors.push(`${filmModule.id}/${item.id}: published character requires a name.`);
-          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+
+          const profileLevel = item.profileSpoilerLevel ?? filmModule.spoilerLevel;
+          const interpretiveLevel = item.interpretiveSpoilerLevel ?? profileLevel;
+          if (!canRevealSpoiler(interpretiveLevel, profileLevel)) {
+            errors.push(
+              `${filmModule.id}/${item.id}: interpretiveSpoilerLevel "${interpretiveLevel}" cannot be lower than profile level "${profileLevel}".`,
+            );
+          }
+
+          checkScopedSupport(
+            item.profileSupport,
+            `${filmModule.id}/${item.id}/profile`,
+            profileLevel,
+            published,
+          );
+
+          const hasInterpretiveFields = [item.believes, item.selfDeception, item.arcSummary, item.roleInArgument]
+            .some((value) => !isBlank(value));
+          checkScopedSupport(
+            item.interpretiveSupport,
+            `${filmModule.id}/${item.id}/interpretation`,
+            interpretiveLevel,
+            published && hasInterpretiveFields,
+          );
         }
         break;
       case "relationship": {
