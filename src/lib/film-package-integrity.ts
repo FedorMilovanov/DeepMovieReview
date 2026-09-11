@@ -5,6 +5,7 @@ import type {
   FinalSynthesisFacetKey,
   SourcesMethodModule,
 } from "@/lib/film-package";
+import { canRevealSpoiler } from "@/lib/spoilers";
 
 const REQUIRED_FINAL_FACETS: FinalSynthesisFacetKey[] = [
   "CRAFT",
@@ -268,6 +269,11 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
           if (scene.verificationState !== "VERIFIED") {
             errors.push(`evidence/${item.id}: canonical evidence cannot reference unverified scene "${item.sceneId}".`);
           }
+          if (!canRevealSpoiler(item.spoilerLevel, scene.spoilerLevel)) {
+            errors.push(
+              `evidence/${item.id}: spoiler level "${item.spoilerLevel}" cannot be lower than scene "${item.sceneId}" level "${scene.spoilerLevel}".`,
+            );
+          }
           if (item.timestampSeconds !== undefined) {
             if (item.timestampSeconds < scene.startTimestampSeconds) {
               errors.push(`evidence/${item.id}: timestampSeconds falls before scene "${item.sceneId}".`);
@@ -368,8 +374,15 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
           const scene = scenesById.get(filmModule.sceneId);
           if (!scene) {
             errors.push(`${filmModule.id}: unknown scene id "${filmModule.sceneId}".`);
-          } else if (scene.verificationState !== "VERIFIED") {
-            errors.push(`${filmModule.id}: autopsy cannot reference unverified scene "${filmModule.sceneId}".`);
+          } else {
+            if (scene.verificationState !== "VERIFIED") {
+              errors.push(`${filmModule.id}: autopsy cannot reference unverified scene "${filmModule.sceneId}".`);
+            }
+            if (!canRevealSpoiler(filmModule.spoilerLevel, scene.spoilerLevel)) {
+              errors.push(
+                `${filmModule.id}: spoiler level "${filmModule.spoilerLevel}" cannot be lower than scene "${filmModule.sceneId}" level "${scene.spoilerLevel}".`,
+              );
+            }
           }
         }
         checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
