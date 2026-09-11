@@ -61,6 +61,7 @@ chrome.stderr.on("data", (chunk) => {
 const checks = [];
 const browserErrors = [];
 const networkErrors = [];
+const livingFrameMeasurements = {};
 let socket;
 
 function record(name, passed, details = undefined) {
@@ -181,6 +182,15 @@ try {
     throw new Error("Selector did not become ready: " + selector);
   }
 
+  async function waitForExpression(expression, attempts = 120, delayMs = 50) {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const value = await evaluate(expression);
+      if (value) return value;
+      await sleep(delayMs);
+    }
+    throw new Error("Expression did not become truthy: " + expression);
+  }
+
   async function navigate(pathname, width, height, reducedMotion = false, forcedColors = false) {
     await send("Emulation.setDeviceMetricsOverride", {
       width,
@@ -285,6 +295,125 @@ try {
   const forcedColorsActive = await evaluate("matchMedia('(forced-colors: active)').matches");
   assertCheck("forced colors: browser media emulation active", forcedColorsActive);
   await capture("home-forced-colors", false);
+
+  await navigate("/labs/living-frame", 1280, 900);
+  await inspectBasic("living frame desktop");
+  const livingVariantCount = await evaluate("document.querySelectorAll('[data-living-frame-variant]').length");
+  assertCheck("living frame: three comparison variants exist", livingVariantCount === 3, livingVariantCount);
+  const livingDefaultVariant = await evaluate("document.querySelector('[data-living-frame-rd]')?.dataset.effectiveVariant");
+  assertCheck("living frame: segmented planes are the default comparison path", livingDefaultVariant === "B", livingDefaultVariant);
+
+  const livingFrameBounds = JSON.parse(await evaluate(
+    "JSON.stringify((() => {" +
+      "const r=document.querySelector('[data-living-frame-rd] [data-variant]')?.getBoundingClientRect();" +
+      "return r ? {left:r.left,top:r.top,width:r.width,height:r.height} : null;" +
+    "})())"
+  ));
+  assertCheck("living frame: comparison frame has measurable geometry", Boolean(livingFrameBounds?.width && livingFrameBounds?.height), livingFrameBounds);
+
+  if (livingFrameBounds) {
+    for (let index = 0; index < 8; index += 1) {
+      const x = livingFrameBounds.left + livingFrameBounds.width * (0.25 + (index % 4) * 0.16);
+      const y = livingFrameBounds.top + livingFrameBounds.height * (0.34 + (index % 3) * 0.12);
+      await send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y, button: "none" });
+      await sleep(35);
+    }
+  }
+
+  await evaluate("document.querySelector('[data-run-living-frame-benchmark]')?.click()");
+  await waitForExpression("document.querySelector('[data-living-frame-metric=\"B\"]')?.dataset.frameP95 !== ''");
+  const livingB = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const n=document.querySelector('[data-living-frame-metric=\"B\"]'); return n ? {" +
+      "frameP95:Number(n.dataset.frameP95),pointerP95:Number(n.dataset.pointerP95),textureBytes:Number(n.dataset.textureBytes)" +
+    "} : null; })())"
+  ));
+  livingFrameMeasurements.B = livingB;
+  assertCheck("living frame B: active benchmark produced frame samples", livingB?.frameP95 > 0, livingB);
+  assertCheck("living frame B: pointer-to-render latency was measured", livingB?.pointerP95 > 0, livingB);
+  assertCheck("living frame B: segmented planes require no GPU texture working set", livingB?.textureBytes === 0, livingB);
+  await capture("living-frame-b-planes", true);
+
+  await evaluate("document.querySelector('[data-living-frame-variant=\"A\"]')?.click()");
+  await waitForExpression("document.querySelector('[data-living-frame-rd]')?.dataset.effectiveVariant === 'A'");
+  await waitForExpression("document.querySelector('[data-gpu-status]')?.dataset.gpuStatus !== 'detecting'", 160, 100);
+  const livingGpuStatus = await evaluate("document.querySelector('[data-gpu-status]')?.dataset.gpuStatus");
+  assertCheck("living frame A: GPU depth-mesh path initializes in audit Chrome", livingGpuStatus === "active", livingGpuStatus);
+
+  const gpuFrameBounds = JSON.parse(await evaluate(
+    "JSON.stringify((() => {" +
+      "const r=document.querySelector('[data-gpu-status]')?.getBoundingClientRect();" +
+      "return r ? {left:r.left,top:r.top,width:r.width,height:r.height} : null;" +
+    "})())"
+  ));
+  if (gpuFrameBounds && livingGpuStatus === "active") {
+    for (let index = 0; index < 8; index += 1) {
+      const x = gpuFrameBounds.left + gpuFrameBounds.width * (0.28 + (index % 4) * 0.14);
+      const y = gpuFrameBounds.top + gpuFrameBounds.height * (0.36 + (index % 3) * 0.1);
+      await send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y, button: "none" });
+      await sleep(45);
+    }
+
+    await evaluate("document.querySelector('[data-run-living-frame-benchmark]')?.click()");
+    await waitForExpression("document.querySelector('[data-living-frame-metric=\"A\"]')?.dataset.frameP95 !== ''", 180, 100);
+  }
+
+  const livingA = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const n=document.querySelector('[data-living-frame-metric=\"A\"]'); return n ? {" +
+      "frameP95:n.dataset.frameP95===''?null:Number(n.dataset.frameP95)," +
+      "pointerP95:n.dataset.pointerP95===''?null:Number(n.dataset.pointerP95)," +
+      "textureBytes:Number(n.dataset.textureBytes)" +
+    "} : null; })())"
+  ));
+  livingFrameMeasurements.A = livingA;
+  assertCheck("living frame A: active benchmark produced frame samples", livingA?.frameP95 > 0, livingA);
+  assertCheck("living frame A: pointer-to-render latency was measured", livingA?.pointerP95 > 0, livingA);
+  assertCheck("living frame A: modeled procedural texture working set is bounded", livingA?.textureBytes === 557056, livingA);
+
+  await evaluate("document.querySelector('[aria-pressed=\"false\"]." + "depthToggle" + "')");
+  const depthButtonClicked = await evaluate(
+    "(() => { const buttons=[...document.querySelectorAll('button')]; const b=buttons.find(x=>x.textContent?.includes('Inspect depth')); if(!b) return false; b.click(); return true; })()"
+  );
+  assertCheck("living frame A: depth inspection control is available", depthButtonClicked);
+  await sleep(300);
+  await capture("living-frame-a-depth-mesh", true);
+
+  await evaluate("document.querySelector('[data-living-frame-variant=\"C\"]')?.click()");
+  await waitForExpression("document.querySelector('[data-living-frame-rd]')?.dataset.effectiveVariant === 'C'");
+  const liteHasCanvas = await evaluate("Boolean(document.querySelector('[data-living-frame-rd] canvas'))");
+  assertCheck("living frame C: Lite path has no canvas", !liteHasCanvas);
+  await evaluate("document.querySelector('[data-run-living-frame-benchmark]')?.click()");
+  await sleep(100);
+  const livingC = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const n=document.querySelector('[data-living-frame-metric=\"C\"]'); return n ? {" +
+      "frameP95:Number(n.dataset.frameP95),pointerP95:Number(n.dataset.pointerP95),textureBytes:Number(n.dataset.textureBytes)" +
+    "} : null; })())"
+  ));
+  livingFrameMeasurements.C = livingC;
+  assertCheck("living frame C: static path reports zero animation frame cost", livingC?.frameP95 === 0, livingC);
+  assertCheck("living frame C: static path reports zero pointer animation latency", livingC?.pointerP95 === 0, livingC);
+  await capture("living-frame-c-lite", true);
+
+  await navigate("/labs/living-frame", 390, 844);
+  await inspectBasic("living frame mobile");
+  const livingMobileOverflow = await evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth");
+  assertCheck("living frame mobile: no horizontal overflow", livingMobileOverflow);
+  const livingMobileGeometry = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const r=document.querySelector('[data-living-frame-rd] [data-variant]')?.getBoundingClientRect(); return r ? {width:r.width,height:r.height} : null; })())"
+  ));
+  assertCheck("living frame mobile: frame recomposes taller than desktop cinema ratio", livingMobileGeometry?.height / livingMobileGeometry?.width > 0.6, livingMobileGeometry);
+  await capture("living-frame-mobile", true);
+
+  await navigate("/labs/living-frame", 1280, 900, true);
+  await evaluate("document.querySelector('[data-living-frame-variant=\"A\"]')?.click()");
+  await sleep(250);
+  const reducedLivingState = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const n=document.querySelector('[data-living-frame-rd]'); return n ? {" +
+      "selected:n.dataset.selectedVariant,effective:n.dataset.effectiveVariant,reduced:n.dataset.reducedMotion,canvas:Boolean(n.querySelector('canvas'))" +
+    "} : null; })())"
+  ));
+  assertCheck("living frame reduced motion: A may remain selected but effective path is C", reducedLivingState?.selected === "A" && reducedLivingState?.effective === "C", reducedLivingState);
+  assertCheck("living frame reduced motion: no GPU canvas remains active", reducedLivingState?.canvas === false, reducedLivingState);
+  await capture("living-frame-reduced-motion", false);
 
   await navigate("/films", 1280, 900);
   await inspectBasic("film index");
@@ -394,6 +523,7 @@ try {
     checks,
     browserErrors,
     networkErrors,
+    livingFrameMeasurements,
     chromeStderr: chromeStderr.slice(-12000),
   };
   writeFileSync(resolve(outDir, "report.json"), JSON.stringify(report, null, 2));
