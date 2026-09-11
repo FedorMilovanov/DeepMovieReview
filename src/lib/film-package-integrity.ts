@@ -1,11 +1,12 @@
 import type {
   ClaimSupport,
+  EvidenceRecord,
   FilmModule,
   FilmPackage,
   FinalSynthesisFacetKey,
   SourcesMethodModule,
 } from "@/lib/film-package";
-import { canRevealSpoiler } from "./spoilers";
+import { canRevealSpoiler, type SpoilerLevel } from "./spoilers";
 
 const REQUIRED_FINAL_FACETS: FinalSynthesisFacetKey[] = [
   "CRAFT",
@@ -63,6 +64,26 @@ function checkSupport(
   }
 }
 
+function checkSupportSpoilerCeiling(
+  support: ClaimSupport | undefined,
+  path: string,
+  claimLevel: SpoilerLevel,
+  evidenceById: Map<string, EvidenceRecord>,
+  errors: string[],
+  enabled: boolean,
+) {
+  if (!enabled || !support) return;
+  const refs = [...support.evidenceIds, ...(support.counterevidenceIds ?? [])];
+  for (const id of refs) {
+    const evidence = evidenceById.get(id);
+    if (evidence && !canRevealSpoiler(claimLevel, evidence.spoilerLevel)) {
+      errors.push(
+        `${path}: support evidence "${id}" spoiler level "${evidence.spoilerLevel}" exceeds claim level "${claimLevel}".`,
+      );
+    }
+  }
+}
+
 function nestedIds(filmModule: FilmModule): string[] {
   switch (filmModule.kind) {
     case "story": return filmModule.beats.map((item) => item.id);
@@ -106,6 +127,15 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     filmModule.kind === "characters" ? filmModule.characters.map((character) => character.id) : [],
   );
   const characterIds = new Set(characterRawIds);
+  const checkScopedSupport = (
+    support: ClaimSupport | undefined,
+    path: string,
+    claimLevel: SpoilerLevel,
+    required: boolean,
+  ) => {
+    checkSupport(support, path, evidenceIds, errors, required);
+    checkSupportSpoilerCeiling(support, path, claimLevel, evidenceById, errors, realFilm);
+  };
 
   if (isBlank(filmPackage.film.slug)) errors.push("film: slug is required.");
   if (isBlank(filmPackage.film.title)) errors.push("film: title is required.");
@@ -312,7 +342,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         for (const item of filmModule.characters) {
           if (isBlank(item.id)) errors.push(`${filmModule.id}: character id is required.`);
           if (published && isBlank(item.name)) errors.push(`${filmModule.id}/${item.id}: published character requires a name.`);
-          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+          checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, published);
         }
         break;
       case "relationship": {
@@ -330,7 +360,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         }
         if (published && filmModule.events.length === 0) errors.push(`${filmModule.id}: published relationship requires at least one event.`);
         for (const item of filmModule.events) {
-          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+          checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, published);
           const dimensions = (item.dimensions ?? []).map((shift) => shift.dimension);
           for (const dimension of duplicateIds(dimensions)) {
             errors.push(`${filmModule.id}/${item.id}: duplicate relationship dimension "${dimension}".`);
@@ -344,23 +374,26 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         break;
       }
       case "family-youth":
-        for (const item of filmModule.observations) checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+        for (const item of filmModule.observations) checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, published);
         break;
       case "meaning":
-        checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
+        checkScopedSupport(filmModule.support, filmModule.id, filmModule.spoilerLevel, published);
         break;
       case "teaching-signals":
-        for (const item of filmModule.signals) checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+        for (const item of filmModule.signals) checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, published);
         break;
       case "permission":
         for (const item of filmModule.assessments) {
           if (published && !item.confidence) errors.push(`${filmModule.id}/${item.id}: published permission assessment requires confidence.`);
-          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+          checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, published);
         }
         break;
       case "craft": {
-        const observationIds = new Set(filmModule.observations.map((item) => item.id));
-        for (const item of filmModule.observations) checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+        const observationsById = new Map(filmModule.observations.map((item) => [item.id, item]));
+        const observationIds = new Set(observationsById.keys());
+        for (const item of filmModule.observations) {
+          checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, published);
+        }
         for (const item of filmModule.pressureAssessments ?? []) {
           if (published && item.craftObservationIds.length === 0) {
             errors.push(`${filmModule.id}/${item.id}: published pressure assessment requires craft observation references.`);
@@ -369,9 +402,18 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
             errors.push(`${filmModule.id}/${item.id}: duplicate craft observation reference "${id}".`);
           }
           for (const id of item.craftObservationIds) {
-            if (!observationIds.has(id)) errors.push(`${filmModule.id}/${item.id}: unknown craft observation id "${id}".`);
+            if (!observationIds.has(id)) {
+              errors.push(`${filmModule.id}/${item.id}: unknown craft observation id "${id}".`);
+              continue;
+            }
+            const observation = observationsById.get(id);
+            if (realFilm && observation && !canRevealSpoiler(item.spoilerLevel, observation.spoilerLevel)) {
+              errors.push(
+                `${filmModule.id}/${item.id}: craft observation "${id}" spoiler level "${observation.spoilerLevel}" exceeds assessment level "${item.spoilerLevel}".`,
+              );
+            }
           }
-          checkSupport(item.support, `${filmModule.id}/${item.id}`, evidenceIds, errors, published);
+          checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, published);
         }
         break;
       }
@@ -394,15 +436,20 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
             }
           }
         }
-        checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
+        checkScopedSupport(filmModule.support, filmModule.id, filmModule.spoilerLevel, published);
         for (const anchor of filmModule.anchors ?? []) {
           if (!evidenceIds.has(anchor.evidenceId)) {
             errors.push(`${filmModule.id}/${anchor.id}: unknown evidence id "${anchor.evidenceId}".`);
-          } else if (filmModule.sceneId && realFilm) {
+          } else if (realFilm) {
             const anchorEvidence = evidenceById.get(anchor.evidenceId);
-            if (anchorEvidence?.sceneId !== filmModule.sceneId) {
+            if (filmModule.sceneId && anchorEvidence?.sceneId !== filmModule.sceneId) {
               errors.push(
                 `${filmModule.id}/${anchor.id}: anchor evidence must belong to autopsy scene "${filmModule.sceneId}".`,
+              );
+            }
+            if (anchorEvidence && !canRevealSpoiler(filmModule.spoilerLevel, anchorEvidence.spoilerLevel)) {
+              errors.push(
+                `${filmModule.id}/${anchor.id}: anchor evidence "${anchor.evidenceId}" spoiler level "${anchorEvidence.spoilerLevel}" exceeds autopsy level "${filmModule.spoilerLevel}".`,
               );
             }
           }
@@ -427,7 +474,14 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         if (published && !filmModule.options.some((option) => option.availableAtDecisionTime)) {
           errors.push(`${filmModule.id}: published decision requires at least one option available at decision time.`);
         }
-        if (filmModule.editorialJudgment) checkSupport(filmModule.editorialJudgment.support, `${filmModule.id}/editorial-judgment`, evidenceIds, errors, published);
+        if (filmModule.editorialJudgment) {
+          checkScopedSupport(
+            filmModule.editorialJudgment.support,
+            `${filmModule.id}/editorial-judgment`,
+            filmModule.editorialJudgment.spoilerLevel,
+            published,
+          );
+        }
         break;
       }
       case "moral-analysis":
@@ -457,7 +511,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
       case "biblical-synthesis":
         if (published && filmModule.scriptureRefs.length === 0) errors.push(`${filmModule.id}: published biblical synthesis requires Scripture references.`);
         for (const ref of duplicateIds(filmModule.scriptureRefs)) errors.push(`${filmModule.id}: duplicate Scripture reference "${ref}".`);
-        checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
+        checkScopedSupport(filmModule.support, filmModule.id, filmModule.spoilerLevel, published);
         break;
       case "final-synthesis": {
         const facetKeys = filmModule.facets.map((facet) => facet.key);
@@ -469,7 +523,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
           if (isBlank(filmModule.thesis)) errors.push(`${filmModule.id}: published synthesis requires a thesis.`);
           if (isBlank(filmModule.verdict)) errors.push(`${filmModule.id}: published synthesis requires a verdict.`);
         }
-        checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
+        checkScopedSupport(filmModule.support, filmModule.id, filmModule.spoilerLevel, published);
         break;
       }
       case "sources-method": break;
