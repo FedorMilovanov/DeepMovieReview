@@ -95,6 +95,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   const allSources = sourcesModules.flatMap((sourceModule) => sourceModule.sources);
   const sourceRawIds = allSources.map((item) => item.id);
   const sourceIds = new Set(sourceRawIds);
+  const sourcesById = new Map(allSources.map((source) => [source.id, source]));
   const characterRawIds = filmPackage.modules.flatMap((filmModule) =>
     filmModule.kind === "characters" ? filmModule.characters.map((character) => character.id) : [],
   );
@@ -121,6 +122,41 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   if (published && evidenceIds.size === 0) errors.push("published package requires canonical evidence records.");
   if (published && !filmPackage.modules.some((filmModule) => filmModule.kind === "final-synthesis")) {
     errors.push("published package requires a final-synthesis module.");
+  }
+
+  if (filmPackage.film.status !== "fixture") {
+    const edition = filmPackage.ingest?.edition;
+    if (!edition) {
+      errors.push("film: real-film package requires ingest.edition metadata.");
+    } else {
+      const editionSource = sourcesById.get(edition.sourceId);
+      if (!editionSource) {
+        errors.push(`film: ingest edition references unknown source id "${edition.sourceId}".`);
+      } else if (editionSource.kind !== "film-edition") {
+        errors.push(`film: ingest edition source "${edition.sourceId}" must have kind "film-edition".`);
+      }
+
+      if (edition.state === "TARGET_ONLY") {
+        if (isBlank(edition.note)) errors.push("film: TARGET_ONLY edition state requires a note.");
+        if (published) errors.push("film: published package requires a LOCKED edition.");
+        if (evidence.length > 0) {
+          errors.push("film: canonical evidence requires a LOCKED edition, not TARGET_ONLY.");
+        }
+      } else {
+        if (isBlank(edition.editionIdentity)) errors.push("film: LOCKED edition requires editionIdentity.");
+        if (isBlank(edition.measuredRuntime)) errors.push("film: LOCKED edition requires measuredRuntime.");
+        if (isBlank(edition.timestampConvention)) errors.push("film: LOCKED edition requires timestampConvention.");
+        if (isBlank(edition.verifiedAt)) errors.push("film: LOCKED edition requires verifiedAt.");
+
+        for (const item of evidence) {
+          if (!(item.sourceIds ?? []).includes(edition.sourceId)) {
+            errors.push(
+              `evidence/${item.id}: real-film canonical evidence must reference locked film-edition source "${edition.sourceId}".`,
+            );
+          }
+        }
+      }
+    }
   }
 
   for (const sourceModule of sourcesModules) {
