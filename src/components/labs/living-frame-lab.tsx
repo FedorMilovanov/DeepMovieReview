@@ -99,6 +99,9 @@ export function LivingFrameLab() {
       pointerRef.current = null;
       resetFrame();
     }
+    if (effectiveVariant === "C") {
+      setShowDepth(false);
+    }
   }, [cancelPendingFrame, effectiveVariant, reducedMotion, resetFrame]);
 
   useEffect(() => () => {
