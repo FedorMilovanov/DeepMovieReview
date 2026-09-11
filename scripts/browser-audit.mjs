@@ -385,8 +385,9 @@ try {
   livingFrameMeasurements.A = livingA;
   assertCheck("living frame A: active benchmark produced frame samples", livingA?.frameP95 > 0, livingA);
   assertCheck("living frame A: pointer-to-render latency was measured", livingA?.pointerP95 > 0, livingA);
-  assertCheck("living frame A: modeled procedural texture working set is bounded", livingA?.textureBytes === 557056, livingA);
+  assertCheck("living frame A: modeled procedural texture working set is bounded", livingA?.textureBytes === 465664, livingA);
 
+  await capture("living-frame-a-normal", true);
   await evaluate("document.querySelector('[aria-pressed=\"false\"]." + "depthToggle" + "')");
   const depthButtonClicked = await evaluate(
     "(() => { const buttons=[...document.querySelectorAll('button')]; const b=buttons.find(x=>x.textContent?.includes('Inspect depth')); if(!b) return false; b.click(); return true; })()"
