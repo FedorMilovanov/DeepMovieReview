@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import type { Mesh } from "three";
@@ -29,7 +30,7 @@ type DepthMeshSceneProps = {
   inspectDepth: boolean;
   reducedMotion: boolean;
   benchmarkToken: number;
-  pendingPointerTimestampRef: React.MutableRefObject<number | null>;
+  pendingPointerTimestampRef: MutableRefObject<number | null>;
   onPointerLatency: (latencyMs: number) => void;
   onBenchmarkComplete: (benchmark: LivingFrameGpuBenchmark) => void;
 };
