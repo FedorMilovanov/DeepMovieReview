@@ -1,7 +1,7 @@
 # DeepMovieReview — Film Domain Modules v0
 
-> Status: pre-Film-001 renderer contract  
-> Purpose: close the gap between the homepage analytical promise and the reusable film package before real editorial production begins.
+> Status: implemented Film 001 renderer foundation  
+> Purpose: record the domain-module boundary now used by the reusable film package during real editorial ingest.
 
 ## 1. Principle
 
@@ -123,7 +123,9 @@ Fixture statements:
 
 The second fixture intentionally remains sparse. Its purpose is to prove that a film does not have to instantiate every module kind.
 
-## 9. Exit criteria before Film 001
+## 9. Film 001 entry criteria — completed foundation
+
+These renderer-level criteria were satisfied before Film 001 moved into canonical ingest. They remain regression expectations:
 
 - the renderer switch is exhaustive for every registered module kind;
 - the pilot fixture renders all core domains without route-specific branches;
@@ -133,4 +135,4 @@ The second fixture intentionally remains sparse. Its purpose is to prove that a 
 - Teaching Signals remain distinct from Narrative Permission;
 - Craft sympathy does not imply endorsement;
 - Decision separates hindsight from knowledge at decision time;
-- typecheck, lint and production build pass on the exact PR head.
+- typecheck, lint, production build and browser audit pass on the exact checked-out revision.
