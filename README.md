@@ -39,6 +39,7 @@ The shell now proves the main architectural boundaries that Film 001 will depend
 - machine-readable real-film edition locking: `TARGET_ONLY` packages cannot contain canonical scenes/evidence, while `LOCKED` evidence must cite the exact locked `film-edition` source;
 - canonical edition-bound `scenes[]` with numeric time ranges and verification state; real-film evidence scene references must resolve to verified scenes and numeric evidence timestamps are range-checked;
 - spoiler monotonicity from scene → evidence/autopsy: derived scene content may stay at the same level or become more restricted, never less restricted than its canonical scene;
+- publication locator integrity: published real-film scenes must be VERIFIED and every published evidence record must include a canonical scene ID plus numeric timestamp in the locked master;
 - canonical evidence records shared by interpretive claims instead of copied prose evidence;
 - structured Story, Characters, Relationships, Family/Youth, Meaning, Teaching Signals, Narrative Permission, Craft, Scene Autopsy, Decision, Moral Analysis, Biblical Synthesis, Final Synthesis and Sources/Method modules;
 - one spoiler projection stage that removes forbidden nested data **before** presentation; the projected module array is shared by outline and renderer, and real featured-film homepage data is reduced to spoiler-safe `NONE` content before composition;
