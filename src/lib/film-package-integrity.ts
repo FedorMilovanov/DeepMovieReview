@@ -295,11 +295,11 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     }
 
     if (realFilm) {
-      if (published && !item.sceneId) {
-        errors.push(`evidence/${item.id}: published real-film evidence requires a canonical sceneId.`);
+      if (!item.sceneId) {
+        errors.push(`evidence/${item.id}: real-film evidence requires a canonical sceneId.`);
       }
-      if (published && item.timestampSeconds === undefined) {
-        errors.push(`evidence/${item.id}: published real-film evidence requires timestampSeconds.`);
+      if (item.timestampSeconds === undefined) {
+        errors.push(`evidence/${item.id}: real-film evidence requires timestampSeconds.`);
       }
       if (item.timestamp !== undefined) {
         errors.push(`evidence/${item.id}: real-film evidence must use timestampSeconds instead of legacy timestamp text.`);
