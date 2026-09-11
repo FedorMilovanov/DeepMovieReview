@@ -13,15 +13,20 @@ type FilmTransitionLinkProps = {
   children: ReactNode;
 };
 
-function waitForNavigation(pathname: string): Promise<void> {
+function waitForNavigation(pathname: string, targetSelector: string): Promise<void> {
   return new Promise((resolve) => {
-    const deadline = performance.now() + 3000;
+    const deadline = performance.now() + 5000;
 
     function check() {
-      if (window.location.pathname === pathname || performance.now() >= deadline) {
+      const routeCommitted =
+        window.location.pathname === pathname &&
+        document.querySelector(targetSelector) !== null;
+
+      if (routeCommitted || performance.now() >= deadline) {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
         return;
       }
+
       requestAnimationFrame(check);
     }
 
@@ -65,7 +70,7 @@ export function FilmTransitionLink({
         await animateView(
           async () => {
             router.push(href);
-            await waitForNavigation(target.pathname);
+            await waitForNavigation(target.pathname, selector);
           },
           { duration: 0.44, ease: [0.22, 1, 0.36, 1] },
         )
