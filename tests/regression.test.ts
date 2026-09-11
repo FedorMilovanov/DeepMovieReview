@@ -650,12 +650,12 @@ test("published character deep fields require interpretive support separately fr
       thesis: "Thesis",
       verdict: "Verdict",
       facets: [
-        { key: "CRAFT", label: "Craft", value: "Value", confidence: "HIGH" },
-        { key: "MORAL_CLARITY", label: "Moral clarity", value: "Value", confidence: "HIGH" },
-        { key: "DEPICTED_EVIL", label: "Depicted evil", value: "Value", confidence: "HIGH" },
-        { key: "ROMANTICIZATION", label: "Romanticization", value: "Value", confidence: "HIGH" },
-        { key: "DECISION_COMPLEXITY", label: "Decision complexity", value: "Value", confidence: "HIGH" },
-        { key: "REDEMPTIVE_DIRECTION", label: "Redemptive direction", value: "Value", confidence: "HIGH" },
+        { key: "CRAFT", label: "Craft", value: "Value" },
+        { key: "MORAL_CLARITY", label: "Moral clarity", value: "Value" },
+        { key: "DEPICTED_EVIL", label: "Depicted evil", value: "Value" },
+        { key: "ROMANTICIZATION", label: "Romanticization", value: "Value" },
+        { key: "DECISION_COMPLEXITY", label: "Decision complexity", value: "Value" },
+        { key: "REDEMPTIVE_DIRECTION", label: "Redemptive direction", value: "Value" },
       ],
       support: { evidenceIds: ["evidence-1"] },
     }, {
