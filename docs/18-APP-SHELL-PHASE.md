@@ -115,8 +115,8 @@ A complete film is a separate major workstream. One serious film package may req
 ### Structured data
 
 - stable IDs;
-- edition/timestamps;
-- scenes;
+- machine-readable edition lock / timestamp origin;
+- canonical scenes with numeric start/end ranges and verification state;
 - characters;
 - relationships/events;
 - claims/evidence;
