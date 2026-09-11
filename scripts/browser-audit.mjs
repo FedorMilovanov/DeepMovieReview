@@ -169,6 +169,18 @@ try {
     throw new Error("Navigation did not reach " + pathname + ".");
   }
 
+  async function waitForSelector(selector, attempts = 100) {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const found = await evaluate("Boolean(document.querySelector(" + JSON.stringify(selector) + "))");
+      if (found) {
+        await sleep(120);
+        return;
+      }
+      await sleep(50);
+    }
+    throw new Error("Selector did not become ready: " + selector);
+  }
+
   async function navigate(pathname, width, height, reducedMotion = false, forcedColors = false) {
     await send("Emulation.setDeviceMetricsOverride", {
       width,
@@ -285,6 +297,7 @@ try {
   const routeTransitionActive = await evaluate("document.documentElement.dataset.routeTransition === 'active'");
   assertCheck("film navigation: transition lifecycle activates", routeTransitionActive);
   await waitForPath("/films/pilot-film");
+  await waitForSelector('[data-film-transition-media="pilot-film"].filmMediaFrameHero');
   const transitionTarget = await evaluate("Boolean(document.querySelector('[data-film-transition-media=\"pilot-film\"].filmMediaFrameHero'))");
   assertCheck("film navigation: shared media target exists after route commit", transitionTarget);
   await inspectBasic("film shared transition target");
@@ -302,6 +315,7 @@ try {
   const reducedTransitionActive = await evaluate("document.documentElement.dataset.routeTransition === 'active'");
   assertCheck("film navigation reduced motion: shared transition is bypassed", !reducedTransitionActive);
   await waitForPath("/films/pilot-film");
+  await waitForSelector('[data-film-transition-media="pilot-film"].filmMediaFrameHero');
 
   await navigate("/labs/six-lenses", 1280, 900);
   const six = await inspectBasic("six lenses");
