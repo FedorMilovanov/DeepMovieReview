@@ -372,6 +372,29 @@ export type SourcesMethodModule = FilmModuleBase & {
   }>;
 };
 
+export type FilmEditionLock =
+  | {
+      state: "TARGET_ONLY";
+      sourceId: string;
+      note: string;
+    }
+  | {
+      state: "LOCKED";
+      sourceId: string;
+      editionIdentity: string;
+      measuredRuntime: string;
+      timestampConvention: string;
+      verifiedAt: string;
+      frameRate?: string;
+      audioTrack?: string;
+      subtitleTrack?: string;
+      masterDigest?: string;
+    };
+
+export type FilmIngestMetadata = {
+  edition: FilmEditionLock;
+};
+
 export type FilmModule =
   | StoryModule
   | CharactersModule
@@ -391,6 +414,11 @@ export type FilmModule =
 export type FilmPackage = {
   schemaVersion: 1;
   film: ShellFilm;
+  /**
+   * Real-film ingest state. Fixtures intentionally omit this.
+   * TARGET_ONLY blocks canonical evidence; LOCKED identifies the exact viewing master.
+   */
+  ingest?: FilmIngestMetadata;
   /** Stable evidence graph shared by every analytical module. */
   evidence?: EvidenceRecord[];
   modules: FilmModule[];
