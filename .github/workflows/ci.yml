@@ -42,6 +42,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Verify npm install-script policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(npm config get strict-allow-scripts)" = "true"
+
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
 
