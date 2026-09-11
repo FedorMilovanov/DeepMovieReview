@@ -317,7 +317,14 @@ try {
     for (let index = 0; index < 8; index += 1) {
       const x = livingFrameBounds.left + livingFrameBounds.width * (0.25 + (index % 4) * 0.16);
       const y = livingFrameBounds.top + livingFrameBounds.height * (0.34 + (index % 3) * 0.12);
-      await send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y, button: "none" });
+      await evaluate(
+        "(() => {" +
+          "const n=document.querySelector('[data-living-frame-rd] [data-variant]');" +
+          "if(!n) return false;" +
+          "n.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:" + x + ",clientY:" + y + "}));" +
+          "return true;" +
+        "})()"
+      );
       await sleep(35);
     }
   }
@@ -353,7 +360,14 @@ try {
     for (let index = 0; index < 8; index += 1) {
       const x = gpuFrameBounds.left + gpuFrameBounds.width * (0.28 + (index % 4) * 0.14);
       const y = gpuFrameBounds.top + gpuFrameBounds.height * (0.36 + (index % 3) * 0.1);
-      await send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y, button: "none" });
+      await evaluate(
+        "(() => {" +
+          "const n=document.querySelector('[data-gpu-status]');" +
+          "if(!n) return false;" +
+          "n.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:" + x + ",clientY:" + y + "}));" +
+          "return true;" +
+        "})()"
+      );
       await sleep(45);
     }
 
