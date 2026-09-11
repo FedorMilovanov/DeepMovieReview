@@ -90,6 +90,8 @@ Therefore Film 001 ingest must not copy timestamps from a web runtime. Before sc
 
 - Paramount Pictures film page — production identity, cast / crew, official synopsis and current runtime metadata:
   https://www.paramountpictures.com/movies/the-truman-show
+- Blu-ray.com 25th Anniversary Paramount 4K release metadata — 103 min, native 4K, 1.85:1 presentation; use as edition metadata only, not as editorial evidence:
+  https://www.blu-ray.com/movies/The-Truman-Show-4K-Blu-ray/337202/
 - American Society of Cinematographers — Peter Weir / Peter Biziou discussion of artificial light, surveillance framing and the visual construction of Seahaven:
   https://theasc.com/article/the-truman-show-cinematography/
 - BFI production interview — development history and the fact that the screenplay went through many drafts:
