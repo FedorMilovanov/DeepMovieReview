@@ -37,7 +37,8 @@ Secondary sources may corroborate craft intent or production context after the f
 | `truman-4k-release-metadata` | Blu-ray.com 25th Anniversary release listing | secondary edition metadata | resolution/runtime/aspect-ratio cross-check | film-content evidence |
 | `truman-paramount-official` | Paramount Pictures film page | official production metadata | year, genre, cast/crew, official synopsis, current runtime listing | detailed scene interpretation |
 | `truman-asc-cinematography` | American Society of Cinematographers | first-person craft / production context | cinematography intent, lighting strategy, lens/framing research, production methods | silently replacing direct observation of the released film |
-| `truman-bfi-catalog` | BFI film catalogue | secondary catalogue metadata | independent runtime / production metadata cross-check | defining canonical runtime from a web listing |\n| `truman-bfi-development` | BFI interview with Andrew Niccol | development-history source | screenplay evolution, draft history, writer recollection | assuming discarded draft material survives in the final cut |
+| `truman-bfi-catalog` | BFI film catalogue | secondary catalogue metadata | independent runtime / production metadata cross-check | defining canonical runtime from a web listing |
+| `truman-bfi-development` | BFI interview with Andrew Niccol | development-history source | screenplay evolution, draft history, writer recollection | assuming discarded draft material survives in the final cut |
 | `truman-script-research` | ScriptSlug shooting-script research copy | screenplay text witness | comparison after film scene is identified | treating screenplay wording/staging as authoritative final-cut evidence |
 
 ---
