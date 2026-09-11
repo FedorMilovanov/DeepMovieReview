@@ -145,23 +145,19 @@
 - How are alternate cuts represented?
 - How much copyrighted dialogue may be quoted vs paraphrased?
 
-## 18. Pilot film
+## 18. Film 001 — selection resolved, ingest questions remain
 
-Select one film using the expanded criteria in `07-ROADMAP.md`.
+**Resolved:** Film 001 is **The Truman Show (1998)**. See `28-PILOT-FILM-SELECTION.md`.
 
-Candidates should be scored on:
+Remaining Film 001 questions belong to ingest/editorial production rather than title selection:
 
-- recognizability;
-- plot/character richness;
-- at least one meaningful relationship arc;
-- theme/message clarity with counterevidence;
-- moral-event diversity;
-- dilemma quality where available;
-- psychological depth;
-- depiction/endorsement or Narrative Permission ambiguity;
-- visual suitability;
-- availability of accurate edition/timestamps;
-- legal/asset strategy.
+- Which exact Paramount 25th Anniversary 4K master / region will be the canonical editorial edition?
+- What timestamp convention will be used across editorial evidence?
+- Which Scene Autopsy candidate survives a full scene-by-scene evidence pass?
+- Which claims remain stable after counterevidence and independent editorial review?
+- Which original/editorial visual masters can be produced without implying that generated art is an actual film frame?
+
+Track the active ingest boundary in `29-FILM-001-INGEST-STATUS.md`.
 
 ## 19. Homepage launch cut
 
