@@ -1417,3 +1417,155 @@ test("published real-film packages reject draft scenes and unlocated evidence", 
   assert.ok(errors.includes("evidence/unlocated-evidence: published real-film evidence requires a canonical sceneId."));
   assert.ok(errors.includes("evidence/unlocated-evidence: published real-film evidence requires timestampSeconds."));
 });
+
+
+test("real-film claim support cannot depend on more revealing evidence", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "claim-support-spoiler-gate",
+      title: "Claim Support Spoiler Gate",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [{
+      id: "scene-safe",
+      sequenceIndex: 0,
+      startTimestampSeconds: 100,
+      endTimestampSeconds: 180,
+      shortLabel: "Safe scene",
+      spoilerLevel: "NONE",
+      verificationState: "VERIFIED",
+    }],
+    evidence: [
+      {
+        id: "evidence-none",
+        label: "Safe evidence",
+        observation: "Safe observation",
+        sceneId: "scene-safe",
+        timestampSeconds: 110,
+        sourceIds: ["film-master"],
+        spoilerLevel: "NONE",
+      },
+      {
+        id: "evidence-minor",
+        label: "Protected evidence",
+        observation: "Protected observation",
+        sceneId: "scene-safe",
+        timestampSeconds: 120,
+        sourceIds: ["film-master"],
+        spoilerLevel: "MINOR",
+      },
+    ],
+    modules: [
+      {
+        id: "meaning-low",
+        kind: "meaning",
+        heading: "Meaning",
+        spoilerLevel: "NONE",
+        theme: "Theme",
+        question: "Question?",
+        apparentClaim: "Low-level claim",
+        counterevidence: "Counterevidence",
+        confidence: "MEDIUM",
+        support: { evidenceIds: ["evidence-minor"] },
+      },
+      {
+        id: "meaning-safe",
+        kind: "meaning",
+        heading: "Meaning safe",
+        spoilerLevel: "MINOR",
+        theme: "Theme",
+        question: "Question?",
+        apparentClaim: "Protected claim",
+        counterevidence: "Counterevidence",
+        confidence: "MEDIUM",
+        support: { evidenceIds: ["evidence-none"] },
+      },
+      {
+        id: "craft",
+        kind: "craft",
+        heading: "Craft",
+        spoilerLevel: "NONE",
+        observations: [{
+          id: "craft-minor",
+          mechanism: "LIGHTING",
+          observation: "Protected craft observation",
+          interpretiveEffect: "Protected effect",
+          confidence: "MEDIUM",
+          spoilerLevel: "MINOR",
+        }],
+        pressureAssessments: [{
+          id: "pressure-none",
+          kind: "EMPATHY",
+          rationale: "Low-level pressure assessment",
+          craftObservationIds: ["craft-minor"],
+          confidence: "MEDIUM",
+          spoilerLevel: "NONE",
+        }],
+      },
+      {
+        id: "autopsy-low",
+        kind: "autopsy",
+        heading: "Autopsy",
+        spoilerLevel: "NONE",
+        sceneId: "scene-safe",
+        sceneLabel: "Safe scene",
+        act: "Act",
+        motive: "Motive",
+        knowledge: "Knowledge",
+        pressure: "Pressure",
+        consequence: "Consequence",
+        claim: "Low-level autopsy claim",
+        anchors: [{
+          id: "anchor-minor",
+          label: "Protected anchor",
+          evidenceId: "evidence-minor",
+          point: { x: 0.5, y: 0.5 },
+        }],
+      },
+      {
+        id: "sources",
+        kind: "sources-method",
+        heading: "Sources",
+        spoilerLevel: "NONE",
+        methodologyVersion: "draft",
+        editorialRevision: "draft",
+        analyzedEdition: "Locked master",
+        sources: [{
+          id: "film-master",
+          label: "Locked master",
+          kind: "film-edition",
+        }],
+      },
+    ],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+
+  assert.ok(errors.includes(
+    'meaning-low: support evidence "evidence-minor" spoiler level "MINOR" exceeds claim level "NONE".'
+  ));
+  assert.equal(errors.some((error) => error.startsWith("meaning-safe: support evidence")), false);
+  assert.ok(errors.includes(
+    'craft/pressure-none: craft observation "craft-minor" spoiler level "MINOR" exceeds assessment level "NONE".'
+  ));
+  assert.ok(errors.includes(
+    'autopsy-low/anchor-minor: anchor evidence "evidence-minor" spoiler level "MINOR" exceeds autopsy level "NONE".'
+  ));
+});
