@@ -39,6 +39,8 @@ The gate is machine-readable through `FilmPackage.ingest.edition`:
 - a scene must be `VERIFIED` before canonical evidence or a Scene Autopsy may reference it;
 - real-film evidence may use `timestampSeconds` only with a canonical `sceneId`, and the point must fall inside the verified scene range;
 - scene-linked evidence and Scene Autopsy modules cannot use a lower spoiler level than the canonical scene they derive from;
+- publication requires every real-film scene to be `VERIFIED`;
+- publication requires every real-film evidence record to carry both a canonical `sceneId` and numeric `timestampSeconds`, so another editor can reproduce the observation in the locked master;
 - every canonical evidence record for a real film must reference the locked `film-edition` source;
 - published real-film packages cannot remain `TARGET_ONLY`.
 
