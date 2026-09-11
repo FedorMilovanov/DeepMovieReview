@@ -411,6 +411,16 @@ test("published character profiles require canonical evidence support", () => {
       thesisQuestion: "Question?",
       status: "published",
     },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "source-1",
+        editionIdentity: "Regression test editorial master",
+        measuredRuntime: "100:00",
+        timestampConvention: "00:00:00 starts at first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
     evidence: [{
       id: "evidence-1",
       label: "Evidence",
@@ -490,4 +500,194 @@ test("decision modules disappear when the current spoiler level removes every us
   }, "NONE");
 
   assert.equal(projected, null);
+});
+
+
+test("real-film drafts require machine-readable edition ingest state", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "real-draft-without-ingest",
+      title: "Real Draft",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Target only",
+      sources: [{
+        id: "film-master",
+        label: "Target master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("film: real-film package requires ingest.edition metadata."));
+});
+
+test("TARGET_ONLY real-film edition blocks canonical evidence", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "target-only-draft",
+      title: "Target Only Draft",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "TARGET_ONLY",
+        sourceId: "film-master",
+        note: "Target selected; exact master not acquired.",
+      },
+    },
+    evidence: [{
+      id: "premature-evidence",
+      label: "Premature evidence",
+      observation: "This must not be accepted before the exact master is locked.",
+      sourceIds: ["film-master"],
+      spoilerLevel: "NONE",
+    }],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Target only",
+      sources: [{
+        id: "film-master",
+        label: "Target master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("film: canonical evidence requires a LOCKED edition, not TARGET_ONLY."));
+});
+
+test("LOCKED real-film evidence must cite the locked film-edition source", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "locked-draft",
+      title: "Locked Draft",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Disc / region / file identity",
+        measuredRuntime: "100:00",
+        timestampConvention: "00:00:00 starts at first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    evidence: [{
+      id: "secondary-only",
+      label: "Secondary-only claim",
+      observation: "A web source cannot stand in for observation of the locked film.",
+      sourceIds: ["secondary-source"],
+      spoilerLevel: "NONE",
+    }],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Locked master",
+      sources: [
+        {
+          id: "film-master",
+          label: "Locked master",
+          kind: "film-edition",
+        },
+        {
+          id: "secondary-source",
+          label: "Secondary research",
+          kind: "reference",
+          href: "https://example.com/research",
+        },
+      ],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.some((error) =>
+    error.includes("evidence/secondary-only") &&
+    error.includes('must reference locked film-edition source "film-master"')
+  ));
+});
+
+test("LOCKED edition source must resolve to a film-edition source", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "wrong-lock-source-kind",
+      title: "Wrong Lock Source Kind",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "metadata-page",
+        editionIdentity: "Not actually a viewing master",
+        measuredRuntime: "100:00",
+        timestampConvention: "00:00:00",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Bad lock",
+      sources: [{
+        id: "metadata-page",
+        label: "Metadata page",
+        kind: "reference",
+        href: "https://example.com/metadata",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes('film: ingest edition source "metadata-page" must have kind "film-edition".'));
 });
