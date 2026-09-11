@@ -37,7 +37,7 @@ Secondary sources may corroborate craft intent or production context after the f
 | `truman-4k-release-metadata` | Blu-ray.com 25th Anniversary release listing | secondary edition metadata | resolution/runtime/aspect-ratio cross-check | film-content evidence |
 | `truman-paramount-official` | Paramount Pictures film page | official production metadata | year, genre, cast/crew, official synopsis, current runtime listing | detailed scene interpretation |
 | `truman-asc-cinematography` | American Society of Cinematographers | first-person craft / production context | cinematography intent, lighting strategy, lens/framing research, production methods | silently replacing direct observation of the released film |
-| `truman-bfi-development` | BFI interview with Andrew Niccol | development-history source | screenplay evolution, draft history, writer recollection | assuming discarded draft material survives in the final cut |
+| `truman-bfi-catalog` | BFI film catalogue | secondary catalogue metadata | independent runtime / production metadata cross-check | defining canonical runtime from a web listing |\n| `truman-bfi-development` | BFI interview with Andrew Niccol | development-history source | screenplay evolution, draft history, writer recollection | assuming discarded draft material survives in the final cut |
 | `truman-script-research` | ScriptSlug shooting-script research copy | screenplay text witness | comparison after film scene is identified | treating screenplay wording/staging as authoritative final-cut evidence |
 
 ---
@@ -339,3 +339,21 @@ Once the exact edition is available, this dossier should produce:
 6. first Character and Relationship modules.
 
 Until then this file remains a **secondary research dossier**, not the FilmPackage's evidence ledger.
+
+
+---
+
+## 12. Reference URLs
+
+- Paramount Pictures — The Truman Show:
+  https://www.paramountpictures.com/movies/the-truman-show
+- Paramount 25th Anniversary 4K release metadata:
+  https://www.blu-ray.com/movies/The-Truman-Show-4K-Blu-ray/337202/
+- American Society of Cinematographers — Inside the Cinematography of The Truman Show:
+  https://theasc.com/article/the-truman-show-cinematography/
+- BFI catalogue record:
+  https://www.bfi.org.uk/film/7678fd69-38bd-5728-b5f7-01ad5f6d8849/the-truman-show
+- BFI — How we made The Truman Show:
+  https://www.bfi.org.uk/interviews/how-we-made-truman-show-20th-anniversary
+- Andrew Niccol shooting-script research copy:
+  https://assets.scriptslug.com/live/pdf/scripts/the-truman-show-1998.pdf
