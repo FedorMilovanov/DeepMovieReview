@@ -85,6 +85,8 @@ Relationship, Family/Youth and Moral Analysis module-level summaries are also ed
 
 Real-film Story structure is evidence-backed as well: the module summary has `summarySupport`, each plot beat has its own canonical `support`, and every supported evidence record already resolves to a verified scene/timestamp in the locked master.
 
+Decision / Knowledge Fog uses the same rule before judgment is added: each option, knowledge-state fact, pressure and duty/good is a claim about the decision-time situation and therefore carries its own canonical `support`. The optional editorial judgment keeps a separate support graph.
+
 When an interpretation depends on a filmmaker interview rather than on-screen evidence, that distinction must remain explicit.
 
 ## 4. First scene-inventory pass
