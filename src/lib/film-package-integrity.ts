@@ -5,7 +5,7 @@ import type {
   FinalSynthesisFacetKey,
   SourcesMethodModule,
 } from "@/lib/film-package";
-import { canRevealSpoiler } from "@/lib/spoilers";
+import { canRevealSpoiler } from "./spoilers";
 
 const REQUIRED_FINAL_FACETS: FinalSynthesisFacetKey[] = [
   "CRAFT",
