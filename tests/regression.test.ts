@@ -957,6 +957,49 @@ test("decision modules disappear when the current spoiler level removes every us
 });
 
 
+test("real-film drafts require methodology revision and analyzed-edition metadata", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "source-metadata-required",
+      title: "Source Metadata Required",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "TARGET_ONLY",
+        sourceId: "film-master",
+        note: "Target selected.",
+      },
+    },
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "",
+      editorialRevision: "",
+      analyzedEdition: "",
+      sources: [{
+        id: "film-master",
+        label: "Target master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("sources: methodologyVersion is required for real-film analysis."));
+  assert.ok(errors.includes("sources: editorialRevision is required for real-film analysis."));
+  assert.ok(errors.includes("sources: analyzedEdition is required for real-film analysis."));
+});
+
 test("real-film drafts require machine-readable edition ingest state", () => {
   const filmPackage: FilmPackage = {
     schemaVersion: 1,
