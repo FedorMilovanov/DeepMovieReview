@@ -84,6 +84,14 @@ jobs:
             exit 1
           fi
 
+          curl --fail --silent --show-error --dump-header /tmp/home.headers --output /dev/null http://127.0.0.1:3210/
+          grep -Fqi 'content-security-policy:' /tmp/home.headers
+          grep -Fqi "frame-ancestors 'none'" /tmp/home.headers
+          grep -Fqi 'x-content-type-options: nosniff' /tmp/home.headers
+          grep -Fqi 'x-frame-options: DENY' /tmp/home.headers
+          grep -Fqi 'referrer-policy: strict-origin-when-cross-origin' /tmp/home.headers
+          grep -Fqi 'permissions-policy: camera=(), microphone=(), geolocation=(), payment=()' /tmp/home.headers
+
           if grep -Fq 'Open structural fixture' /tmp/home.html; then
             site_state="prelaunch"
             if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
