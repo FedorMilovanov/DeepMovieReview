@@ -99,9 +99,6 @@ export function LivingFrameLab() {
       pointerRef.current = null;
       resetFrame();
     }
-    if (effectiveVariant === "C") {
-      setShowDepth(false);
-    }
   }, [cancelPendingFrame, effectiveVariant, reducedMotion, resetFrame]);
 
   useEffect(() => () => {
@@ -274,7 +271,10 @@ export function LivingFrameLab() {
               key={variant}
               className={styles.variantButton}
               aria-pressed={selectedVariant === variant}
-              onClick={() => setSelectedVariant(variant)}
+              onClick={() => {
+                setSelectedVariant(variant);
+                if (variant === "C") setShowDepth(false);
+              }}
               data-living-frame-variant={variant}
             >
               <strong>{variantCopy[variant].label}</strong>
@@ -303,7 +303,7 @@ export function LivingFrameLab() {
               disabled={effectiveVariant === "C"}
               onClick={() => setShowDepth((value) => !value)}
             >
-              {showDepth ? "Hide depth" : "Inspect depth"}
+              {effectiveVariant === "C" ? "Inspect depth" : showDepth ? "Hide depth" : "Inspect depth"}
             </button>
             <button
               className={styles.depthToggle}
