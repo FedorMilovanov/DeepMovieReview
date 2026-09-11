@@ -27,7 +27,7 @@ The semantic shell, bounded visual R&D, adaptive experience layer and reusable F
 - `src/lib/film-package.ts` is the canonical runtime content contract. Do not reintroduce a parallel homepage/editorial schema.
 - Homepage content is a read-model produced by `src/lib/homepage-projection.ts`, not a second hand-authored review. Do not make optional analytical slices mandatory merely to satisfy homepage composition.
 - `src/lib/film-package-integrity.ts` is a publish/build gate. Never bypass or weaken referential validation to make fixture data compile.
-- High-level interpretive claims in published packages must trace to canonical evidence/source records.
+- Every high-level interpretive claim in a real-film package — including draft authoring after master lock — must trace to canonical evidence/source records. Do not use draft status as a bypass for unsupported analysis.
 - Real-film packages must declare `FilmPackage.ingest.edition`. `TARGET_ONLY` forbids canonical scenes/evidence **and all analytical modules except `sources-method`**; only `LOCKED` may own real-film analysis, `scenes[]` and evidence, and every evidence record must reference that locked `film-edition` source. Never bypass this gate to accelerate Film 001 authoring.
 - Canonical real-film scenes live in `FilmPackage.scenes` with numeric timestamp seconds and verification state. Evidence `sceneId` references must resolve to `VERIFIED` scenes; numeric evidence timestamps must fall inside the referenced scene range.
 - Scene-linked evidence and Scene Autopsy modules may be **equally or more** spoiler-restricted than their canonical scene, never less. Do not downgrade a protected scene by labeling derived evidence/module content `NONE` or another lower level.
