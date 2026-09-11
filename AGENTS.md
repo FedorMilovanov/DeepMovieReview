@@ -11,16 +11,16 @@ Before changing product behavior, data contracts or visual language, read:
 
 ## Current implementation phase
 
-Phase 0.7 — architecture cleanup / vertical-slice readiness.
+Phase 1 — Film 001 vertical slice / canonical ingest.
 
-The semantic shell, bounded visual R&D, adaptive experience layer and reusable FilmPackage renderer exist. The immediate goal is to finish hardening these foundations before Film 001 introduces authoritative editorial content or production art.
+The semantic shell, bounded visual R&D, adaptive experience layer and reusable FilmPackage renderer are hardened. Film 001 is **The Truman Show (1998)**. The immediate goal is to lock the exact editorial master, build a canonical scene/evidence ledger, and author reviewed analytical modules without letting secondary sources or memory substitute for the finished film.
 
 ## Non-negotiable implementation boundaries
 
 - Next.js 16.3.x App Router + strict TypeScript. Prefer Server Components unless browser state or interaction requires a client boundary.
 - Meaningful content, navigation, evidence and conclusions stay in semantic DOM. GPU is progressive enhancement.
 - Application routes and projections read film data only through `src/data/film-registry.ts`.
-- `src/data/film-fixtures.ts` is the raw construction source for structural fixtures. Do not import it from routes or presentation components.
+- `src/data/film-fixtures.ts` is the raw construction source for structural fixtures. Real film packages live separately under `src/data/films/`. Do not import either raw source from routes or presentation components; application reads go through `src/data/film-registry.ts`.
 - `src/lib/film-package.ts` is the canonical runtime content contract. Do not reintroduce a parallel homepage/editorial schema.
 - Homepage content is a read-model produced by `src/lib/homepage-projection.ts`, not a second hand-authored review. Do not make optional analytical slices mandatory merely to satisfy homepage composition.
 - `src/lib/film-package-integrity.ts` is a publish/build gate. Never bypass or weaken referential validation to make fixture data compile.
