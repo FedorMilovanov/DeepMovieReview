@@ -421,10 +421,21 @@ test("published character profiles require canonical evidence support", () => {
         verifiedAt: "2026-09-11",
       },
     },
+    scenes: [{
+      id: "scene-1",
+      sequenceIndex: 0,
+      startTimestampSeconds: 100,
+      endTimestampSeconds: 160,
+      shortLabel: "Verified scene",
+      spoilerLevel: "NONE",
+      verificationState: "VERIFIED",
+    }],
     evidence: [{
       id: "evidence-1",
       label: "Evidence",
       observation: "Observed behavior",
+      sceneId: "scene-1",
+      timestampSeconds: 120,
       sourceIds: ["source-1"],
       spoilerLevel: "NONE",
     }],
@@ -1341,4 +1352,68 @@ test("scene autopsy cannot downgrade the spoiler level of its canonical scene", 
   assert.ok(errors.includes(
     'autopsy-none: spoiler level "NONE" cannot be lower than scene "scene-ending" level "ENDING".'
   ));
+});
+
+
+test("published real-film packages reject draft scenes and unlocated evidence", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "published-scene-location-gate",
+      title: "Published Scene Location Gate",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "published",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [{
+      id: "scene-draft",
+      sequenceIndex: 0,
+      startTimestampSeconds: 100,
+      endTimestampSeconds: 160,
+      shortLabel: "Draft scene",
+      spoilerLevel: "NONE",
+      verificationState: "DRAFT",
+    }],
+    evidence: [{
+      id: "unlocated-evidence",
+      label: "Unlocated evidence",
+      observation: "Published film evidence must be reproducibly locatable.",
+      sourceIds: ["film-master"],
+      spoilerLevel: "NONE",
+    }],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "v1",
+      editorialRevision: "r1",
+      analyzedEdition: "Locked test master",
+      lastReviewedAt: "2026-09-11",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("scene/scene-draft: published real-film scenes must be VERIFIED."));
+  assert.ok(errors.includes("evidence/unlocated-evidence: published real-film evidence requires a canonical sceneId."));
+  assert.ok(errors.includes("evidence/unlocated-evidence: published real-film evidence requires timestampSeconds."));
 });
