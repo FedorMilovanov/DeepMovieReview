@@ -343,7 +343,23 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
 
     switch (filmModule.kind) {
       case "story":
-        if (published && filmModule.beats.length === 0) errors.push(`${filmModule.id}: published story module requires at least one beat.`);
+        checkScopedSupport(
+          filmModule.summarySupport,
+          `${filmModule.id}/summary`,
+          filmModule.spoilerLevel,
+          realFilm,
+        );
+        if (realFilm && filmModule.beats.length === 0) {
+          errors.push(`${filmModule.id}: real-film story module requires at least one plot beat.`);
+        }
+        for (const beat of filmModule.beats) {
+          checkScopedSupport(
+            beat.support,
+            `${filmModule.id}/${beat.id}`,
+            beat.spoilerLevel,
+            realFilm,
+          );
+        }
         break;
       case "characters":
         for (const item of filmModule.characters) {
