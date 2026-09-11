@@ -1206,3 +1206,139 @@ test("scene autopsy anchors cannot point to evidence from another scene", () => 
   const errors = validateFilmPackage(filmPackage);
   assert.ok(errors.includes('autopsy-a/anchor-b: anchor evidence must belong to autopsy scene "scene-a".'));
 });
+
+
+test("real-film evidence cannot downgrade the spoiler level of its canonical scene", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "scene-spoiler-downgrade",
+      title: "Scene Spoiler Downgrade",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [{
+      id: "scene-major",
+      sequenceIndex: 0,
+      startTimestampSeconds: 100,
+      endTimestampSeconds: 160,
+      shortLabel: "Major scene",
+      spoilerLevel: "MAJOR",
+      verificationState: "VERIFIED",
+    }],
+    evidence: [{
+      id: "evidence-none",
+      label: "Downgraded evidence",
+      observation: "Evidence from a protected scene.",
+      sceneId: "scene-major",
+      timestampSeconds: 120,
+      sourceIds: ["film-master"],
+      spoilerLevel: "NONE",
+    }],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Locked",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes(
+    'evidence/evidence-none: spoiler level "NONE" cannot be lower than scene "scene-major" level "MAJOR".'
+  ));
+});
+
+test("scene autopsy cannot downgrade the spoiler level of its canonical scene", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "autopsy-spoiler-downgrade",
+      title: "Autopsy Spoiler Downgrade",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [{
+      id: "scene-ending",
+      sequenceIndex: 0,
+      startTimestampSeconds: 5000,
+      endTimestampSeconds: 5100,
+      shortLabel: "Ending scene",
+      spoilerLevel: "ENDING",
+      verificationState: "VERIFIED",
+    }],
+    modules: [
+      {
+        id: "autopsy-none",
+        kind: "autopsy",
+        heading: "Autopsy",
+        spoilerLevel: "NONE",
+        sceneId: "scene-ending",
+        sceneLabel: "Ending scene",
+        act: "Act",
+        motive: "Motive",
+        knowledge: "Knowledge",
+        pressure: "Pressure",
+        consequence: "Consequence",
+        claim: "Claim",
+      },
+      {
+        id: "sources",
+        kind: "sources-method",
+        heading: "Sources",
+        spoilerLevel: "NONE",
+        methodologyVersion: "draft",
+        editorialRevision: "draft",
+        analyzedEdition: "Locked",
+        sources: [{
+          id: "film-master",
+          label: "Locked master",
+          kind: "film-edition",
+        }],
+      },
+    ],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes(
+    'autopsy-none: spoiler level "NONE" cannot be lower than scene "scene-ending" level "ENDING".'
+  ));
+});
