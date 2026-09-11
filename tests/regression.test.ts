@@ -474,7 +474,7 @@ test("published character profiles require canonical evidence support", () => {
   const errors = validateFilmPackage(filmPackage);
   assert.ok(errors.some((error) =>
     error.includes("characters/character-a/profile") &&
-    error.includes("published interpretive claims require evidence support")
+    error.includes("real-film interpretive claims require canonical evidence support")
   ));
 });
 
@@ -680,7 +680,7 @@ test("published character deep fields require interpretive support separately fr
   const errors = validateFilmPackage(filmPackage);
   assert.ok(errors.some((error) =>
     error.includes("characters/character-a/interpretation") &&
-    error.includes("published interpretive claims require evidence support")
+    error.includes("real-film interpretive claims require canonical evidence support")
   ));
 });
 
@@ -861,6 +861,65 @@ test("LOCKED real-film evidence must cite the locked film-edition source", () =>
   assert.ok(errors.some((error) =>
     error.includes("evidence/secondary-only") &&
     error.includes('must reference locked film-edition source "film-master"')
+  ));
+});
+
+test("LOCKED real-film draft interpretive claims require canonical support", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "locked-draft-unsupported-meaning",
+      title: "Locked Draft Unsupported Meaning",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    modules: [
+      {
+        id: "meaning",
+        kind: "meaning",
+        heading: "Meaning",
+        spoilerLevel: "NONE",
+        theme: "Theme",
+        question: "Question?",
+        apparentClaim: "An unsupported draft interpretation",
+        counterevidence: "None yet",
+        confidence: "LOW",
+      },
+      {
+        id: "sources",
+        kind: "sources-method",
+        heading: "Sources",
+        spoilerLevel: "NONE",
+        methodologyVersion: "draft",
+        editorialRevision: "draft",
+        analyzedEdition: "Locked master",
+        sources: [{
+          id: "film-master",
+          label: "Locked master",
+          kind: "film-edition",
+        }],
+      },
+    ],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes(
+    "meaning: real-film interpretive claims require canonical evidence support."
   ));
 });
 
