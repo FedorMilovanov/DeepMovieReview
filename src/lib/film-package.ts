@@ -185,7 +185,10 @@ export type CharactersModule = FilmModuleBase & {
     selfDeception?: string;
     arcSummary?: string;
     roleInArgument?: string;
-    support?: ClaimSupport;
+    /** Evidence for the spoiler-safe/base profile fields. */
+    profileSupport?: ClaimSupport;
+    /** Evidence for believes/self-deception/arc/argument interpretation. */
+    interpretiveSupport?: ClaimSupport;
   }>;
 };
 
