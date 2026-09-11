@@ -31,6 +31,13 @@ Those fields must not be fabricated merely to make the package look complete.
 
 ## 2. Edition-lock gate
 
+The gate is machine-readable through `FilmPackage.ingest.edition`:
+
+- `TARGET_ONLY` means a release/master target is selected but canonical evidence is forbidden;
+- `LOCKED` requires exact edition identity, measured runtime, timestamp convention and verification date;
+- every canonical evidence record for a real film must reference the locked `film-edition` source;
+- published real-film packages cannot remain `TARGET_ONLY`.
+
 Before scene authoring:
 
 1. acquire the exact editorial viewing master;
