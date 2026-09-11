@@ -23,7 +23,7 @@ function findChrome() {
   throw new Error("No Chrome/Chromium binary is available on the runner.");
 }
 
-async function waitForJson(url, attempts = 60) {
+async function waitForJson(url, attempts = 160) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       const response = await fetch(url);
@@ -44,6 +44,7 @@ const chrome = spawn(
     "--no-sandbox",
     "--disable-dev-shm-usage",
     "--disable-background-networking",
+    "--remote-debugging-address=127.0.0.1",
     "--remote-debugging-port=" + debuggingPort,
     "--user-data-dir=" + profileDir,
     "--window-size=1440,1000",
