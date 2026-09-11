@@ -970,7 +970,7 @@ test("real-film evidence timestampSeconds must fall inside its verified scene", 
 
   const errors = validateFilmPackage(filmPackage);
   assert.ok(errors.includes('evidence/before: timestampSeconds falls before scene "scene-verified".'));
-  assert.ok(errors.includes('evidence/after: timestampSeconds falls after scene "scene-verified".'));
+  assert.ok(errors.includes('evidence/after: timestampSeconds falls at or after scene end "scene-verified".'));
   assert.ok(errors.includes("evidence/legacy: real-film evidence must use timestampSeconds instead of legacy timestamp text."));
   assert.ok(errors.includes("evidence/no-scene: timestampSeconds requires a canonical sceneId."));
 });
@@ -1035,4 +1035,174 @@ test("valid locked real-film scene and evidence chain passes scene/time integrit
 
   const errors = validateFilmPackage(filmPackage);
   assert.deepEqual(errors, []);
+});
+
+
+test("canonical scene sequence cannot move backward or overlap", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "scene-overlap",
+      title: "Scene Overlap",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [
+      {
+        id: "scene-a",
+        sequenceIndex: 0,
+        startTimestampSeconds: 100,
+        endTimestampSeconds: 180,
+        shortLabel: "Scene A",
+        spoilerLevel: "NONE",
+        verificationState: "VERIFIED",
+      },
+      {
+        id: "scene-b",
+        sequenceIndex: 1,
+        startTimestampSeconds: 170,
+        endTimestampSeconds: 220,
+        shortLabel: "Scene B",
+        spoilerLevel: "NONE",
+        verificationState: "VERIFIED",
+      },
+      {
+        id: "scene-c",
+        sequenceIndex: 2,
+        startTimestampSeconds: 90,
+        endTimestampSeconds: 99,
+        shortLabel: "Scene C",
+        spoilerLevel: "NONE",
+        verificationState: "VERIFIED",
+      },
+    ],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Locked",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes('scene/scene-b: scene range overlaps previous scene "scene-a".'));
+  assert.ok(errors.includes('scene/scene-c: startTimestampSeconds must not precede earlier sequence scene "scene-b".'));
+});
+
+test("scene autopsy anchors cannot point to evidence from another scene", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "cross-scene-autopsy",
+      title: "Cross Scene Autopsy",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [
+      {
+        id: "scene-a",
+        sequenceIndex: 0,
+        startTimestampSeconds: 100,
+        endTimestampSeconds: 160,
+        shortLabel: "Scene A",
+        spoilerLevel: "NONE",
+        verificationState: "VERIFIED",
+      },
+      {
+        id: "scene-b",
+        sequenceIndex: 1,
+        startTimestampSeconds: 160,
+        endTimestampSeconds: 220,
+        shortLabel: "Scene B",
+        spoilerLevel: "NONE",
+        verificationState: "VERIFIED",
+      },
+    ],
+    evidence: [{
+      id: "evidence-b",
+      label: "Evidence from B",
+      observation: "Observed in scene B.",
+      sceneId: "scene-b",
+      timestampSeconds: 180,
+      sourceIds: ["film-master"],
+      spoilerLevel: "NONE",
+    }],
+    modules: [
+      {
+        id: "autopsy-a",
+        kind: "autopsy",
+        heading: "Autopsy",
+        spoilerLevel: "NONE",
+        sceneId: "scene-a",
+        sceneLabel: "Scene A",
+        act: "Act",
+        motive: "Motive",
+        knowledge: "Knowledge",
+        pressure: "Pressure",
+        consequence: "Consequence",
+        claim: "Claim",
+        anchors: [{
+          id: "anchor-b",
+          label: "Wrong scene",
+          evidenceId: "evidence-b",
+          point: { x: 0.5, y: 0.5 },
+        }],
+      },
+      {
+        id: "sources",
+        kind: "sources-method",
+        heading: "Sources",
+        spoilerLevel: "NONE",
+        methodologyVersion: "draft",
+        editorialRevision: "draft",
+        analyzedEdition: "Locked",
+        sources: [{
+          id: "film-master",
+          label: "Locked master",
+          kind: "film-edition",
+        }],
+      },
+    ],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes('autopsy-a/anchor-b: anchor evidence must belong to autopsy scene "scene-a".'));
 });
