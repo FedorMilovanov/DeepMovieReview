@@ -81,6 +81,8 @@ Every high-level interpretive claim in a real-film package, including draft auth
 
 Draft status is not a license for unsupported analysis. Fixtures remain flexible because they are structural test data, not film judgments.
 
+Relationship, Family/Youth and Moral Analysis module-level summaries are also editorial claims. When those summaries are present in a real-film package they require their own `summarySupport`; nested events/observations do not automatically prove unrelated summary prose.
+
 When an interpretation depends on a filmmaker interview rather than on-screen evidence, that distinction must remain explicit.
 
 ## 4. First scene-inventory pass

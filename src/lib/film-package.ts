@@ -196,6 +196,8 @@ export type RelationshipModule = FilmModuleBase & {
   kind: "relationship";
   label: string;
   summary: string;
+  /** Evidence for the module-level relationship synthesis. */
+  summarySupport?: ClaimSupport;
   /** Stable character IDs; required by the publish validator. */
   participantCharacterIds?: [string, string];
   events: Array<{
@@ -212,6 +214,8 @@ export type RelationshipModule = FilmModuleBase & {
 export type FamilyYouthModule = FilmModuleBase & {
   kind: "family-youth";
   summary?: string;
+  /** Required for a real-film summary when summary prose is present. */
+  summarySupport?: ClaimSupport;
   observations: Array<{
     id: string;
     domain: SocialFormationDomain;
@@ -334,6 +338,8 @@ export type DecisionModule = FilmModuleBase & {
 export type MoralAnalysisModule = FilmModuleBase & {
   kind: "moral-analysis";
   summary?: string;
+  /** Required for a real-film module-level moral synthesis when summary prose is present. */
+  summarySupport?: ClaimSupport;
   events: Array<{
     id: string;
     /** Stable character IDs for the moral agent(s), when the event has an attributable actor. */
