@@ -33,7 +33,7 @@ Those fields must not be fabricated merely to make the package look complete.
 
 The gate is machine-readable through `FilmPackage.ingest.edition`:
 
-- `TARGET_ONLY` means a release/master target is selected but canonical `scenes[]` and evidence are forbidden;
+- `TARGET_ONLY` means a release/master target is selected but canonical `scenes[]`, evidence **and analytical FilmPackage modules** are forbidden; only `sources-method` may exist until the exact viewing master is locked;
 - `LOCKED` requires exact edition identity, positive `measuredRuntimeSeconds`, timestamp convention and verification date;
 - real-film scenes use numeric start/end seconds from that declared timestamp origin;
 - a scene must be `VERIFIED` before canonical evidence or a Scene Autopsy may reference it;
