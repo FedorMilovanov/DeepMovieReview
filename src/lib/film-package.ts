@@ -12,9 +12,27 @@ export type EvidenceRecord = {
   label: string;
   observation: string;
   sceneId?: string;
+  /** Legacy/fixture display locator. Real-film evidence uses timestampSeconds for validation. */
   timestamp?: string;
+  /** Seconds from the locked edition's declared timestamp origin. */
+  timestampSeconds?: number;
   sourceIds?: string[];
   spoilerLevel: SpoilerLevel;
+};
+
+export type FilmSceneVerificationState = "DRAFT" | "VERIFIED";
+
+export type FilmSceneRecord = {
+  id: string;
+  sequenceIndex: number;
+  /** Seconds from the locked edition's declared timestamp origin. */
+  startTimestampSeconds: number;
+  /** Required once the scene is VERIFIED. */
+  endTimestampSeconds?: number;
+  shortLabel: string;
+  spoilerLevel: SpoilerLevel;
+  summary?: string;
+  verificationState: FilmSceneVerificationState;
 };
 
 export type ClaimSupport = {
@@ -266,6 +284,8 @@ export type CraftModule = FilmModuleBase & {
 
 export type AutopsyModule = FilmModuleBase & {
   kind: "autopsy";
+  /** Stable scene registry ID; required for published real-film autopsies. */
+  sceneId?: string;
   sceneLabel: string;
   act: string;
   motive: string;
@@ -382,7 +402,7 @@ export type FilmEditionLock =
       state: "LOCKED";
       sourceId: string;
       editionIdentity: string;
-      measuredRuntime: string;
+      measuredRuntimeSeconds: number;
       timestampConvention: string;
       verifiedAt: string;
       frameRate?: string;
@@ -419,6 +439,8 @@ export type FilmPackage = {
    * TARGET_ONLY blocks canonical evidence; LOCKED identifies the exact viewing master.
    */
   ingest?: FilmIngestMetadata;
+  /** Canonical edition-bound scene registry. Real-film scenes require a LOCKED edition. */
+  scenes?: FilmSceneRecord[];
   /** Stable evidence graph shared by every analytical module. */
   evidence?: EvidenceRecord[];
   modules: FilmModule[];
