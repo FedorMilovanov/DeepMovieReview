@@ -23,6 +23,14 @@ export const theTrumanShowDraftPackage: FilmPackage = {
       "What happens to freedom, trust and human dignity when a person's world is built on systematic deception and paternalized control?",
     status: "draft",
   },
+  ingest: {
+    edition: {
+      state: "TARGET_ONLY",
+      sourceId: "truman-target-edition",
+      note:
+        "Target release selected, but exact disc/region or archival file identity, measured runtime and timestamp origin are not locked.",
+    },
+  },
   modules: [
     {
       id: "film-001-sources",
