@@ -262,9 +262,9 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   }
 
   for (const sourceModule of sourcesModules) {
-    if (published && isBlank(sourceModule.methodologyVersion)) errors.push(`${sourceModule.id}: methodologyVersion is required for published analysis.`);
-    if (published && isBlank(sourceModule.editorialRevision)) errors.push(`${sourceModule.id}: editorialRevision is required for published analysis.`);
-    if (published && isBlank(sourceModule.analyzedEdition)) errors.push(`${sourceModule.id}: analyzedEdition is required for published analysis.`);
+    if (realFilm && isBlank(sourceModule.methodologyVersion)) errors.push(`${sourceModule.id}: methodologyVersion is required for real-film analysis.`);
+    if (realFilm && isBlank(sourceModule.editorialRevision)) errors.push(`${sourceModule.id}: editorialRevision is required for real-film analysis.`);
+    if (realFilm && isBlank(sourceModule.analyzedEdition)) errors.push(`${sourceModule.id}: analyzedEdition is required for real-film analysis.`);
     if (published && isBlank(sourceModule.lastReviewedAt)) errors.push(`${sourceModule.id}: lastReviewedAt is required for published analysis.`);
 
     for (const source of sourceModule.sources) {
