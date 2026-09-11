@@ -169,8 +169,8 @@ function DepthMeshScene({
     samples: [] as number[],
     active: false,
   });
-  const masterTexture = useMemo(createMasterTexture, []);
-  const depthTexture = useMemo(createDepthTexture, []);
+  const masterTexture = useMemo(() => createMasterTexture(), []);
+  const depthTexture = useMemo(() => createDepthTexture(), []);
 
   useEffect(() => () => {
     masterTexture.dispose();
