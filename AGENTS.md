@@ -8,6 +8,8 @@ Before changing product behavior, data contracts or visual language, read:
 4. `docs/15-HOMEPAGE-DATA-CONTRACTS.md`
 5. `docs/16-HOMEPAGE-ASSET-MOTION-PERFORMANCE-SPEC.md`
 6. `docs/05-TECHNICAL-ARCHITECTURE.md`
+7. `docs/28-PILOT-FILM-SELECTION.md`
+8. `docs/29-FILM-001-INGEST-STATUS.md`
 
 ## Current implementation phase
 
