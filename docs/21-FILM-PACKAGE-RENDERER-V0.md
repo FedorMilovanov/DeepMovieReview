@@ -1,7 +1,7 @@
 # DeepMovieReview — Film Package Renderer v0
 
-> Status: shell architecture  
-> Purpose: prove that films are structured content packages rendered by one reusable route.
+> Status: implemented reusable renderer foundation / Film 001 ingest active  
+> Purpose: record the reusable route and package boundary that now receives both structural fixtures and the real Film 001 draft.
 
 ## 1. Principle
 
@@ -108,12 +108,14 @@ The route does not manually author Story/Character/Relationship sections.
 Current code:
 
 - `src/lib/film-package.ts` — data types;
-- `src/data/film-packages.ts` — temporary fixtures/registry;
+- `src/data/film-registry.ts` — canonical registry boundary;
+- `src/data/film-fixtures.ts` — structural fixtures kept separate from real editorial packages;
+- `src/data/films/the-truman-show.ts` — Film 001 real draft package;
 - `src/components/film-modules/module-components.tsx` — module views;
 - `src/components/film-modules/film-module-renderer.tsx` — exhaustive registry/list;
 - `src/styles/film-modules.css` — shared module layout.
 
-The fixture registry is temporary. A database/CMS adapter should later project into the same `FilmPackage` boundary.
+A future database/CMS adapter may project into the same `FilmPackage` boundary, but fixtures and real editorial packages must remain explicitly separated.
 
 ## 9. Editorial boundary
 
@@ -138,13 +140,12 @@ Those may change the presentation *inside* known semantic boundaries.
 
 They must not turn `Relationship` into a different domain concept or make hidden evidence inaccessible to non-GPU users.
 
-## 11. Next validation
+## 11. Current validation state
 
-Before calling the renderer production-ready:
+The renderer foundation has already passed the earlier validation targets for design-system integration, Family/Youth, Decision/Knowledge Fog, Sources/Method, stable anchors, spoiler-aware deep links, exact-head CI and production browser auditing.
 
-- integrate the design-system branch;
-- add first-class Family/Youth module only if pilot needs it;
-- add Decision/Knowledge Fog when pilot proves a real dilemma;
-- add sources/method/version module;
-- validate stable anchors and deep-link spoiler gating;
-- test two genuinely different real films before freezing schema v1.
+The remaining schema-calibration condition is deliberately editorial rather than another shell feature:
+
+- complete Film 001 from a locked viewing master and verified evidence ledger;
+- then test at least one genuinely different real film before treating schema v1 as frozen;
+- only after that decide which contracts deserve persistent database/API storage.
