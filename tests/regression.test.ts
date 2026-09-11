@@ -960,6 +960,62 @@ test("TARGET_ONLY real-film edition blocks canonical scene registry", () => {
   assert.ok(errors.includes("film: canonical scene registry requires a LOCKED edition, not TARGET_ONLY."));
 });
 
+test("TARGET_ONLY real-film packages reject analytical modules before master lock", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "target-only-analysis",
+      title: "Target Only Analysis",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "TARGET_ONLY",
+        sourceId: "film-master",
+        note: "Target selected; exact master not acquired.",
+      },
+    },
+    modules: [
+      {
+        id: "premature-meaning",
+        kind: "meaning",
+        heading: "Premature meaning",
+        spoilerLevel: "NONE",
+        theme: "Speculative theme",
+        question: "Question?",
+        apparentClaim: "A claim written before viewing the locked film.",
+        counterevidence: "None verified.",
+        confidence: "LOW",
+      },
+      {
+        id: "sources",
+        kind: "sources-method",
+        heading: "Sources",
+        spoilerLevel: "NONE",
+        methodologyVersion: "draft",
+        editorialRevision: "draft",
+        analyzedEdition: "Target only",
+        sources: [{
+          id: "film-master",
+          label: "Target master",
+          kind: "film-edition",
+        }],
+      },
+    ],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes(
+    "module/premature-meaning: TARGET_ONLY real-film packages may contain only sources-method modules until the viewing master is LOCKED."
+  ));
+});
+
 test("scene registry validates ids, sequence indexes and verified time ranges", () => {
   const filmPackage: FilmPackage = {
     schemaVersion: 1,

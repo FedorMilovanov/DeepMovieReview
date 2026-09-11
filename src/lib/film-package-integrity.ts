@@ -223,6 +223,13 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         if (evidence.length > 0) {
           errors.push("film: canonical evidence requires a LOCKED edition, not TARGET_ONLY.");
         }
+        for (const filmModule of filmPackage.modules) {
+          if (filmModule.kind !== "sources-method") {
+            errors.push(
+              `module/${filmModule.id}: TARGET_ONLY real-film packages may contain only sources-method modules until the viewing master is LOCKED.`,
+            );
+          }
+        }
       } else {
         if (isBlank(edition.editionIdentity)) errors.push("film: LOCKED edition requires editionIdentity.");
         if (!Number.isFinite(edition.measuredRuntimeSeconds) || edition.measuredRuntimeSeconds <= 0) {
