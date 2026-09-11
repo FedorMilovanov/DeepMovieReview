@@ -36,6 +36,7 @@ The shell now proves the main architectural boundaries that Film 001 will depend
 - Next.js App Router + strict TypeScript foundation;
 - one canonical `FilmPackage` registry used by routes and homepage projections; optional homepage slices such as Family/Youth and Decision stay nullable rather than forcing every film into every module;
 - build-time referential-integrity validation for evidence, sources, characters, decisions and analytical support;
+- machine-readable real-film edition locking: `TARGET_ONLY` packages cannot contain canonical evidence, while `LOCKED` evidence must cite the exact locked `film-edition` source;
 - canonical evidence records shared by interpretive claims instead of copied prose evidence;
 - structured Story, Characters, Relationships, Family/Youth, Meaning, Teaching Signals, Narrative Permission, Craft, Scene Autopsy, Decision, Moral Analysis, Biblical Synthesis, Final Synthesis and Sources/Method modules;
 - one spoiler projection stage that removes forbidden nested data **before** presentation; the projected module array is shared by outline and renderer, and real featured-film homepage data is reduced to spoiler-safe `NONE` content before composition;
