@@ -2,7 +2,7 @@
 
 **DeepMovieReview** is an interactive platform for deep analysis of cinema as stories about people. It combines plot and story structure, characters and psychology, relationships, family/youth/social formation, themes and worldview claims, narrative teaching signals, filmmaking craft, scene-level moral analysis, difficult decisions, biblical principles, editorial synthesis and — later — a clearly separate audience/community layer.
 
-The repository is currently in **foundation implementation / app-shell hardening**. The present content is fixture data used to prove the architecture; it is not a published film judgment or a finished public methodology.
+The repository is now in **Film 001 vertical-slice production**. The reusable shell is hardened, and **The Truman Show (1998)** has entered the registry as a real `draft` research package. Structural fixture content remains separate and is still not a published film judgment.
 
 ## Core thesis
 
@@ -126,14 +126,16 @@ Community data is deliberately a later phase, but its separation is already an a
 
 ## Current phase and next work
 
-Current phase: **Phase 0.7 — hardened app shell / launch-contract cleanup → Film 001 readiness**.
+Current phase: **Phase 1 — Film 001 / The Truman Show canonical ingest and evidence build**.
 
 The immediate next steps are:
 
-- finish cleanup/a11y/browser verification of the shell;
-- keep the canonical fixture aligned with the domain contracts while it remains the test package;
-- choose and research Film 001 as a separate editorial project;
-- replace placeholder visual assets with art-directed masters plus derived depth/mask/responsive variants;
+- lock the exact Film 001 editorial master / region and timestamp convention;
+- build stable scene IDs and a canonical evidence ledger from that locked master;
+- author spoiler-safe Story, Characters, Relationships and Craft before deeper synthesis;
+- add Teaching Signals / Narrative Permission, Decision / Knowledge Fog and Scene Autopsy only as evidence is verified;
+- produce Film 001 art-directed masters using the selected Living Frame B/C architecture;
+- independently review biblical and final synthesis before publication;
 - calibrate the first real editorial rubric against the methodology before publishing numeric aggregates;
 - evolve the current TypeScript contracts into persistent database/API schemas only after the Film 001 vertical slice proves which entities are truly required.
 
