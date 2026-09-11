@@ -87,6 +87,8 @@ The module separates:
 - duties or goods in tension;
 - optional editorial judgment and qualification.
 
+For real-film packages, each option, fact, pressure and duty/good must carry canonical evidence support. These are not free-form planning notes: they are claims about the decision-time situation and must resolve through the evidence ledger to a verified scene/timestamp in the locked edition. The editorial judgment uses its own support graph.
+
 This structure allows the analysis to say that an act was wrong while still taking coercion, fear, incomplete knowledge or genuine competing duties seriously.
 
 ## 6. Character depth without diagnosis
