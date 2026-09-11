@@ -35,6 +35,7 @@ The gate is machine-readable through `FilmPackage.ingest.edition`:
 
 - `TARGET_ONLY` means a release/master target is selected but canonical `scenes[]`, evidence **and analytical FilmPackage modules** are forbidden; only `sources-method` may exist until the exact viewing master is locked;
 - `LOCKED` requires exact edition identity, positive `measuredRuntimeSeconds`, timestamp convention and verification date;
+- every real-film Sources/Method module requires nonblank `methodologyVersion`, `editorialRevision` and human-readable `analyzedEdition` during draft authoring; `lastReviewedAt` remains a publication/review field;
 - real-film scenes use numeric start/end seconds from that declared timestamp origin;
 - a scene must be `VERIFIED` before canonical evidence or a Scene Autopsy may reference it;
 - real-film evidence may use `timestampSeconds` only with a canonical `sceneId`, and the point must fall inside the verified scene range;
