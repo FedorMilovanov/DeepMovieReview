@@ -923,6 +923,85 @@ test("LOCKED real-film draft interpretive claims require canonical support", () 
   ));
 });
 
+test("LOCKED real-film analytical summaries require canonical support", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "unsupported-module-summaries",
+      title: "Unsupported Module Summaries",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    modules: [
+      {
+        id: "relationship",
+        kind: "relationship",
+        heading: "Relationship",
+        spoilerLevel: "NONE",
+        label: "A / B",
+        summary: "Unsupported relationship synthesis.",
+        events: [],
+      },
+      {
+        id: "family",
+        kind: "family-youth",
+        heading: "Family",
+        spoilerLevel: "NONE",
+        summary: "Unsupported family/social-formation synthesis.",
+        observations: [],
+      },
+      {
+        id: "moral",
+        kind: "moral-analysis",
+        heading: "Moral",
+        spoilerLevel: "NONE",
+        summary: "Unsupported moral synthesis.",
+        events: [],
+      },
+      {
+        id: "sources",
+        kind: "sources-method",
+        heading: "Sources",
+        spoilerLevel: "NONE",
+        methodologyVersion: "draft",
+        editorialRevision: "draft",
+        analyzedEdition: "Locked master",
+        sources: [{
+          id: "film-master",
+          label: "Locked master",
+          kind: "film-edition",
+        }],
+      },
+    ],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes(
+    "relationship/summary: real-film interpretive claims require canonical evidence support."
+  ));
+  assert.ok(errors.includes(
+    "family/summary: real-film interpretive claims require canonical evidence support."
+  ));
+  assert.ok(errors.includes(
+    "moral/summary: real-film interpretive claims require canonical evidence support."
+  ));
+});
+
 test("LOCKED edition source must resolve to a film-edition source", () => {
   const filmPackage: FilmPackage = {
     schemaVersion: 1,
