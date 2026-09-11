@@ -95,6 +95,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   const evidence = filmPackage.evidence ?? [];
   const evidenceRawIds = evidence.map((item) => item.id);
   const evidenceIds = new Set(evidenceRawIds);
+  const evidenceById = new Map(evidence.map((item) => [item.id, item]));
   const sourcesModules = sourceModules(filmPackage);
   const allSources = sourcesModules.flatMap((sourceModule) => sourceModule.sources);
   const sourceRawIds = allSources.map((item) => item.id);
@@ -147,6 +148,23 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
       }
     } else if (scene.verificationState === "VERIFIED") {
       errors.push(`scene/${scene.id}: VERIFIED scene requires endTimestampSeconds.`);
+    }
+  }
+
+  const orderedScenes = [...scenes].sort((a, b) => a.sequenceIndex - b.sequenceIndex);
+  for (let index = 1; index < orderedScenes.length; index += 1) {
+    const previous = orderedScenes[index - 1];
+    const current = orderedScenes[index];
+    if (current.startTimestampSeconds < previous.startTimestampSeconds) {
+      errors.push(
+        `scene/${current.id}: startTimestampSeconds must not precede earlier sequence scene "${previous.id}".`,
+      );
+    }
+    if (
+      previous.endTimestampSeconds !== undefined &&
+      current.startTimestampSeconds < previous.endTimestampSeconds
+    ) {
+      errors.push(`scene/${current.id}: scene range overlaps previous scene "${previous.id}".`);
     }
   }
 
@@ -256,9 +274,9 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
             }
             if (
               scene.endTimestampSeconds !== undefined &&
-              item.timestampSeconds > scene.endTimestampSeconds
+              item.timestampSeconds >= scene.endTimestampSeconds
             ) {
-              errors.push(`evidence/${item.id}: timestampSeconds falls after scene "${item.sceneId}".`);
+              errors.push(`evidence/${item.id}: timestampSeconds falls at or after scene end "${item.sceneId}".`);
             }
           }
         }
@@ -356,7 +374,16 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         }
         checkSupport(filmModule.support, filmModule.id, evidenceIds, errors, published);
         for (const anchor of filmModule.anchors ?? []) {
-          if (!evidenceIds.has(anchor.evidenceId)) errors.push(`${filmModule.id}/${anchor.id}: unknown evidence id "${anchor.evidenceId}".`);
+          if (!evidenceIds.has(anchor.evidenceId)) {
+            errors.push(`${filmModule.id}/${anchor.id}: unknown evidence id "${anchor.evidenceId}".`);
+          } else if (filmModule.sceneId && realFilm) {
+            const anchorEvidence = evidenceById.get(anchor.evidenceId);
+            if (anchorEvidence?.sceneId !== filmModule.sceneId) {
+              errors.push(
+                `${filmModule.id}/${anchor.id}: anchor evidence must belong to autopsy scene "${filmModule.sceneId}".`,
+              );
+            }
+          }
           if (anchor.point && (anchor.point.x < 0 || anchor.point.x > 1 || anchor.point.y < 0 || anchor.point.y > 1)) {
             errors.push(`${filmModule.id}/${anchor.id}: anchor point must use normalized 0..1 coordinates.`);
           }
