@@ -376,6 +376,12 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         }
         break;
       case "relationship": {
+        checkScopedSupport(
+          filmModule.summarySupport,
+          `${filmModule.id}/summary`,
+          filmModule.spoilerLevel,
+          realFilm,
+        );
         if (published && !filmModule.participantCharacterIds) {
           errors.push(`${filmModule.id}: published relationship requires participantCharacterIds.`);
         }
@@ -404,6 +410,14 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         break;
       }
       case "family-youth":
+        if (!isBlank(filmModule.summary)) {
+          checkScopedSupport(
+            filmModule.summarySupport,
+            `${filmModule.id}/summary`,
+            filmModule.spoilerLevel,
+            realFilm,
+          );
+        }
         for (const item of filmModule.observations) checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, realFilm);
         break;
       case "meaning":
@@ -515,6 +529,14 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         break;
       }
       case "moral-analysis":
+        if (!isBlank(filmModule.summary)) {
+          checkScopedSupport(
+            filmModule.summarySupport,
+            `${filmModule.id}/summary`,
+            filmModule.spoilerLevel,
+            realFilm,
+          );
+        }
         for (const item of filmModule.events) {
           const actorIds = item.actorCharacterIds ?? [];
           for (const id of duplicateIds(actorIds)) {
