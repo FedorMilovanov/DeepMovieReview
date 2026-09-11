@@ -41,6 +41,8 @@ The gate is machine-readable through `FilmPackage.ingest.edition`:
 - scene-linked evidence and Scene Autopsy modules cannot use a lower spoiler level than the canonical scene they derive from;
 - publication requires every real-film scene to be `VERIFIED`;
 - publication requires every real-film evidence record to carry both a canonical `sceneId` and numeric `timestampSeconds`, so another editor can reproduce the observation in the locked master;
+- explicit-level real-film claims cannot cite support/counterevidence with a higher spoiler level than the claim; Craft pressure assessments cannot cite more revealing craft observations; Scene Autopsy anchors cannot cite more revealing evidence;
+- character support is not forced through that last rule yet because one support object currently serves both the spoiler-safe profile and deeper interpretive fields; split-support is required before enforcing it without false positives;
 - every canonical evidence record for a real film must reference the locked `film-edition` source;
 - published real-film packages cannot remain `TARGET_ONLY`.
 
