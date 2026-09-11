@@ -432,4 +432,4 @@ Quality should adapt; meaning should not.
 
 ## 22. Primary references
 
-See `docs/07-REFERENCE-AUDIT.md` for the research bank and what to borrow from each source.
+See `docs/08-REFERENCE-AUDIT.md` for the research bank and what to borrow from each source.
