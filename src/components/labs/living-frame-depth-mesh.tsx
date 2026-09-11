@@ -2,6 +2,7 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
+  Component,
   Suspense,
   useCallback,
   useEffect,
@@ -10,6 +11,7 @@ import {
   useState,
   type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from "react";
 import type { Mesh } from "three";
 import * as THREE from "three/webgpu";
@@ -35,6 +37,21 @@ type DepthMeshSceneProps = {
   onBenchmarkComplete: (benchmark: LivingFrameGpuBenchmark) => void;
 };
 
+class LivingFrameDepthBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
 function percentile(values: readonly number[], ratio: number) {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
@@ -44,7 +61,7 @@ function percentile(values: readonly number[], ratio: number) {
 
 function createMasterTexture() {
   const width = 512;
-  const height = 256;
+  const height = 214;
   const data = new Uint8Array(width * height * 4);
 
   for (let y = 0; y < height; y += 1) {
@@ -118,7 +135,7 @@ function createMasterTexture() {
 
 function createDepthTexture() {
   const width = 256;
-  const height = 128;
+  const height = 107;
   const data = new Uint8Array(width * height);
 
   for (let y = 0; y < height; y += 1) {
@@ -345,24 +362,32 @@ export function LivingFrameDepthMesh({
       onPointerLeave={handlePointerLeave}
     >
       {gpuAvailable ? (
-        <Canvas
-          dpr={[1, maxDpr]}
-          frameloop="demand"
-          camera={{ position: [0, 0, 4.35], fov: 31, near: 0.1, far: 20 }}
-          gl={createRenderer}
+        <LivingFrameDepthBoundary
+          fallback={
+            <div className={styles.fallback}>
+              <span>Depth mesh renderer failed safely. Compare the segmented or Lite path instead.</span>
+            </div>
+          }
         >
-          <Suspense fallback={null}>
-            <DepthMeshScene
-              pointer={pointer}
-              inspectDepth={inspectDepth}
-              reducedMotion={reducedMotion}
-              benchmarkToken={benchmarkToken}
-              pendingPointerTimestampRef={pendingPointerTimestampRef}
-              onPointerLatency={onPointerLatency}
-              onBenchmarkComplete={onBenchmarkComplete}
-            />
-          </Suspense>
-        </Canvas>
+          <Canvas
+            dpr={[1, maxDpr]}
+            frameloop="demand"
+            camera={{ position: [0, 0, 4.35], fov: 31, near: 0.1, far: 20 }}
+            gl={createRenderer}
+          >
+            <Suspense fallback={null}>
+              <DepthMeshScene
+                pointer={pointer}
+                inspectDepth={inspectDepth}
+                reducedMotion={reducedMotion}
+                benchmarkToken={benchmarkToken}
+                pendingPointerTimestampRef={pendingPointerTimestampRef}
+                onPointerLatency={onPointerLatency}
+                onBenchmarkComplete={onBenchmarkComplete}
+              />
+            </Suspense>
+          </Canvas>
+        </LivingFrameDepthBoundary>
       ) : (
         <div className={styles.fallback}>
           <span>{backend === "unknown" ? "Detecting GPU path…" : "Depth mesh unavailable at current quality tier."}</span>
