@@ -166,7 +166,16 @@ export type FilmModuleBase = {
 export type StoryModule = FilmModuleBase & {
   kind: "story";
   summary: string;
-  beats: Array<{ id: string; label: string; summary: string; spoilerLevel: SpoilerLevel }>;
+  /** Evidence for the module-level story synthesis. */
+  summarySupport?: ClaimSupport;
+  beats: Array<{
+    id: string;
+    label: string;
+    summary: string;
+    spoilerLevel: SpoilerLevel;
+    /** Canonical evidence for this plot beat / turning-point description. */
+    support?: ClaimSupport;
+  }>;
 };
 
 export type CharactersModule = FilmModuleBase & {
