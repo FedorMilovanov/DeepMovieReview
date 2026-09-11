@@ -153,8 +153,8 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
 
   const orderedScenes = [...scenes].sort((a, b) => a.sequenceIndex - b.sequenceIndex);
   for (let index = 1; index < orderedScenes.length; index += 1) {
-    const previous = orderedScenes[index - 1];
-    const current = orderedScenes[index];
+    const previous = orderedScenes[index - 1]!;
+    const current = orderedScenes[index]!;
     if (current.startTimestampSeconds < previous.startTimestampSeconds) {
       errors.push(
         `scene/${current.id}: startTimestampSeconds must not precede earlier sequence scene "${previous.id}".`,
