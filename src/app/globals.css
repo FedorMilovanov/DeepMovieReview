@@ -170,7 +170,7 @@ h2 {
 
 .filmRow {
   display: grid;
-  grid-template-columns: 80px 1fr 120px;
+  grid-template-columns: 64px minmax(140px, 220px) minmax(0, 1fr) 140px;
   gap: 1rem;
   align-items: center;
   padding: 1.25rem 0;
@@ -211,10 +211,28 @@ h2 {
   }
 
   .filmRow {
-    grid-template-columns: 45px 1fr;
+    grid-template-columns: 36px 96px minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .filmRowIndex {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+    padding-top: 0.2rem;
+  }
+
+  .filmMediaFrameIndex {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .filmRowTitle {
+    grid-column: 3;
   }
 
   .filmRowMeta {
-    grid-column: 2;
+    grid-column: 3;
+    grid-row: 2;
   }
 }

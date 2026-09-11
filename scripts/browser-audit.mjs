@@ -23,7 +23,7 @@ function findChrome() {
   throw new Error("No Chrome/Chromium binary is available on the runner.");
 }
 
-async function waitForJson(url, attempts = 60) {
+async function waitForJson(url, attempts = 160) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       const response = await fetch(url);
@@ -44,6 +44,7 @@ const chrome = spawn(
     "--no-sandbox",
     "--disable-dev-shm-usage",
     "--disable-background-networking",
+    "--remote-debugging-address=127.0.0.1",
     "--remote-debugging-port=" + debuggingPort,
     "--user-data-dir=" + profileDir,
     "--window-size=1440,1000",
@@ -156,6 +157,18 @@ try {
     throw new Error("Document did not reach readyState=complete.");
   }
 
+  async function waitForPath(pathname) {
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const currentPath = await evaluate("window.location.pathname");
+      if (currentPath === pathname) {
+        await sleep(250);
+        return;
+      }
+      await sleep(50);
+    }
+    throw new Error("Navigation did not reach " + pathname + ".");
+  }
+
   async function navigate(pathname, width, height, reducedMotion = false, forcedColors = false) {
     await send("Emulation.setDeviceMetricsOverride", {
       width,
@@ -260,6 +273,35 @@ try {
   const forcedColorsActive = await evaluate("matchMedia('(forced-colors: active)').matches");
   assertCheck("forced colors: browser media emulation active", forcedColorsActive);
   await capture("home-forced-colors", false);
+
+  await navigate("/films", 1280, 900);
+  await inspectBasic("film index");
+  const transitionSource = await evaluate("Boolean(document.querySelector('[data-film-transition-media=\"pilot-film\"]'))");
+  const nativeViewTransitionSupported = await evaluate("typeof document.startViewTransition === 'function'");
+  assertCheck("film navigation: shared media source exists", transitionSource);
+  assertCheck("film navigation: native View Transition API is available in audit Chrome", nativeViewTransitionSupported);
+  await evaluate("document.querySelector('.filmRow')?.click()");
+  await sleep(80);
+  const routeTransitionActive = await evaluate("document.documentElement.dataset.routeTransition === 'active'");
+  assertCheck("film navigation: transition lifecycle activates", routeTransitionActive);
+  await waitForPath("/films/pilot-film");
+  const transitionTarget = await evaluate("Boolean(document.querySelector('[data-film-transition-media=\"pilot-film\"].filmMediaFrameHero'))");
+  assertCheck("film navigation: shared media target exists after route commit", transitionTarget);
+  await inspectBasic("film shared transition target");
+  await capture("film-shared-transition-target", false);
+  await sleep(600);
+  const routeTransitionSettled = await evaluate("document.documentElement.dataset.routeTransition !== 'active'");
+  assertCheck("film navigation: transition lifecycle settles", routeTransitionSettled);
+
+  await navigate("/films", 1280, 900, true);
+  await sleep(300);
+  const reducedIndexState = await evaluate("document.documentElement.dataset.reducedMotion");
+  assertCheck("film navigation reduced motion: system preference is active", reducedIndexState === "true", reducedIndexState);
+  await evaluate("document.querySelector('.filmRow')?.click()");
+  await sleep(80);
+  const reducedTransitionActive = await evaluate("document.documentElement.dataset.routeTransition === 'active'");
+  assertCheck("film navigation reduced motion: shared transition is bypassed", !reducedTransitionActive);
+  await waitForPath("/films/pilot-film");
 
   await navigate("/labs/six-lenses", 1280, 900);
   const six = await inspectBasic("six lenses");
