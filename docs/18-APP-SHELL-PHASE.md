@@ -1,8 +1,8 @@
 # DeepMovieReview — Phase 0.7 App Shell Hardening
 
-> Status: hardened foundation / Film 001 readiness  
+> Status: hardened foundation / Film 001 ingest active  
 > Date: 2026-09-11  
-> Purpose: record the implemented platform boundary before the first authoritative film analysis.
+> Purpose: record the implemented platform boundary now receiving the first authoritative-film research package.
 
 ## 1. Decision
 
