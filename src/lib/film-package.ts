@@ -330,11 +330,30 @@ export type DecisionModule = FilmModuleBase & {
     label: string;
     description?: string;
     availableAtDecisionTime: boolean;
+    support?: ClaimSupport;
     spoilerLevel?: SpoilerLevel;
   }>;
-  facts: Array<{ id: string; text: string; knowledgeState: DecisionKnowledgeState; spoilerLevel: SpoilerLevel }>;
-  pressures: Array<{ id: string; kind: DecisionPressureKind; summary: string; spoilerLevel: SpoilerLevel }>;
-  dutiesOrGoods: Array<{ id: string; label: string; summary?: string; spoilerLevel: SpoilerLevel }>;
+  facts: Array<{
+    id: string;
+    text: string;
+    knowledgeState: DecisionKnowledgeState;
+    support?: ClaimSupport;
+    spoilerLevel: SpoilerLevel;
+  }>;
+  pressures: Array<{
+    id: string;
+    kind: DecisionPressureKind;
+    summary: string;
+    support?: ClaimSupport;
+    spoilerLevel: SpoilerLevel;
+  }>;
+  dutiesOrGoods: Array<{
+    id: string;
+    label: string;
+    summary?: string;
+    support?: ClaimSupport;
+    spoilerLevel: SpoilerLevel;
+  }>;
   editorialJudgment?: {
     claim: string;
     qualification?: string;
