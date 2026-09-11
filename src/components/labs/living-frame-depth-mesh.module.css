@@ -1,0 +1,38 @@
+.shell,
+.fallback {
+  position: absolute;
+  inset: 0;
+}
+
+.shell {
+  z-index: 1;
+  background: #050505;
+}
+
+.shell canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.fallback {
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background:
+    radial-gradient(circle at 66% 35%, rgb(127 23 29 / 0.28), transparent 22%),
+    linear-gradient(150deg, #111214, #050505 68%);
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+@media (forced-colors: active) {
+  .shell,
+  .fallback {
+    background: Canvas;
+    color: CanvasText;
+  }
+}
