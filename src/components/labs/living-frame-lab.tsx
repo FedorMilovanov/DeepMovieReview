@@ -296,7 +296,7 @@ export function LivingFrameLab() {
             <button
               className={styles.depthToggle}
               type="button"
-              aria-pressed={showDepth}
+              aria-pressed={showDepth && effectiveVariant !== "C"}
               disabled={effectiveVariant === "C"}
               onClick={() => setShowDepth((value) => !value)}
             >
@@ -317,7 +317,7 @@ export function LivingFrameLab() {
         <div
           ref={frameRef}
           className={styles.frame}
-          data-show-depth={showDepth}
+          data-show-depth={showDepth && effectiveVariant !== "C"}
           data-variant={effectiveVariant}
           onPointerMove={effectiveVariant === "B" ? handlePointerMove : undefined}
           onPointerLeave={effectiveVariant === "B" ? handlePointerLeave : undefined}
