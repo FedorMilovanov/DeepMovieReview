@@ -83,6 +83,8 @@ Draft status is not a license for unsupported analysis. Fixtures remain flexible
 
 Relationship, Family/Youth and Moral Analysis module-level summaries are also editorial claims. When those summaries are present in a real-film package they require their own `summarySupport`; nested events/observations do not automatically prove unrelated summary prose.
 
+Real-film Story structure is evidence-backed as well: the module summary has `summarySupport`, each plot beat has its own canonical `support`, and every supported evidence record already resolves to a verified scene/timestamp in the locked master.
+
 When an interpretation depends on a filmmaker interview rather than on-screen evidence, that distinction must remain explicit.
 
 ## 4. First scene-inventory pass
