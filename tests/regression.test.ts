@@ -416,7 +416,7 @@ test("published character profiles require canonical evidence support", () => {
         state: "LOCKED",
         sourceId: "source-1",
         editionIdentity: "Regression test editorial master",
-        measuredRuntime: "100:00",
+        measuredRuntimeSeconds: 6000,
         timestampConvention: "00:00:00 starts at first film frame",
         verifiedAt: "2026-09-11",
       },
@@ -604,7 +604,7 @@ test("LOCKED real-film evidence must cite the locked film-edition source", () =>
         state: "LOCKED",
         sourceId: "film-master",
         editionIdentity: "Disc / region / file identity",
-        measuredRuntime: "100:00",
+        measuredRuntimeSeconds: 6000,
         timestampConvention: "00:00:00 starts at first film frame",
         verifiedAt: "2026-09-11",
       },
@@ -666,7 +666,7 @@ test("LOCKED edition source must resolve to a film-edition source", () => {
         state: "LOCKED",
         sourceId: "metadata-page",
         editionIdentity: "Not actually a viewing master",
-        measuredRuntime: "100:00",
+        measuredRuntimeSeconds: 6000,
         timestampConvention: "00:00:00",
         verifiedAt: "2026-09-11",
       },
@@ -690,4 +690,349 @@ test("LOCKED edition source must resolve to a film-edition source", () => {
 
   const errors = validateFilmPackage(filmPackage);
   assert.ok(errors.includes('film: ingest edition source "metadata-page" must have kind "film-edition".'));
+});
+
+
+test("TARGET_ONLY real-film edition blocks canonical scene registry", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "target-only-scenes",
+      title: "Target Only Scenes",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "TARGET_ONLY",
+        sourceId: "film-master",
+        note: "Exact master is not locked.",
+      },
+    },
+    scenes: [{
+      id: "scene-1",
+      sequenceIndex: 0,
+      startTimestampSeconds: 0,
+      endTimestampSeconds: 60,
+      shortLabel: "Premature scene",
+      spoilerLevel: "NONE",
+      verificationState: "DRAFT",
+    }],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Target only",
+      sources: [{
+        id: "film-master",
+        label: "Target master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("film: canonical scene registry requires a LOCKED edition, not TARGET_ONLY."));
+});
+
+test("scene registry validates ids, sequence indexes and verified time ranges", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "bad-scenes",
+      title: "Bad Scenes",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [
+      {
+        id: "scene-1",
+        sequenceIndex: 0,
+        startTimestampSeconds: 10,
+        shortLabel: "Verified without end",
+        spoilerLevel: "NONE",
+        verificationState: "VERIFIED",
+      },
+      {
+        id: "scene-1",
+        sequenceIndex: 0,
+        startTimestampSeconds: 6100,
+        endTimestampSeconds: 6200,
+        shortLabel: "Outside runtime",
+        spoilerLevel: "MINOR",
+        verificationState: "DRAFT",
+      },
+    ],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Locked",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes('scenes: duplicate scene id "scene-1".'));
+  assert.ok(errors.includes('scenes: duplicate sequence index "0".'));
+  assert.ok(errors.includes("scene/scene-1: VERIFIED scene requires endTimestampSeconds."));
+  assert.ok(errors.includes("scene/scene-1: startTimestampSeconds must be inside the locked edition runtime."));
+  assert.ok(errors.includes("scene/scene-1: endTimestampSeconds exceeds the locked edition runtime."));
+});
+
+test("real-film evidence scene references must resolve to verified canonical scenes", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "scene-evidence-links",
+      title: "Scene Evidence Links",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [{
+      id: "scene-draft",
+      sequenceIndex: 0,
+      startTimestampSeconds: 100,
+      endTimestampSeconds: 160,
+      shortLabel: "Draft scene",
+      spoilerLevel: "NONE",
+      verificationState: "DRAFT",
+    }],
+    evidence: [
+      {
+        id: "unknown-scene",
+        label: "Unknown scene",
+        observation: "Unknown scene reference.",
+        sceneId: "scene-missing",
+        sourceIds: ["film-master"],
+        spoilerLevel: "NONE",
+      },
+      {
+        id: "draft-scene",
+        label: "Draft scene",
+        observation: "Draft scene reference.",
+        sceneId: "scene-draft",
+        sourceIds: ["film-master"],
+        spoilerLevel: "NONE",
+      },
+    ],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Locked",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes('evidence/unknown-scene: unknown scene id "scene-missing".'));
+  assert.ok(errors.includes('evidence/draft-scene: canonical evidence cannot reference unverified scene "scene-draft".'));
+});
+
+test("real-film evidence timestampSeconds must fall inside its verified scene", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "scene-time-range",
+      title: "Scene Time Range",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [{
+      id: "scene-verified",
+      sequenceIndex: 0,
+      startTimestampSeconds: 100,
+      endTimestampSeconds: 160,
+      shortLabel: "Verified scene",
+      spoilerLevel: "NONE",
+      verificationState: "VERIFIED",
+    }],
+    evidence: [
+      {
+        id: "before",
+        label: "Before scene",
+        observation: "Timestamp is before scene.",
+        sceneId: "scene-verified",
+        timestampSeconds: 99,
+        sourceIds: ["film-master"],
+        spoilerLevel: "NONE",
+      },
+      {
+        id: "after",
+        label: "After scene",
+        observation: "Timestamp is after scene.",
+        sceneId: "scene-verified",
+        timestampSeconds: 161,
+        sourceIds: ["film-master"],
+        spoilerLevel: "NONE",
+      },
+      {
+        id: "legacy",
+        label: "Legacy locator",
+        observation: "Real-film evidence must not use free-form timestamp text.",
+        sceneId: "scene-verified",
+        timestamp: "00:02:00",
+        sourceIds: ["film-master"],
+        spoilerLevel: "NONE",
+      },
+      {
+        id: "no-scene",
+        label: "No scene",
+        observation: "Numeric timestamp without scene container.",
+        timestampSeconds: 120,
+        sourceIds: ["film-master"],
+        spoilerLevel: "NONE",
+      },
+    ],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Locked",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes('evidence/before: timestampSeconds falls before scene "scene-verified".'));
+  assert.ok(errors.includes('evidence/after: timestampSeconds falls after scene "scene-verified".'));
+  assert.ok(errors.includes("evidence/legacy: real-film evidence must use timestampSeconds instead of legacy timestamp text."));
+  assert.ok(errors.includes("evidence/no-scene: timestampSeconds requires a canonical sceneId."));
+});
+
+test("valid locked real-film scene and evidence chain passes scene/time integrity", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "valid-scene-chain",
+      title: "Valid Scene Chain",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-09-11",
+      },
+    },
+    scenes: [{
+      id: "scene-verified",
+      sequenceIndex: 0,
+      startTimestampSeconds: 100,
+      endTimestampSeconds: 160,
+      shortLabel: "Verified scene",
+      spoilerLevel: "NONE",
+      verificationState: "VERIFIED",
+    }],
+    evidence: [{
+      id: "valid-evidence",
+      label: "Valid evidence",
+      observation: "Observed directly in the locked master.",
+      sceneId: "scene-verified",
+      timestampSeconds: 130,
+      sourceIds: ["film-master"],
+      spoilerLevel: "NONE",
+    }],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "draft",
+      editorialRevision: "draft",
+      analyzedEdition: "Locked",
+      sources: [{
+        id: "film-master",
+        label: "Locked master",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.deepEqual(errors, []);
 });
