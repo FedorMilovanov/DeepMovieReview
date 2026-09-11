@@ -108,6 +108,20 @@ jobs:
             exit 1
           fi
 
+          curl --fail --silent --show-error http://127.0.0.1:3210/films > /tmp/preview-films.html
+          if ! grep -Fq 'The Truman Show' /tmp/preview-films.html; then
+            echo "Preview film index did not expose the Film 001 draft."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error http://127.0.0.1:3210/films/the-truman-show > /tmp/truman-draft.html
+          grep -Fq 'The Truman Show' /tmp/truman-draft.html
+          grep -Fq 'Film 001 sources and edition lock' /tmp/truman-draft.html
+          if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/truman-draft.html; then
+            echo "Film 001 draft route must remain noindex/nofollow in preview."
+            exit 1
+          fi
+
           curl --fail --silent --show-error 'http://127.0.0.1:3210/films/pilot-film?spoilers=NONE' > /tmp/pilot-none.html
           grep -Fq 'Pilot Film' /tmp/pilot-none.html
           if grep -Fq 'Evidence before conclusion.' /tmp/pilot-none.html; then
@@ -228,7 +242,7 @@ jobs:
           fi
           echo "Verified public homepage state: $public_state"
 
-          for preview_marker in 'Open structural fixture' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement'; do
+          for preview_marker in 'Open structural fixture' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'The Truman Show'; do
             if grep -Fq "$preview_marker" /tmp/public-home.html; then
               echo "Public homepage leaked preview marker: $preview_marker"
               exit 1
@@ -238,6 +252,24 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:3211/films > /tmp/public-films.html
           if grep -Fq 'Pilot Film' /tmp/public-films.html; then
             echo "Public film index exposed fixture content."
+            exit 1
+          fi
+          if grep -Fq 'The Truman Show' /tmp/public-films.html; then
+            echo "Public film index exposed the Film 001 draft."
+            exit 1
+          fi
+
+          truman_status=$(curl --silent --output /tmp/public-truman-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/the-truman-show)
+          if [[ "$truman_status" != "200" && "$truman_status" != "404" ]]; then
+            echo "Protected Film 001 draft route returned unexpected HTTP $truman_status."
+            exit 1
+          fi
+          if ! grep -Fq '404 / NOT FOUND' /tmp/public-truman-route.html; then
+            echo "Protected Film 001 draft route did not resolve to the not-found boundary."
+            exit 1
+          fi
+          if grep -Fq 'The Truman Show' /tmp/public-truman-route.html; then
+            echo "Protected Film 001 draft route leaked real-film draft content."
             exit 1
           fi
 
