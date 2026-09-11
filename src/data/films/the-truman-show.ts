@@ -68,6 +68,14 @@ export const theTrumanShowDraftPackage: FilmPackage = {
           href: "https://theasc.com/article/the-truman-show-cinematography/",
         },
         {
+          id: "truman-bfi-catalog",
+          label: "BFI — The Truman Show catalogue record",
+          kind: "reference",
+          locator:
+            "Secondary catalogue metadata; currently lists the 1998 film at 102 min. Used to document metadata variance, not to define the editorial master runtime.",
+          href: "https://www.bfi.org.uk/film/7678fd69-38bd-5728-b5f7-01ad5f6d8849/the-truman-show",
+        },
+        {
           id: "truman-bfi-development",
           label: "BFI — How we made The Truman Show",
           kind: "reference",

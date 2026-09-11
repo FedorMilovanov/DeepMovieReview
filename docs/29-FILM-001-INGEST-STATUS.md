@@ -45,6 +45,8 @@ External runtime listings disagree by ordinary metadata/rounding: Paramount curr
 
 ## 3. Evidence policy
 
+Secondary production/craft/development research is maintained separately in `30-FILM-001-SECONDARY-RESEARCH.md`. It is intentionally **not** the canonical evidence ledger.
+
 The locked finished film is the primary evidence source.
 
 Secondary sources may support:

@@ -10,6 +10,7 @@ Before changing product behavior, data contracts or visual language, read:
 6. `docs/05-TECHNICAL-ARCHITECTURE.md`
 7. `docs/28-PILOT-FILM-SELECTION.md`
 8. `docs/29-FILM-001-INGEST-STATUS.md`
+9. `docs/30-FILM-001-SECONDARY-RESEARCH.md`
 
 ## Current implementation phase
 

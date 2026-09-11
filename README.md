@@ -85,6 +85,7 @@ Implementation-state documents:
 - [`docs/27-LIVING-FRAME-RD-RESULTS.md`](docs/27-LIVING-FRAME-RD-RESULTS.md) — measured A/B/C Living Frame decision.
 - [`docs/28-PILOT-FILM-SELECTION.md`](docs/28-PILOT-FILM-SELECTION.md) — Film 001 selection and research boundary.
 - [`docs/29-FILM-001-INGEST-STATUS.md`](docs/29-FILM-001-INGEST-STATUS.md) — active edition/evidence ingest gate.
+- [`docs/30-FILM-001-SECONDARY-RESEARCH.md`](docs/30-FILM-001-SECONDARY-RESEARCH.md) — production/craft/development context kept separate from canonical film evidence.
 
 [`docs/10-OPEN-QUESTIONS.md`](docs/10-OPEN-QUESTIONS.md) remains the backlog of unresolved product/methodology decisions rather than a statement of implemented behavior.
 
