@@ -33,6 +33,19 @@ function isBlank(value: string | undefined): boolean {
   return !value?.trim();
 }
 
+function isIsoCalendarDate(value: string | undefined): boolean {
+  const normalized = value?.trim();
+  if (!normalized || !/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return false;
+
+  const [year, month, day] = normalized.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return (
+    parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day
+  );
+}
+
 function isSafeSourceHref(value: string): boolean {
   const href = value.trim();
   if (href.includes("\\")) return false;
@@ -247,7 +260,11 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
           errors.push("film: LOCKED edition requires positive measuredRuntimeSeconds.");
         }
         if (isBlank(edition.timestampConvention)) errors.push("film: LOCKED edition requires timestampConvention.");
-        if (isBlank(edition.verifiedAt)) errors.push("film: LOCKED edition requires verifiedAt.");
+        if (isBlank(edition.verifiedAt)) {
+          errors.push("film: LOCKED edition requires verifiedAt.");
+        } else if (!isIsoCalendarDate(edition.verifiedAt)) {
+          errors.push("film: LOCKED edition verifiedAt must use a valid YYYY-MM-DD calendar date.");
+        }
 
         for (const scene of scenes) {
           if (scene.startTimestampSeconds >= edition.measuredRuntimeSeconds) {
@@ -276,7 +293,11 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     if (realFilm && isBlank(sourceModule.methodologyVersion)) errors.push(`${sourceModule.id}: methodologyVersion is required for real-film analysis.`);
     if (realFilm && isBlank(sourceModule.editorialRevision)) errors.push(`${sourceModule.id}: editorialRevision is required for real-film analysis.`);
     if (realFilm && isBlank(sourceModule.analyzedEdition)) errors.push(`${sourceModule.id}: analyzedEdition is required for real-film analysis.`);
-    if (published && isBlank(sourceModule.lastReviewedAt)) errors.push(`${sourceModule.id}: lastReviewedAt is required for published analysis.`);
+    if (published && isBlank(sourceModule.lastReviewedAt)) {
+      errors.push(`${sourceModule.id}: lastReviewedAt is required for published analysis.`);
+    } else if (sourceModule.lastReviewedAt && !isIsoCalendarDate(sourceModule.lastReviewedAt)) {
+      errors.push(`${sourceModule.id}: lastReviewedAt must use a valid YYYY-MM-DD calendar date.`);
+    }
 
     for (const source of sourceModule.sources) {
       if (isBlank(source.id)) errors.push(`${sourceModule.id}: source id is required.`);
