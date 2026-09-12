@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AnalysisWorkbench } from "@/components/analysis-workbench";
 import type { NarrativePermissionState } from "@/lib/content";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
@@ -121,15 +122,6 @@ const pipelineSteps = [
   { label: "Моральная форенсика", note: "мотив, знание, давление, последствия" },
   { label: "Библейский взгляд", note: "принцип, применение, оговорки" },
   { label: "Синтез", note: "прозаический вывод без одной цифры" },
-] as const;
-
-const axioms = [
-  { title: "Показ ≠ одобрение", copy: "Изображение зла само по себе не означает, что фильм это зло одобряет." },
-  { title: "Объяснение ≠ оправдание", copy: "Понять, почему человек поступил именно так, — не значит оправдать поступок." },
-  { title: "Изображение ≠ предписание", copy: "Показать модель семьи, дружбы или власти — не значит предложить её как образец." },
-  { title: "Тяжесть ≠ качество", copy: "Фильм может изображать тяжелейшее зло и быть морально внятным искусством — или наоборот." },
-  { title: "Редакция ≠ толпа", copy: "Редакционные выводы и будущие зрительские оценки остаются разными наборами данных." },
-  { title: "Популярность ≠ авторитет", copy: "Согласие сообщества описывает восприятие. Оно не определяет библейскую истину." },
 ] as const;
 
 const permissionStops = [
@@ -391,21 +383,7 @@ function PlatformLanding({ preview }: { preview: boolean }) {
 
       <LensStage />
 
-      <section className="sectionShell sectionRule" aria-labelledby="axioms-title">
-        <div className="sectionIndex">04 / Интерпретационные аксиомы</div>
-        <h2 id="axioms-title">Показать — не значит одобрить.</h2>
-        <p className="sectionIntro">
-          Шесть аксиом защищают анализ от двух крайностей: панического морализаторства и безразличного пересказа.
-        </p>
-        <ul className="axiomList">
-          {axioms.map((axiom) => (
-            <li className="axiomItem" key={axiom.title}>
-              <h3>{axiom.title}</h3>
-              <p>{axiom.copy}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <AnalysisWorkbench />
 
       <section className="sectionShell sectionRule" aria-labelledby="permission-title">
         <div className="sectionIndex">05 / Нарративное разрешение</div>

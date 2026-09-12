@@ -141,6 +141,23 @@
 /* ── Lens stage wiring (CSS-only state machine) ────────────────────────────── */
 
 @supports selector(:has(*)) {
+  .lensReadings {
+    display: grid;
+    align-items: start;
+  }
+
+  .lensReading {
+    display: block;
+    grid-area: 1 / 1;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition:
+      opacity var(--duration-standard) var(--ease-quiet),
+      transform var(--duration-standard) var(--ease-quiet),
+      visibility 0s linear var(--duration-standard);
+  }
+
   .lensTab:has(.lensRadio:checked) {
     background: var(--surface-2);
   }
@@ -177,7 +194,10 @@
   .lensStage:has(.lensRadio[value="ideas"]:checked) .lensReading[data-lens="ideas"],
   .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensReading[data-lens="moral-world"],
   .lensStage:has(.lensRadio[value="craft"]:checked) .lensReading[data-lens="craft"] {
-    display: block;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition-delay: 40ms, 40ms, 0s;
   }
 
   /* Desktop: marks float inside the frame and settle with a small stagger. */
@@ -398,7 +418,8 @@ html[data-reduced-motion="true"] .sectionRule {
     animation: none;
   }
 
-  .lensMark {
+  .lensMark,
+  .lensReading {
     transition: none;
   }
 }
