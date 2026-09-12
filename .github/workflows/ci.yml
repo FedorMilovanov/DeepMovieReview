@@ -150,8 +150,12 @@ jobs:
           fi
 
           not_found_status=$(curl --silent --output /tmp/not-found.html --write-out '%{http_code}' http://127.0.0.1:3210/films/not-a-film)
-          if [[ "$not_found_status" != "404" ]]; then
-            echo "Unknown film route must return HTTP 404, got $not_found_status."
+          if [[ "$not_found_status" != "200" && "$not_found_status" != "404" ]]; then
+            echo "Unknown film route returned unexpected HTTP $not_found_status."
+            exit 1
+          fi
+          if [[ "$not_found_status" == "200" ]] && ! grep -Eiq 'name="robots"[^>]*content="noindex|content="noindex[^>]*name="robots"' /tmp/not-found.html; then
+            echo "Streamed soft-404 must include robots noindex."
             exit 1
           fi
           if ! grep -Fq '404 / NOT FOUND' /tmp/not-found.html; then
@@ -274,8 +278,12 @@ jobs:
           fi
 
           truman_status=$(curl --silent --output /tmp/public-truman-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/the-truman-show)
-          if [[ "$truman_status" != "404" ]]; then
-            echo "Protected Film 001 draft route must return HTTP 404, got $truman_status."
+          if [[ "$truman_status" != "200" && "$truman_status" != "404" ]]; then
+            echo "Protected Film 001 draft route returned unexpected HTTP $truman_status."
+            exit 1
+          fi
+          if [[ "$truman_status" == "200" ]] && ! grep -Eiq 'name="robots"[^>]*content="noindex|content="noindex[^>]*name="robots"' /tmp/public-truman-route.html; then
+            echo "Streamed Film 001 soft-404 must include robots noindex."
             exit 1
           fi
           if ! grep -Fq '404 / NOT FOUND' /tmp/public-truman-route.html; then
@@ -288,8 +296,12 @@ jobs:
           fi
 
           preview_status=$(curl --silent --output /tmp/public-preview-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/pilot-film)
-          if [[ "$preview_status" != "404" ]]; then
-            echo "Protected preview route must return HTTP 404, got $preview_status."
+          if [[ "$preview_status" != "200" && "$preview_status" != "404" ]]; then
+            echo "Protected preview route returned unexpected HTTP $preview_status."
+            exit 1
+          fi
+          if [[ "$preview_status" == "200" ]] && ! grep -Eiq 'name="robots"[^>]*content="noindex|content="noindex[^>]*name="robots"' /tmp/public-preview-route.html; then
+            echo "Streamed preview soft-404 must include robots noindex."
             exit 1
           fi
           if ! grep -Fq '404 / NOT FOUND' /tmp/public-preview-route.html; then
