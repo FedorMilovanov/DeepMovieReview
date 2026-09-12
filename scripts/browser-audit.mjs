@@ -191,11 +191,18 @@ try {
     throw new Error("Expression did not become truthy: " + expression);
   }
 
-  async function navigate(pathname, width, height, reducedMotion = false, forcedColors = false) {
+  async function navigate(
+    pathname,
+    width,
+    height,
+    reducedMotion = false,
+    forcedColors = false,
+    deviceScaleFactor = 1,
+  ) {
     await send("Emulation.setDeviceMetricsOverride", {
       width,
       height,
-      deviceScaleFactor: 1,
+      deviceScaleFactor,
       mobile: width < 600,
     });
     await send("Emulation.setEmulatedMedia", {
@@ -235,6 +242,33 @@ try {
     }
     const screenshot = await send("Page.captureScreenshot", params);
     writeFileSync(resolve(outDir, name + ".png"), Buffer.from(screenshot.data, "base64"));
+  }
+
+  async function inspectNoHorizontalOverflow(label) {
+    const geometry = JSON.parse(await evaluate(
+      "JSON.stringify({" +
+        "scrollWidth: document.documentElement.scrollWidth," +
+        "clientWidth: document.documentElement.clientWidth" +
+      "})"
+    ));
+    assertCheck(
+      label + ": no horizontal overflow",
+      geometry.scrollWidth <= geometry.clientWidth + 1,
+      geometry,
+    );
+  }
+
+  async function inspectMinimumTargetSize(label, selector, minimum = 24) {
+    const result = JSON.parse(await evaluate(
+      "JSON.stringify((() => {" +
+        "const minimum=" + JSON.stringify(minimum) + ";" +
+        "const nodes=[...document.querySelectorAll(" + JSON.stringify(selector) + ")];" +
+        "const visible=nodes.filter((node) => { const s=getComputedStyle(node); const r=node.getBoundingClientRect(); return s.display!=='none' && s.visibility!=='hidden' && r.width>0 && r.height>0; });" +
+        "const undersized=visible.map((node) => { const r=node.getBoundingClientRect(); return {text:(node.textContent||'').trim().slice(0,80),width:r.width,height:r.height}; }).filter((r) => r.width < minimum || r.height < minimum);" +
+        "return {count: visible.length, undersized};" +
+      "})())"
+    ));
+    assertCheck(label + ": controls meet 24px minimum target size", result.count > 0 && result.undersized.length === 0, result);
   }
 
   async function inspectBasic(label) {
@@ -277,8 +311,7 @@ try {
 
   await navigate("/", 390, 844);
   await inspectBasic("home mobile");
-  const overflow = await evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth");
-  assertCheck("home mobile: no horizontal overflow", overflow);
+  await inspectNoHorizontalOverflow("home mobile");
   const autopsyDefinitionOverlap = await evaluate(
     "[...document.querySelectorAll('.autopsyGrid > div')].some((row) => {" +
       "const term=row.querySelector('dt'); const value=row.querySelector('dd');" +
@@ -295,6 +328,14 @@ try {
   const forcedColorsActive = await evaluate("matchMedia('(forced-colors: active)').matches");
   assertCheck("forced colors: browser media emulation active", forcedColorsActive);
   await capture("home-forced-colors", false);
+
+  // A 1440px-wide display at 200% browser zoom exposes roughly a 720 CSS-pixel
+  // layout viewport while device pixels double. This catches zoom/reflow failures
+  // without relying on browser UI automation outside the DevTools protocol.
+  await navigate("/", 720, 500, false, false, 2);
+  await inspectBasic("home zoom 200");
+  await inspectNoHorizontalOverflow("home zoom 200");
+  await capture("home-zoom-200", true);
 
   await navigate("/labs/living-frame", 1280, 900);
   await inspectBasic("living frame desktop");
@@ -482,6 +523,7 @@ try {
   assertCheck("six lenses: roving tabindex", tabState.roving === 1, tabState);
   assertCheck("six lenses: tabpanel labelled by selected tab", tabState.panelLabelled, tabState);
   assertCheck("six lenses: tabs in AX tree", six.roles.filter((role) => role === "tab").length >= 6);
+  await inspectMinimumTargetSize("six lenses", "[role=tab]");
   await evaluate("document.querySelectorAll('[role=tab]')[0].focus()");
   await send("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowRight", code: "ArrowRight" });
   await send("Input.dispatchKeyEvent", { type: "keyUp", key: "ArrowRight", code: "ArrowRight" });
@@ -504,6 +546,15 @@ try {
   assertCheck("scene autopsy: canonical evidence buttons present", autopsyState.buttons === 4, autopsyState);
   assertCheck("scene autopsy: one pressed evidence control", autopsyState.pressed === 1, autopsyState);
   assertCheck("scene autopsy: no hidden duplicate buttons", autopsyState.visualButtons === 0, autopsyState);
+  await inspectMinimumTargetSize("scene autopsy", "[aria-label=\"Scene evidence anchors\"] button");
+  await evaluate("document.querySelectorAll('[aria-label=\"Scene evidence anchors\"] button')[1]?.focus()");
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter" });
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter" });
+  await sleep(150);
+  const autopsyKeyboardActivated = await evaluate(
+    "document.querySelectorAll('[aria-label=\"Scene evidence anchors\"] button')[1]?.getAttribute('aria-pressed') === 'true' && document.activeElement === document.querySelectorAll('[aria-label=\"Scene evidence anchors\"] button')[1]"
+  );
+  assertCheck("scene autopsy: keyboard activates and preserves focus", autopsyKeyboardActivated);
   await capture("scene-autopsy", true);
 
   await navigate("/films/pilot-film?spoilers=NONE", 1280, 900);
@@ -516,6 +567,11 @@ try {
   const fullHasMajor = await evaluate("document.body.innerText.includes('Evidence before conclusion.')");
   assertCheck("film FULL: MAJOR autopsy is visible", fullHasMajor);
   await capture("film-full", true);
+
+  await navigate("/films/pilot-film?spoilers=FULL", 640, 450, false, false, 2);
+  await inspectBasic("film zoom 200");
+  await inspectNoHorizontalOverflow("film zoom 200");
+  await capture("film-zoom-200", true);
 
   await navigate("/films/pilot-film?spoilers=FULL", 1280, 900, true);
   await sleep(500);
