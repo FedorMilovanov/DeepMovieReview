@@ -1,7 +1,7 @@
 "use client";
 
 import { Float } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, type EventManager } from "@react-three/fiber";
 import { motion } from "motion/react";
 import {
   Component,
@@ -20,6 +20,11 @@ import styles from "./verdict-core.module.css";
 type RendererFactoryProps = {
   canvas: EventTarget;
 };
+
+const createEventlessManager = (): EventManager<HTMLElement> => ({
+  enabled: false,
+  priority: 0,
+});
 
 class VerdictCoreBoundary extends Component<
   { children: ReactNode; fallback: ReactNode },
@@ -181,6 +186,7 @@ export function VerdictCore() {
         <VerdictCoreBoundary fallback={fallback}>
           <div className={styles.canvas} aria-hidden="true">
             <Canvas
+              events={createEventlessManager}
               dpr={[1, maxDpr]}
               frameloop={frameloop}
               camera={{ position: [0, 0, 4.5], fov: 38, near: 0.1, far: 20 }}
