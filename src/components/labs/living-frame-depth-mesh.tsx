@@ -301,6 +301,9 @@ export function LivingFrameDepthMesh({
     if (pointerFrameRef.current !== null) cancelAnimationFrame(pointerFrameRef.current);
   }, []);
 
+  const gpuAvailable = backend !== "unknown" && backend !== "none" && tier !== "LITE";
+  const maxDpr = tier === "ULTRA" ? Math.min(dpr, 1.8) : tier === "HIGH" ? Math.min(dpr, 1.5) : 1.2;
+
   const createRenderer = useCallback(async (props: RendererFactoryProps) => {
     if (!(props.canvas instanceof HTMLCanvasElement)) {
       throw new Error("Living Frame depth mesh requires a DOM canvas.");
@@ -314,6 +317,17 @@ export function LivingFrameDepthMesh({
         powerPreference: "high-performance",
         forceWebGL: backend === "webgl2",
       });
+
+      // R3F awaits an async renderer factory before it applies the measured
+      // container size/DPR. Initialize WebGPU against the real drawing buffer
+      // instead of the canvas default 300x150, otherwise the first render can
+      // race a later R3F resize and leave depth/color attachments mismatched.
+      const bounds = props.canvas.getBoundingClientRect();
+      if (bounds.width > 0 && bounds.height > 0) {
+        const initialDpr = Math.min(maxDpr, Math.max(1, window.devicePixelRatio || 1));
+        renderer.setDrawingBufferSize(bounds.width, bounds.height, initialDpr);
+      }
+
       await renderer.init();
       const rendererBackend = renderer.backend as { isWebGPUBackend?: boolean };
       reportRendererBackend(rendererBackend.isWebGPUBackend ? "webgpu" : "webgl2");
@@ -326,7 +340,7 @@ export function LivingFrameDepthMesh({
       reportRendererFailure(`Living Frame renderer initialization failed: ${reason}`);
       throw error;
     }
-  }, [backend, reportRendererBackend, reportRendererFailure]);
+  }, [backend, maxDpr, reportRendererBackend, reportRendererFailure]);
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     if (reducedMotion || event.pointerType === "touch") return;
@@ -355,9 +369,6 @@ export function LivingFrameDepthMesh({
     pendingPointerTimestampRef.current = null;
     setPointer({ x: 0, y: 0 });
   }
-
-  const gpuAvailable = backend !== "unknown" && backend !== "none" && tier !== "LITE";
-  const maxDpr = tier === "ULTRA" ? Math.min(dpr, 1.8) : tier === "HIGH" ? Math.min(dpr, 1.5) : 1.2;
 
   return (
     <div

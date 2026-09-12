@@ -1,12 +1,13 @@
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 const baseUrl = process.env.BASE_URL ?? "http://127.0.0.1:3212";
 const outDir = resolve(process.env.BROWSER_AUDIT_DIR ?? "browser-audit");
 const debuggingPort = 9222;
 const debuggingBase = "http://127.0.0.1:" + debuggingPort;
-const profileDir = "/tmp/dmr-chrome-profile";
+const profileDir = resolve(process.env.BROWSER_AUDIT_PROFILE_DIR ?? join(tmpdir(), "dmr-chrome-profile"));
 
 mkdirSync(outDir, { recursive: true });
 rmSync(profileDir, { recursive: true, force: true });
@@ -16,11 +17,34 @@ function sleep(ms) {
 }
 
 function findChrome() {
-  for (const binary of ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"]) {
-    const lookup = spawnSync("which", [binary], { encoding: "utf8" });
-    if (lookup.status === 0 && lookup.stdout.trim()) return lookup.stdout.trim();
+  const configured = process.env.CHROME_BIN?.trim();
+  if (configured) {
+    if (!existsSync(configured)) throw new Error("CHROME_BIN does not exist: " + configured);
+    return configured;
   }
-  throw new Error("No Chrome/Chromium binary is available on the runner.");
+
+  const binaryNames = process.platform === "win32"
+    ? ["chrome.exe", "msedge.exe", "chromium.exe"]
+    : ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"];
+  const lookupCommand = process.platform === "win32" ? "where.exe" : "which";
+
+  for (const binary of binaryNames) {
+    const lookup = spawnSync(lookupCommand, [binary], { encoding: "utf8" });
+    const firstMatch = lookup.stdout?.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+    if (lookup.status === 0 && firstMatch) return firstMatch;
+  }
+
+  if (process.platform === "win32") {
+    const candidates = [
+      process.env.PROGRAMFILES && join(process.env.PROGRAMFILES, "Google", "Chrome", "Application", "chrome.exe"),
+      process.env["PROGRAMFILES(X86)"] && join(process.env["PROGRAMFILES(X86)"], "Microsoft", "Edge", "Application", "msedge.exe"),
+      process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe"),
+    ].filter(Boolean);
+    const fallback = candidates.find((candidate) => existsSync(candidate));
+    if (fallback) return fallback;
+  }
+
+  throw new Error("No Chrome/Chromium binary is available on this runner.");
 }
 
 async function waitForJson(url, attempts = 160) {
