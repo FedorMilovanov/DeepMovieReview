@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree, type EventManager } from "@react-three/fiber";
 import {
   Component,
   Suspense,
@@ -26,6 +26,11 @@ export type LivingFrameGpuBenchmark = {
 type RendererFactoryProps = {
   canvas: EventTarget;
 };
+
+const createEventlessManager = (): EventManager<HTMLElement> => ({
+  enabled: false,
+  priority: 0,
+});
 
 type DepthMeshSceneProps = {
   pointer: { x: number; y: number };
@@ -370,6 +375,7 @@ export function LivingFrameDepthMesh({
           }
         >
           <Canvas
+            events={createEventlessManager}
             dpr={[1, maxDpr]}
             frameloop="demand"
             camera={{ position: [0, 0, 4.35], fov: 31, near: 0.1, far: 20 }}
