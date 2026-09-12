@@ -65,6 +65,11 @@ html[data-document-visible="false"] .experienceDiagnostics {
   bottom: calc(100% + 0.6rem);
   z-index: 80;
   width: min(92vw, 430px);
+  /* The panel opens upward from the footer; on short viewports (landscape
+     phones) it used to extend past the top edge and become unreachable.
+     Clamp it to the viewport and let the fieldsets scroll inside. */
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
   padding: 1rem;
   border: 1px solid var(--stroke-strong);
   background: rgb(5 5 5 / 0.97);

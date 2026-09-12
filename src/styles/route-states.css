@@ -1,5 +1,7 @@
 .routeLoading,
 .routeError {
+  /* vh fallback for browsers without svh units (pre-2022 engines). */
+  min-height: calc(100vh - 74px);
   min-height: calc(100svh - 74px);
   display: flex;
   flex-direction: column;

@@ -7,6 +7,8 @@
 
 .heroSection {
   position: relative;
+  /* vh fallback for browsers without svh units (pre-2022 engines). */
+  min-height: calc(100vh - 78px);
   min-height: calc(100svh - 78px);
   display: grid;
   align-content: center;

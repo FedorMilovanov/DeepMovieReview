@@ -39,6 +39,8 @@
   background:
     linear-gradient(110deg, rgb(255 255 255 / 0.025), transparent 44%),
     color-mix(in oklab, var(--bg-elevated) 86%, transparent);
+  /* Prefixed twin for Safari (unprefixed shipped only in Safari 18). */
+  -webkit-backdrop-filter: blur(18px) saturate(115%);
   backdrop-filter: blur(18px) saturate(115%);
 }
 

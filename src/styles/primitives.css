@@ -187,6 +187,9 @@ h3 {
   min-height: 78px;
   border-bottom-color: var(--stroke-subtle);
   background: color-mix(in srgb, var(--surface-canvas) 86%, transparent);
+  /* Prefixed twin for Safari: the unprefixed property only shipped there
+     in Safari 18, and without it the sticky header loses its scrim. */
+  -webkit-backdrop-filter: blur(18px) saturate(115%);
   backdrop-filter: blur(18px) saturate(115%);
 }
 
@@ -280,6 +283,15 @@ h3 {
 
   .siteHeader {
     background: Canvas;
+    backdrop-filter: none;
+  }
+}
+
+/* Windows "reduce transparency": drop the blur scrim for a solid header. */
+@media (prefers-reduced-transparency: reduce) {
+  .siteHeader {
+    background: var(--surface-canvas);
+    -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 }
