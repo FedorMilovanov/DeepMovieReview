@@ -13,7 +13,7 @@ export function FilmMediaFrame({ slug, variant }: FilmMediaFrameProps) {
       <span className="filmMediaGlow filmMediaGlowPrimary" />
       <span className="filmMediaGlow filmMediaGlowSecondary" />
       <span className="filmMediaHorizon" />
-      <span className="filmMediaFrameMark">FRAME / {slug.toUpperCase()}</span>
+      <span className="filmMediaFrameMark">Кадр / {slug.toUpperCase()}</span>
     </div>
   );
 }

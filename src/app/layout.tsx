@@ -27,6 +27,12 @@ import "../styles/experience.css";
 const homepageFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
 const previewContentEnabled = isPreviewContentEnabled();
 
+/* Canonical origin for metadata URLs (og:image etc.). Without an explicit
+   metadataBase Next falls back to localhost:3000, which social crawlers
+   cannot resolve. Pages are statically prerendered, so this is read at
+   BUILD time — set DMR_SITE_URL in the deploy build environment. */
+const siteOrigin = process.env.DMR_SITE_URL ?? "http://localhost:3000";
+
 if (homepageFilmPackage.film.status === "draft" && !previewContentEnabled) {
   throw new Error(
     `Configured homepage feature "${homepageFeaturedFilmSlug}" is draft content. Enable DMR_PREVIEW_CONTENT_ENABLED only for an intentional preview build, or publish/select a safe homepage feature.`,
@@ -44,6 +50,7 @@ export const viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin),
   applicationName: "Глубокие воды",
   title: {
     default: "Глубокие воды — исследование кино через библейскую картину мира",
@@ -58,12 +65,21 @@ export const metadata: Metadata = {
     description:
       "Исследование кино через библейскую картину мира: сначала фильм — потом вердикт.",
     locale: "ru_RU",
+    images: [
+      {
+        url: "/og-home.png",
+        width: 1200,
+        height: 630,
+        alt: "Deep Waters / Глубокие воды — исследование кино через библейскую картину мира",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Глубокие воды — исследование кино через библейскую картину мира",
     description:
       "Исследование кино через библейскую картину мира: сначала фильм — потом вердикт.",
+    images: ["/og-home.png"],
   },
   robots: indexingEnabled
     ? { index: true, follow: true }
