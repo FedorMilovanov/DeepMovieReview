@@ -1,5 +1,6 @@
 import { VerdictCore } from "@/components/experience/verdict-core";
 import type { FinalSynthesisModule } from "@/lib/film-package";
+import { confidenceLabels } from "@/lib/presentation-labels";
 
 export function FinalSynthesisModuleView({ module }: { module: FinalSynthesisModule }) {
   return (
@@ -25,7 +26,7 @@ export function FinalSynthesisModuleView({ module }: { module: FinalSynthesisMod
       </div>
 
       <div className="filmFinalVerdict">
-        <span className="microLabel">Итоговый синтез / достоверность {module.confidence}</span>
+        <span className="microLabel">Итоговый синтез / достоверность {confidenceLabels[module.confidence]}</span>
         <p>{module.verdict}</p>
         {module.qualifications.length > 0 ? (
           <ul>

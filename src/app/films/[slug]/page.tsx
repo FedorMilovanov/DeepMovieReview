@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FilmMediaFrame } from "@/components/film-media-frame";
+import { FilmEvidenceMap } from "@/components/film-modules/evidence-map";
 import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
 import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
@@ -47,7 +48,9 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
     description:
       film.status === "published"
         ? `${film.title} (${film.year}) — ${film.premise}`
-        : `${film.title} — структурный стенд платформы «Глубокие воды».`,
+        : filmPackage.research?.state === "SECONDARY_SOURCES"
+          ? `${film.title} — исследовательский черновик по вторичным источникам; точный просмотренный мастер ещё не заблокирован.`
+          : `${film.title} — структурная фикстура платформы «Глубокие воды».`,
     robots: film.status === "published" ? undefined : { index: false, follow: false },
   };
 }
@@ -58,6 +61,8 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
   if (!filmPackage || (filmPackage.film.status !== "published" && !isPreviewContentEnabled())) notFound();
 
   const { film, modules } = filmPackage;
+  const researchDraft = filmPackage.research?.state === "SECONDARY_SOURCES";
+  const sourceRecords = modules.flatMap((module) => module.kind === "sources-method" ? module.sources : []);
   const spoilerLevel = parseSpoilerLevel(query.spoilers);
   const pathname = `/films/${film.slug}`;
   const visibleModules = getVisibleFilmModules(modules, spoilerLevel);
@@ -71,7 +76,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
       <section className="sectionShell filmPageHero" aria-labelledby="film-title">
         <Link className="microLabel" href="/films">← Фильмы</Link>
         <FilmMediaFrame slug={film.slug} variant="hero" />
-        <div className="sectionIndex">Фильм / {statusLabels[film.status]} / Схема {filmPackage.schemaVersion}</div>
+        <div className="sectionIndex">Фильм / {researchDraft ? "исследовательский черновик" : statusLabels[film.status]} / Схема {filmPackage.schemaVersion}</div>
         <h1 id="film-title">{film.title}</h1>
         <p className="sectionIntro">{film.premise}</p>
         <div className="meaningGrid">
@@ -80,7 +85,12 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
           <div><span>Жанр</span><strong>{film.genre.join(" / ")}</strong></div>
           <div><span>Вопрос</span><strong>{film.thesisQuestion}</strong></div>
         </div>
-        {film.status === "fixture" ? (
+        {researchDraft ? (
+          <aside className="researchDraftNotice" aria-label="Статус исследовательского черновика">
+            <strong>Исследовательский черновик · вторичные источники · мастер не заблокирован</strong>
+            <p>Сцены и таймкоды предварительные. Ни одна из этих опор не считается канонической до воспроизведения по точному просмотренному мастеру, перевода сцен в VERIFIED и повторной привязки доказательств.</p>
+          </aside>
+        ) : film.status === "fixture" ? (
           <p className="fixtureNotice">Этот маршрут лишь проверяет переиспользуемый рендерер фильмов. Язык фикстуры не несёт опубликованной моральной, психологической или библейской позиции.</p>
         ) : null}
       </section>
@@ -116,6 +126,14 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
           <p className="spoilerOmissionNotice" aria-live="polite">Сейчас видны все модули разбора.</p>
         )}
       </section>
+
+      <FilmEvidenceMap
+        evidence={filmPackage.evidence ?? []}
+        modules={visibleModules}
+        researchDraft={researchDraft}
+        scenes={filmPackage.scenes ?? []}
+        sources={sourceRecords}
+      />
 
       <FilmModuleList modules={visibleModules} />
     </>

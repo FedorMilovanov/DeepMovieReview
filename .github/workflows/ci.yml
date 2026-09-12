@@ -153,6 +153,20 @@ jobs:
           grep -Fq 'Доминик Торетто' /tmp/fast-full.html
           grep -Fq 'Брайан и Дом: доверие под прикрытием' /tmp/fast-full.html
           grep -Fq 'Арестовать или отдать ключи' /tmp/fast-full.html
+
+          for draft_html in /tmp/truman-draft.html /tmp/fast-draft.html; do
+            grep -Fq 'Исследовательский черновик · вторичные источники · мастер не заблокирован' "$draft_html"
+          done
+          for full_html in /tmp/truman-full.html /tmp/fast-full.html; do
+            grep -Fq 'Путь от тезиса к источнику.' "$full_html"
+            for internal_token in 'WRONGDOING' 'VIRTUE' 'MIXED' 'KNOWN_TO_CHARACTER' 'REVEALED_LATER' 'NORMALIZED' 'CELEBRATED' '>reference<' '>film-edition<' '>editorial-note<'; do
+              if grep -Fq "$internal_token" "$full_html"; then
+                echo "Russian real-film HTML leaked internal presentation token: $internal_token"
+                exit 1
+              fi
+            done
+          done
+
           if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/truman-draft.html; then
             echo "Film 001 draft route must remain noindex/nofollow in preview."
             exit 1
@@ -282,7 +296,7 @@ jobs:
           fi
           echo "Verified public homepage state: $public_state"
 
-          for preview_marker in 'Структурный стенд' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'Труман Бёрбанк' 'Доминик Торетто'; do
+          for preview_marker in 'Структурный стенд' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'Шоу Трумана' 'Форсаж' 'Труман Бёрбанк' 'Доминик Торетто' 'исследовательский черновик'; do
             if grep -Fq "$preview_marker" /tmp/public-home.html; then
               echo "Public homepage leaked preview marker: $preview_marker"
               exit 1

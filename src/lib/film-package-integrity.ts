@@ -345,8 +345,14 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     }
     if (research && filmPackage.ingest?.edition.state === "TARGET_ONLY") {
       const editionSourceId = filmPackage.ingest.edition.sourceId;
-      if ((item.sourceIds ?? []).includes(editionSourceId)) {
-        errors.push(`evidence/${item.id}: research-tier evidence must not cite the target film-edition source "${editionSourceId}" (the master is not locked).`);
+      for (const sourceId of item.sourceIds ?? []) {
+        const source = sourcesById.get(sourceId);
+        if (source?.kind !== "film-edition") continue;
+        if (sourceId === editionSourceId) {
+          errors.push(`evidence/${item.id}: research-tier evidence must not cite the target film-edition source "${editionSourceId}" (the master is not locked).`);
+        } else {
+          errors.push(`evidence/${item.id}: research-tier evidence must not cite film-edition source "${sourceId}" before the viewing master is LOCKED.`);
+        }
       }
     }
     for (const id of duplicateIds(item.sourceIds ?? [])) {

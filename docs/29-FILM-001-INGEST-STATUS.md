@@ -15,7 +15,7 @@ The repository currently knows:
 - official production metadata;
 - a target 25th Anniversary Paramount 4K presentation;
 - secondary craft/development/script research sources;
-- a machine-validated **research-tier draft analysis** (see §7): fifteen DRAFT scenes with estimated bounds, thirty-five secondary-source evidence records and all fourteen module kinds, assembled under `ingest.research.state = "SECONDARY_SOURCES"`;
+- a machine-validated **research-tier draft analysis** (see §7): fifteen DRAFT scenes with estimated bounds, secondary-source evidence records and all fourteen module kinds, assembled under `FilmPackage.research.state = "SECONDARY_SOURCES"`;
 - the editorial rule that the finished locked film master outranks screenplay drafts and web summaries.
 
 The repository does **not** yet know:
@@ -34,7 +34,7 @@ Those fields must not be fabricated merely to make the package look complete.
 
 The gate is machine-readable through `FilmPackage.ingest.edition`:
 
-- `TARGET_ONLY` means a release/master target is selected but canonical `scenes[]`, evidence **and analytical FilmPackage modules** are forbidden; only `sources-method` may exist until the exact viewing master is locked;
+- `TARGET_ONLY` means a release/master target is selected and **canonical** `scenes[]`, canonical evidence and publishable analytical modules are forbidden. Normally only `sources-method` may exist; the sole pre-lock exception is the explicit `SECONDARY_SOURCES` research tier described in §7, whose scenes stay DRAFT, whose evidence cannot cite any `film-edition`, and whose working modules are structurally unpublishable;
 - `LOCKED` requires exact edition identity, positive `measuredRuntimeSeconds`, timestamp convention and verification date;
 - every real-film Sources/Method module requires nonblank `methodologyVersion`, `editorialRevision` and human-readable `analyzedEdition` during draft authoring; `lastReviewedAt` remains a publication/review field;
 - real-film scenes use numeric start/end seconds from that declared timestamp origin;

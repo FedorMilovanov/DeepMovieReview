@@ -15,6 +15,11 @@ const statusLabels = {
   published: "опубликовано",
 } as const;
 
+function packageStatusLabel(filmPackage: (typeof filmPackages)[number]) {
+  if (filmPackage.research?.state === "SECONDARY_SOURCES") return "исследовательский черновик · мастер не заблокирован";
+  return statusLabels[filmPackage.film.status];
+}
+
 export default function FilmsPage() {
   const publishedPackages = filmPackages.filter((filmPackage) => filmPackage.film.status === "published");
   const previewContentEnabled = isPreviewContentEnabled();
@@ -32,8 +37,7 @@ export default function FilmsPage() {
       </p>
       {isPrelaunch && previewContentEnabled ? (
         <p className="fixtureNotice">
-          Текущие записи — фикстуры для тестирования маршрутов, раскладки и контрактов рендера. Это не опубликованные
-          разборы.
+          Предпросмотр включает структурные фикстуры и исследовательские черновики реальных фильмов. Черновики по вторичным источникам не являются каноническими разборами и остаются закрытыми от публичной индексации до блокировки мастера и кадровой проверки.
         </p>
       ) : null}
       {visiblePackages.length === 0 ? (
@@ -53,7 +57,7 @@ export default function FilmsPage() {
               <FilmMediaFrame slug={film.slug} variant="index" />
               <span className="filmRowTitle"><strong>{film.title}</strong></span>
               <span className="filmRowMeta">
-                {film.year} · {statusLabels[film.status]} · {modules.length} модулей
+                {film.year} · {packageStatusLabel(filmPackage)} · {modules.length} модулей
               </span>
             </FilmTransitionLink>
           );

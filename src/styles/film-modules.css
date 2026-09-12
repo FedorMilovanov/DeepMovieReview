@@ -410,3 +410,201 @@
     gap: 0.45rem;
   }
 }
+
+.researchDraftNotice {
+  margin-top: clamp(1.5rem, 3vw, 2.5rem);
+  max-width: 920px;
+  padding: clamp(1.1rem, 2.5vw, 1.75rem);
+  border: 1px solid var(--stroke-warm);
+  border-inline-start: 3px solid var(--accent-restoration);
+  background: linear-gradient(120deg, rgba(185, 146, 91, 0.08), transparent 58%);
+}
+
+.researchDraftNotice strong {
+  display: block;
+  font-family: var(--font-meta);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.researchDraftNotice p {
+  max-width: 74ch;
+  margin: 0.7rem 0 0;
+  color: var(--ink-2);
+  line-height: 1.65;
+}
+
+.filmEvidenceMap > h2 {
+  max-width: 13ch;
+}
+
+.evidenceMapList {
+  margin-top: clamp(2.5rem, 5vw, 4.5rem);
+  border-top: 1px solid var(--line);
+}
+
+.evidenceMapClaim {
+  border-bottom: 1px solid var(--line);
+}
+
+.evidenceMapClaim > summary {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.evidenceMapClaim > summary::-webkit-details-marker {
+  display: none;
+}
+
+.evidenceMapClaim > summary > span,
+.evidenceMapClaim > summary > small {
+  color: var(--muted);
+  font-family: var(--font-meta);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.evidenceMapClaim > summary > strong {
+  font-family: var(--display);
+  font-size: clamp(1.05rem, 2vw, 1.55rem);
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.evidenceMapClaim[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.evidenceMapCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  padding: 1px;
+  background: var(--line);
+}
+
+.evidenceMapCard {
+  min-width: 0;
+  padding: clamp(1.1rem, 2.4vw, 1.8rem);
+  background: var(--bg);
+}
+
+.evidenceMapCard[data-counter] {
+  box-shadow: inset 2px 0 0 var(--accent-fracture);
+}
+
+.evidenceMapTopline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  color: var(--muted);
+  font-family: var(--font-meta);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.evidenceMapTopline [data-state="draft"] {
+  color: var(--accent-restoration);
+}
+
+.evidenceMapTopline [data-state="verified"] {
+  color: var(--ink-1);
+}
+
+.evidenceMapCard h4 {
+  margin: 1.4rem 0 0;
+  font-family: var(--display);
+  font-size: clamp(1.25rem, 2.5vw, 2rem);
+  font-weight: 500;
+  line-height: 1.02;
+}
+
+.evidenceMapCard > p {
+  max-width: 66ch;
+  color: var(--ink-2);
+  line-height: 1.65;
+}
+
+.evidenceMapMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 1.5rem;
+  background: var(--line);
+}
+
+.evidenceMapMeta > div {
+  padding: 0.8rem;
+  background: var(--bg-elevated);
+}
+
+.evidenceMapMeta dt,
+.evidenceMapSources span {
+  color: var(--muted);
+  font-family: var(--font-meta);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.evidenceMapMeta dd {
+  margin-top: 0.25rem;
+}
+
+.evidenceMapSources {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.evidenceMapSources li {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.32fr) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.evidenceMapSources a {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 0.22em;
+}
+
+@media (max-width: 720px) {
+  .evidenceMapClaim > summary {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+  .evidenceMapClaim > summary > small {
+    grid-column: 2;
+  }
+
+  .evidenceMapCards,
+  .evidenceMapMeta {
+    grid-template-columns: 1fr;
+  }
+
+  .evidenceMapSources li {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+}
+
+@media (forced-colors: active) {
+  .researchDraftNotice,
+  .evidenceMapCard,
+  .evidenceMapMeta > div {
+    background: Canvas;
+  }
+}

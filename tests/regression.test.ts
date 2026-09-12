@@ -1311,6 +1311,30 @@ test("research-tier evidence must not cite the target film-edition source", () =
   assert.ok(errors.some((error) => error.includes("research-tier evidence must not cite the target film-edition source \"film-master\" (the master is not locked).")));
 });
 
+test("research-tier evidence rejects any film-edition source before master lock", () => {
+  const filmPackage = buildResearchTierPackage();
+  const sourcesModule = filmPackage.modules.find((module) => module.kind === "sources-method");
+  assert.ok(sourcesModule && sourcesModule.kind === "sources-method");
+  sourcesModule.sources.push({
+    id: "alternate-film-edition",
+    label: "Another release that has not been locked",
+    kind: "film-edition",
+  });
+  filmPackage.evidence = [{
+    id: "research-evidence",
+    label: "Invalid edition-backed research evidence",
+    observation: "This must not be treated as secondary-source evidence.",
+    sceneId: "research-scene",
+    timestampSeconds: 30,
+    sourceIds: ["alternate-film-edition"],
+    spoilerLevel: "NONE",
+  }];
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes(
+    'evidence/research-evidence: research-tier evidence must not cite film-edition source "alternate-film-edition" before the viewing master is LOCKED.',
+  ));
+});
+
 test("research-tier evidence requires secondary source references", () => {
   const filmPackage = buildResearchTierPackage();
   filmPackage.evidence = [{

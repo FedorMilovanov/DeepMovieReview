@@ -13,6 +13,22 @@ import type {
   StoryModule,
   TeachingSignalsModule,
 } from "@/lib/film-package";
+import {
+  confidenceLabels,
+  craftMechanismLabels,
+  decisionKnowledgeLabels,
+  decisionPressureLabels,
+  moralCulpabilityLabels,
+  moralNarrativeStanceLabels,
+  moralSeverityLabels,
+  moralValenceLabels,
+  narrativePermissionLabels,
+  pressureKindLabels,
+  repentanceLabels,
+  socialFormationLabels,
+  sourceKindLabels,
+  teachingSignalLabels,
+} from "@/lib/presentation-labels";
 
 function ModuleHeader({ eyebrow, heading }: { eyebrow?: string; heading: string }) {
   return (
@@ -21,10 +37,6 @@ function ModuleHeader({ eyebrow, heading }: { eyebrow?: string; heading: string 
       <h2>{heading}</h2>
     </>
   );
-}
-
-function humanizeEnum(value: string) {
-  return value.replaceAll("_", " ");
 }
 
 export function StoryModuleView({ module }: { module: StoryModule }) {
@@ -100,8 +112,8 @@ export function FamilyYouthModuleView({ module }: { module: FamilyYouthModule })
         {module.observations.map((observation) => (
           <article key={observation.id}>
             <div className="filmObservationMeta">
-              <span>{humanizeEnum(observation.domain)}</span>
-              <span>Достоверность / {observation.confidence}</span>
+              <span>{socialFormationLabels[observation.domain]}</span>
+              <span>Достоверность / {confidenceLabels[observation.confidence]}</span>
             </div>
             <h3>{observation.subject}</h3>
             <p>{observation.claim}</p>
@@ -125,7 +137,7 @@ export function MeaningModuleView({ module }: { module: MeaningModule }) {
         <div><span>Тема</span><strong>{module.theme}</strong></div>
         <div><span>Мнимый тезис</span><strong>{module.apparentClaim}</strong></div>
         <div><span>Контрдоказательство</span><strong>{module.counterevidence}</strong></div>
-        <div><span>Достоверность</span><strong>{module.confidence}</strong></div>
+        <div><span>Достоверность</span><strong>{confidenceLabels[module.confidence]}</strong></div>
       </div>
     </section>
   );
@@ -140,7 +152,7 @@ export function TeachingSignalsModuleView({ module }: { module: TeachingSignalsM
           <article key={signal.id}>
             <span className="filmSignalIndex">{String(index + 1).padStart(2, "0")}</span>
             <div>
-              <span className="microLabel">{humanizeEnum(signal.type)} · {signal.confidence}</span>
+              <span className="microLabel">{teachingSignalLabels[signal.type]} · {confidenceLabels[signal.confidence]}</span>
               <h3>{signal.subject}</h3>
               <p>{signal.interpretation}</p>
               {signal.counterevidence ? (
@@ -161,7 +173,7 @@ export function PermissionModuleView({ module }: { module: PermissionModule }) {
       <div className="permissionField">
         {module.assessments.map((assessment) => (
           <article key={assessment.id}>
-            <span className="permissionState">{assessment.state}</span>
+            <span className="permissionState">{narrativePermissionLabels[assessment.state]}</span>
             <h3>{assessment.subject}</h3>
             <p>{assessment.rationale}</p>
           </article>
@@ -180,8 +192,8 @@ export function CraftModuleView({ module }: { module: CraftModule }) {
         {module.observations.map((observation) => (
           <article key={observation.id}>
             <div className="filmObservationMeta">
-              <span>{humanizeEnum(observation.mechanism)}</span>
-              <span>Достоверность / {observation.confidence}</span>
+              <span>{craftMechanismLabels[observation.mechanism]}</span>
+              <span>Достоверность / {confidenceLabels[observation.confidence]}</span>
             </div>
             <p>{observation.observation}</p>
             <strong>{observation.interpretiveEffect}</strong>
@@ -192,9 +204,9 @@ export function CraftModuleView({ module }: { module: CraftModule }) {
         <div className="filmPressureGrid">
           {pressureAssessments.map((assessment) => (
             <article key={assessment.id}>
-              <span className="microLabel">{assessment.kind} · давление{assessment.level ? ` / ${assessment.level}` : ""}</span>
+              <span className="microLabel">{pressureKindLabels[assessment.kind]} давление{assessment.level ? ` / ${confidenceLabels[assessment.level]}` : ""}</span>
               <p>{assessment.rationale}</p>
-              <small>Достоверность / {assessment.confidence}</small>
+              <small>Достоверность / {confidenceLabels[assessment.confidence]}</small>
             </article>
           ))}
         </div>
@@ -251,17 +263,17 @@ export function DecisionModuleView({ module }: { module: DecisionModule }) {
       <div className="filmKnowledgeGrid">
         <article>
           <span className="microLabel">Известно / выводимо тогда</span>
-          {knownFacts.map((fact) => <p key={fact.id}><strong>{humanizeEnum(fact.knowledgeState)}</strong> {fact.text}</p>)}
+          {knownFacts.map((fact) => <p key={fact.id}><strong>{decisionKnowledgeLabels[fact.knowledgeState]}</strong> {fact.text}</p>)}
         </article>
         <article className="filmKnowledgeFog">
           <span className="microLabel">Неизвестно / раскрыто позже</span>
-          {withheldFacts.map((fact) => <p key={fact.id}><strong>{humanizeEnum(fact.knowledgeState)}</strong> {fact.text}</p>)}
+          {withheldFacts.map((fact) => <p key={fact.id}><strong>{decisionKnowledgeLabels[fact.knowledgeState]}</strong> {fact.text}</p>)}
         </article>
       </div>
       <div className="filmDecisionContext">
         <article>
           <span className="microLabel">Давления</span>
-          {module.pressures.map((pressure) => <p key={pressure.id}><strong>{humanizeEnum(pressure.kind)}</strong> {pressure.summary}</p>)}
+          {module.pressures.map((pressure) => <p key={pressure.id}><strong>{decisionPressureLabels[pressure.kind]}</strong> {pressure.summary}</p>)}
         </article>
         <article>
           <span className="microLabel">Обязанности / блага</span>
@@ -270,7 +282,7 @@ export function DecisionModuleView({ module }: { module: DecisionModule }) {
       </div>
       {module.editorialJudgment ? (
         <article className="filmDecisionJudgment">
-          <span className="microLabel">Позиция редакции / {module.editorialJudgment.confidence}</span>
+          <span className="microLabel">Позиция редакции / {confidenceLabels[module.editorialJudgment.confidence]}</span>
           <p>{module.editorialJudgment.claim}</p>
           {module.editorialJudgment.qualification ? <p className="filmCounterevidence">{module.editorialJudgment.qualification}</p> : null}
         </article>
@@ -297,8 +309,8 @@ export function MoralAnalysisModuleView({ module }: { module: MoralAnalysisModul
             <div className="filmMoralEventTopline">
               <span>{String(index + 1).padStart(2, "0")}</span>
               <span>{event.category}</span>
-              <span>{humanizeEnum(event.valence)}</span>
-              <span>Достоверность / {event.confidence}</span>
+              <span>{moralValenceLabels[event.valence]}</span>
+              <span>Достоверность / {confidenceLabels[event.confidence]}</span>
             </div>
             <h3>{event.act}</h3>
             <dl className="filmMoralEventGrid">
@@ -311,10 +323,10 @@ export function MoralAnalysisModuleView({ module }: { module: MoralAnalysisModul
               {event.foreseeability ? <div><dt>Предвидимость</dt><dd>{event.foreseeability}</dd></div> : null}
               {event.consequence ? <div><dt>Последствие</dt><dd>{event.consequence}</dd></div> : null}
               {event.responsibility ? <div><dt>Ответственность</dt><dd>{event.responsibility}</dd></div> : null}
-              {event.severity ? <div><dt>Тяжесть проступка</dt><dd>{event.severity}</dd></div> : null}
-              {event.culpability ? <div><dt>Виновность</dt><dd>{event.culpability}</dd></div> : null}
-              {event.repentance ? <div><dt>Раскаяние / искупление</dt><dd>{humanizeEnum(event.repentance)}</dd></div> : null}
-              <div><dt>Позиция повествования</dt><dd>{humanizeEnum(event.narrativeStance)}</dd></div>
+              {event.severity ? <div><dt>Тяжесть проступка</dt><dd>{moralSeverityLabels[event.severity]}</dd></div> : null}
+              {event.culpability ? <div><dt>Виновность</dt><dd>{moralCulpabilityLabels[event.culpability]}</dd></div> : null}
+              {event.repentance ? <div><dt>Раскаяние / искупление</dt><dd>{repentanceLabels[event.repentance]}</dd></div> : null}
+              <div><dt>Позиция повествования</dt><dd>{moralNarrativeStanceLabels[event.narrativeStance]}</dd></div>
             </dl>
           </li>
         ))}
@@ -345,13 +357,13 @@ export function SourcesMethodModuleView({ module }: { module: SourcesMethodModul
       <div className="filmMethodMeta">
         <div><span>Методология</span><strong>{module.methodologyVersion}</strong></div>
         <div><span>Редакционная ревизия</span><strong>{module.editorialRevision}</strong></div>
-        <div><span>Разобранное издание</span><strong>{module.analyzedEdition}</strong></div>
-        <div><span>Последняя проверка</span><strong>{module.lastReviewedAt ?? "Не опубликовано"}</strong></div>
+        <div><span>Издание / статус</span><strong>{module.analyzedEdition}</strong></div>
+        <div><span>Дата редакционной ревизии</span><strong>{module.lastReviewedAt ?? "Не опубликовано"}</strong></div>
       </div>
       <ol className="filmSourceList">
         {module.sources.map((source) => (
           <li key={source.id}>
-            <span className="microLabel">{source.kind}</span>
+            <span className="microLabel">{sourceKindLabels[source.kind]}</span>
             <div>
               {source.href ? <a href={source.href}>{source.label}</a> : <strong>{source.label}</strong>}
               {source.locator ? <p>{source.locator}</p> : null}

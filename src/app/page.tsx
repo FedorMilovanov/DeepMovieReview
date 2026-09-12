@@ -216,18 +216,18 @@ function FrameScene({ figures = false }: { figures?: boolean }) {
   );
 }
 
-function HeroStatusStrip() {
+function HeroStatusStrip({ preview }: { preview: boolean }) {
   return (
     <div className="heroStatusStrip sectionShell" role="list" aria-label="Статус платформы">
       <div role="listitem">
-        <span className="heroStatusIndex">FILM 001</span>
-        <strong>«Шоу Трумана» · 1998</strong>
-        <span>исследовательский разбор собран, кадровая сверка впереди</span>
+        <span className="heroStatusIndex">{preview ? "FILM 001" : "КОРПУС"}</span>
+        <strong>{preview ? "«Шоу Трумана» · 1998" : "Материалы готовятся"}</strong>
+        <span>{preview ? "исследовательский черновик собран, кадровая сверка впереди" : "незавершённые разборы остаются в редакции"}</span>
       </div>
       <div role="listitem">
         <span className="heroStatusIndex">МЕТОД</span>
         <strong>Доказательства → сцены → таймкоды</strong>
-        <span>каждый тезис привязан к кадру</span>
+        <span>публикуемый тезис должен быть воспроизводимо привязан к кадру</span>
       </div>
       <div role="listitem">
         <span className="heroStatusIndex">СТАТУС</span>
@@ -346,7 +346,7 @@ function PlatformLanding({ preview }: { preview: boolean }) {
         </div>
       </section>
 
-      <HeroStatusStrip />
+      <HeroStatusStrip preview={preview} />
 
       <section className="sectionShell sectionRule missionSection" aria-labelledby="mission-title">
         <div className="missionGrid">
@@ -542,24 +542,33 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           </p>
         </div>
         <div className="discoveryPanel">
-          <article className="discoveryCard">
-            <span className="microLabel">FILM 001 · исследовательский разбор</span>
-            <strong>«Шоу Трумана» · 1998</strong>
-            <p>
-              Издание зафиксировано. Разбор собран по вторичным источникам: пятнадцать сцен, тридцать восемь доказательств,
-              четырнадцать модулей — от истории до библейского синтеза. Публикация — после кадровой сверки сцен и
-              таймкодов с целевым изданием.
-            </p>
-          </article>
-          <article className="discoveryCard">
-            <span className="microLabel">FILM 002 · исследовательский разбор</span>
-            <strong>«Форсаж» · 2001</strong>
-            <p>
-              Рабочий угол редакции: «семья» как идол, скорость как замена свободы, лёгкие деньги вместо честного
-              труда. Разбор собран по вторичным источникам: четырнадцать сцен, тридцать два доказательства,
-              четырнадцать модулей. До публикации — кадровая сверка с целевым изданием.
-            </p>
-          </article>
+          {preview ? (
+            <>
+              <article className="discoveryCard">
+                <span className="microLabel">FILM 001 · исследовательский черновик</span>
+                <strong>«Шоу Трумана» · 1998</strong>
+                <p>
+                  Целевое издание выбрано, но точный просмотренный мастер ещё не заблокирован. По вторичным источникам
+                  собраны пятнадцать черновых сцен и тридцать восемь исследовательских опор. До публикации каждая сцена,
+                  таймкод и опора должны быть заново воспроизведены по точному мастеру.
+                </p>
+              </article>
+              <article className="discoveryCard">
+                <span className="microLabel">FILM 002 · исследовательский черновик</span>
+                <strong>«Форсаж» · 2001</strong>
+                <p>
+                  Предварительные гипотезы собраны по вторичным источникам: четырнадцать черновых сцен и тридцать две
+                  исследовательские опоры. Это не канонический разбор; кадровая сверка с точным мастером ещё впереди.
+                </p>
+              </article>
+            </>
+          ) : (
+            <article className="discoveryCard">
+              <span className="microLabel">Публичный корпус · предзапуск</span>
+              <strong>Первый проверенный разбор готовится.</strong>
+              <p>Незавершённые фильмы, рабочие гипотезы и вторичные исследовательские записи не выходят на публичную поверхность до блокировки мастера и независимой проверки.</p>
+            </article>
+          )}
           <div className="discoveryLinks">
             <Link href="/methodology">Читать методологию</Link>
             <Link href="/films">Посмотреть фильмы</Link>
