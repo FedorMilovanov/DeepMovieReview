@@ -106,9 +106,19 @@ try {
     }
 
     if (message.method === "Runtime.exceptionThrown") {
+      const details = message.params?.exceptionDetails;
       browserErrors.push({
         type: "exception",
-        text: message.params?.exceptionDetails?.text ?? "Runtime exception",
+        text: details?.exception?.description ?? details?.text ?? "Runtime exception",
+        url: details?.url,
+        lineNumber: details?.lineNumber,
+        columnNumber: details?.columnNumber,
+        stack: details?.stackTrace?.callFrames?.map((frame) => ({
+          functionName: frame.functionName,
+          url: frame.url,
+          lineNumber: frame.lineNumber,
+          columnNumber: frame.columnNumber,
+        })),
       });
     }
     if (message.method === "Log.entryAdded" && message.params?.entry?.level === "error") {
@@ -134,6 +144,23 @@ try {
     });
   }
 
+  async function pressEnter() {
+    const keyEvent = {
+      key: "Enter",
+      code: "Enter",
+      windowsVirtualKeyCode: 13,
+      nativeVirtualKeyCode: 13,
+    };
+    await send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...keyEvent });
+    await send("Input.dispatchKeyEvent", {
+      type: "char",
+      text: "\r",
+      unmodifiedText: "\r",
+      ...keyEvent,
+    });
+    await send("Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
+  }
+
   async function evaluate(expression) {
     const result = await send("Runtime.evaluate", {
       expression,
@@ -141,7 +168,11 @@ try {
       awaitPromise: true,
     });
     if (result.exceptionDetails) {
-      throw new Error(result.exceptionDetails.text ?? "Runtime.evaluate failed");
+      throw new Error(
+        result.exceptionDetails.exception?.description ??
+        result.exceptionDetails.text ??
+        "Runtime.evaluate failed"
+      );
     }
     return result.result?.value;
   }
@@ -548,8 +579,7 @@ try {
   assertCheck("scene autopsy: no hidden duplicate buttons", autopsyState.visualButtons === 0, autopsyState);
   await inspectMinimumTargetSize("scene autopsy", "[aria-label=\"Scene evidence anchors\"] button");
   await evaluate("document.querySelectorAll('[aria-label=\"Scene evidence anchors\"] button')[1]?.focus()");
-  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter" });
-  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter" });
+  await pressEnter();
   await sleep(150);
   const autopsyKeyboardActivated = await evaluate(
     "document.querySelectorAll('[aria-label=\"Scene evidence anchors\"] button')[1]?.getAttribute('aria-pressed') === 'true' && document.activeElement === document.querySelectorAll('[aria-label=\"Scene evidence anchors\"] button')[1]"
