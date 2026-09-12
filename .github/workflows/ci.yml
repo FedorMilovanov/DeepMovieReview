@@ -98,13 +98,13 @@ jobs:
           grep -Fqi 'referrer-policy: strict-origin-when-cross-origin' /tmp/home.headers
           grep -Fqi 'permissions-policy: camera=(), microphone=(), geolocation=(), payment=()' /tmp/home.headers
 
-          if grep -Fq 'Open structural fixture' /tmp/home.html; then
+          if grep -Fq 'Структурный стенд' /tmp/home.html; then
             site_state="prelaunch"
             if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
               echo "Prelaunch homepage must remain noindex/nofollow even when the launch flag is enabled."
               exit 1
             fi
-          elif grep -Fq 'Open analysis' /tmp/home.html; then
+          elif grep -Fq 'Открыть разбор' /tmp/home.html; then
             site_state="published-preview"
             if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
               echo "Preview builds must remain noindex/nofollow even when the configured homepage film is published."
@@ -158,7 +158,7 @@ jobs:
             echo "Streamed soft-404 must include robots noindex."
             exit 1
           fi
-          if ! grep -Fq '404 / NOT FOUND' /tmp/not-found.html; then
+          if ! grep -Fq '404 / Не найдено' /tmp/not-found.html; then
             echo "Unknown film route did not render the canonical not-found UI."
             exit 1
           fi
@@ -242,13 +242,13 @@ jobs:
             exit 1
           fi
 
-          if grep -Fq 'Open analysis' /tmp/public-home.html; then
+          if grep -Fq 'Открыть разбор' /tmp/public-home.html; then
             public_state="published"
             if grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
               echo "Published public homepage remained noindex despite launch flag and preview mode being disabled."
               exit 1
             fi
-          elif grep -Fq 'Read methodology' /tmp/public-home.html; then
+          elif grep -Fq 'Читать методологию' /tmp/public-home.html; then
             public_state="prelaunch"
             if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
               echo "Public prelaunch homepage must remain noindex/nofollow."
@@ -260,7 +260,7 @@ jobs:
           fi
           echo "Verified public homepage state: $public_state"
 
-          for preview_marker in 'Open structural fixture' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'The Truman Show'; do
+          for preview_marker in 'Структурный стенд' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'The Truman Show'; do
             if grep -Fq "$preview_marker" /tmp/public-home.html; then
               echo "Public homepage leaked preview marker: $preview_marker"
               exit 1
@@ -286,7 +286,7 @@ jobs:
             echo "Streamed Film 001 soft-404 must include robots noindex."
             exit 1
           fi
-          if ! grep -Fq '404 / NOT FOUND' /tmp/public-truman-route.html; then
+          if ! grep -Fq '404 / Не найдено' /tmp/public-truman-route.html; then
             echo "Protected Film 001 draft route did not resolve to the not-found boundary."
             exit 1
           fi
@@ -304,7 +304,7 @@ jobs:
             echo "Streamed preview soft-404 must include robots noindex."
             exit 1
           fi
-          if ! grep -Fq '404 / NOT FOUND' /tmp/public-preview-route.html; then
+          if ! grep -Fq '404 / Не найдено' /tmp/public-preview-route.html; then
             echo "Protected preview route did not resolve to the not-found boundary."
             exit 1
           fi

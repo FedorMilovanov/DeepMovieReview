@@ -39,6 +39,8 @@ h3 {
   font-family: var(--font-display);
   font-weight: 500;
   letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  text-wrap: balance;
 }
 
 h1 {
@@ -65,6 +67,21 @@ h3 {
   font-size: var(--type-meta);
   letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
+}
+
+.sectionIndex {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sectionIndex::before {
+  content: "";
+  width: 2.4rem;
+  height: 1px;
+  flex: none;
+  background: currentColor;
+  opacity: 0.45;
 }
 
 .sectionShell {

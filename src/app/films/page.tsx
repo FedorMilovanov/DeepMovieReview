@@ -5,9 +5,15 @@ import { filmPackages } from "@/data/film-registry";
 import { isPreviewContentEnabled } from "@/data/site-config";
 
 export const metadata: Metadata = {
-  title: "Films",
-  description: "Film analyses from DeepMovieReview.",
+  title: "Фильмы",
+  description: "Разборы фильмов DeepMovieReview.",
 };
+
+const statusLabels = {
+  fixture: "фикстура",
+  draft: "черновик",
+  published: "опубликовано",
+} as const;
 
 export default function FilmsPage() {
   const publishedPackages = filmPackages.filter((filmPackage) => filmPackage.film.status === "published");
@@ -17,20 +23,21 @@ export default function FilmsPage() {
 
   return (
     <section className="sectionShell filmIndexHero" aria-labelledby="films-title">
-      <div className="sectionIndex">FILMS / INDEX</div>
-      <h1 id="films-title">Films</h1>
+      <div className="sectionIndex">Фильмы / Индекс</div>
+      <h1 id="films-title">Фильмы</h1>
       <p className="sectionIntro">
         {isPrelaunch
-          ? "The platform shell comes first. Real analyses will be loaded into this index as structured content packages."
-          : "Published analyses connect story, people, relationships, ideas, craft, moral reasoning and biblical synthesis."}
+          ? "Сначала строится оболочка платформы. Реальные разборы появятся в этом индексе как структурированные пакеты контента."
+          : "Опубликованные разборы связывают историю, людей, отношения, идеи, форму, моральную аргументацию и библейский синтез."}
       </p>
       {isPrelaunch && previewContentEnabled ? (
         <p className="fixtureNotice">
-          Current entries are fixtures for route, layout and renderer-contract testing. They are not published reviews.
+          Текущие записи — фикстуры для тестирования маршрутов, раскладки и контрактов рендера. Это не опубликованные
+          разборы.
         </p>
       ) : null}
       {visiblePackages.length === 0 ? (
-        <p className="fixtureNotice">No published film analyses are available yet.</p>
+        <p className="fixtureNotice">Опубликованных разборов пока нет.</p>
       ) : null}
       <div className="filmList">
         {visiblePackages.map((filmPackage, index) => {
@@ -46,7 +53,7 @@ export default function FilmsPage() {
               <FilmMediaFrame slug={film.slug} variant="index" />
               <span className="filmRowTitle"><strong>{film.title}</strong></span>
               <span className="filmRowMeta">
-                {film.year} · {film.status} · {modules.length} modules
+                {film.year} · {statusLabels[film.status]} · {modules.length} модулей
               </span>
             </FilmTransitionLink>
           );

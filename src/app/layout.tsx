@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/oswald";
+import "@fontsource-variable/jetbrains-mono";
 import { ExperienceDiagnostics } from "@/components/experience/experience-diagnostics";
 import { ExperienceQualityProvider } from "@/components/experience/experience-quality-provider";
 import { SiteFooter } from "@/components/site-footer";
@@ -38,11 +41,11 @@ const indexingEnabled = canIndexSite({
 
 export const metadata: Metadata = {
   title: {
-    default: "DeepMovieReview",
+    default: "DeepMovieReview — глубокий разбор кино",
     template: "%s · DeepMovieReview",
   },
   description:
-    "Deep analysis of cinema: story, people, relationships, ideas, craft, moral structure and biblical synthesis.",
+    "Глубокий анализ кино: история, люди, отношения, идеи, форма, моральная структура и библейский синтез. Сначала фильм — потом вердикт.",
   robots: indexingEnabled
     ? { index: true, follow: true }
     : {
@@ -54,9 +57,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="ru">
       <body>
-        <a className="skipLink" href="#main">Skip to content</a>
+        <a className="skipLink" href="#main">Перейти к содержимому</a>
         <ExperienceQualityProvider>
           <div className="appShell">
             <SiteHeader />
