@@ -35,6 +35,27 @@ test("site indexing is allowed only for a published non-preview public build", (
   }
 });
 
+test("film slugs must be route-safe lowercase kebab-case", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "../Unsafe Slug",
+      title: "Invalid Slug Fixture",
+      year: 2026,
+      director: "Fixture",
+      runtime: "—",
+      genre: ["Drama"],
+      premise: "Fixture",
+      thesisQuestion: "Fixture?",
+      status: "fixture",
+    },
+    modules: [],
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("film: slug must use lowercase kebab-case URL-safe segments."));
+});
+
 test("ambiguous backslash source URLs are rejected before URL normalization", () => {
   const filmPackage: FilmPackage = {
     schemaVersion: 1,
@@ -78,6 +99,12 @@ test("ambiguous backslash source URLs are rejected before URL normalization", ()
             href: "//evil.example/path",
           },
           {
+            id: "credentialed-source",
+            label: "Credentialed source",
+            kind: "reference",
+            href: "https://user:password@example.com/path",
+          },
+          {
             id: "good-source",
             label: "Good source",
             kind: "reference",
@@ -98,6 +125,7 @@ test("ambiguous backslash source URLs are rejected before URL normalization", ()
   assert.equal(errors.filter((error) => error.includes("bad-source")).length, 1);
   assert.equal(errors.filter((error) => error.includes("ambiguous-source")).length, 1);
   assert.equal(errors.filter((error) => error.includes("protocol-relative-source")).length, 1);
+  assert.equal(errors.filter((error) => error.includes("credentialed-source")).length, 1);
   assert.equal(errors.some((error) => error.includes("good-source")), false);
   assert.equal(errors.some((error) => error.includes("good-internal")), false);
 });

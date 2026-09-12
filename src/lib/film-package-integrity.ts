@@ -8,6 +8,8 @@ import type {
 } from "@/lib/film-package";
 import { canRevealSpoiler, type SpoilerLevel } from "./spoilers";
 
+const ROUTE_SAFE_FILM_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 const REQUIRED_FINAL_FACETS: FinalSynthesisFacetKey[] = [
   "CRAFT",
   "MORAL_CLARITY",
@@ -39,7 +41,12 @@ function isSafeSourceHref(value: string): boolean {
 
   try {
     const url = new URL(href);
-    return (url.protocol === "https:" || url.protocol === "http:") && Boolean(url.hostname);
+    return (
+      (url.protocol === "https:" || url.protocol === "http:") &&
+      Boolean(url.hostname) &&
+      !url.username &&
+      !url.password
+    );
   } catch {
     return false;
   }
@@ -137,7 +144,11 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     checkSupportSpoilerCeiling(support, path, claimLevel, evidenceById, errors, realFilm);
   };
 
-  if (isBlank(filmPackage.film.slug)) errors.push("film: slug is required.");
+  if (isBlank(filmPackage.film.slug)) {
+    errors.push("film: slug is required.");
+  } else if (!ROUTE_SAFE_FILM_SLUG.test(filmPackage.film.slug)) {
+    errors.push("film: slug must use lowercase kebab-case URL-safe segments.");
+  }
   if (isBlank(filmPackage.film.title)) errors.push("film: title is required.");
   if (published && isBlank(filmPackage.film.director)) errors.push("film: published package requires director attribution.");
   if (published && filmPackage.film.genre.length === 0) errors.push("film: published package requires at least one genre.");
