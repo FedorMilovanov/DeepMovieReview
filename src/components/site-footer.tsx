@@ -4,8 +4,8 @@ export function SiteFooter() {
   return (
     <footer className="siteFooter">
       <div>
-        <p>DeepMovieReview · Film first. Evidence before verdict.</p>
-        <p>Story, people, meaning, moral reasoning and biblical synthesis.</p>
+        <p>Deep Waters · Сначала фильм. Доказательства — потом вердикт.</p>
+        <p>Исследование кино через библейскую картину мира: история, люди, смысл, моральная аргументация и синтез.</p>
       </div>
       <ExperienceControls />
     </footer>

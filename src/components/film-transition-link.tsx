@@ -23,11 +23,15 @@ function waitForNavigation(pathname: string, targetSelector: string): Promise<vo
         document.querySelector(targetSelector) !== null;
 
       if (routeCommitted || performance.now() >= deadline) {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        resolve();
         return;
       }
 
-      requestAnimationFrame(check);
+      // Poll on a timer, NOT requestAnimationFrame: rendering (and with it
+      // rAF) is suppressed while the view-transition update callback runs,
+      // so an rAF poll starves until the 5s deadline and freezes the old
+      // frame for the whole navigation. Timers keep firing.
+      window.setTimeout(check, 50);
     }
 
     check();

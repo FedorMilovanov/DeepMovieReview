@@ -98,13 +98,13 @@ jobs:
           grep -Fqi 'referrer-policy: strict-origin-when-cross-origin' /tmp/home.headers
           grep -Fqi 'permissions-policy: camera=(), microphone=(), geolocation=(), payment=()' /tmp/home.headers
 
-          if grep -Fq 'Open structural fixture' /tmp/home.html; then
+          if grep -Fq 'Структурный стенд' /tmp/home.html; then
             site_state="prelaunch"
             if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
               echo "Prelaunch homepage must remain noindex/nofollow even when the launch flag is enabled."
               exit 1
             fi
-          elif grep -Fq 'Open analysis' /tmp/home.html; then
+          elif grep -Fq 'Открыть разбор' /tmp/home.html; then
             site_state="published-preview"
             if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
               echo "Preview builds must remain noindex/nofollow even when the configured homepage film is published."
@@ -123,14 +123,50 @@ jobs:
           fi
 
           curl --fail --silent --show-error http://127.0.0.1:3210/films > /tmp/preview-films.html
-          if ! grep -Fq 'The Truman Show' /tmp/preview-films.html; then
+          if ! grep -Fq 'Шоу Трумана' /tmp/preview-films.html; then
             echo "Preview film index did not expose the Film 001 draft."
+            exit 1
+          fi
+          if ! grep -Fq 'Форсаж' /tmp/preview-films.html; then
+            echo "Preview film index did not expose the Film 002 draft."
             exit 1
           fi
 
           curl --fail --silent --show-error http://127.0.0.1:3210/films/the-truman-show > /tmp/truman-draft.html
-          grep -Fq 'The Truman Show' /tmp/truman-draft.html
-          grep -Fq 'Film 001 sources and edition lock' /tmp/truman-draft.html
+          grep -Fq 'Шоу Трумана' /tmp/truman-draft.html
+          grep -Fq 'Источники и издание — Шоу Трумана' /tmp/truman-draft.html
+
+          curl --fail --silent --show-error 'http://127.0.0.1:3210/films/the-truman-show?spoilers=FULL' > /tmp/truman-full.html
+          grep -Fq 'Труман Бёрбанк' /tmp/truman-full.html
+          grep -Fq 'Труман и Мэрил: брак как контракт' /tmp/truman-full.html
+          grep -Fq 'Уйти или остаться' /tmp/truman-full.html
+
+          curl --fail --silent --show-error http://127.0.0.1:3210/films/the-fast-and-the-furious > /tmp/fast-draft.html
+          grep -Fq 'Форсаж' /tmp/fast-draft.html
+          grep -Fq 'Источники и издание — Форсаж' /tmp/fast-draft.html
+          if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/fast-draft.html; then
+            echo "Film 002 draft route must remain noindex/nofollow in preview."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error 'http://127.0.0.1:3210/films/the-fast-and-the-furious?spoilers=FULL' > /tmp/fast-full.html
+          grep -Fq 'Доминик Торетто' /tmp/fast-full.html
+          grep -Fq 'Брайан и Дом: доверие под прикрытием' /tmp/fast-full.html
+          grep -Fq 'Арестовать или отдать ключи' /tmp/fast-full.html
+
+          for draft_html in /tmp/truman-draft.html /tmp/fast-draft.html; do
+            grep -Fq 'Исследовательский черновик · вторичные источники · мастер не заблокирован' "$draft_html"
+          done
+          for full_html in /tmp/truman-full.html /tmp/fast-full.html; do
+            grep -Fq 'Путь от тезиса к источнику.' "$full_html"
+            for internal_token in 'WRONGDOING' 'VIRTUE' 'MIXED' 'KNOWN_TO_CHARACTER' 'REVEALED_LATER' 'NORMALIZED' 'CELEBRATED' '>reference<' '>film-edition<' '>editorial-note<'; do
+              if grep -Fq "$internal_token" "$full_html"; then
+                echo "Russian real-film HTML leaked internal presentation token: $internal_token"
+                exit 1
+              fi
+            done
+          done
+
           if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/truman-draft.html; then
             echo "Film 001 draft route must remain noindex/nofollow in preview."
             exit 1
@@ -158,7 +194,7 @@ jobs:
             echo "Streamed soft-404 must include robots noindex."
             exit 1
           fi
-          if ! grep -Fq '404 / NOT FOUND' /tmp/not-found.html; then
+          if ! grep -Fq '404 / Не найдено' /tmp/not-found.html; then
             echo "Unknown film route did not render the canonical not-found UI."
             exit 1
           fi
@@ -242,13 +278,13 @@ jobs:
             exit 1
           fi
 
-          if grep -Fq 'Open analysis' /tmp/public-home.html; then
+          if grep -Fq 'Открыть разбор' /tmp/public-home.html; then
             public_state="published"
             if grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
               echo "Published public homepage remained noindex despite launch flag and preview mode being disabled."
               exit 1
             fi
-          elif grep -Fq 'Read methodology' /tmp/public-home.html; then
+          elif grep -Fq 'Читать методологию' /tmp/public-home.html; then
             public_state="prelaunch"
             if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
               echo "Public prelaunch homepage must remain noindex/nofollow."
@@ -260,7 +296,7 @@ jobs:
           fi
           echo "Verified public homepage state: $public_state"
 
-          for preview_marker in 'Open structural fixture' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'The Truman Show'; do
+          for preview_marker in 'Структурный стенд' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'Шоу Трумана' 'Форсаж' 'Труман Бёрбанк' 'Доминик Торетто' 'исследовательский черновик'; do
             if grep -Fq "$preview_marker" /tmp/public-home.html; then
               echo "Public homepage leaked preview marker: $preview_marker"
               exit 1
@@ -272,8 +308,12 @@ jobs:
             echo "Public film index exposed fixture content."
             exit 1
           fi
-          if grep -Fq 'The Truman Show' /tmp/public-films.html; then
+          if grep -Fq 'Шоу Трумана' /tmp/public-films.html; then
             echo "Public film index exposed the Film 001 draft."
+            exit 1
+          fi
+          if grep -Fq 'Форсаж' /tmp/public-films.html; then
+            echo "Public film index exposed the Film 002 draft."
             exit 1
           fi
 
@@ -286,12 +326,30 @@ jobs:
             echo "Streamed Film 001 soft-404 must include robots noindex."
             exit 1
           fi
-          if ! grep -Fq '404 / NOT FOUND' /tmp/public-truman-route.html; then
+          if ! grep -Fq '404 / Не найдено' /tmp/public-truman-route.html; then
             echo "Protected Film 001 draft route did not resolve to the not-found boundary."
             exit 1
           fi
-          if grep -Fq 'The Truman Show' /tmp/public-truman-route.html; then
+          if grep -Fq 'Труман Бёрбанк' /tmp/public-truman-route.html; then
             echo "Protected Film 001 draft route leaked real-film draft content."
+            exit 1
+          fi
+
+          fast_status=$(curl --silent --output /tmp/public-fast-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/the-fast-and-the-furious)
+          if [[ "$fast_status" != "200" && "$fast_status" != "404" ]]; then
+            echo "Protected Film 002 draft route returned unexpected HTTP $fast_status."
+            exit 1
+          fi
+          if [[ "$fast_status" == "200" ]] && ! grep -Eiq 'name="robots"[^>]*content="noindex|content="noindex[^>]*name="robots"' /tmp/public-fast-route.html; then
+            echo "Streamed Film 002 soft-404 must include robots noindex."
+            exit 1
+          fi
+          if ! grep -Fq '404 / Не найдено' /tmp/public-fast-route.html; then
+            echo "Protected Film 002 draft route did not resolve to the not-found boundary."
+            exit 1
+          fi
+          if grep -Fq 'Доминик Торетто' /tmp/public-fast-route.html; then
+            echo "Protected Film 002 draft route leaked real-film draft content."
             exit 1
           fi
 
@@ -304,7 +362,7 @@ jobs:
             echo "Streamed preview soft-404 must include robots noindex."
             exit 1
           fi
-          if ! grep -Fq '404 / NOT FOUND' /tmp/public-preview-route.html; then
+          if ! grep -Fq '404 / Не найдено' /tmp/public-preview-route.html; then
             echo "Protected preview route did not resolve to the not-found boundary."
             exit 1
           fi

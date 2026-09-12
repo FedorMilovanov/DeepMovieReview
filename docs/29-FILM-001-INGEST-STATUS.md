@@ -1,8 +1,8 @@
 # DeepMovieReview — Film 001 Ingest Status
 
 > Film: **The Truman Show (1998)**
-> Status: **draft research ingest**
-> Date: 2026-09-11
+> Status: **draft research ingest (SECONDARY_SOURCES tier)**
+> Date: 2026-09-11 — updated 2026-09-12
 > Tracking: issue #43
 
 ## 1. Current boundary
@@ -15,6 +15,7 @@ The repository currently knows:
 - official production metadata;
 - a target 25th Anniversary Paramount 4K presentation;
 - secondary craft/development/script research sources;
+- a machine-validated **research-tier draft analysis** (see §7): fifteen DRAFT scenes with estimated bounds, secondary-source evidence records and all fourteen module kinds, assembled under `FilmPackage.research.state = "SECONDARY_SOURCES"`;
 - the editorial rule that the finished locked film master outranks screenplay drafts and web summaries.
 
 The repository does **not** yet know:
@@ -33,7 +34,7 @@ Those fields must not be fabricated merely to make the package look complete.
 
 The gate is machine-readable through `FilmPackage.ingest.edition`:
 
-- `TARGET_ONLY` means a release/master target is selected but canonical `scenes[]`, evidence **and analytical FilmPackage modules** are forbidden; only `sources-method` may exist until the exact viewing master is locked;
+- `TARGET_ONLY` means a release/master target is selected and **canonical** `scenes[]`, canonical evidence and publishable analytical modules are forbidden. Normally only `sources-method` may exist; the sole pre-lock exception is the explicit `SECONDARY_SOURCES` research tier described in §7, whose scenes stay DRAFT, whose evidence cannot cite any `film-edition`, and whose working modules are structurally unpublishable;
 - `LOCKED` requires exact edition identity, positive `measuredRuntimeSeconds`, timestamp convention and verification date;
 - every real-film Sources/Method module requires nonblank `methodologyVersion`, `editorialRevision` and human-readable `analyzedEdition` during draft authoring; `lastReviewedAt` remains a publication/review field;
 - real-film scenes use numeric start/end seconds from that declared timestamp origin;
@@ -145,3 +146,35 @@ Do not change `status: "draft"` to `"published"` until:
 - the homepage feature slug is changed deliberately in a separate launch decision.
 
 Until then Film 001 must remain preview-only and noindex.
+
+## 7. Research tier: `SECONDARY_SOURCES` (added 2026-09-12)
+
+**What changed.** `FilmPackage` gained an optional `research` block
+(`{ state: "SECONDARY_SOURCES", note, assembledAt }`). While it is declared,
+a `TARGET_ONLY` real-film package may carry analytical modules, a scene
+registry and an evidence ledger that would otherwise require a `LOCKED`
+edition (see §2).
+
+**Why.** Between "edition selected" and "master locked" the honest editorial
+work is assembling the analysis from published scripts, interviews, frame
+documentation and reference catalogs. The previous all-or-nothing gate forced
+editors to choose between an empty package and fabricated canonical evidence.
+The research tier names that middle state instead of faking the end state.
+
+**Rules (enforced by `film-package-integrity.ts` and regression tests):**
+
+- scenes must stay `DRAFT` — `VERIFIED` is a lock-time claim;
+- every evidence record must cite at least one **secondary** source;
+- evidence must **not** cite the target `film-edition` source (the master has
+  not been watched; nothing is verified against it);
+- `research` cannot coexist with a `LOCKED` edition;
+- a `published` package cannot remain in the research tier — publication
+  still requires the full canonical chain of §3.
+
+**Migration impact.** The canonical evidence chain of §3 is unchanged for
+published work: `claim → evidence → verified scene → locked film edition`.
+Research-tier claims trace `claim → evidence → secondary source + DRAFT
+scene`. At lock time the `research` block must be dropped, every scene
+re-verified against the measured master, and every evidence record re-anchored
+to the locked `film-edition` source with a reproduced timestamp. Nothing
+assembled in the research tier is inherited as canonical.

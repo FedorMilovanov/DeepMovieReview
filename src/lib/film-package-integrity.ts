@@ -131,6 +131,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   const errors: string[] = [];
   const published = filmPackage.film.status === "published";
   const realFilm = filmPackage.film.status !== "fixture";
+  const research = filmPackage.research?.state === "SECONDARY_SOURCES";
   const scenes = filmPackage.scenes ?? [];
   const sceneRawIds = scenes.map((scene) => scene.id);
   const scenesById = new Map(scenes.map((scene) => [scene.id, scene]));
@@ -176,6 +177,25 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
   for (const id of duplicateIds(evidenceRawIds)) errors.push(`evidence: duplicate evidence id "${id}".`);
   for (const id of duplicateIds(sourceRawIds)) errors.push(`sources: duplicate source id "${id}".`);
   for (const id of duplicateIds(characterRawIds)) errors.push(`characters: duplicate character id "${id}".`);
+
+  // Research tier: declares a secondary-source research draft. It is the only
+  // way a real-film package may carry scenes, evidence and analytical modules
+  // while the edition is still TARGET_ONLY — and it can never be published.
+  if (filmPackage.research) {
+    if (filmPackage.research.state !== "SECONDARY_SOURCES") {
+      errors.push(`research: unknown research state "${String(filmPackage.research.state)}".`);
+    }
+    if (isBlank(filmPackage.research.note)) errors.push("research: SECONDARY_SOURCES tier requires a note.");
+    if (!isIsoCalendarDate(filmPackage.research.assembledAt)) {
+      errors.push("research: assembledAt must use a valid YYYY-MM-DD calendar date.");
+    }
+    if (published) {
+      errors.push("research: a published package cannot remain in the SECONDARY_SOURCES research tier.");
+    }
+  }
+  if (research && filmPackage.ingest?.edition.state === "LOCKED") {
+    errors.push("research: the SECONDARY_SOURCES tier is only valid while the edition is TARGET_ONLY.");
+  }
 
   if (sourcesModules.length > 1) {
     errors.push(`package requires at most one sources-method module; found ${sourcesModules.length}.`);
@@ -241,14 +261,19 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
       if (edition.state === "TARGET_ONLY") {
         if (isBlank(edition.note)) errors.push("film: TARGET_ONLY edition state requires a note.");
         if (published) errors.push("film: published package requires a LOCKED edition.");
-        if (scenes.length > 0) {
+        if (scenes.length > 0 && !research) {
           errors.push("film: canonical scene registry requires a LOCKED edition, not TARGET_ONLY.");
         }
-        if (evidence.length > 0) {
+        if (evidence.length > 0 && !research) {
           errors.push("film: canonical evidence requires a LOCKED edition, not TARGET_ONLY.");
         }
+        for (const scene of scenes) {
+          if (research && scene.verificationState === "VERIFIED") {
+            errors.push(`scene/${scene.id}: research-tier scenes must stay DRAFT until the viewing master is LOCKED.`);
+          }
+        }
         for (const filmModule of filmPackage.modules) {
-          if (filmModule.kind !== "sources-method") {
+          if (filmModule.kind !== "sources-method" && !research) {
             errors.push(
               `module/${filmModule.id}: TARGET_ONLY real-film packages may contain only sources-method modules until the viewing master is LOCKED.`,
             );
@@ -315,6 +340,21 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     if (published && (item.sourceIds?.length ?? 0) === 0) {
       errors.push(`evidence/${item.id}: published evidence requires at least one source reference.`);
     }
+    if (research && (item.sourceIds?.length ?? 0) === 0) {
+      errors.push(`evidence/${item.id}: research-tier evidence requires at least one secondary source reference.`);
+    }
+    if (research && filmPackage.ingest?.edition.state === "TARGET_ONLY") {
+      const editionSourceId = filmPackage.ingest.edition.sourceId;
+      for (const sourceId of item.sourceIds ?? []) {
+        const source = sourcesById.get(sourceId);
+        if (source?.kind !== "film-edition") continue;
+        if (sourceId === editionSourceId) {
+          errors.push(`evidence/${item.id}: research-tier evidence must not cite the target film-edition source "${editionSourceId}" (the master is not locked).`);
+        } else {
+          errors.push(`evidence/${item.id}: research-tier evidence must not cite film-edition source "${sourceId}" before the viewing master is LOCKED.`);
+        }
+      }
+    }
     for (const id of duplicateIds(item.sourceIds ?? [])) {
       errors.push(`evidence/${item.id}: duplicate source reference "${id}".`);
     }
@@ -344,7 +384,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         if (!scene) {
           errors.push(`evidence/${item.id}: unknown scene id "${item.sceneId}".`);
         } else {
-          if (scene.verificationState !== "VERIFIED") {
+          if (scene.verificationState !== "VERIFIED" && !research) {
             errors.push(`evidence/${item.id}: canonical evidence cannot reference unverified scene "${item.sceneId}".`);
           }
           if (!canRevealSpoiler(item.spoilerLevel, scene.spoilerLevel)) {
@@ -518,7 +558,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
           if (!scene) {
             errors.push(`${filmModule.id}: unknown scene id "${filmModule.sceneId}".`);
           } else {
-            if (scene.verificationState !== "VERIFIED") {
+            if (scene.verificationState !== "VERIFIED" && !research) {
               errors.push(`${filmModule.id}: autopsy cannot reference unverified scene "${filmModule.sceneId}".`);
             }
             if (!canRevealSpoiler(filmModule.spoilerLevel, scene.spoilerLevel)) {

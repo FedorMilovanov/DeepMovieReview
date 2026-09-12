@@ -39,6 +39,8 @@ h3 {
   font-family: var(--font-display);
   font-weight: 500;
   letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  text-wrap: balance;
 }
 
 h1 {
@@ -65,6 +67,21 @@ h3 {
   font-size: var(--type-meta);
   letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
+}
+
+.sectionIndex {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sectionIndex::before {
+  content: "";
+  width: 2.4rem;
+  height: 1px;
+  flex: none;
+  background: currentColor;
+  opacity: 0.45;
 }
 
 .sectionShell {
@@ -170,6 +187,9 @@ h3 {
   min-height: 78px;
   border-bottom-color: var(--stroke-subtle);
   background: color-mix(in srgb, var(--surface-canvas) 86%, transparent);
+  /* Prefixed twin for Safari: the unprefixed property only shipped there
+     in Safari 18, and without it the sticky header loses its scrim. */
+  -webkit-backdrop-filter: blur(18px) saturate(115%);
   backdrop-filter: blur(18px) saturate(115%);
 }
 
@@ -195,6 +215,14 @@ h3 {
 .siteNav a {
   position: relative;
   padding-block: 0.35rem;
+}
+
+.siteNav a[aria-current="page"] {
+  color: var(--ink-1);
+}
+
+.siteNav a[aria-current="page"]::after {
+  right: 0;
 }
 
 .siteNav a::after {
@@ -263,6 +291,15 @@ h3 {
 
   .siteHeader {
     background: Canvas;
+    backdrop-filter: none;
+  }
+}
+
+/* Windows "reduce transparency": drop the blur scrim for a solid header. */
+@media (prefers-reduced-transparency: reduce) {
+  .siteHeader {
+    background: var(--surface-canvas);
+    -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 }

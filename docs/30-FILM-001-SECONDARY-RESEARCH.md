@@ -2,7 +2,7 @@
 
 > Film: **The Truman Show (1998)**
 > Status: **secondary research only — not canonical film evidence**
-> Date: 2026-09-11
+> Date: 2026-09-11 — updated 2026-09-12
 > Tracking: issue #43
 > Primary rule: **the locked finished film outranks every source in this document for scene content, dialogue, framing, timing and final editorial judgment.**
 
@@ -358,3 +358,45 @@ Until then this file remains a **secondary research dossier**, not the FilmPacka
   https://www.bfi.org.uk/interviews/how-we-made-truman-show-20th-anniversary
 - Andrew Niccol shooting-script research copy:
   https://assets.scriptslug.com/live/pdf/scripts/the-truman-show-1998.pdf
+
+---
+
+## 13. Research-tier assembly (2026-09-12)
+
+The hypotheses of §7 now have a machine-validated draft assembly in
+`src/data/films/the-truman-show.ts` under the `SECONDARY_SOURCES` research
+tier (see `29-FILM-001-INGEST-STATUS.md` §7):
+
+| Hypothesis | Draft assembly destination |
+| --- | --- |
+| H1 — Controlled normality | `truman-sc-morning`, story beats «Идеальное утро»/«Трещина», craft vignette observation |
+| H2 — Surveillance and spectator position | craft POV/production-design observations, `truman-perm-voyeur`, meaning module |
+| H3 — Commercialization of relationship | relationship module «Труман и Мэрил», `truman-ev-mococoa`, `truman-ev-fingers` |
+| H4 — Paternalized control | Christof profile, family observations, `truman-ev-cuesun` |
+| H5 — Fear as behavioral infrastructure | `truman-sc-school`/`truman-sc-ferry`, family discipline observation, travel-poster evidence |
+| H6 — Audience complicity | `truman-moral-audience`, `truman-ev-guards`, `truman-sig-cozy` |
+| H7 — Truthful relationship as alternative world | Sylvia profile, `truman-ev-sylvia`, `truman-ev-fiji` |
+| H8 — Final decision | decision module, scene autopsy «Стена и дверь», `truman-ev-exit` |
+
+All of it remains secondary-only: scene bounds are estimates, every evidence
+record cites a secondary source, and none of it may be published or inherited
+as canonical until the master is locked and each record is re-verified.
+
+### 13.1 Depth pass (2026-09-12, later the same day)
+
+Second research-tier assembly pass over the draft package:
+
+- third relationship arc — «Truman and Christof: star and creator» (one-way,
+  thirty-year bond: nursery cameras → TruTalk wager → storm → door dialogue
+  → bow);
+- moral ledger +2 events: Sylvia's truth-telling (VIRTUE) and the mother's
+  staged-nostalgia manipulation (WRONGDOING, severity MODERATE);
+- biblical lens deepened with explicit contrasts: Psalm 139 omniscience vs
+  surveillance-love; Acts 17:26–27 boundaries-for-seeking vs
+  boundaries-against-seeking; Exodus 20:16 against "merciful" lies. The
+  qualification now states the film's deliberate ambiguity (escape-from-
+  religion vs redemption reading) and refuses both allegorical shortcuts;
+- evidence +3: the family album as a control instrument, the «Who needs
+  Europe?» headline, «He was born in front of a live audience»;
+- new sources: ECFR (headline-as-isolation), GradeSaver chapters 16–19
+  (TruTalk / control room in the moon).

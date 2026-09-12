@@ -452,6 +452,25 @@ export type FilmIngestMetadata = {
   edition: FilmEditionLock;
 };
 
+/**
+ * Research-draft tier for real films.
+ *
+ * The LOCKED+VERIFIED pipeline stays the only road to publication. This tier
+ * exists for the real editorial stage between "edition selected" and "master
+ * locked": the analysis is assembled from secondary sources (published
+ * scripts, interviews, frame documentation, reference catalogs), scenes stay
+ * DRAFT with approximate bounds, and evidence cites references — never the
+ * target edition, because nobody has verified anything against the master
+ * yet. Publishing from this tier is structurally impossible.
+ */
+export type FilmResearchState = {
+  state: "SECONDARY_SOURCES";
+  /** Documents the provisional provenance for readers and future editors. */
+  note: string;
+  /** ISO calendar date the research assembly was declared. */
+  assembledAt: string;
+};
+
 export type FilmModule =
   | StoryModule
   | CharactersModule
@@ -476,6 +495,12 @@ export type FilmPackage = {
    * TARGET_ONLY blocks canonical evidence; LOCKED identifies the exact viewing master.
    */
   ingest?: FilmIngestMetadata;
+  /**
+   * Research tier declaration for real films whose analysis is assembled from
+   * secondary sources before a viewing master is locked. Cannot coexist with
+   * a LOCKED edition or a published status.
+   */
+  research?: FilmResearchState;
   /** Canonical edition-bound scene registry. Real-film scenes require a LOCKED edition. */
   scenes?: FilmSceneRecord[];
   /** Stable evidence graph shared by every analytical module. */

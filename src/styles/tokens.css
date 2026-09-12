@@ -37,24 +37,24 @@
   --amber: var(--accent-restoration);
 
   /* Typography roles */
-  --font-display: "Arial Narrow", "Aptos Narrow", "Helvetica Neue", Arial, sans-serif;
-  --font-body: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-meta: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Oswald Variable", "Arial Narrow", "Aptos Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Inter Variable", Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-meta: "JetBrains Mono Variable", ui-monospace, "Cascadia Mono", "Segoe UI Mono", Roboto Mono, monospace;
   --display: var(--font-display);
   --body: var(--font-body);
 
-  --type-display-1: clamp(3.6rem, 8.7vw, 9rem);
-  --type-display-2: clamp(2.65rem, 5.8vw, 6.2rem);
-  --type-display-3: clamp(1.7rem, 3.3vw, 3.2rem);
+  --type-display-1: clamp(2.7rem, 5.6vw, 5.4rem);
+  --type-display-2: clamp(2rem, 4vw, 3.7rem);
+  --type-display-3: clamp(1.3rem, 2.3vw, 1.95rem);
   --type-lede: clamp(1.05rem, 1.55vw, 1.35rem);
   --type-body: clamp(0.98rem, 1vw, 1.08rem);
   --type-meta: 0.68rem;
 
-  --leading-display-tight: 0.90;
-  --leading-display: 0.96;
+  --leading-display-tight: 0.92;
+  --leading-display: 0.98;
   --leading-body: 1.68;
-  --tracking-display: -0.045em;
-  --tracking-meta: 0.15em;
+  --tracking-display: 0.01em;
+  --tracking-meta: 0.14em;
 
   /* Spatial rhythm */
   --space-1: 0.35rem;
@@ -93,9 +93,9 @@
 
 @media (max-width: 720px) {
   :root {
-    --type-display-1: clamp(2.9rem, 14vw, 4.9rem);
-    --type-display-2: clamp(2.2rem, 10vw, 3.7rem);
-    --type-display-3: clamp(1.55rem, 7vw, 2.35rem);
+    --type-display-1: clamp(2.1rem, 10.5vw, 3.4rem);
+    --type-display-2: clamp(1.7rem, 8vw, 2.8rem);
+    --type-display-3: clamp(1.15rem, 5.5vw, 1.6rem);
     --gutter: clamp(1rem, 5vw, 1.4rem);
     --space-9: 5.25rem;
     --space-10: 7rem;

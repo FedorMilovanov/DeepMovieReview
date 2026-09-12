@@ -1176,6 +1176,187 @@ test("TARGET_ONLY real-film edition blocks canonical evidence", () => {
   assert.ok(errors.includes("film: canonical evidence requires a LOCKED edition, not TARGET_ONLY."));
 });
 
+function buildResearchTierPackage(): FilmPackage {
+  return {
+    schemaVersion: 1,
+    film: {
+      slug: "research-tier-draft",
+      title: "Research Tier Draft",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "draft",
+    },
+    ingest: {
+      edition: {
+        state: "TARGET_ONLY",
+        sourceId: "film-master",
+        note: "Target selected; exact master not acquired.",
+      },
+    },
+    research: {
+      state: "SECONDARY_SOURCES",
+      note: "Assembled from secondary sources while the master is not locked.",
+      assembledAt: "2026-09-12",
+    },
+    scenes: [{
+      id: "research-scene",
+      sequenceIndex: 1,
+      shortLabel: "Opening",
+      startTimestampSeconds: 10,
+      endTimestampSeconds: 120,
+      verificationState: "DRAFT",
+      spoilerLevel: "NONE",
+    }],
+    evidence: [{
+      id: "research-evidence",
+      label: "Secondary evidence",
+      observation: "Documented by a published reference, not by the un-locked master.",
+      sceneId: "research-scene",
+      timestampSeconds: 30,
+      sourceIds: ["reference-source"],
+      spoilerLevel: "NONE",
+    }],
+    modules: [
+      {
+        id: "sources",
+        kind: "sources-method",
+        heading: "Sources",
+        spoilerLevel: "NONE",
+        methodologyVersion: "research-draft",
+        editorialRevision: "research-1",
+        analyzedEdition: "Target only; research tier.",
+        sources: [
+          { id: "film-master", label: "Target master", kind: "film-edition" },
+          { id: "reference-source", label: "Published reference", kind: "reference" },
+        ],
+      },
+      {
+        id: "story",
+        kind: "story",
+        heading: "Story",
+        spoilerLevel: "NONE",
+        summary: "A summary assembled from secondary sources.",
+        summarySupport: { evidenceIds: ["research-evidence"] },
+        beats: [{
+          id: "beat",
+          label: "Opening beat",
+          summary: "Opening beat documented by the reference.",
+          spoilerLevel: "NONE",
+          support: { evidenceIds: ["research-evidence"] },
+        }],
+      },
+    ],
+  };
+}
+
+test("SECONDARY_SOURCES research tier admits draft scenes, secondary evidence and analysis modules", () => {
+  const errors = validateFilmPackage(buildResearchTierPackage());
+  assert.deepEqual(errors, []);
+});
+
+test("research tier cannot stay in place once the package is published", () => {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.film.status = "published";
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("research: a published package cannot remain in the SECONDARY_SOURCES research tier."));
+});
+
+test("research tier is only valid while the edition is TARGET_ONLY", () => {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.ingest = {
+    edition: {
+      state: "LOCKED",
+      sourceId: "film-master",
+      editionIdentity: "Edition identity",
+      measuredRuntimeSeconds: 6000,
+      timestampConvention: "start-of-first-frame",
+      verifiedAt: "2026-09-12",
+    },
+  };
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("research: the SECONDARY_SOURCES tier is only valid while the edition is TARGET_ONLY."));
+});
+
+test("research-tier scenes must stay DRAFT until the master is locked", () => {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.scenes = [{
+    id: "research-scene",
+    sequenceIndex: 1,
+    shortLabel: "Opening",
+    startTimestampSeconds: 10,
+    endTimestampSeconds: 120,
+    verificationState: "VERIFIED",
+    spoilerLevel: "NONE",
+  }];
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("scene/research-scene: research-tier scenes must stay DRAFT until the viewing master is LOCKED."));
+});
+
+test("research-tier evidence must not cite the target film-edition source", () => {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.evidence = [{
+    id: "research-evidence",
+    label: "Secondary evidence",
+    observation: "Falsely anchored to the un-locked master.",
+    sceneId: "research-scene",
+    timestampSeconds: 30,
+    sourceIds: ["film-master"],
+    spoilerLevel: "NONE",
+  }];
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.some((error) => error.includes("research-tier evidence must not cite the target film-edition source \"film-master\" (the master is not locked).")));
+});
+
+test("research-tier evidence rejects any film-edition source before master lock", () => {
+  const filmPackage = buildResearchTierPackage();
+  const sourcesModule = filmPackage.modules.find((module) => module.kind === "sources-method");
+  assert.ok(sourcesModule && sourcesModule.kind === "sources-method");
+  sourcesModule.sources.push({
+    id: "alternate-film-edition",
+    label: "Another release that has not been locked",
+    kind: "film-edition",
+  });
+  filmPackage.evidence = [{
+    id: "research-evidence",
+    label: "Invalid edition-backed research evidence",
+    observation: "This must not be treated as secondary-source evidence.",
+    sceneId: "research-scene",
+    timestampSeconds: 30,
+    sourceIds: ["alternate-film-edition"],
+    spoilerLevel: "NONE",
+  }];
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes(
+    'evidence/research-evidence: research-tier evidence must not cite film-edition source "alternate-film-edition" before the viewing master is LOCKED.',
+  ));
+});
+
+test("research-tier evidence requires secondary source references", () => {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.evidence = [{
+    id: "research-evidence",
+    label: "Secondary evidence",
+    observation: "No sources cited.",
+    sceneId: "research-scene",
+    timestampSeconds: 30,
+    spoilerLevel: "NONE",
+  }];
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("evidence/research-evidence: research-tier evidence requires at least one secondary source reference."));
+});
+
+test("research tier without a note or valid assembledAt date is rejected", () => {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.research = { state: "SECONDARY_SOURCES", note: "   ", assembledAt: "2026-13-99" };
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("research: SECONDARY_SOURCES tier requires a note."));
+  assert.ok(errors.includes("research: assembledAt must use a valid YYYY-MM-DD calendar date."));
+});
+
 test("LOCKED real-film evidence must cite the locked film-edition source", () => {
   const filmPackage: FilmPackage = {
     schemaVersion: 1,

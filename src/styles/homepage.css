@@ -1,134 +1,1448 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   Deep Waters — homepage structure (Launch Cut v1, RU)
+   Motion/atmosphere lives in homepage-optics.css.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+
 .heroSection {
-  min-height: calc(100svh - 74px);
+  position: relative;
+  /* vh fallback for browsers without svh units (pre-2022 engines). */
+  min-height: calc(100vh - 78px);
+  min-height: calc(100svh - 78px);
   display: grid;
   align-content: center;
+  padding-block: clamp(4rem, 7vw, 7rem) clamp(2rem, 4vw, 4rem);
 }
 
 .heroGrid {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
-  gap: clamp(2rem, 5vw, 6rem);
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 1.05fr);
+  gap: clamp(2.5rem, 5vw, 6rem);
+  align-items: center;
 }
 
-.heroCopy { padding-top: 4rem; }
-.heroActions { display: flex; gap: 0.75rem; margin-top: 2.2rem; flex-wrap: wrap; }
+.heroCopy {
+  padding-top: 2rem;
+}
 
-.livingFrame {
-  aspect-ratio: 2.39 / 1;
-  min-height: 250px;
-  align-self: center;
+.heroActions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 2.4rem;
+  flex-wrap: wrap;
+}
+
+.heroPreviewNote {
+  margin: 1.6rem 0 0;
+  max-width: 34rem;
+  border-left: 2px solid var(--accent-restoration);
+  padding-left: 1rem;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.heroPreviewNote a {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding-block: 0.35em;
+}
+
+.heroScrollCue {
+  margin-top: clamp(2.5rem, 5vw, 4.5rem);
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.6rem;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.heroScrollLine {
+  width: clamp(3rem, 8vw, 7rem);
+  height: 1px;
+  background: linear-gradient(90deg, var(--stroke-strong), transparent);
   position: relative;
   overflow: hidden;
+}
+
+/* ── Living Frame (shared cinematic scene) ────────────────────────────────── */
+
+.livingFrame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 2.39 / 1;
+  min-height: 250px;
+  /* Pin the used width to the containing track: aspect-ratio + a definite
+     min-height otherwise transfers into a ~598px min-content/used width that
+     overflows narrow tracks (silently clipped by .appShell). With width:100%
+     the frame fills its track and honors 2.39:1 whenever the track allows,
+     falling back to the min-height floor when it does not. */
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--stroke-strong);
+  background: var(--surface-1);
+  box-shadow:
+    0 44px 110px rgb(0 0 0 / 0.58),
+    inset 0 0 0 1px rgb(255 255 255 / 0.015);
 }
 
 .frameMeta {
   position: absolute;
   inset: 0.8rem 0.9rem auto;
-  z-index: 2;
+  z-index: 4;
   display: flex;
   justify-content: space-between;
-  color: rgb(255 255 255 / 0.42);
+  color: rgb(255 255 255 / 0.5);
   font-size: 0.58rem;
   letter-spacing: 0.12em;
 }
 
-.frameVisual {
+.frameCaption {
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 60% 45%, color-mix(in oklab, var(--accent-fracture) 24%, transparent), transparent 32%),
-    linear-gradient(180deg, var(--surface-3), var(--surface-canvas) 68%);
+  inset: auto 1rem 0.9rem;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
 }
 
-.frameOrb { position: absolute; border-radius: 50%; filter: blur(1px); opacity: 0.8; }
-.frameOrbA { width: 28%; aspect-ratio: 1; left: 20%; top: 18%; background: radial-gradient(circle at 35% 30%, #3f4144, var(--surface-3) 60%, var(--surface-canvas)); }
-.frameOrbB { width: 19%; aspect-ratio: 1; right: 18%; top: 27%; background: radial-gradient(circle at 35% 30%, color-mix(in oklab, var(--accent-fracture) 38%, #343434), #151010 58%, var(--surface-canvas)); }
-.frameHorizon { position: absolute; left: -10%; right: -10%; bottom: 22%; height: 1px; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.25), transparent); box-shadow: 0 -18px 80px color-mix(in oklab, var(--accent-restoration) 10%, transparent); }
-.frameCaption { position: absolute; inset: auto 1rem 0.9rem; display: flex; justify-content: space-between; gap: 1rem; align-items: end; }
-.frameCaption strong { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; }
-.frameCaption span { color: rgb(255 255 255 / 0.55); max-width: 28rem; font-size: 0.7rem; text-align: right; }
+.frameCaption strong {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
 
-.lensGrid { margin-top: clamp(2rem, 6vw, 5rem); display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--stroke-default); border-left: 1px solid var(--stroke-default); }
-.lensItem { min-height: 230px; padding: clamp(1.2rem, 2.4vw, 2rem); border-right: 1px solid var(--stroke-default); border-bottom: 1px solid var(--stroke-default); display: flex; flex-direction: column; justify-content: space-between; }
-.lensItem p { color: var(--ink-3); max-width: 25rem; margin-bottom: 0; }
-.lensNumber { font-size: 0.65rem; color: var(--ink-4); }
+.frameCaption span {
+  color: rgb(255 255 255 / 0.55);
+  max-width: 28rem;
+  font-size: 0.7rem;
+  text-align: right;
+}
 
-.splitSection { display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 0.9fr); gap: clamp(2rem, 7vw, 8rem); align-items: start; }
-.storyTrack, .relationshipTrace, .synthesisSteps { list-style: none; padding: 0; margin: 0; }
-.storyTrack li { display: grid; grid-template-columns: 48px 1fr; gap: 1rem; padding: 1.2rem 0; border-bottom: 1px solid var(--stroke-default); }
-.storyTrack li > span { color: var(--ink-3); font-size: 0.7rem; }
-.storyTrack strong { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.75rem; }
-.storyTrack p { margin: 0.35rem 0 0; color: var(--ink-3); }
+/* ── Hero status strip ─────────────────────────────────────────────────────── */
 
-.characterGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--stroke-default); margin-top: 3rem; border: 1px solid var(--stroke-default); }
-.characterCard { padding: clamp(1.2rem, 3vw, 2.4rem); }
-.portraitPlaceholder { aspect-ratio: 16 / 7; margin-bottom: 2rem; background: radial-gradient(circle at 35% 50%, #232323 0 12%, transparent 13%), radial-gradient(circle at 70% 45%, color-mix(in oklab, var(--accent-fracture) 32%, #222) 0 11%, transparent 12%), linear-gradient(135deg, #0f0f0f, var(--surface-1)); border: 1px solid var(--stroke-default); }
-.characterCard dl > div, .autopsyGrid > div { display: grid; grid-template-columns: minmax(80px, 0.35fr) 1fr; gap: 1rem; border-top: 1px solid var(--stroke-default); padding: 0.9rem 0; }
+.heroStatusStrip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--stroke-subtle);
+  border-block: 1px solid var(--stroke-subtle);
+  padding-block: 0;
+}
 
-.relationshipPanel { margin-top: clamp(3rem, 7vw, 7rem); display: grid; grid-template-columns: 0.7fr 1.3fr; gap: clamp(2rem, 6vw, 7rem); padding: clamp(1.5rem, 4vw, 4rem); border: 1px solid var(--stroke-default); }
-.relationshipPanel p { color: var(--ink-3); }
-.traceEvent { position: relative; display: grid; grid-template-columns: 18px 1fr; gap: 1rem; padding: 0 0 2rem; }
-.traceEvent:not(:last-child)::after { content: ""; position: absolute; left: 6px; top: 14px; bottom: 0; width: 1px; }
-.traceDot { width: 13px; height: 13px; margin-top: 4px; border: 1px solid var(--stroke-strong); border-radius: 50%; background: var(--surface-1); z-index: 1; }
-.traceEvent p { margin: 0.25rem 0 0; color: var(--ink-3); }
+.heroStatusStrip > div {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1.1rem 1.2rem 1.2rem 0;
+  background: var(--surface-canvas);
+}
 
-.stackList { border-top: 1px solid var(--stroke-default); }
-.stackList article { padding: 1.2rem 0; border-bottom: 1px solid var(--stroke-default); }
-.stackList p { margin: 0.45rem 0 0; color: var(--ink-2); }
+.heroStatusStrip > div + div {
+  padding-left: 1.4rem;
+}
 
-.meaningSection { min-height: 85svh; display: flex; flex-direction: column; justify-content: center; }
-.meaningSection h2 { max-width: 17ch; }
-.meaningGrid { margin-top: clamp(3rem, 6vw, 6rem); display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: var(--stroke-default); border: 1px solid var(--stroke-default); }
-.meaningGrid > div { min-height: 150px; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.7rem; }
-.meaningGrid span { color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.65rem; }
-.meaningGrid strong { font-size: clamp(1.05rem, 1.8vw, 1.45rem); font-weight: 500; max-width: 34rem; }
+.heroStatusIndex {
+  color: var(--accent-restoration);
+  font-family: var(--font-meta);
+  font-size: 0.58rem;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
 
-.permissionField { margin-top: 3rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-.permissionField article { min-height: 240px; padding: 1.5rem; border: 1px solid var(--stroke-default); }
-.permissionState { display: inline-block; margin-bottom: 3rem; padding-bottom: 0.35rem; }
-.permissionField p { color: var(--ink-3); }
+.heroStatusStrip strong {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
 
-.autopsySection { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
-.autopsySection > .sectionIndex { grid-column: 1 / -1; }
-.autopsyFrame { aspect-ratio: 16 / 10; min-height: 340px; position: relative; display: grid; place-items: center; overflow: hidden; }
-.autopsyFrame > span { position: absolute; left: 1rem; top: 1rem; color: var(--ink-3); font-size: 0.62rem; letter-spacing: 0.12em; }
-.autopsyCrosshair { width: 70px; height: 70px; border: 1px solid rgb(255 255 255 / 0.35); position: relative; }
-.autopsyCrosshair::before, .autopsyCrosshair::after { content: ""; position: absolute; background: rgb(255 255 255 / 0.2); }
-.autopsyCrosshair::before { width: 1px; top: -100vh; bottom: -100vh; left: 50%; }
-.autopsyCrosshair::after { height: 1px; left: -100vw; right: -100vw; top: 50%; }
-.autopsyGrid > div:last-child { grid-column: 1 / -1; }
+.heroStatusStrip span:not(.heroStatusIndex) {
+  color: var(--ink-3);
+  font-size: 0.68rem;
+}
 
-.decisionSection h2 { max-width: 20ch; }
-.knowledgeGrid { margin-top: 3rem; display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-.knowledgeGrid article { border: 1px solid var(--stroke-default); min-height: 260px; padding: 1.5rem; }
-.knowledgeGrid p { color: var(--ink-2); }
+/* ── Section chrome ────────────────────────────────────────────────────────── */
 
-.biblicalSection { padding-top: clamp(7rem, 12vw, 13rem); padding-bottom: clamp(7rem, 12vw, 13rem); }
-.biblicalSection h2 { color: #eee5d7; }
-.synthesisSteps { margin-top: 4rem; max-width: 900px; }
-.synthesisSteps li { display: grid; grid-template-columns: 180px 1fr; gap: 2rem; padding: 1rem 0; }
-.synthesisSteps p { margin: 0; color: #c9c0b2; }
+.sectionIndex {
+  margin-bottom: clamp(1.5rem, 4vw, 3rem);
+}
 
-.discoverySection { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 4rem; align-items: end; }
-.discoveryLinks { display: grid; border-top: 1px solid var(--stroke-default); }
-.discoveryLinks a { padding: 1rem 0; border-bottom: 1px solid var(--stroke-default); color: var(--ink-2); }
-.discoveryLinks a::after { content: "↗"; float: right; }
+/* ── Mission ───────────────────────────────────────────────────────────────── */
+
+.missionGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: clamp(2.5rem, 7vw, 8rem);
+  align-items: start;
+}
+
+.missionAffirm {
+  margin-top: 2.2rem;
+  font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+  line-height: 1.4;
+  color: var(--ink-1);
+  font-weight: 500;
+  max-width: 26rem;
+}
+
+.missionDenyList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--stroke-default);
+}
+
+.missionDenyList li {
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--stroke-default);
+  color: var(--ink-3);
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--accent-fracture-bright) 55%, transparent);
+  text-decoration-thickness: 1px;
+  transition: color var(--duration-standard) var(--ease-quiet);
+}
+
+.missionDenyList li:hover,
+.missionDenyList li:focus-visible {
+  color: var(--ink-2);
+}
+
+/* ── Pipeline ──────────────────────────────────────────────────────────────── */
+
+.pipelineTrack {
+  list-style: none;
+  margin: clamp(3rem, 6vw, 5.5rem) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--stroke-subtle);
+  border: 1px solid var(--stroke-subtle);
+}
+
+.pipelineStep {
+  position: relative;
+  min-height: 168px;
+  padding: 1.2rem;
+  background: var(--surface-canvas);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: background var(--duration-standard) var(--ease-quiet);
+}
+
+.pipelineStep:hover,
+.pipelineStep:focus-visible {
+  background: var(--surface-1);
+}
+
+.pipelineStepIndex {
+  font-family: var(--font-meta);
+  font-size: 0.6rem;
+  color: var(--ink-3);
+  letter-spacing: var(--tracking-meta);
+}
+
+.pipelineStep strong {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pipelineStepNote {
+  color: var(--ink-3);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+/* ── Lens stage (CSS-only interactive) ─────────────────────────────────────── */
+
+.lensStageSection .sectionIntro {
+  max-width: 44rem;
+}
+
+.lensStage {
+  margin-top: clamp(2.5rem, 5vw, 4.5rem);
+}
+
+.lensStageGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
+  gap: clamp(1.5rem, 3.5vw, 3.5rem);
+  align-items: stretch;
+}
+
+.lensFrameWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  /* Without this the nested frame's aspect-ratio + min-height transfers a
+     ~502px min-content width through this wrapper and inflates the shared
+     lens stage grid track on narrow viewports. */
+  min-width: 0;
+}
+
+.lensFrame {
+  align-self: stretch;
+  min-width: 0;
+}
+
+/* The hero frame is pure scene: it always honors the 2.39:1 letterbox.
+   The shared .livingFrame min-height floor stays for the lens stage, whose
+   frame carries text marks and needs the vertical room on narrow tracks. */
+.heroGrid .livingFrame {
+  min-height: 0;
+}
+
+.lensFrameNote {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.7rem;
+}
+
+.lensMarkGroup {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-quiet);
+  pointer-events: none;
+}
+
+.lensMark {
+  position: absolute;
+  transform: translate(-4px, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.32rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  background: color-mix(in srgb, #030303 78%, transparent);
+  color: var(--ink-1);
+  font-family: var(--font-meta);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.lensMark::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border: 1px solid rgb(255 255 255 / 0.55);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgb(255 255 255 / 0.35) 0 1.5px, transparent 2px),
+    transparent;
+}
+
+.lensPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  min-width: 0;
+}
+
+.lensSelector {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--stroke-subtle);
+  border-top: 1px solid var(--stroke-subtle);
+  border-bottom: 1px solid var(--stroke-subtle);
+}
+
+.lensSelectorLegend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.lensTab {
+  position: relative;
+  display: block;
+  padding: 0.85rem 1rem;
+  background: var(--surface-canvas);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.lensTab:hover {
+  background: var(--surface-1);
+}
+
+.lensRadio {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lensTabLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.lensTabIndex {
+  font-family: var(--font-meta);
+  font-size: 0.58rem;
+  color: var(--ink-3);
+  letter-spacing: var(--tracking-meta);
+}
+
+.lensReadings {
+  flex: 1;
+}
+
+.lensReading {
+  display: none;
+}
+
+.lensReading h3 {
+  font-size: clamp(1.4rem, 2.2vw, 1.9rem);
+}
+
+.lensReadingPrompt {
+  margin: 0.9rem 0 0;
+  color: var(--ink-1);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  max-width: 30rem;
+}
+
+.lensReading p:not(.lensReadingPrompt) {
+  margin: 0.9rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.92rem;
+  max-width: 32rem;
+}
+
+/* ── Axioms ────────────────────────────────────────────────────────────────── */
+
+.axiomList {
+  list-style: none;
+  margin: clamp(2.5rem, 5vw, 4.5rem) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--stroke-subtle);
+  border: 1px solid var(--stroke-subtle);
+}
+
+.axiomItem {
+  padding: clamp(1.4rem, 2.6vw, 2.2rem);
+  background: var(--surface-canvas);
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  transition: background var(--duration-standard) var(--ease-quiet);
+}
+
+.axiomItem:hover,
+.axiomItem:focus-visible {
+  background: var(--surface-1);
+}
+
+.axiomItem h3 {
+  font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.axiomItem p {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.88rem;
+  max-width: 24rem;
+}
+
+/* ── Narrative permission scale ────────────────────────────────────────────── */
+
+.permissionAxis {
+  margin-top: clamp(3rem, 6vw, 5rem);
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid var(--stroke-strong);
+  position: relative;
+}
+
+.permissionAxisStop {
+  position: relative;
+  padding: 1rem 0.4rem 0.9rem;
+  color: var(--ink-2);
+  font-family: var(--font-meta);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.permissionAxisStop::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 8px;
+  background: var(--stroke-strong);
+}
+
+.permissionAxisStop:first-child::before {
+  background: var(--accent-fracture-bright);
+}
+
+.permissionAxisStop:last-child::before {
+  background: var(--accent-restoration);
+}
+
+.permissionExamples {
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--stroke-subtle);
+  border: 1px solid var(--stroke-subtle);
+}
+
+.permissionExample {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.1rem 1.2rem;
+  background: var(--surface-canvas);
+  transition: background var(--duration-standard) var(--ease-quiet);
+}
+
+.permissionExample:hover,
+.permissionExample:focus-visible {
+  background: var(--surface-1);
+}
+
+.permissionExample span {
+  font-size: 0.92rem;
+  color: var(--ink-2);
+}
+
+.permissionExample strong {
+  font-family: var(--font-meta);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-1);
+  border-bottom: 1px solid var(--stroke-strong);
+  padding-bottom: 0.3rem;
+  align-self: end;
+}
+
+.permissionDemoNote {
+  margin: 1.2rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.72rem;
+}
+
+.permissionRules {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 2.5rem;
+  margin: 2.5rem 0 0;
+  padding: 1.2rem 0 0;
+  border-top: 1px solid var(--stroke-subtle);
+}
+
+.permissionRules li {
+  font-family: var(--font-meta);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ── Evidence section ──────────────────────────────────────────────────────── */
+
+.evidenceSection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.9fr);
+  gap: clamp(2rem, 7vw, 8rem);
+  align-items: start;
+}
+
+.evidenceBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+  /* Same intrinsic-width guard as .lensFrameWrap: stops the nested
+     .autopsyFrame's aspect-transferred min-content from inflating the
+     evidence grid track on narrow viewports. */
+  min-width: 0;
+}
+
+.autopsyFrame {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  min-height: 300px;
+  /* Same rationale as .livingFrame: width:100% pins the used width to the
+     track instead of the aspect-transferred 480px min-content width. */
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--stroke-subtle);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--surface-1);
+}
+
+.autopsyFrameTag,
+.autopsyFrameTc {
+  position: absolute;
+  z-index: 4;
+  top: 0.9rem;
+  color: var(--ink-2);
+  font-family: var(--font-meta);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.autopsyFrameTag {
+  left: 1rem;
+}
+
+.autopsyFrameTc {
+  right: 1rem;
+  color: var(--accent-restoration);
+}
+
+.autopsyFrame .autopsyCrosshair {
+  width: 70px;
+  height: 70px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  position: relative;
+  z-index: 3;
+}
+
+.autopsyCrosshair::before,
+.autopsyCrosshair::after {
+  content: "";
+  position: absolute;
+  background: rgb(255 255 255 / 0.2);
+}
+
+.autopsyCrosshair::before {
+  width: 1px;
+  top: -100vh;
+  bottom: -100vh;
+  left: 50%;
+}
+
+.autopsyCrosshair::after {
+  height: 1px;
+  left: -100vw;
+  right: -100vw;
+  top: 50%;
+}
+
+.autopsyGrid > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.32fr) 1fr;
+  gap: 1rem;
+  border-top: 1px solid var(--stroke-default);
+  padding: 0.9rem 0;
+}
+
+.autopsyGrid dt {
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem;
+  font-family: var(--font-meta);
+  padding-top: 0.15rem;
+}
+
+.autopsyGrid dd {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.92rem;
+}
+
+.autopsyDemoNote {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.7rem;
+}
+
+.evidenceChain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.evidenceChain li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 1rem;
+  padding: 1.15rem 0;
+  border-bottom: 1px solid var(--stroke-default);
+}
+
+.evidenceChainIndex {
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.7rem;
+  padding-top: 0.2rem;
+}
+
+.evidenceChain strong {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-family: var(--font-meta);
+  color: var(--ink-1);
+}
+
+.evidenceChain p {
+  margin: 0.35rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.9rem;
+}
+
+/* ── Craft pressures ───────────────────────────────────────────────────────── */
+
+.craftPressureGrid {
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.craftPressureCard {
+  min-height: 230px;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid var(--stroke-default);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.018), transparent 30%),
+    var(--surface-1);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.craftPressureCard p {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: clamp(0.98rem, 1.4vw, 1.15rem);
+  line-height: 1.55;
+  max-width: 30rem;
+}
+
+.craftNote {
+  margin: 2rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.88rem;
+  border-left: 2px solid var(--accent-restoration);
+  padding-left: 1rem;
+  max-width: 40rem;
+}
+
+/* ── Spoiler ladder ────────────────────────────────────────────────────────── */
+
+.spoilerLadder {
+  list-style: none;
+  margin: clamp(2.5rem, 5vw, 4rem) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--stroke-subtle);
+  border: 1px solid var(--stroke-subtle);
+}
+
+.spoilerStep {
+  --step: 0;
+  padding: 1.3rem 1.1rem 1.4rem;
+  background: var(--surface-canvas);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-height: 150px;
+  position: relative;
+  overflow: hidden;
+}
+
+.spoilerStep::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-restoration), transparent);
+  opacity: calc(0.15 + var(--step) * 0.2);
+}
+
+.spoilerStep strong {
+  font-family: var(--font-display);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.95rem;
+}
+
+.spoilerStep span {
+  color: var(--ink-3);
+  font-size: 0.74rem;
+}
+
+/* ── Biblical section ──────────────────────────────────────────────────────── */
+
+.biblicalSection {
+  position: relative;
+  padding-top: clamp(7rem, 12vw, 13rem);
+  padding-bottom: clamp(7rem, 12vw, 13rem);
+  background:
+    radial-gradient(circle at 70% 30%, color-mix(in oklab, var(--accent-restoration) 7%, transparent), transparent 31rem),
+    linear-gradient(180deg, transparent, color-mix(in oklab, var(--accent-restoration) 2%, transparent) 48%, transparent);
+}
+
+.biblicalSection::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(calc(100% - 2 * var(--gutter)), var(--container-max));
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--stroke-warm), transparent);
+}
+
+.biblicalSection h2 {
+  color: #eee5d7;
+  max-width: 18ch;
+}
+
+.biblicalSection .sectionIntro {
+  max-width: 46rem;
+}
+
+.synthesisSteps {
+  list-style: none;
+  margin: clamp(3rem, 6vw, 5rem) 0 0;
+  padding: 0;
+  max-width: 900px;
+}
+
+.synthesisSteps li {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--stroke-warm);
+}
+
+.synthesisSteps li span {
+  color: var(--accent-restoration);
+  font-family: var(--font-meta);
+  font-size: 0.65rem;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  padding-top: 0.25rem;
+}
+
+.synthesisSteps li p {
+  margin: 0;
+  color: #c9c0b2;
+}
+
+.biblicalClosing {
+  margin: 3rem 0 0;
+  max-width: 40rem;
+  color: #d8cfbe;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.6;
+}
+
+/* ── Discovery / status ────────────────────────────────────────────────────── */
+
+.discoverySection {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: start;
+}
+
+.discoveryPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.discoveryCard {
+  padding: clamp(1.4rem, 3vw, 2.2rem);
+  border: 1px solid var(--stroke-warm);
+  background:
+    radial-gradient(circle at 85% 0%, color-mix(in oklab, var(--accent-restoration) 6%, transparent), transparent 16rem),
+    var(--surface-warm);
+  display: grid;
+  gap: 0.7rem;
+}
+
+.discoveryCard strong {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.discoveryCard p {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.88rem;
+  max-width: 34rem;
+}
+
+.discoveryLinks {
+  display: grid;
+  border-top: 1px solid var(--stroke-default);
+}
+
+.discoveryLinks a {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--stroke-default);
+  color: var(--ink-2);
+}
+
+.discoveryLinks a::after {
+  content: "→";
+  float: right;
+}
+
+/* ── Structural stand (preview data sections) ──────────────────────────────── */
+
+.standShell > .sectionShell:first-child {
+  padding-bottom: clamp(2rem, 4vw, 3rem);
+}
+
+.standShell .sectionIndex {
+  color: var(--accent-restoration);
+}
+
+.splitSection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.9fr);
+  gap: clamp(2rem, 7vw, 8rem);
+  align-items: start;
+}
+
+.storyTrack,
+.relationshipTrace {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.storyTrack li {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 1rem;
+  padding: 1.2rem 0;
+  border-bottom: 1px solid var(--stroke-default);
+}
+
+.storyTrack li > span {
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.7rem;
+}
+
+.storyTrack strong {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  font-family: var(--font-meta);
+}
+
+.storyTrack p {
+  margin: 0.35rem 0 0;
+  color: var(--ink-3);
+}
+
+.characterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--stroke-default);
+  margin-top: 3rem;
+  border: 1px solid var(--stroke-default);
+}
+
+.characterCard {
+  padding: clamp(1.2rem, 3vw, 2.4rem);
+  background: var(--surface-canvas);
+}
+
+.portraitPlaceholder {
+  aspect-ratio: 16 / 7;
+  margin-bottom: 2rem;
+  background: radial-gradient(circle at 35% 50%, #232323 0 12%, transparent 13%),
+    radial-gradient(circle at 70% 45%, color-mix(in oklab, var(--accent-fracture) 32%, #222) 0 11%, transparent 12%),
+    linear-gradient(135deg, #0f0f0f, var(--surface-1));
+  border: 1px solid var(--stroke-default);
+}
+
+.characterCard dl > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.35fr) 1fr;
+  gap: 1rem;
+  border-top: 1px solid var(--stroke-default);
+  padding: 0.9rem 0;
+}
+
+.characterCard dt {
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding-top: 0.2rem;
+}
+
+.characterCard dd {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.relationshipPanel {
+  margin-top: clamp(3rem, 7vw, 7rem);
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: clamp(2rem, 6vw, 7rem);
+  padding: clamp(1.5rem, 4vw, 4rem);
+  border: 1px solid var(--stroke-default);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.012), transparent 36%),
+    var(--surface-1);
+}
+
+.relationshipPanel p {
+  color: var(--ink-3);
+}
+
+.relationshipPanel h3 {
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  margin-top: 0.6rem;
+}
+
+.traceEvent {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 1rem;
+  padding: 0 0 2rem;
+}
+
+.traceEvent:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 14px;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(var(--stroke-strong), var(--stroke-subtle));
+}
+
+.traceDot {
+  width: 13px;
+  height: 13px;
+  margin-top: 4px;
+  border: 1px solid var(--stroke-strong);
+  border-radius: 50%;
+  background: var(--surface-1);
+  z-index: 1;
+}
+
+.traceEvent p {
+  margin: 0.25rem 0 0;
+  color: var(--ink-3);
+}
+
+.trace-fracture .traceDot {
+  border-color: var(--accent-fracture-bright);
+  box-shadow: 0 0 20px color-mix(in oklab, var(--accent-fracture-bright) 18%, transparent);
+}
+
+.trace-repair .traceDot {
+  border-color: var(--accent-restoration);
+  box-shadow: 0 0 18px color-mix(in oklab, var(--accent-restoration) 10%, transparent);
+}
+
+.stackList {
+  border-top: 1px solid var(--stroke-default);
+}
+
+.stackList article {
+  padding: 1.2rem 0;
+  border-bottom: 1px solid var(--stroke-default);
+}
+
+.stackList p {
+  margin: 0.45rem 0 0;
+  color: var(--ink-2);
+}
+
+.meaningSection {
+  min-height: 70svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.meaningSection h2 {
+  max-width: 20ch;
+}
+
+.meaningGrid {
+  margin-top: clamp(3rem, 6vw, 6rem);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--stroke-default);
+  border: 1px solid var(--stroke-default);
+}
+
+.meaningGrid > div {
+  min-height: 150px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  background: var(--surface-canvas);
+}
+
+.meaningGrid span {
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.65rem;
+  font-family: var(--font-meta);
+}
+
+.meaningGrid strong {
+  font-size: clamp(1.05rem, 1.8vw, 1.45rem);
+  font-weight: 500;
+  max-width: 34rem;
+}
+
+.permissionField {
+  margin-top: 3rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.permissionField article {
+  min-height: 240px;
+  padding: 1.5rem;
+  border: 1px solid var(--stroke-default);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.018), transparent 30%),
+    var(--surface-1);
+}
+
+.permissionState {
+  display: inline-block;
+  margin-bottom: 3rem;
+  padding-bottom: 0.35rem;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--stroke-strong);
+}
+
+.permissionField h3 {
+  font-size: clamp(1.1rem, 1.6vw, 1.4rem);
+}
+
+.permissionField p {
+  color: var(--ink-3);
+  font-size: 0.9rem;
+}
+
+.autopsySection {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+}
+
+.autopsySection > .sectionIndex {
+  grid-column: 1 / -1;
+}
+
+.autopsySection .autopsyFrame {
+  aspect-ratio: 16 / 10;
+  background:
+    radial-gradient(circle at 58% 38%, color-mix(in oklab, var(--accent-fracture) 20%, transparent), transparent 21%),
+    linear-gradient(135deg, #141414, #060606 66%);
+}
+
+.autopsySection .autopsyFrame > span {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  color: var(--ink-3);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  z-index: 4;
+}
+
+.autopsyGrid > div:last-child {
+  grid-column: 1 / -1;
+}
+
+.decisionSection h2 {
+  max-width: 24ch;
+}
+
+.knowledgeGrid {
+  margin-top: 3rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.knowledgeGrid article {
+  border: 1px solid var(--stroke-default);
+  min-height: 260px;
+  padding: 1.5rem;
+  background: var(--surface-canvas);
+}
+
+.knowledgeGrid p {
+  color: var(--ink-2);
+  font-size: 0.92rem;
+}
+
+.fogPanel {
+  background:
+    radial-gradient(circle at 62% 35%, rgb(255 255 255 / 0.055), transparent 36%),
+    linear-gradient(120deg, rgb(255 255 255 / 0.018), rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.012));
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .pipelineTrack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .axiomList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1020px) {
+  .lensStageGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .evidenceSection {
+    grid-template-columns: 1fr;
+  }
+}
 
 @media (max-width: 900px) {
-  .heroGrid, .splitSection, .relationshipPanel, .autopsySection, .discoverySection { grid-template-columns: 1fr; }
-  .heroSection { min-height: auto; }
-  .livingFrame { order: -1; min-height: 210px; }
-  .lensGrid, .permissionField { grid-template-columns: repeat(2, 1fr); }
-  .characterGrid, .meaningGrid, .knowledgeGrid { grid-template-columns: 1fr; }
-  .autopsySection > .sectionIndex { grid-column: auto; }
+  .heroGrid,
+  .splitSection,
+  .relationshipPanel,
+  .autopsySection,
+  .discoverySection,
+  .missionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroSection {
+    min-height: auto;
+  }
+
+  /* Narrow hero: frame moves above the copy; ratio is already honored via
+     the base .heroGrid .livingFrame { min-height: 0 } rule. */
+  .heroGrid .livingFrame {
+    order: -1;
+  }
+
+  /* Lens stage frame keeps a mobile height floor for its text marks. */
+  .lensFrameWrap .livingFrame {
+    min-height: 210px;
+  }
+
+  .heroStatusStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .heroStatusStrip > div {
+    padding: 1rem 0;
+  }
+
+  .heroStatusStrip > div + div {
+    padding-left: 0;
+    border-top: 1px solid var(--stroke-subtle);
+  }
+
+  .characterGrid,
+  .meaningGrid,
+  .knowledgeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .autopsySection > .sectionIndex {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .pipelineTrack,
+  .axiomList,
+  .permissionExamples,
+  .spoilerLadder,
+  .craftPressureGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pipelineStep,
+  .axiomItem {
+    min-height: 0;
+  }
+
+  .permissionAxis {
+    grid-template-columns: 1fr;
+    border-top: 0;
+  }
+
+  .permissionAxisStop {
+    text-align: left;
+    padding: 0.7rem 0 0.7rem 1.2rem;
+    border-top: 1px solid var(--stroke-subtle);
+  }
+
+  .permissionAxisStop::before {
+    top: 50%;
+    transform: translateY(-50%);
+    left: 0;
+    height: 1px;
+    width: 8px;
+  }
+
+  .lensMarkGroup {
+    position: static;
+    inset: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.8rem;
+  }
+
+  .lensMark {
+    position: static;
+    transform: none;
+  }
+
+  .lensSelector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .frameCaption span {
+    display: none;
+  }
+
+  .relationshipPanel {
+    padding: 1.2rem;
+  }
+
+  .synthesisSteps li,
+  .evidenceChain li,
+  .storyTrack li {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .autopsyGrid > div {
+    grid-template-columns: minmax(7.5rem, 0.42fr) 1fr;
+    gap: 0.75rem;
+  }
 }
 
 @media (max-width: 620px) {
-  .lensGrid, .permissionField { grid-template-columns: 1fr; }
-  .lensItem { min-height: 190px; }
-  .frameCaption span { display: none; }
-  .relationshipPanel { padding: 1.2rem; }
-  .autopsyGrid > div { grid-template-columns: minmax(7.5rem, 0.42fr) 1fr; gap: 0.75rem; }
-  .synthesisSteps li { grid-template-columns: 1fr; gap: 0.4rem; }
+  .lensSelector {
+    grid-template-columns: 1fr;
+  }
+
+  .axiomItem {
+    min-height: 0;
+  }
+}
+
+/* ── Forced colors ─────────────────────────────────────────────────────────── */
+
+@media (forced-colors: active) {
+  .livingFrame,
+  .characterCard,
+  .relationshipPanel,
+  .permissionField article,
+  .knowledgeGrid article,
+  .autopsyFrame,
+  .craftPressureCard,
+  .discoveryCard,
+  .pipelineStep,
+  .axiomItem,
+  .permissionExample,
+  .lensMark {
+    border-color: CanvasText;
+  }
+
+  .heroStatusStrip,
+  .permissionAxis,
+  .permissionExamples {
+    border-color: CanvasText;
+  }
+
+  .lensMark {
+    background: Canvas;
+  }
+
+  .frameScene,
+  .portraitPlaceholder,
+  .fogPanel,
+  .autopsyFrame {
+    background: Canvas;
+  }
 }

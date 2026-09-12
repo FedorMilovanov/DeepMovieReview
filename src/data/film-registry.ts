@@ -1,8 +1,9 @@
 import { filmPackages as fixtureFilmPackages } from "@/data/film-fixtures";
+import { theFastAndTheFuriousDraftPackage } from "@/data/films/the-fast-and-the-furious";
 import { theTrumanShowDraftPackage } from "@/data/films/the-truman-show";
 import { assertValidFilmRegistry } from "@/lib/film-package-integrity";
 
-const rawFilmPackages = [...fixtureFilmPackages, theTrumanShowDraftPackage];
+const rawFilmPackages = [...fixtureFilmPackages, theTrumanShowDraftPackage, theFastAndTheFuriousDraftPackage];
 
 assertValidFilmRegistry(rawFilmPackages);
 

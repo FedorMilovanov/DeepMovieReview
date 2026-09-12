@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function GlobalError({ reset }: { reset: () => void }) {
   return (
-    <html lang="en">
+    <html lang="ru">
       <body style={{ margin: 0, background: "#050505", color: "#f2eee8", fontFamily: "Arial, Helvetica, sans-serif" }}>
         <main
           role="alert"
@@ -19,13 +19,13 @@ export default function GlobalError({ reset }: { reset: () => void }) {
           }}
         >
           <p style={{ margin: 0, opacity: 0.6, letterSpacing: "0.12em", textTransform: "uppercase", fontSize: "0.72rem" }}>
-            DeepMovieReview / fatal application error
+            Глубокие воды · критическая ошибка приложения
           </p>
-          <h1 id="global-error-title" style={{ margin: 0, maxWidth: "12ch", fontSize: "clamp(2.5rem, 8vw, 6rem)", lineHeight: 0.94 }}>
-            The application shell could not recover this view.
+          <h1 id="global-error-title" style={{ margin: 0, maxWidth: "14ch", fontSize: "clamp(2.2rem, 7vw, 5rem)", lineHeight: 0.96 }}>
+            Оболочка приложения не смогла восстановить этот кадр.
           </h1>
           <p style={{ margin: 0, maxWidth: "50rem", opacity: 0.72, lineHeight: 1.6 }}>
-            Retry the render. If the failure persists, return to the homepage and continue from a clean route.
+            Повторите рендер. Если сбой повторяется, вернитесь на главную и продолжите с чистого маршрута.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
             <button
@@ -39,7 +39,7 @@ export default function GlobalError({ reset }: { reset: () => void }) {
                 cursor: "pointer",
               }}
             >
-              Retry
+              Повторить
             </button>
             <Link
               href="/"
@@ -50,7 +50,7 @@ export default function GlobalError({ reset }: { reset: () => void }) {
                 textDecoration: "none",
               }}
             >
-              Home
+              На главную
             </Link>
           </div>
         </main>

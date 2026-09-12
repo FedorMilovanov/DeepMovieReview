@@ -4,7 +4,7 @@ import { RelationshipObservatoryLab } from "@/components/labs/relationship-obser
 
 export const metadata: Metadata = {
   title: "Relationship Observatory R&D Lab",
-  description: "Internal semantic prototype for the DeepMovieReview Relationship Observatory.",
+  description: "Internal semantic prototype for the Deep Waters Relationship Observatory.",
   robots: {
     index: false,
     follow: false,
@@ -15,7 +15,7 @@ export default function RelationshipObservatoryLabPage() {
   return (
     <>
       <div className="sectionShell" style={{ paddingBottom: 0 }}>
-        <Link className="microLabel" href="/">← DeepMovieReview</Link>
+        <Link className="microLabel" href="/">← Глубокие воды</Link>
       </div>
       <RelationshipObservatoryLab />
     </>

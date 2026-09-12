@@ -317,7 +317,7 @@ try {
 
     assertCheck(label + ": meaningful content", summary.bodyLength > 300, summary.bodyLength);
     assertCheck(label + ": exactly one H1", summary.h1Count === 1, summary.h1Count);
-    assertCheck(label + ": html lang", summary.lang === "en", summary.lang);
+    assertCheck(label + ": html lang", summary.lang === "ru", summary.lang);
     assertCheck(label + ": no duplicate IDs", summary.duplicateIds.length === 0, summary.duplicateIds);
     assertCheck(label + ": no interactive descendants hidden from AT", summary.hiddenInteractive === 0, summary.hiddenInteractive);
     assertCheck(label + ": no Next error overlay", !summary.errorOverlay, summary.errorOverlay);

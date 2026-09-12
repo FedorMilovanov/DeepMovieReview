@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/inter";
+import "@fontsource-variable/oswald";
+import "@fontsource-variable/jetbrains-mono";
 import { ExperienceDiagnostics } from "@/components/experience/experience-diagnostics";
 import { ExperienceQualityProvider } from "@/components/experience/experience-quality-provider";
 import { SiteFooter } from "@/components/site-footer";
@@ -24,6 +27,12 @@ import "../styles/experience.css";
 const homepageFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
 const previewContentEnabled = isPreviewContentEnabled();
 
+/* Canonical origin for metadata URLs (og:image etc.). Without an explicit
+   metadataBase Next falls back to localhost:3000, which social crawlers
+   cannot resolve. Pages are statically prerendered, so this is read at
+   BUILD time — set DMR_SITE_URL in the deploy build environment. */
+const siteOrigin = process.env.DMR_SITE_URL ?? "http://localhost:3000";
+
 if (homepageFilmPackage.film.status === "draft" && !previewContentEnabled) {
   throw new Error(
     `Configured homepage feature "${homepageFeaturedFilmSlug}" is draft content. Enable DMR_PREVIEW_CONTENT_ENABLED only for an intentional preview build, or publish/select a safe homepage feature.`,
@@ -36,13 +45,42 @@ const indexingEnabled = canIndexSite({
   homepageStatus: homepageFilmPackage.film.status,
 });
 
+export const viewport = {
+  themeColor: "#030303",
+};
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin),
+  applicationName: "Глубокие воды",
   title: {
-    default: "DeepMovieReview",
-    template: "%s · DeepMovieReview",
+    default: "Глубокие воды — исследование кино через библейскую картину мира",
+    template: "%s · Глубокие воды",
   },
   description:
-    "Deep analysis of cinema: story, people, relationships, ideas, craft, moral structure and biblical synthesis.",
+    "Глубокие воды: глубокий анализ кино — история, люди, отношения, идеи, форма, моральная структура и библейский синтез. Сначала фильм — потом вердикт.",
+  openGraph: {
+    type: "website",
+    siteName: "Глубокие воды",
+    title: "Глубокие воды — исследование кино через библейскую картину мира",
+    description:
+      "Исследование кино через библейскую картину мира: сначала фильм — потом вердикт.",
+    locale: "ru_RU",
+    images: [
+      {
+        url: "/og-home.png",
+        width: 1200,
+        height: 630,
+        alt: "Deep Waters / Глубокие воды — исследование кино через библейскую картину мира",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Глубокие воды — исследование кино через библейскую картину мира",
+    description:
+      "Исследование кино через библейскую картину мира: сначала фильм — потом вердикт.",
+    images: ["/og-home.png"],
+  },
   robots: indexingEnabled
     ? { index: true, follow: true }
     : {
@@ -54,13 +92,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="ru">
       <body>
-        <a className="skipLink" href="#main">Skip to content</a>
+        <a className="skipLink" href="#main">Перейти к содержимому</a>
         <ExperienceQualityProvider>
           <div className="appShell">
             <SiteHeader />
-            <main id="main">{children}</main>
+            {/* tabIndex -1 lets the skip link move keyboard focus into main,
+                not just scroll to it (WCAG 2.4.1). */}
+            <main id="main" tabIndex={-1}>{children}</main>
             <SiteFooter />
           </div>
           <ExperienceDiagnostics />

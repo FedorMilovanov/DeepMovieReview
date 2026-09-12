@@ -1,168 +1,424 @@
-.livingFrame {
-  border: 1px solid var(--stroke-strong);
-  background: var(--surface-1);
-  box-shadow:
-    0 44px 110px rgb(0 0 0 / 0.58),
-    inset 0 0 0 1px rgb(255 255 255 / 0.015);
-}
+/* ────────────────────────────────────────────────────────────────────────────
+   Deep Waters — homepage optics: living frame scene, grain, lens wiring,
+   scroll reveals. All effects are progressive enhancement: the page stays
+   complete without any of them, and every loop respects reduced motion.
+   ──────────────────────────────────────────────────────────────────────────── */
 
-.livingFrame::before {
-  content: "";
+/* ── Frame scene ───────────────────────────────────────────────────────────── */
+
+.frameScene {
   position: absolute;
   inset: 0;
   z-index: 1;
-  pointer-events: none;
+  overflow: hidden;
+  filter: saturate(0.82) contrast(1.05);
+}
+
+.sceneSky {
+  position: absolute;
+  inset: 0;
   background:
-    linear-gradient(90deg, rgb(255 255 255 / 0.02), transparent 18%, transparent 82%, rgb(255 255 255 / 0.02)),
-    linear-gradient(180deg, rgb(255 255 255 / 0.018), transparent 22%, transparent 78%, rgb(0 0 0 / 0.18));
+    radial-gradient(ellipse 130% 60% at 68% 18%, rgb(126 90 70 / 0.16), transparent 60%),
+    linear-gradient(180deg, #0a0a0c 0%, #121014 34%, #261a19 56%, #17100e 72%, #090807 100%);
 }
 
-.frameVisual {
-  filter: saturate(0.78) contrast(1.04);
+.sceneCloudsA,
+.sceneCloudsB {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  height: 26%;
+  filter: blur(14px);
+  opacity: 0.85;
 }
 
-.frameOrbA,
-.frameOrbB {
-  transition: transform var(--duration-slow) var(--ease-quiet);
+.sceneCloudsA {
+  top: 16%;
+  background: linear-gradient(90deg, transparent 4%, rgb(242 238 230 / 0.05) 26%, rgb(242 238 230 / 0.028) 55%, transparent 88%);
 }
 
-.livingFrame:hover .frameOrbA {
-  transform: translate3d(-2%, -1%, 0) scale(1.025);
+.sceneCloudsB {
+  top: 34%;
+  background: linear-gradient(90deg, transparent 12%, rgb(242 238 230 / 0.035) 44%, rgb(242 238 230 / 0.05) 70%, transparent 96%);
 }
 
-.livingFrame:hover .frameOrbB {
-  transform: translate3d(2%, 1%, 0) scale(1.035);
+.sceneOrb {
+  position: absolute;
+  top: 20%;
+  left: 66%;
+  width: 11%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #f6eedd 0%, #d9c39c 38%, #8a6f52 62%, transparent 74%);
+  box-shadow:
+    0 0 44px 8px rgb(217 195 156 / 0.14),
+    0 0 140px 44px rgb(217 195 156 / 0.07);
 }
 
-.lensItem {
-  background: var(--surface-canvas);
-  transition:
-    background var(--duration-standard) var(--ease-quiet),
-    border-color var(--duration-standard) var(--ease-quiet),
-    transform var(--duration-standard) var(--ease-quiet);
+.sceneHaze {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  top: 48%;
+  height: 22%;
+  background: linear-gradient(180deg, transparent, rgb(203 164 105 / 0.1) 46%, rgb(143 32 39 / 0.05) 74%, transparent);
+  filter: blur(6px);
 }
 
-.lensItem:hover,
-.lensItem:focus-within {
-  background: var(--surface-1);
-  border-color: var(--stroke-strong);
+.sceneHorizon {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: 30%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.28) 34%, rgb(255 255 255 / 0.2) 68%, transparent);
+  box-shadow: 0 -18px 80px color-mix(in oklab, var(--accent-restoration) 12%, transparent);
 }
 
-.characterCard,
-.meaningGrid > div {
-  background: var(--surface-canvas);
-}
-
-.relationshipPanel {
+.sceneGround {
+  position: absolute;
+  inset: auto 0 0;
+  height: 31%;
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.012), transparent 36%),
-    var(--surface-1);
+    radial-gradient(ellipse 46% 90% at 66% -12%, rgb(217 195 156 / 0.08), transparent 62%),
+    linear-gradient(180deg, #161010 0%, #0a0807 46%, #050404 100%);
 }
 
-.traceEvent:not(:last-child)::after {
-  background: linear-gradient(var(--stroke-strong), var(--stroke-subtle));
+.sceneFigure {
+  position: absolute;
+  width: 5.4%;
+  aspect-ratio: 0.44;
+  background: #070606;
+  clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
 }
 
-.trace-fracture .traceDot {
-  border-color: var(--accent-fracture-bright);
-  box-shadow: 0 0 20px color-mix(in oklab, var(--accent-fracture-bright) 18%, transparent);
-}
-
-.trace-repair .traceDot {
-  border-color: var(--accent-restoration);
-  box-shadow: 0 0 18px color-mix(in oklab, var(--accent-restoration) 10%, transparent);
-}
-
-.permissionField article {
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.018), transparent 30%),
-    var(--surface-1);
-}
-
-.permissionState {
-  color: var(--ink-2);
-  border-bottom: 1px solid var(--stroke-strong);
-}
-
-.autopsyFrame {
-  border: 1px solid var(--stroke-subtle);
-  background:
-    radial-gradient(circle at 58% 38%, color-mix(in oklab, var(--accent-fracture) 20%, transparent), transparent 21%),
-    linear-gradient(135deg, #141414, #060606 66%);
-}
-
-.fogPanel {
-  background:
-    radial-gradient(circle at 62% 35%, rgb(255 255 255 / 0.055), transparent 36%),
-    linear-gradient(120deg, rgb(255 255 255 / 0.018), rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.012));
-}
-
-.biblicalSection {
-  position: relative;
-  background:
-    radial-gradient(circle at 70% 30%, color-mix(in oklab, var(--accent-restoration) 7%, transparent), transparent 31rem),
-    linear-gradient(180deg, transparent, color-mix(in oklab, var(--accent-restoration) 2%, transparent) 48%, transparent);
-}
-
-.biblicalSection::before {
+.sceneFigure::before {
   content: "";
   position: absolute;
-  top: 0;
+  top: -36%;
   left: 50%;
-  width: min(calc(100% - 2 * var(--gutter)), var(--container-max));
-  height: 1px;
   transform: translateX(-50%);
-  background: linear-gradient(90deg, transparent, var(--stroke-warm), transparent);
+  width: 58%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: inherit;
 }
 
-.synthesisSteps li {
-  border-top: 1px solid var(--stroke-warm);
+.sceneFigureA {
+  left: 29%;
+  bottom: 26%;
+  background: #0b0908;
 }
 
-.synthesisSteps span {
-  color: var(--accent-restoration);
+.sceneFigureB {
+  left: 60%;
+  bottom: 21%;
+  width: 7%;
+  background: #060505;
+  filter: drop-shadow(-1px 0 0 rgb(217 195 156 / 0.14));
 }
 
-html[data-reduced-motion="true"] .livingFrame:hover .frameOrbA,
-html[data-reduced-motion="true"] .livingFrame:hover .frameOrbB,
-html[data-reduced-motion="true"] .buttonPrimary:hover,
-html[data-reduced-motion="true"] .buttonPrimary:focus-visible,
-html[data-reduced-motion="true"] .buttonGhost:hover,
-html[data-reduced-motion="true"] .buttonGhost:focus-visible {
-  transform: none;
+.sceneGrain {
+  position: absolute;
+  inset: -60px;
+  z-index: 2;
+  opacity: 0.09;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27240%27%20height%3D%27240%27%3E%3Cfilter%20id%3D%27n%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.9%27%20numOctaves%3D%272%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%27240%27%20height%3D%27240%27%20filter%3D%27url(%23n)%27%20opacity%3D%270.6%27%2F%3E%3C%2Fsvg%3E");
+  background-size: 240px 240px;
 }
+
+.sceneVignette {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background:
+    linear-gradient(180deg, rgb(0 0 0 / 0.32), transparent 16%),
+    radial-gradient(ellipse 108% 96% at 50% 46%, transparent 58%, rgb(0 0 0 / 0.5) 100%),
+    linear-gradient(0deg, rgb(0 0 0 / 0.3), transparent 14%);
+}
+
+/* ── Lens stage wiring (CSS-only state machine) ────────────────────────────── */
+
+@supports selector(:has(*)) {
+  .lensTab:has(.lensRadio:checked) {
+    background: var(--surface-2);
+  }
+
+  .lensTab:has(.lensRadio:checked) .lensTabLabel {
+    color: var(--ink-1);
+  }
+
+  .lensTab:has(.lensRadio:checked)::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    background: var(--accent-restoration);
+  }
+
+  .lensTab:has(.lensRadio:focus-visible) {
+    outline: 1px solid var(--focus-color);
+    outline-offset: -2px;
+  }
+
+  .lensStage:has(.lensRadio[value="story"]:checked) .lensMarkGroup[data-lens="story"],
+  .lensStage:has(.lensRadio[value="people"]:checked) .lensMarkGroup[data-lens="people"],
+  .lensStage:has(.lensRadio[value="relationships"]:checked) .lensMarkGroup[data-lens="relationships"],
+  .lensStage:has(.lensRadio[value="ideas"]:checked) .lensMarkGroup[data-lens="ideas"],
+  .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensMarkGroup[data-lens="moral-world"],
+  .lensStage:has(.lensRadio[value="craft"]:checked) .lensMarkGroup[data-lens="craft"] {
+    opacity: 1;
+  }
+
+  .lensStage:has(.lensRadio[value="story"]:checked) .lensReading[data-lens="story"],
+  .lensStage:has(.lensRadio[value="people"]:checked) .lensReading[data-lens="people"],
+  .lensStage:has(.lensRadio[value="relationships"]:checked) .lensReading[data-lens="relationships"],
+  .lensStage:has(.lensRadio[value="ideas"]:checked) .lensReading[data-lens="ideas"],
+  .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensReading[data-lens="moral-world"],
+  .lensStage:has(.lensRadio[value="craft"]:checked) .lensReading[data-lens="craft"] {
+    display: block;
+  }
+
+  /* Desktop: marks float inside the frame and settle with a small stagger. */
+  @media (min-width: 721px) {
+    .lensMark {
+      opacity: 0;
+      transform: translate(-2px, calc(-50% + 7px));
+      transition:
+        opacity var(--duration-standard) var(--ease-quiet),
+        transform var(--duration-standard) var(--ease-quiet);
+    }
+
+    .lensStage:has(.lensRadio[value="story"]:checked) .lensMarkGroup[data-lens="story"] .lensMark,
+    .lensStage:has(.lensRadio[value="people"]:checked) .lensMarkGroup[data-lens="people"] .lensMark,
+    .lensStage:has(.lensRadio[value="relationships"]:checked) .lensMarkGroup[data-lens="relationships"] .lensMark,
+    .lensStage:has(.lensRadio[value="ideas"]:checked) .lensMarkGroup[data-lens="ideas"] .lensMark,
+    .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensMarkGroup[data-lens="moral-world"] .lensMark,
+    .lensStage:has(.lensRadio[value="craft"]:checked) .lensMarkGroup[data-lens="craft"] .lensMark {
+      opacity: 1;
+      transform: translate(-4px, -50%);
+    }
+
+    .lensMarkGroup .lensMark:nth-child(2) { transition-delay: 70ms; }
+    .lensMarkGroup .lensMark:nth-child(3) { transition-delay: 140ms; }
+    .lensMarkGroup .lensMark:nth-child(4) { transition-delay: 210ms; }
+  }
+
+  /* Mobile: marks become an inline chip list under the frame; only the active
+     lens occupies layout space. */
+  @media (max-width: 720px) {
+    .lensMarkGroup {
+      display: none;
+    }
+
+    .lensStage:has(.lensRadio[value="story"]:checked) .lensMarkGroup[data-lens="story"],
+    .lensStage:has(.lensRadio[value="people"]:checked) .lensMarkGroup[data-lens="people"],
+    .lensStage:has(.lensRadio[value="relationships"]:checked) .lensMarkGroup[data-lens="relationships"],
+    .lensStage:has(.lensRadio[value="ideas"]:checked) .lensMarkGroup[data-lens="ideas"],
+    .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensMarkGroup[data-lens="moral-world"],
+    .lensStage:has(.lensRadio[value="craft"]:checked) .lensMarkGroup[data-lens="craft"] {
+      display: flex;
+    }
+  }
+}
+
+@supports not selector(:has(*)) {
+  .lensMarkGroup {
+    opacity: 1;
+  }
+
+  .lensReading {
+    display: block;
+  }
+}
+
+/* ── Pointer parallax (fine pointers only) ─────────────────────────────────── */
+
+@media (hover: hover) and (pointer: fine) {
+  /* Clouds keep their infinite drift animation (transform is owned by it);
+     depth layers respond to pointer proximity with slow transitions. */
+  .sceneOrb,
+  .sceneGround,
+  .sceneFigureA,
+  .sceneFigureB {
+    transition: transform 1.4s var(--ease-quiet);
+  }
+
+  .livingFrame:hover .sceneOrb {
+    transform: translate(-4px, 3px);
+  }
+
+  .livingFrame:hover .sceneGround {
+    transform: translateY(1%);
+  }
+
+  .livingFrame:hover .sceneFigureA {
+    transform: translateX(-5px);
+  }
+
+  .livingFrame:hover .sceneFigureB {
+    transform: translateX(-9px);
+  }
+}
+
+/* ── Ambient loops (disabled under reduced motion) ─────────────────────────── */
+
+@keyframes dmrCloudDriftA {
+  from { transform: translateX(-3%); }
+  to { transform: translateX(3%); }
+}
+
+@keyframes dmrCloudDriftB {
+  from { transform: translateX(2.5%); }
+  to { transform: translateX(-2.5%); }
+}
+
+@keyframes dmrGrainJitter {
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-14px, 8px, 0); }
+  40% { transform: translate3d(9px, -12px, 0); }
+  60% { transform: translate3d(-7px, -6px, 0); }
+  80% { transform: translate3d(12px, 10px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes dmrStatusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@keyframes dmrScrollSweep {
+  0% { transform: scaleX(0); transform-origin: left; }
+  45% { transform: scaleX(1); transform-origin: left; }
+  55% { transform: scaleX(1); transform-origin: right; }
+  100% { transform: scaleX(0); transform-origin: right; }
+}
+
+html:not([data-reduced-motion="true"]) .sceneCloudsA {
+  animation: dmrCloudDriftA 46s var(--ease-quiet) infinite alternate;
+}
+
+html:not([data-reduced-motion="true"]) .sceneCloudsB {
+  animation: dmrCloudDriftB 64s var(--ease-quiet) infinite alternate;
+}
+
+html:not([data-reduced-motion="true"]) .sceneGrain {
+  animation: dmrGrainJitter 1.1s steps(5) infinite;
+}
+
+.heroStatusStrip > div:first-child strong::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent-restoration);
+  vertical-align: baseline;
+}
+
+html:not([data-reduced-motion="true"]) .heroStatusStrip > div:first-child strong::before {
+  animation: dmrStatusPulse 2.6s var(--ease-standard) infinite;
+}
+
+html:not([data-reduced-motion="true"]) .heroScrollLine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ink-3);
+  animation: dmrScrollSweep 3.4s var(--ease-standard) infinite;
+}
+
+/* ── Scroll reveals (view-timeline only; static otherwise) ─────────────────── */
+
+@keyframes dmrSectionReveal {
+  from {
+    opacity: 0.001;
+    transform: translateY(34px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .sectionRule {
+    animation: dmrSectionReveal both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 42%;
+  }
+}
+
+html[data-reduced-motion="true"] .sectionRule {
+  animation: none;
+}
+
+/* ── Hero copy treatment ───────────────────────────────────────────────────── */
+
+.heroSection h1 {
+  max-width: 15ch;
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 40rem;
+  margin: 0 0 1.6rem;
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.68rem;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.kicker::before {
+  content: "";
+  width: 2.4rem;
+  height: 1px;
+  flex: none;
+  background: var(--accent-restoration);
+  opacity: 0.8;
+}
+
+/* ── Reduced motion: freeze every ambient loop ─────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
-  .livingFrame:hover .frameOrbA,
-  .livingFrame:hover .frameOrbB,
-  .buttonPrimary:hover,
-  .buttonPrimary:focus-visible,
-  .buttonGhost:hover,
-  .buttonGhost:focus-visible {
-    transform: none;
+  .sceneCloudsA,
+  .sceneCloudsB,
+  .sceneGrain,
+  .heroStatusStrip > div:first-child strong::before,
+  .heroScrollLine::after {
+    animation: none;
+  }
+
+  .sectionRule {
+    animation: none;
+  }
+
+  .lensMark {
+    transition: none;
   }
 }
 
-@media (max-width: 720px) {
-  .livingFrame {
-    box-shadow: 0 26px 72px rgb(0 0 0 / 0.5);
-  }
-}
+/* ── Forced colors ─────────────────────────────────────────────────────────── */
 
 @media (forced-colors: active) {
-  .livingFrame,
-  .characterCard,
-  .relationshipPanel,
-  .permissionField article,
-  .knowledgeGrid article,
-  .autopsyFrame {
-    border-color: CanvasText;
+  .sceneGrain,
+  .sceneVignette,
+  .sceneHaze {
+    display: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .lensMark {
+    border-color: var(--stroke-strong);
   }
 
-  .frameVisual,
-  .portraitPlaceholder,
-  .fogPanel,
-  .autopsyFrame {
-    background: Canvas;
+  .lensMark::before {
+    border-color: var(--ink-1);
   }
 }

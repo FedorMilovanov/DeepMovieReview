@@ -9,6 +9,20 @@
     scroll-behavior: smooth;
   }
 
+  /* The skip link focuses main programmatically; suppress the container's own
+     outline — the next Tab lands on a real control with its own indicator. */
+  main:focus {
+    outline: none;
+  }
+
+  /* Progressive enhancement: more even line breaks for headings in engines
+     that support it. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
   body {
     margin: 0;
   }
@@ -54,6 +68,8 @@
 }
 
 .appShell {
+  /* vh fallback for browsers without svh units (pre-2022 engines). */
+  min-height: 100vh;
   min-height: 100svh;
   overflow: clip;
 }
@@ -116,11 +132,11 @@
 }
 
 h1 {
-  max-width: 11ch;
+  max-width: 14ch;
 }
 
 h2 {
-  max-width: 15ch;
+  max-width: 20ch;
 }
 
 .kicker {

@@ -15,12 +15,12 @@ export function ExperienceControls() {
   return (
     <details className="experienceControls">
       <summary>
-        Experience
+        Качество
         <span>{experienceMode === "lite" ? "Lite" : `${tier} / ${backend}`}</span>
       </summary>
       <div className="experienceControlsPanel">
         <fieldset>
-          <legend>Visual quality</legend>
+          <legend>Визуальное качество</legend>
           <label>
             <input
               type="radio"
@@ -29,7 +29,7 @@ export function ExperienceControls() {
               checked={experienceMode === "auto"}
               onChange={() => setExperienceMode("auto")}
             />
-            <span><strong>Auto</strong><small>Adapt to device and measured runtime performance.</small></span>
+            <span><strong>Авто</strong><small>Подстраиваться под устройство и измеренную производительность.</small></span>
           </label>
           <label>
             <input
@@ -39,12 +39,12 @@ export function ExperienceControls() {
               checked={experienceMode === "lite"}
               onChange={() => setExperienceMode("lite")}
             />
-            <span><strong>Lite</strong><small>Prefer premium static/CSS presentation and skip expensive GPU enhancements.</small></span>
+            <span><strong>Lite</strong><small>Статичная подача без дорогих GPU-эффектов — без потери смысла.</small></span>
           </label>
         </fieldset>
 
         <fieldset>
-          <legend>Motion</legend>
+          <legend>Движение</legend>
           <label>
             <input
               type="radio"
@@ -53,7 +53,7 @@ export function ExperienceControls() {
               checked={motionPreference === "system"}
               onChange={() => setMotionPreference("system")}
             />
-            <span><strong>System</strong><small>Follow the operating system reduced-motion preference.</small></span>
+            <span><strong>Системное</strong><small>Следовать настройке «уменьшенное движение» в операционной системе.</small></span>
           </label>
           <label>
             <input
@@ -63,7 +63,7 @@ export function ExperienceControls() {
               checked={motionPreference === "reduced"}
               onChange={() => setMotionPreference("reduced")}
             />
-            <span><strong>Reduced</strong><small>Reduce cinematic movement while preserving readable visual quality.</small></span>
+            <span><strong>Уменьшенное</strong><small>Сократить кинематографичное движение, сохранив читаемость.</small></span>
           </label>
         </fieldset>
       </div>

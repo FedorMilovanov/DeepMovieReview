@@ -1,7 +1,7 @@
 export default function FilmLoading() {
   return (
     <section className="sectionShell routeLoading routeLoadingFilm" aria-busy="true" aria-live="polite">
-      <div className="sectionIndex">FILM / LOADING</div>
+      <div className="sectionIndex">Фильм / Загрузка</div>
       <div className="routeFilmHeroSkeleton" aria-hidden="true" />
       <div className="routeSkeleton routeSkeletonWide" />
       <div className="routeSkeleton routeSkeletonMedium" />
@@ -10,7 +10,7 @@ export default function FilmLoading() {
           <div className="routeMetaCellSkeleton" key={index} />
         ))}
       </div>
-      <p className="routeLoadingLabel">Preparing the film analysis…</p>
+      <p className="routeLoadingLabel">Готовим разбор фильма…</p>
     </section>
   );
 }
