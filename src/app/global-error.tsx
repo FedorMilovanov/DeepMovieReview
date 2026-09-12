@@ -19,7 +19,7 @@ export default function GlobalError({ reset }: { reset: () => void }) {
           }}
         >
           <p style={{ margin: 0, opacity: 0.6, letterSpacing: "0.12em", textTransform: "uppercase", fontSize: "0.72rem" }}>
-            DeepMovieReview · критическая ошибка приложения
+            Глубокие воды · критическая ошибка приложения
           </p>
           <h1 id="global-error-title" style={{ margin: 0, maxWidth: "14ch", fontSize: "clamp(2.2rem, 7vw, 5rem)", lineHeight: 0.96 }}>
             Оболочка приложения не смогла восстановить этот кадр.

@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
     description:
       film.status === "published"
         ? `${film.title} (${film.year}) — ${film.premise}`
-        : `${film.title} — DeepMovieReview structural film shell.`,
+        : `${film.title} — Deep Waters structural film shell.`,
     robots: film.status === "published" ? undefined : { index: false, follow: false },
   };
 }

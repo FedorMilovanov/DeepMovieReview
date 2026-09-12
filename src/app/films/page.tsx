@@ -6,7 +6,7 @@ import { isPreviewContentEnabled } from "@/data/site-config";
 
 export const metadata: Metadata = {
   title: "Фильмы",
-  description: "Разборы фильмов DeepMovieReview.",
+  description: "Разборы фильмов «Глубокие воды».",
 };
 
 const statusLabels = {

@@ -3,9 +3,9 @@ import Link from "next/link";
 export function SiteHeader() {
   return (
     <header className="siteHeader">
-      <Link className="brand" href="/" aria-label="DeepMovieReview — на главную">
-        <span className="brandMark" aria-hidden="true">DMR</span>
-        <span className="brandText">DeepMovieReview</span>
+      <Link className="brand" href="/" aria-label="Глубокие воды — на главную">
+        <span className="brandMark" aria-hidden="true">DW</span>
+        <span className="brandText">Deep Waters</span>
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">
         <Link href="/films">Фильмы</Link>

@@ -307,14 +307,14 @@ function PlatformLanding({ preview }: { preview: boolean }) {
   return (
     <>
       <section className="heroSection sectionShell" aria-labelledby="hero-title">
-        <div className="eyebrow">Глубокий анализ кино · {preview ? "структурный просмотр" : "предзапуск"}</div>
+        <div className="eyebrow">Исследование кино через библейскую картину мира · {preview ? "структурный просмотр" : "предзапуск"}</div>
         <div className="heroGrid">
           <div className="heroCopy">
             <p className="kicker">Сначала фильм. Доказательства — потом вердикт.</p>
             <h1 id="hero-title">Фильм — больше, чем происходящее на экране.</h1>
             <p className="lede">
-              Кино показывает, чем восхищаться, чего бояться, что прощать и во что верить. DeepMovieReview разбирает
-              фильм как историю о людях — сюжет, характеры, отношения, идеи, форма — и лишь затем аргументирует
+              Кино показывает, чем восхищаться, чего бояться, что прощать и во что верить. «Глубокие воды» разбирают
+              фильм как историю о людях — сюжет, характеры, отношения, идеи, форма — и лишь затем аргументируют
               моральный и библейский вывод.
             </p>
             <div className="heroActions">
@@ -328,7 +328,7 @@ function PlatformLanding({ preview }: { preview: boolean }) {
               </p>
             ) : null}
           </div>
-          <div className="livingFrame" aria-label="Живой кадр DeepMovieReview">
+          <div className="livingFrame" aria-label="Живой кадр «Глубокие воды»">
             <div className="frameMeta">
               <span>Кадр · 0001</span>
               <span>2.39:1</span>
@@ -550,6 +550,15 @@ function PlatformLanding({ preview }: { preview: boolean }) {
               независимой проверки библейского и итогового синтеза.
             </p>
           </article>
+          <article className="discoveryCard">
+            <span className="microLabel">Киноочередь · кандидат</span>
+            <strong>«Форсаж» · 2001</strong>
+            <p>
+              Рабочий угол редакции: «семья» как идол, скорость как замена свободы, похоть как фон, лёгкие деньги
+              вместо честного труда. Редакционная проработка начата — разбор будет собран по полной методологии:
+              канонические сцены, доказательства, синтез.
+            </p>
+          </article>
           <div className="discoveryLinks">
             <Link href="/methodology">Читать методологию</Link>
             <Link href="/films">Посмотреть фильмы</Link>
@@ -564,7 +573,7 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
   const { featuredFilm } = data;
   return (
     <section className="heroSection sectionShell" aria-labelledby="hero-title">
-      <div className="eyebrow">Глубокий анализ кино · избранный разбор</div>
+      <div className="eyebrow">Исследование кино через библейскую картину мира · избранный разбор</div>
       <div className="heroGrid">
         <div className="heroCopy">
           <p className="kicker">

@@ -8,7 +8,7 @@ export const fixtureHeroAsset: VisualAssetManifest = {
   filmSlug: "pilot-film",
   role: "hero",
   title: "Pilot Film hero fixture",
-  alt: "Abstract cinematic fixture used to test the DeepMovieReview visual asset pipeline.",
+  alt: "Abstract cinematic fixture used to test the Deep Waters visual asset pipeline.",
   aspectRatio: 2.39,
   focalPoint: { x: 0.58, y: 0.46 },
   mobileFocalPoint: { x: 0.54, y: 0.43 },
@@ -93,7 +93,7 @@ export const fixtureHeroAsset: VisualAssetManifest = {
   ],
   provenance: {
     sourceKind: "fixture",
-    generator: "DeepMovieReview shell fixture",
+    generator: "Deep Waters shell fixture",
     promptVersion: "fixture-v1",
     editorialNotes: "Placeholder manifest only; referenced files do not represent final art.",
   },

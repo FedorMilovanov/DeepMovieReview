@@ -4,7 +4,7 @@ import { SceneAutopsyLab } from "@/components/labs/scene-autopsy-lab";
 
 export const metadata: Metadata = {
   title: "Scene Autopsy R&D Lab",
-  description: "Internal semantic prototype for DeepMovieReview scene evidence analysis.",
+  description: "Internal semantic prototype for Deep Waters scene evidence analysis.",
   robots: {
     index: false,
     follow: false,
@@ -15,7 +15,7 @@ export default function SceneAutopsyLabPage() {
   return (
     <>
       <div className="sectionShell" style={{ paddingBottom: 0 }}>
-        <Link className="microLabel" href="/">← DeepMovieReview</Link>
+        <Link className="microLabel" href="/">← Глубокие воды</Link>
       </div>
       <SceneAutopsyLab />
     </>
