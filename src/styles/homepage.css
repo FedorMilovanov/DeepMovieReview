@@ -74,6 +74,13 @@
   overflow: hidden;
   aspect-ratio: 2.39 / 1;
   min-height: 250px;
+  /* Pin the used width to the containing track: aspect-ratio + a definite
+     min-height otherwise transfers into a ~598px min-content/used width that
+     overflows narrow tracks (silently clipped by .appShell). With width:100%
+     the frame fills its track and honors 2.39:1 whenever the track allows,
+     falling back to the min-height floor when it does not. */
+  width: 100%;
+  min-width: 0;
   border: 1px solid var(--stroke-strong);
   background: var(--surface-1);
   box-shadow:
@@ -274,10 +281,22 @@
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  /* Without this the nested frame's aspect-ratio + min-height transfers a
+     ~502px min-content width through this wrapper and inflates the shared
+     lens stage grid track on narrow viewports. */
+  min-width: 0;
 }
 
 .lensFrame {
   align-self: stretch;
+  min-width: 0;
+}
+
+/* The hero frame is pure scene: it always honors the 2.39:1 letterbox.
+   The shared .livingFrame min-height floor stays for the lens stage, whose
+   frame carries text marks and needs the vertical room on narrow tracks. */
+.heroGrid .livingFrame {
+  min-height: 0;
 }
 
 .lensFrameNote {
@@ -582,12 +601,20 @@
   display: flex;
   flex-direction: column;
   gap: 1.8rem;
+  /* Same intrinsic-width guard as .lensFrameWrap: stops the nested
+     .autopsyFrame's aspect-transferred min-content from inflating the
+     evidence grid track on narrow viewports. */
+  min-width: 0;
 }
 
 .autopsyFrame {
   position: relative;
   aspect-ratio: 16 / 10;
   min-height: 300px;
+  /* Same rationale as .livingFrame: width:100% pins the used width to the
+     track instead of the aspect-transferred 480px min-content width. */
+  width: 100%;
+  min-width: 0;
   border: 1px solid var(--stroke-subtle);
   overflow: hidden;
   display: grid;
@@ -1246,10 +1273,6 @@
     grid-template-columns: 1fr;
   }
 
-  .lensFrame {
-    min-height: 0;
-  }
-
   .evidenceSection {
     grid-template-columns: 1fr;
   }
@@ -1269,8 +1292,14 @@
     min-height: auto;
   }
 
-  .livingFrame {
+  /* Narrow hero: frame moves above the copy; ratio is already honored via
+     the base .heroGrid .livingFrame { min-height: 0 } rule. */
+  .heroGrid .livingFrame {
     order: -1;
+  }
+
+  /* Lens stage frame keeps a mobile height floor for its text marks. */
+  .lensFrameWrap .livingFrame {
     min-height: 210px;
   }
 
