@@ -32,3 +32,6 @@ pnpm-debug.log*
 
 # regression test build
 /.test-build/
+
+# Local browser-audit runtime reports (scripts/browser-audit.mjs output)
+browser-audit/
