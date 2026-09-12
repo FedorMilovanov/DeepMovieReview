@@ -7,7 +7,7 @@
 
 .heroSection {
   position: relative;
-  min-height: calc(100svh - 74px);
+  min-height: calc(100svh - 78px);
   display: grid;
   align-content: center;
   padding-block: clamp(4rem, 7vw, 7rem) clamp(2rem, 4vw, 4rem);
@@ -44,6 +44,7 @@
   color: var(--ink-2);
   text-decoration: underline;
   text-underline-offset: 3px;
+  padding-block: 0.35em;
 }
 
 .heroScrollCue {
@@ -51,7 +52,7 @@
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  color: var(--ink-4);
+  color: var(--ink-3);
   font-family: var(--font-meta);
   font-size: 0.6rem;
   letter-spacing: var(--tracking-meta);
@@ -151,7 +152,7 @@
 }
 
 .heroStatusStrip span:not(.heroStatusIndex) {
-  color: var(--ink-4);
+  color: var(--ink-3);
   font-size: 0.68rem;
 }
 
@@ -189,7 +190,7 @@
 .missionDenyList li {
   padding: 1.1rem 0;
   border-bottom: 1px solid var(--stroke-default);
-  color: var(--ink-4);
+  color: var(--ink-3);
   font-size: clamp(1rem, 1.4vw, 1.2rem);
   text-decoration: line-through;
   text-decoration-color: color-mix(in oklab, var(--accent-fracture-bright) 55%, transparent);
@@ -199,7 +200,7 @@
 
 .missionDenyList li:hover,
 .missionDenyList li:focus-visible {
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 /* ── Pipeline ──────────────────────────────────────────────────────────────── */
@@ -234,7 +235,7 @@
 .pipelineStepIndex {
   font-family: var(--font-meta);
   font-size: 0.6rem;
-  color: var(--ink-4);
+  color: var(--ink-3);
   letter-spacing: var(--tracking-meta);
 }
 
@@ -247,7 +248,7 @@
 }
 
 .pipelineStepNote {
-  color: var(--ink-4);
+  color: var(--ink-3);
   font-size: 0.74rem;
   line-height: 1.5;
 }
@@ -281,7 +282,7 @@
 
 .lensFrameNote {
   margin: 0;
-  color: var(--ink-4);
+  color: var(--ink-3);
   font-size: 0.7rem;
 }
 
@@ -368,9 +369,10 @@
 
 .lensRadio {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   opacity: 0;
   pointer-events: none;
 }
@@ -391,7 +393,7 @@
 .lensTabIndex {
   font-family: var(--font-meta);
   font-size: 0.58rem;
-  color: var(--ink-4);
+  color: var(--ink-3);
   letter-spacing: var(--tracking-meta);
 }
 
@@ -545,7 +547,7 @@
 
 .permissionDemoNote {
   margin: 1.2rem 0 0;
-  color: var(--ink-4);
+  color: var(--ink-3);
   font-size: 0.72rem;
 }
 
@@ -668,7 +670,7 @@
 
 .autopsyDemoNote {
   margin: 0;
-  color: var(--ink-4);
+  color: var(--ink-3);
   font-size: 0.7rem;
 }
 
@@ -789,7 +791,7 @@
 }
 
 .spoilerStep span {
-  color: var(--ink-4);
+  color: var(--ink-3);
   font-size: 0.74rem;
 }
 
@@ -1391,8 +1393,19 @@
   .discoveryCard,
   .pipelineStep,
   .axiomItem,
-  .permissionExample {
+  .permissionExample,
+  .lensMark {
     border-color: CanvasText;
+  }
+
+  .heroStatusStrip,
+  .permissionAxis,
+  .permissionExamples {
+    border-color: CanvasText;
+  }
+
+  .lensMark {
+    background: Canvas;
   }
 
   .frameScene,

@@ -39,6 +39,10 @@ const indexingEnabled = canIndexSite({
   homepageStatus: homepageFilmPackage.film.status,
 });
 
+export const viewport = {
+  themeColor: "#030303",
+};
+
 export const metadata: Metadata = {
   title: {
     default: "DeepMovieReview — глубокий разбор кино",

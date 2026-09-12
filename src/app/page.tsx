@@ -287,7 +287,7 @@ function LensStage() {
                 </label>
               ))}
             </fieldset>
-            <div className="lensReadings">
+            <div className="lensReadings" aria-live="polite">
               {lensStageLenses.map((lens) => (
                 <div className="lensReading" data-lens={lens.key} key={lens.key}>
                   <h3>{lens.label}</h3>

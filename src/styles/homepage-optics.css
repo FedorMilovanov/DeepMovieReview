@@ -236,21 +236,13 @@
 /* ── Pointer parallax (fine pointers only) ─────────────────────────────────── */
 
 @media (hover: hover) and (pointer: fine) {
-  .sceneCloudsA,
-  .sceneCloudsB,
+  /* Clouds keep their infinite drift animation (transform is owned by it);
+     depth layers respond to pointer proximity with slow transitions. */
   .sceneOrb,
   .sceneGround,
   .sceneFigureA,
   .sceneFigureB {
     transition: transform 1.4s var(--ease-quiet);
-  }
-
-  .livingFrame:hover .sceneCloudsA {
-    transform: translateX(-2.5%);
-  }
-
-  .livingFrame:hover .sceneCloudsB {
-    transform: translateX(2%);
   }
 
   .livingFrame:hover .sceneOrb {
@@ -418,5 +410,15 @@ html[data-reduced-motion="true"] .sectionRule {
   .sceneVignette,
   .sceneHaze {
     display: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .lensMark {
+    border-color: var(--stroke-strong);
+  }
+
+  .lensMark::before {
+    border-color: var(--ink-1);
   }
 }
