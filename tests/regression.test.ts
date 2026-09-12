@@ -426,6 +426,71 @@ test("spoiler helpers normalize URL state and preserve monotonic reveal permissi
   assert.equal(withSpoilerQuery("/films/example", "MAJOR"), "/films/example?spoilers=major");
 });
 
+test("provenance verification and review dates require valid calendar dates", () => {
+  const filmPackage: FilmPackage = {
+    schemaVersion: 1,
+    film: {
+      slug: "date-integrity",
+      title: "Date Integrity",
+      year: 2026,
+      director: "Director",
+      runtime: "100 min",
+      genre: ["Drama"],
+      premise: "Premise",
+      thesisQuestion: "Question?",
+      status: "published",
+    },
+    ingest: {
+      edition: {
+        state: "LOCKED",
+        sourceId: "film-master",
+        editionIdentity: "Locked test master",
+        measuredRuntimeSeconds: 6000,
+        timestampConvention: "Seconds from first film frame",
+        verifiedAt: "2026-02-30",
+      },
+    },
+    evidence: [],
+    modules: [{
+      id: "sources",
+      kind: "sources-method",
+      heading: "Sources",
+      spoilerLevel: "NONE",
+      methodologyVersion: "v1",
+      editorialRevision: "r1",
+      analyzedEdition: "Edition",
+      lastReviewedAt: "not-a-date",
+      sources: [{
+        id: "film-master",
+        label: "Film edition",
+        kind: "film-edition",
+      }],
+    }],
+  };
+
+  const invalidErrors = validateFilmPackage(filmPackage);
+  assert.ok(invalidErrors.includes(
+    "film: LOCKED edition verifiedAt must use a valid YYYY-MM-DD calendar date.",
+  ));
+  assert.ok(invalidErrors.includes(
+    "sources: lastReviewedAt must use a valid YYYY-MM-DD calendar date.",
+  ));
+
+  if (filmPackage.ingest?.edition.state !== "LOCKED") {
+    throw new Error("date regression fixture must use a locked edition");
+  }
+  filmPackage.ingest.edition.verifiedAt = "2024-02-29";
+  const sourcesModule = filmPackage.modules[0];
+  if (sourcesModule.kind !== "sources-method") {
+    throw new Error("date regression fixture must use a sources-method module");
+  }
+  sourcesModule.lastReviewedAt = "2024-02-29";
+
+  const validDateErrors = validateFilmPackage(filmPackage);
+  assert.ok(!validDateErrors.some((error) => error.includes("verifiedAt must use")));
+  assert.ok(!validDateErrors.some((error) => error.includes("lastReviewedAt must use")));
+});
+
 test("published character profiles require canonical evidence support", () => {
   const filmPackage: FilmPackage = {
     schemaVersion: 1,
