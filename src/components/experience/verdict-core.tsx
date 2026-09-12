@@ -214,7 +214,7 @@ export function VerdictCore() {
         transition={{ duration: 12, repeat: reducedMotion ? 0 : Infinity, ease: "easeInOut" }}
       />
       <div className={styles.meta} aria-hidden="true">
-        <span>VERDICT CORE / ADAPTIVE</span>
+        <span>Ядро вердикта / адаптивно</span>
         <span>{backend.toUpperCase()} · {tier}</span>
       </div>
     </div>

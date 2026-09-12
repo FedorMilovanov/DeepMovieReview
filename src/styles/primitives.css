@@ -217,6 +217,14 @@ h3 {
   padding-block: 0.35rem;
 }
 
+.siteNav a[aria-current="page"] {
+  color: var(--ink-1);
+}
+
+.siteNav a[aria-current="page"]::after {
+  right: 0;
+}
+
 .siteNav a::after {
   content: "";
   position: absolute;

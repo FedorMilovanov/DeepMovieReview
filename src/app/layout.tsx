@@ -82,7 +82,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ExperienceQualityProvider>
           <div className="appShell">
             <SiteHeader />
-            <main id="main">{children}</main>
+            {/* tabIndex -1 lets the skip link move keyboard focus into main,
+                not just scroll to it (WCAG 2.4.1). */}
+            <main id="main" tabIndex={-1}>{children}</main>
             <SiteFooter />
           </div>
           <ExperienceDiagnostics />

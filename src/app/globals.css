@@ -9,6 +9,20 @@
     scroll-behavior: smooth;
   }
 
+  /* The skip link focuses main programmatically; suppress the container's own
+     outline — the next Tab lands on a real control with its own indicator. */
+  main:focus {
+    outline: none;
+  }
+
+  /* Progressive enhancement: more even line breaks for headings in engines
+     that support it. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
   body {
     margin: 0;
   }
