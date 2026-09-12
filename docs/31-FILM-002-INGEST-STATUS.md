@@ -68,3 +68,22 @@ Identical to Film 001 (`29-FILM-001-INGEST-STATUS.md` §6): no status change
 to `published` before the exact edition is locked, timestamps measured and
 re-verified, integrity/spoiler/publishable-field gates green, independent
 review of the biblical synthesis, and a deliberate launch decision.
+
+## 6. Depth pass (2026-09-12)
+
+Second research-tier assembly pass over the Film 002 draft:
+
+- evidence +5: Edwin's street code («it's how you race your car»), Jesse's
+  car-gods grace (verbatim), Point Break lineage (Neptune's Net), the
+  Asian-American roots of the import scene (LA Times), and the practical
+  filming facts (Mic Rig, 78 wrecked cars);
+- third relationship arc — «Brian and Mia: love under the legend»;
+- moral ledger +2 events: the Vince rescue (VIRTUE, Dom and Brian together)
+  and Brian's fatal shooting of Tran (MIXED, severity SERIOUS);
+- SUBSTANCE_RISK family observation (Corona as a belonging ritual);
+- biblical lens deepened: Judges 21:25 as the street-code epigraph,
+  1 Timothy 5:8 affirming Dom's (real) provision, Proverbs 13:11 on the
+  foundation, the film's own car-gods joke read as the idol named by the
+  text itself;
+- final-synthesis qualification now carries the NHTSA consequence line
+  (135+ deaths in "possible race" crashes in the release year).
