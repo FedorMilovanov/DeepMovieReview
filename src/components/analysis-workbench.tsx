@@ -87,7 +87,7 @@ export function AnalysisWorkbench() {
         <div className={styles.stageGrid}>
           <div className={styles.frameColumn}>
             <div className={styles.frame} data-mode={mode}>
-              <div className={styles.frameMeta}><span>SCENE / FIXTURE / 01:17:34</span><span>2.39:1</span></div>
+              <div className={styles.frameMeta}><span>SCENE / SYNTHETIC / TC DEMO</span><span>2.39:1</span></div>
               <span className={styles.light} aria-hidden="true" />
               <span className={styles.door} aria-hidden="true" />
               <span className={`${styles.figure} ${styles.figureA}`} aria-hidden="true" />
