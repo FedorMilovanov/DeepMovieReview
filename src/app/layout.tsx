@@ -8,7 +8,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
-import { canIndexSite } from "@/lib/site-publication-policy";
+import { canIndexSite, resolveSiteOrigin } from "@/lib/site-publication-policy";
 // This side-effect import executes the fail-closed visual manifest registry assertion.
 import "@/data/visual-assets";
 import "../styles/platform.css";
@@ -31,7 +31,7 @@ const previewContentEnabled = isPreviewContentEnabled();
    metadataBase Next falls back to localhost:3000, which social crawlers
    cannot resolve. Pages are statically prerendered, so this is read at
    BUILD time — set DMR_SITE_URL in the deploy build environment. */
-const siteOrigin = process.env.DMR_SITE_URL ?? "http://localhost:3000";
+const siteOrigin = resolveSiteOrigin();
 
 if (homepageFilmPackage.film.status === "draft" && !previewContentEnabled) {
   throw new Error(
