@@ -165,6 +165,7 @@ The research tier names that middle state instead of faking the end state.
 
 - scenes must stay `DRAFT` — `VERIFIED` is a lock-time claim;
 - every evidence record must cite at least one **secondary** source;
+- every secondary `reference` source declares an explicit `researchRole` so primary/institutional/professional/database/tertiary provenance remains visible; the role is categorical provenance, not a quality score;
 - evidence must **not** cite the target `film-edition` source (the master has
   not been watched; nothing is verified against it);
 - `research` cannot coexist with a `LOCKED` edition;
