@@ -9,6 +9,7 @@ import type {
   MoralSeverity,
   MoralValence,
   RepentanceState,
+  ResearchSourceRole,
   SocialFormationDomain,
   SourcesMethodModule,
   TeachingSignalType,
@@ -150,4 +151,12 @@ export const sourceKindLabels: Record<SourcesMethodModule["sources"][number]["ki
   scripture: "Писание",
   reference: "исследовательский источник",
   "editorial-note": "редакционная заметка",
+};
+
+export const researchSourceRoleLabels: Record<ResearchSourceRole, string> = {
+  "primary-material": "первичный материал",
+  "institutional-academic": "институциональный / академический",
+  "professional-reference": "профессиональный источник",
+  "database-transcript": "база / каталог / расшифровка",
+  "tertiary-community": "третичный / общественный разбор",
 };
