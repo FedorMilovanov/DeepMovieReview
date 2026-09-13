@@ -5,7 +5,7 @@ import type {
   FilmSceneRecord,
   SourcesMethodModule,
 } from "@/lib/film-package";
-import { sourceKindLabels } from "@/lib/presentation-labels";
+import { researchSourceRoleLabels, sourceKindLabels } from "@/lib/presentation-labels";
 
 type SupportEntry = {
   id: string;
@@ -151,7 +151,7 @@ function EvidenceCard({
         <ul className="evidenceMapSources" aria-label="Источники этой опоры">
           {sourceRecords.map((source) => (
             <li key={source.id}>
-              <span>{sourceKindLabels[source.kind]}</span>
+              <span>{sourceKindLabels[source.kind]}{source.researchRole ? ` · ${researchSourceRoleLabels[source.researchRole]}` : ""}</span>
               {source.href ? <a href={source.href}>{source.label}</a> : <strong>{source.label}</strong>}
             </li>
           ))}
