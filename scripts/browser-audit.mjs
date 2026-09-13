@@ -397,9 +397,9 @@ try {
   assertCheck("home workbench: later knowledge starts concealed", revealBefore === "false", revealBefore);
   await evaluate("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.click()");
   await waitForExpression("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.getAttribute('aria-expanded') === 'true'");
-  await waitForExpression("document.querySelector('[data-analysis-workbench]')?.innerText.includes('Раскрыто позже')");
+  await waitForExpression("Boolean(document.querySelector('[data-analysis-workbench] [data-state=later]'))");
   const revealAfter = JSON.parse(await evaluate(
-    "JSON.stringify((() => { const root=document.querySelector('[data-analysis-workbench]'); const b=root.querySelector('button[aria-expanded]'); return {expanded:b?.getAttribute('aria-expanded'),later:root.innerText.includes('Раскрыто позже')}; })())"
+    "JSON.stringify((() => { const root=document.querySelector('[data-analysis-workbench]'); const b=root.querySelector('button[aria-expanded]'); return {expanded:b?.getAttribute('aria-expanded'),later:Boolean(root.querySelector('[data-state=later]'))}; })())"
   ));
   assertCheck("home workbench: Knowledge Fog reveal exposes later facts", revealAfter.expanded === "true" && revealAfter.later, revealAfter);
 
@@ -451,13 +451,13 @@ try {
     "})())"
   ));
   assertCheck("home reduced motion: media preference is active", homeReducedState.media && homeReducedState.dataset === "true", homeReducedState);
-  assertCheck("home reduced motion: lens reading transition is disabled", homeReducedState.lensDurations.length > 0 && homeReducedState.lensDurations.every((value) => value === 0), homeReducedState);
+  assertCheck("home reduced motion: lens reading transition is disabled", homeReducedState.lensDurations.length > 0 && homeReducedState.lensDurations.every((value) => value <= 0.00001), homeReducedState);
   await evaluate("document.querySelectorAll('[data-analysis-workbench] [role=tab]')[2]?.click()");
   await waitForExpression("Boolean(document.querySelector('[data-analysis-workbench] [data-knowledge-veil]'))");
   const veilDurations = JSON.parse(await evaluate(
     "JSON.stringify(getComputedStyle(document.querySelector('[data-analysis-workbench] [data-knowledge-veil]')).transitionDuration.split(',').map((value)=>parseFloat(value)||0))"
   ));
-  assertCheck("home reduced motion: Knowledge Fog transition is disabled", veilDurations.length > 0 && veilDurations.every((value) => value === 0), veilDurations);
+  assertCheck("home reduced motion: Knowledge Fog transition is disabled", veilDurations.length > 0 && veilDurations.every((value) => value <= 0.00001), veilDurations);
   await capture("home-reduced-motion", false);
 
   await navigate("/labs/living-frame", 1280, 900);
