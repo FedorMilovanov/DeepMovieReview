@@ -1231,7 +1231,7 @@ function buildResearchTierPackage(): FilmPackage {
         analyzedEdition: "Target only; research tier.",
         sources: [
           { id: "film-master", label: "Target master", kind: "film-edition" },
-          { id: "reference-source", label: "Published reference", kind: "reference" },
+          { id: "reference-source", label: "Published reference", kind: "reference", researchRole: "professional-reference" },
         ],
       },
       {
@@ -1347,6 +1347,28 @@ test("research-tier evidence requires secondary source references", () => {
   }];
   const errors = validateFilmPackage(filmPackage);
   assert.ok(errors.includes("evidence/research-evidence: research-tier evidence requires at least one secondary source reference."));
+});
+
+test("SECONDARY_SOURCES references require an explicit research role", () => {
+  const filmPackage = buildResearchTierPackage();
+  const sourcesModule = filmPackage.modules.find((module) => module.kind === "sources-method");
+  assert.ok(sourcesModule && sourcesModule.kind === "sources-method");
+  const reference = sourcesModule.sources.find((source) => source.id === "reference-source");
+  assert.ok(reference);
+  delete reference.researchRole;
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("sources/reference-source: SECONDARY_SOURCES reference requires researchRole."));
+});
+
+test("researchRole is rejected on non-reference sources", () => {
+  const filmPackage = buildResearchTierPackage();
+  const sourcesModule = filmPackage.modules.find((module) => module.kind === "sources-method");
+  assert.ok(sourcesModule && sourcesModule.kind === "sources-method");
+  const edition = sourcesModule.sources.find((source) => source.id === "film-master");
+  assert.ok(edition);
+  edition.researchRole = "primary-material";
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("sources/film-master: researchRole is valid only for reference sources."));
 });
 
 test("research tier without a note or valid assembledAt date is rejected", () => {
