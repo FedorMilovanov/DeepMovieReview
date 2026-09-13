@@ -330,6 +330,12 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
       if (source.href && !isSafeSourceHref(source.href)) {
         errors.push(`${sourceModule.id}/${source.id}: source href must be http(s) or an app-root path.`);
       }
+      if (source.kind !== "reference" && source.researchRole !== undefined) {
+        errors.push(`${sourceModule.id}/${source.id}: researchRole is valid only for reference sources.`);
+      }
+      if (research && source.kind === "reference" && source.researchRole === undefined) {
+        errors.push(`${sourceModule.id}/${source.id}: SECONDARY_SOURCES reference requires researchRole.`);
+      }
     }
   }
 
