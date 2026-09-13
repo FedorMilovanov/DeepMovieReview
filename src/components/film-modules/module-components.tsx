@@ -26,6 +26,7 @@ import {
   pressureKindLabels,
   repentanceLabels,
   socialFormationLabels,
+  researchSourceRoleLabels,
   sourceKindLabels,
   teachingSignalLabels,
 } from "@/lib/presentation-labels";
@@ -363,7 +364,7 @@ export function SourcesMethodModuleView({ module }: { module: SourcesMethodModul
       <ol className="filmSourceList">
         {module.sources.map((source) => (
           <li key={source.id}>
-            <span className="microLabel">{sourceKindLabels[source.kind]}</span>
+            <span className="microLabel">{sourceKindLabels[source.kind]}{source.researchRole ? ` · ${researchSourceRoleLabels[source.researchRole]}` : ""}</span>
             <div>
               {source.href ? <a href={source.href}>{source.label}</a> : <strong>{source.label}</strong>}
               {source.locator ? <p>{source.locator}</p> : null}
