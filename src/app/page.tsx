@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AnalysisWorkbench } from "@/components/analysis-workbench";
 import type { NarrativePermissionState } from "@/lib/content";
@@ -5,6 +6,10 @@ import { requireFilmPackageBySlug } from "@/data/film-registry";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { projectHomepage, type HomepageViewModel } from "@/lib/homepage-projection";
 import type { Confidence } from "@/lib/film-package";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const featuredFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
 
