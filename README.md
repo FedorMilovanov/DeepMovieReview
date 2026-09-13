@@ -29,6 +29,27 @@ The intended analytical progression is:
 
 The visual direction remains **Cinematic Moral Forensics**, but the product is broader than moral-event counting. A film must first be understood as film: story, people, relationships, form, values and claims about life.
 
+## Local development
+
+The repository requires **Node.js 24.x**. This is a fail-fast contract: `.npmrc` enables `engine-strict=true`, so dependency installation on another Node major must fail instead of continuing with an unsupported runtime.
+
+```bash
+node --version
+npm ci
+npm run dev
+```
+
+For the full local quality gate, run:
+
+```bash
+npm test
+npm run typecheck
+npm run lint
+npm run build
+```
+
+Do not bypass the runtime contract with `--force` or by disabling `engine-strict`; use Node 24.x locally, matching CI.
+
 ## Current implemented foundation
 
 The shell now proves the main architectural boundaries that Film 001 will depend on:
