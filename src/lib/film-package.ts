@@ -414,6 +414,13 @@ export type FinalSynthesisModule = FilmModuleBase & {
   support?: ClaimSupport;
 };
 
+export type ResearchSourceRole =
+  | "primary-material"
+  | "institutional-academic"
+  | "professional-reference"
+  | "database-transcript"
+  | "tertiary-community";
+
 export type SourcesMethodModule = FilmModuleBase & {
   kind: "sources-method";
   methodologyVersion: string;
@@ -424,6 +431,8 @@ export type SourcesMethodModule = FilmModuleBase & {
     id: string;
     label: string;
     kind: "film-edition" | "scripture" | "reference" | "editorial-note";
+    /** Editorial role of a secondary research reference; not a numeric quality score. */
+    researchRole?: ResearchSourceRole;
     locator?: string;
     href?: string;
   }>;
