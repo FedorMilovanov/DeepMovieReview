@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Методология",
   description:
     "Как «Глубокие воды» разделяют мастерство фильма, историю, психологию, отношения, нарративный смысл, моральный анализ и библейский синтез.",
+  alternates: { canonical: "/methodology" },
 };
 
 const lenses = [
