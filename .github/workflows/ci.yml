@@ -134,7 +134,7 @@ jobs:
             fi
           done
 
-          grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/"|href="https://deepwaters\.example\.test/"[^>]*rel="canonical"' /tmp/home.html
+          grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/?"|href="https://deepwaters\.example\.test/?"[^>]*rel="canonical"' /tmp/home.html
           grep -Fq 'Предполагаемый тезис' /tmp/home.html
           if grep -Fq 'Явная теза' /tmp/home.html; then
             echo "Homepage leaked legacy apparent-claim label."
@@ -338,7 +338,7 @@ jobs:
             fi
           done
 
-          grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/"|href="https://deepwaters\.example\.test/"[^>]*rel="canonical"' /tmp/public-home.html
+          grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/?"|href="https://deepwaters\.example\.test/?"[^>]*rel="canonical"' /tmp/public-home.html
 
           for preview_marker in 'Структурный стенд' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'Шоу Трумана' 'Форсаж' 'Труман Бёрбанк' 'Доминик Торетто' 'исследовательский черновик'; do
             if grep -Fq "$preview_marker" /tmp/public-home.html; then
