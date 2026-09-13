@@ -20,6 +20,7 @@ jobs:
     env:
       DMR_SITE_INDEXING_ENABLED: "true"
       DMR_PREVIEW_CONTENT_ENABLED: "true"
+      DMR_SITE_URL: "https://deepwaters.example.test"
     steps:
       - name: Checkout exact revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -122,7 +123,21 @@ jobs:
             exit 1
           fi
 
+          curl --fail --silent --show-error http://127.0.0.1:3210/robots.txt > /tmp/preview-robots.txt
+          grep -Fq 'Disallow: /' /tmp/preview-robots.txt
+
+          curl --fail --silent --show-error http://127.0.0.1:3210/sitemap.xml > /tmp/preview-sitemap.xml
+          for forbidden_path in '/labs/' '/films/the-truman-show' '/films/the-fast-and-the-furious' '/films/pilot-film'; do
+            if grep -Fq "$forbidden_path" /tmp/preview-sitemap.xml; then
+              echo "Preview sitemap leaked non-public route: $forbidden_path"
+              exit 1
+            fi
+          done
+
+          grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/"|href="https://deepwaters\.example\.test/"[^>]*rel="canonical"' /tmp/home.html
+
           curl --fail --silent --show-error http://127.0.0.1:3210/films > /tmp/preview-films.html
+          grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/films"|href="https://deepwaters\.example\.test/films"[^>]*rel="canonical"' /tmp/preview-films.html
           if ! grep -Fq 'Шоу Трумана' /tmp/preview-films.html; then
             echo "Preview film index did not expose the Film 001 draft."
             exit 1
@@ -159,7 +174,9 @@ jobs:
           done
           for full_html in /tmp/truman-full.html /tmp/fast-full.html; do
             grep -Fq 'Путь от тезиса к источнику.' "$full_html"
-            for internal_token in 'WRONGDOING' 'VIRTUE' 'MIXED' 'KNOWN_TO_CHARACTER' 'REVEALED_LATER' 'NORMALIZED' 'CELEBRATED' '>reference<' '>film-edition<' '>editorial-note<'; do
+            grep -Fq 'профессиональный источник' "$full_html"
+            grep -Fq 'база / каталог / расшифровка' "$full_html"
+            for internal_token in 'WRONGDOING' 'VIRTUE' 'MIXED' 'KNOWN_TO_CHARACTER' 'REVEALED_LATER' 'NORMALIZED' 'CELEBRATED' '>reference<' '>film-edition<' '>editorial-note<' '>primary-material<' '>institutional-academic<' '>professional-reference<' '>database-transcript<' '>tertiary-community<'; do
               if grep -Fq "$internal_token" "$full_html"; then
                 echo "Russian real-film HTML leaked internal presentation token: $internal_token"
                 exit 1
@@ -169,6 +186,10 @@ jobs:
 
           if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/truman-draft.html; then
             echo "Film 001 draft route must remain noindex/nofollow in preview."
+            exit 1
+          fi
+          if grep -Eiq 'rel="canonical"|href="https://deepwaters\.example\.test/films/the-truman-show"' /tmp/truman-draft.html; then
+            echo "Research draft must not advertise a canonical public film URL."
             exit 1
           fi
 
@@ -296,6 +317,19 @@ jobs:
           fi
           echo "Verified public homepage state: $public_state"
 
+          curl --fail --silent --show-error http://127.0.0.1:3211/robots.txt > /tmp/public-robots.txt
+          grep -Fq 'Disallow: /' /tmp/public-robots.txt
+
+          curl --fail --silent --show-error http://127.0.0.1:3211/sitemap.xml > /tmp/public-sitemap.xml
+          for forbidden_path in '/labs/' '/films/the-truman-show' '/films/the-fast-and-the-furious' '/films/pilot-film'; do
+            if grep -Fq "$forbidden_path" /tmp/public-sitemap.xml; then
+              echo "Public prelaunch sitemap leaked non-public route: $forbidden_path"
+              exit 1
+            fi
+          done
+
+          grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/"|href="https://deepwaters\.example\.test/"[^>]*rel="canonical"' /tmp/public-home.html
+
           for preview_marker in 'Структурный стенд' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'Шоу Трумана' 'Форсаж' 'Труман Бёрбанк' 'Доминик Торетто' 'исследовательский черновик'; do
             if grep -Fq "$preview_marker" /tmp/public-home.html; then
               echo "Public homepage leaked preview marker: $preview_marker"
@@ -304,6 +338,7 @@ jobs:
           done
 
           curl --fail --silent --show-error http://127.0.0.1:3211/films > /tmp/public-films.html
+          grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/films"|href="https://deepwaters\.example\.test/films"[^>]*rel="canonical"' /tmp/public-films.html
           if grep -Fq 'Pilot Film' /tmp/public-films.html; then
             echo "Public film index exposed fixture content."
             exit 1
