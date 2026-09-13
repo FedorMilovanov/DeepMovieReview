@@ -4,7 +4,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
-import { canIndexSite } from "../src/lib/site-publication-policy";
+import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
 import { canRevealSpoiler, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
@@ -33,6 +33,12 @@ test("site indexing is allowed only for a published non-preview public build", (
       }
     }
   }
+});
+
+test("site origin normalization keeps only a safe http(s) origin", () => {
+  assert.equal(resolveSiteOrigin("https://example.com/path?query=1#hash"), "https://example.com");
+  assert.equal(resolveSiteOrigin("http://localhost:3000/preview"), "http://localhost:3000");
+  assert.throws(() => resolveSiteOrigin("file:///tmp/site"), /DMR_SITE_URL must use http\(s\)/);
 });
 
 test("film slugs must be route-safe lowercase kebab-case", () => {

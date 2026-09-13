@@ -83,10 +83,10 @@ const lensStageLenses: LensStageLens[] = [
     label: "Идеи",
     prompt: "На какой вопрос о жизни фильм предлагает ответ?",
     reading:
-      "Тема, явный тезис и мировоззренческие допущения фиксируются вместе с контрдоказательствами и уровнем уверенности.",
+      "Тема, предполагаемый тезис и мировоззренческие допущения фиксируются вместе с контрдоказательствами и уровнем уверенности.",
     marks: [
       { label: "Вопрос фильма", x: "20%", y: "26%" },
-      { label: "Явная теза", x: "38%", y: "56%" },
+      { label: "Предполагаемый тезис", x: "38%", y: "56%" },
       { label: "Контрдоказательство", x: "66%", y: "70%" },
     ],
   },
@@ -681,7 +681,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
         <h2 id="stand-meaning-title">{data.meaning.question}</h2>
         <div className="meaningGrid">
           <div><span>Тема</span><strong>{data.meaning.theme}</strong></div>
-          <div><span>Явная теза</span><strong>{data.meaning.apparentClaim}</strong></div>
+          <div><span>Предполагаемый тезис</span><strong>{data.meaning.apparentClaim}</strong></div>
           <div><span>Контрдоказательство</span><strong>{data.meaning.counterevidence}</strong></div>
           <div><span>Уверенность</span><strong>{confidenceLabels[data.meaning.confidence]}</strong></div>
         </div>

@@ -1,11 +1,7 @@
 import type { MetadataRoute } from "next";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
-import { canIndexSite } from "@/lib/site-publication-policy";
-
-function siteOrigin() {
-  return (process.env.DMR_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
-}
+import { canIndexSite, resolveSiteOrigin } from "@/lib/site-publication-policy";
 
 export default function robots(): MetadataRoute.Robots {
   const homepageFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
@@ -25,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
     };
   }
 
-  const origin = siteOrigin();
+  const origin = resolveSiteOrigin();
   return {
     rules: {
       userAgent: "*",

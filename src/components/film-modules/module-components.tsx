@@ -136,7 +136,7 @@ export function MeaningModuleView({ module }: { module: MeaningModule }) {
       <h3 className="filmModuleQuestion">{module.question}</h3>
       <div className="meaningGrid">
         <div><span>Тема</span><strong>{module.theme}</strong></div>
-        <div><span>Мнимый тезис</span><strong>{module.apparentClaim}</strong></div>
+        <div><span>Предполагаемый тезис</span><strong>{module.apparentClaim}</strong></div>
         <div><span>Контрдоказательство</span><strong>{module.counterevidence}</strong></div>
         <div><span>Достоверность</span><strong>{confidenceLabels[module.confidence]}</strong></div>
       </div>
