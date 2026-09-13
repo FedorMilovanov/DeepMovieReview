@@ -2605,6 +2605,23 @@ test("real-film claim support cannot depend on more revealing evidence", () => {
   ));
 });
 
+test("documentation preserves the SECONDARY_SOURCES pre-lock exception", () => {
+  const readme = readFileSync("README.md", "utf8");
+  const agentRules = readFileSync("AGENTS.md", "utf8");
+  const domainModules = readFileSync("docs/26-FILM-DOMAIN-MODULES-V0.md", "utf8");
+  const ingestStatus = readFileSync("docs/29-FILM-001-INGEST-STATUS.md", "utf8");
+
+  assert.ok(readme.includes("SECONDARY_SOURCES"));
+  assert.ok(!readme.includes(
+    "`TARGET_ONLY` packages cannot contain analytical modules beyond `sources-method`, canonical scenes or evidence"
+  ));
+  assert.ok(agentRules.includes("Research-tier evidence may reference only `DRAFT` scene estimates"));
+  assert.ok(domainModules.includes("Outside the explicit `SECONDARY_SOURCES` research tier"));
+  assert.ok(ingestStatus.includes(
+    "`claim → evidence record → declared secondary source + DRAFT scene estimate`"
+  ));
+});
+
 test("documentation concrete repository file references resolve", () => {
   const markdownFiles = [
     "README.md",
