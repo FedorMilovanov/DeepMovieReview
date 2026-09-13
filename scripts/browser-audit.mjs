@@ -396,7 +396,8 @@ try {
   const revealBefore = await evaluate("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.getAttribute('aria-expanded')");
   assertCheck("home workbench: later knowledge starts concealed", revealBefore === "false", revealBefore);
   await evaluate("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.click()");
-  await sleep(80);
+  await waitForExpression("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.getAttribute('aria-expanded') === 'true'");
+  await waitForExpression("document.querySelector('[data-analysis-workbench]')?.innerText.includes('Раскрыто позже')");
   const revealAfter = JSON.parse(await evaluate(
     "JSON.stringify((() => { const root=document.querySelector('[data-analysis-workbench]'); const b=root.querySelector('button[aria-expanded]'); return {expanded:b?.getAttribute('aria-expanded'),later:root.innerText.includes('Раскрыто позже')}; })())"
   ));
@@ -445,15 +446,18 @@ try {
     "JSON.stringify((() => {" +
       "const lens=document.querySelector('.lensReading[data-lens=story]');" +
       "const media=matchMedia('(prefers-reduced-motion: reduce)').matches;" +
-      "return {media,dataset:document.documentElement.dataset.reducedMotion,lensDuration:lens?getComputedStyle(lens).transitionDuration:null};" +
+      "const durations=lens?getComputedStyle(lens).transitionDuration.split(',').map((value)=>parseFloat(value)||0):[];" +
+      "return {media,dataset:document.documentElement.dataset.reducedMotion,lensDurations:durations};" +
     "})())"
   ));
   assertCheck("home reduced motion: media preference is active", homeReducedState.media && homeReducedState.dataset === "true", homeReducedState);
-  assertCheck("home reduced motion: lens reading transition is disabled", homeReducedState.lensDuration === "0s", homeReducedState);
+  assertCheck("home reduced motion: lens reading transition is disabled", homeReducedState.lensDurations.length > 0 && homeReducedState.lensDurations.every((value) => value === 0), homeReducedState);
   await evaluate("document.querySelectorAll('[data-analysis-workbench] [role=tab]')[2]?.click()");
   await waitForExpression("Boolean(document.querySelector('[data-analysis-workbench] [data-knowledge-veil]'))");
-  const veilDuration = await evaluate("getComputedStyle(document.querySelector('[data-analysis-workbench] [data-knowledge-veil]')).transitionDuration");
-  assertCheck("home reduced motion: Knowledge Fog transition is disabled", veilDuration === "0s", veilDuration);
+  const veilDurations = JSON.parse(await evaluate(
+    "JSON.stringify(getComputedStyle(document.querySelector('[data-analysis-workbench] [data-knowledge-veil]')).transitionDuration.split(',').map((value)=>parseFloat(value)||0))"
+  ));
+  assertCheck("home reduced motion: Knowledge Fog transition is disabled", veilDurations.length > 0 && veilDurations.every((value) => value === 0), veilDurations);
   await capture("home-reduced-motion", false);
 
   await navigate("/labs/living-frame", 1280, 900);
