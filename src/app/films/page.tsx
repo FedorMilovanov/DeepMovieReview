@@ -7,6 +7,7 @@ import { isPreviewContentEnabled } from "@/data/site-config";
 export const metadata: Metadata = {
   title: "Фильмы",
   description: "Разборы фильмов «Глубокие воды».",
+  alternates: { canonical: "/films" },
 };
 
 const statusLabels = {

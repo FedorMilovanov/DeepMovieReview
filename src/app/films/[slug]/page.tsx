@@ -51,6 +51,7 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
         : filmPackage.research?.state === "SECONDARY_SOURCES"
           ? `${film.title} — исследовательский черновик по вторичным источникам; точный просмотренный мастер ещё не заблокирован.`
           : `${film.title} — структурная фикстура платформы «Глубокие воды».`,
+    alternates: film.status === "published" ? { canonical: `/films/${film.slug}` } : undefined,
     robots: film.status === "published" ? undefined : { index: false, follow: false },
   };
 }
