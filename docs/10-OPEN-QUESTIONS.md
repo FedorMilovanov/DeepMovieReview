@@ -161,18 +161,13 @@ Track the active ingest boundary in `29-FILM-001-INGEST-STATUS.md`.
 
 ## 19. Homepage launch cut
 
-`11-HOMEPAGE-ARCHITECTURE.md` defines 22 possible stages. Launch should not ship all of them blindly.
+`14-HOMEPAGE-LAUNCH-CUT-V1.md` now fixes the launch structure that was previously open here: a 12-stage cut; Relationship Observatory on the homepage; Narrative Permission as its own homepage stage; the explicit Biblical Lens after the descriptive/interpretive/craft sequence; a tiny-corpus library state that works with 1–3 films; and a silent launch default. Do not treat those choices as unresolved unless validation evidence requires a deliberate revision of Launch Cut v1.
 
-Open decisions:
+Remaining validation questions:
 
-- Which 8–12 sections best communicate product breadth?
 - How long should the first cinematic sequence take without user frustration?
 - Is `Six Lenses` clear enough without explanatory text?
-- Is Relationship Observatory strong enough to become a homepage signature?
-- Does Narrative Permission need a homepage demo or only film-page proof?
-- At what point does the explicit Biblical Lens appear?
-- How many featured films are required before the home stops feeling like a one-film microsite?
-- Does homepage sound add enough value to justify controls/asset cost?
+- Does Relationship Observatory prove strong and understandable enough in user walkthroughs to remain a homepage signature interaction?
 
 ## 20. Visual identity
 
@@ -194,8 +189,11 @@ Open decisions:
 
 ## 22. Scene Autopsy
 
+Anchor storage is no longer an open question: `VisualAssetManifest` / `EvidenceAnchor` uses stable IDs plus normalized `0..1` points, with integrity validation for duplicate IDs and out-of-bounds coordinates. `23-VISUAL-ASSET-MANIFEST-V0.md` owns that contract.
+
+Remaining questions:
+
 - Depth-map-only vs segmentation + layered planes?
-- How are annotation anchors stored?
 - Can anchors survive responsive crops?
 - When should local relighting be used?
 - Is the effect legible on mobile?
@@ -203,10 +201,11 @@ Open decisions:
 
 ## 23. Decision Chamber
 
+The Decision / Knowledge Fog data semantics are now fixed by `15-HOMEPAGE-DATA-CONTRACTS.md` and `FilmPackage`: options declare whether they were available at decision time; every fact carries an explicit `knowledgeState`; `COERCION` is an explicit pressure kind; and Knowledge Fog must read those authored states rather than infer them from presentation. `14-HOMEPAGE-LAUNCH-CUT-V1.md` also requires later facts/consequences to appear only after explicit spoiler-safe action and states that epistemic limitation is not moral absolution.
+
+Remaining questions:
+
 - Maximum options before spatial UI fails?
-- How is incomplete information authored?
-- Do later consequences appear only after explicit spoiler action?
-- How is coercion represented without implying automatic excuse?
 - What part is interactive in Lite mode?
 
 ## 24. Catalog / discovery
@@ -218,12 +217,14 @@ Open decisions:
 
 ## 25. AI imagery and copyright strategy
 
+The asset-production mechanics are partly resolved by `23-VISUAL-ASSET-MANIFEST-V0.md`: every manifest carries structured provenance (`sourceKind`, plus generator/model/prompt-version/date/editorial/source-reference metadata when available), and depth maps / segmentation masks are derived inside the same offline editorial pipeline after master selection and responsive composition checks.
+
+Remaining questions:
+
 - Are film stills licensed/embedded, or do we primarily create original editorial art?
 - What policy governs likeness of actors/characters in generated imagery?
 - How is AI editorial artwork labeled so it is not mistaken for an actual frame?
-- What provenance metadata is stored?
 - Which assets require human art-direction review?
-- Can depth/masks be generated in the same production pipeline?
 
 ## 26. Community timing / aggregation
 
