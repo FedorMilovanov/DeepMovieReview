@@ -27,6 +27,8 @@
 
 ## 4. Rating scale calibration
 
+The v0 authoring contract already uses categorical interpretive confidence — `HIGH | MEDIUM | LOW` — across claim-bearing modules. That resolves the internal confidence representation for the current schema, but not how confidence should be surfaced publicly or how any future rating scale should be calibrated.
+
 - Which dimensions are genuinely numerical?
 - 0–10 vs 0–100 internally?
 - Should public film craft use a familiar 10-point scale while analytical dimensions use categories?
@@ -90,7 +92,9 @@
 
 ## 11. Teaching signals / Narrative Permission
 
-- Is `CONDEMNED / COSTLY / QUESTIONED / UNCHALLENGED / NORMALIZED / REWARDED / CELEBRATED / AMBIGUOUS` the right state set?
+The v0 `NarrativePermissionState` contract is already fixed as `CONDEMNED / COSTLY / QUESTIONED / UNCHALLENGED / NORMALIZED / REWARDED / CELEBRATED / AMBIGUOUS`, and Permission records may carry categorical confidence, counterevidence and evidence support. Treat that as the current authored vocabulary rather than an unresolved implementation choice; calibration may still justify a deliberate later revision.
+
+- Does the current v0 state set remain sufficient after multi-film editorial calibration and user-comprehension testing?
 - Should `NORMALIZED` be a state or modifier?
 - How much repetition is needed before calling behavior normalized?
 - How should comedy/satire alter interpretation?
@@ -114,7 +118,9 @@
 
 ## 14. Film attitude / endorsement model
 
-- Is `CONDEMNS → QUESTIONS → AMBIVALENT → NORMALIZES → CELEBRATES` sufficient?
+The v0 moral-event contract already fixes `MoralNarrativeStance` as `CONDEMNS → QUESTIONS → AMBIVALENT → NORMALIZES → CELEBRATES`, with categorical confidence and evidence support on each authored moral event. This resolves the current implementation vocabulary, not whether later calibration will require another orthogonal dimension or a revised state set.
+
+- Does the current v0 stance set remain sufficient after cross-film editorial calibration?
 - Should romanticization be a separate orthogonal dimension?
 - How do we model a film that condemns an act propositionally but aestheticizes it strongly?
 - How do unreliable narration and satire affect stance?
@@ -139,8 +145,10 @@
 
 ## 17. Scene model
 
+The current canonical ingest contract already chooses numeric seconds from the declared locked-edition timestamp origin: scenes carry `startTimestampSeconds` / `endTimestampSeconds`, evidence carries `timestampSeconds`, and canonical evidence must resolve inside a VERIFIED scene in that exact locked edition. Research-tier scene bounds remain explicitly DRAFT/provisional until master-lock re-verification. This settles the v0 locator precision and edition-binding model.
+
 - What exactly counts as a scene across editing styles?
-- Should timestamps be frame-accurate, second-accurate or chapter-like?
+- Do any editorial workflows require frame-level precision beyond the current second-based canonical contract?
 - What happens when streaming editions differ?
 - How are alternate cuts represented?
 - How much copyrighted dialogue may be quoted vs paraphrased?
