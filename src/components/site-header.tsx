@@ -18,7 +18,15 @@ export function SiteHeader() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPathname, setMenuPathname] = useState(pathname);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  if (menuPathname !== pathname) {
+    // Navigation resets the disclosure in the same render pass — the
+    // render-time adjustment pattern from the React docs, no effect needed.
+    setMenuPathname(pathname);
+    setMenuOpen(false);
+  }
 
   useEffect(() => {
     let frame: number | null = null;
@@ -37,13 +45,7 @@ export function SiteHeader() {
     };
   }, []);
 
-  useEffect(() => {
-    // Отложенное закрытие: синхронный setState в effect запрещён линт-правилом.
-    const raf = requestAnimationFrame(() => {
-      setMenuOpen((open) => (open ? false : open));
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [pathname]);
+
 
   useEffect(() => {
     if (!menuOpen) return;

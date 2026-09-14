@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useExperienceQuality } from "@/components/experience/experience-quality-provider";
 import styles from "./moral-lens-cursor.module.css";
 
@@ -17,6 +17,29 @@ const LENS_VALUES: ReadonlySet<string> = new Set(["examine", "trace", "weigh", "
 
 const NATIVE_CURSOR_SELECTOR =
   "input, textarea, select, [contenteditable='true'], [data-native-cursor]";
+
+const FINE_POINTER_QUERY = "(hover: hover) and (pointer: fine)";
+
+let finePointerQuery: MediaQueryList | null = null;
+
+function getFinePointerQuery(): MediaQueryList {
+  if (!finePointerQuery) finePointerQuery = window.matchMedia(FINE_POINTER_QUERY);
+  return finePointerQuery;
+}
+
+function subscribeFinePointer(onChange: () => void): () => void {
+  const query = getFinePointerQuery();
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function readFinePointer(): boolean {
+  return getFinePointerQuery().matches;
+}
+
+function readFinePointerServer(): boolean {
+  return false;
+}
 
 /**
  * Moral Lens cursor (Visual Constitution §8): a tiny light point with a
@@ -35,7 +58,14 @@ const NATIVE_CURSOR_SELECTOR =
  */
 export function MoralLensCursor() {
   const { reducedMotion, forcedColors } = useExperienceQuality();
-  const [finePointer, setFinePointer] = useState(false);
+  // Media-query subscription via useSyncExternalStore (same pattern as the
+  // experience provider): hydration-safe through the server snapshot, live
+  // updates through the media 'change' event, no effect involved.
+  const finePointer = useSyncExternalStore(
+    subscribeFinePointer,
+    readFinePointer,
+    readFinePointerServer,
+  );
   const [lensState, setLensState] = useState<LensState>("default");
   const [settled, setSettled] = useState(false);
   const [suppressed, setSuppressed] = useState(false);
@@ -45,19 +75,6 @@ export function MoralLensCursor() {
   const suppressedRef = useRef(false);
 
   const enabled = finePointer && !reducedMotion && !forcedColors;
-
-  useEffect(() => {
-    const media = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const sync = () => setFinePointer(media.matches);
-    // Initial read on the next frame: keeps server/client first paint
-    // identical (no hydration mismatch) and stays out of the sync effect body.
-    const frame = window.requestAnimationFrame(sync);
-    media.addEventListener("change", sync);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      media.removeEventListener("change", sync);
-    };
-  }, []);
 
   useEffect(() => {
     if (enabled) {
