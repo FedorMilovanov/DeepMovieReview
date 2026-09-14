@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ExperienceControls } from "@/components/experience/experience-controls";
 import { filmPackages } from "@/data/film-registry";
+import { pluralRu } from "@/lib/plural-ru";
 
 export function SiteFooter() {
   const publishedCount = filmPackages.filter(
@@ -24,7 +25,7 @@ export function SiteFooter() {
         <Link href="/methodology">Методология</Link>
       </nav>
       <div className="footerMeta">
-        <p>Предзапуск · опубликовано разборов: {publishedCount}</p>
+        <p>Предзапуск · опубликовано: {publishedCount} {pluralRu(publishedCount, "разбор", "разбора", "разборов")}</p>
         <p>© 2026 Deep Waters · Черновики не являются опубликованными суждениями.</p>
       </div>
       <ExperienceControls />

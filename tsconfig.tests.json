@@ -21,6 +21,8 @@
     "src/lib/film-package-integrity.ts",
     "src/lib/site-publication-policy.ts",
     "src/lib/experience-quality.ts",
-    "src/lib/visual-assets.ts"
+    "src/lib/visual-assets.ts",
+    "src/lib/plural-ru.ts",
+    "src/lib/film-index.ts"
   ]
 }

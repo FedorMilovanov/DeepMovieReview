@@ -3,12 +3,11 @@
 import { useMemo, useState } from "react";
 import { FilmMediaFrame } from "@/components/film-media-frame";
 import { FilmTransitionLink } from "@/components/film-transition-link";
+import { filterFilmIndex, type FilmIndexSearchEntry } from "@/lib/film-index";
+import { pluralRu } from "@/lib/plural-ru";
 
-export type FilmIndexEntry = {
+export type FilmIndexEntry = FilmIndexSearchEntry & {
   slug: string;
-  title: string;
-  year: number;
-  status: string;
   modules: number;
   position: number;
 };
@@ -19,16 +18,7 @@ export type FilmIndexEntry = {
  */
 export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
   const [query, setQuery] = useState("");
-  const normalized = query.trim().toLowerCase();
-  const visible = useMemo(
-    () =>
-      films.filter(
-        (film) =>
-          normalized.length === 0 ||
-          `${film.title} ${film.year} ${film.status}`.toLowerCase().includes(normalized),
-      ),
-    [films, normalized],
-  );
+  const visible = useMemo(() => filterFilmIndex(films, query), [films, query]);
 
   return (
     <>
@@ -58,7 +48,7 @@ export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
             <FilmMediaFrame slug={film.slug} variant="index" />
             <span className="filmRowTitle"><strong>{film.title}</strong></span>
             <span className="filmRowMeta">
-              {film.year} · {film.status} · {film.modules} {pluralModules(film.modules)}
+              {film.year} · {film.status} · {film.modules} {pluralRu(film.modules, "модуль", "модуля", "модулей")}
             </span>
           </FilmTransitionLink>
         ))}
@@ -68,12 +58,4 @@ export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
       ) : null}
     </>
   );
-}
-
-function pluralModules(count: number): string {
-  const mod10 = count % 10;
-  const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return "модуль";
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "модуля";
-  return "модулей";
 }

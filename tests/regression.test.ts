@@ -8,6 +8,8 @@ import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-pol
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
 import { canRevealSpoiler, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
+import { filterFilmIndex } from "../src/lib/film-index";
+import { pluralRu } from "../src/lib/plural-ru";
 import type { FilmPackage, CharactersModule } from "../src/lib/film-package";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
@@ -2646,4 +2648,61 @@ test("documentation concrete repository file references resolve", () => {
   }
 
   assert.deepEqual(missing, []);
+});
+
+test("russian pluralization follows the one/few/many rule with the 11-14 exception", () => {
+  const cases: Array<[number, string]> = [
+    [0, "many"],
+    [1, "one"],
+    [2, "few"],
+    [4, "few"],
+    [5, "many"],
+    [10, "many"],
+    [11, "many"],
+    [12, "many"],
+    [14, "many"],
+    [21, "one"],
+    [22, "few"],
+    [25, "many"],
+    [101, "one"],
+    [102, "few"],
+    [111, "many"],
+    [112, "many"],
+    [114, "many"],
+    [121, "one"],
+    [122, "few"],
+    [125, "many"],
+  ];
+
+  for (const [count, expected] of cases) {
+    assert.equal(pluralRu(count, "one", "few", "many"), expected, `count=${count}`);
+  }
+});
+
+test("film index filter matches title, year and status and keeps the full list on empty query", () => {
+  const films = [
+    { title: "Пилотный фильм", year: 2024, status: "фикстура" },
+    { title: "The Truman Show", year: 1998, status: "черновик" },
+    { title: "Форсаж", year: 2001, status: "черновик" },
+  ];
+
+  assert.deepEqual(filterFilmIndex(films, ""), films);
+  assert.deepEqual(filterFilmIndex(films, "   "), films);
+  assert.deepEqual(
+    filterFilmIndex(films, "truman").map((film) => film.title),
+    ["The Truman Show"],
+  );
+  assert.deepEqual(
+    filterFilmIndex(films, "1998").map((film) => film.title),
+    ["The Truman Show"],
+  );
+  assert.deepEqual(
+    filterFilmIndex(films, "ЧЕРНОВИК").map((film) => film.title),
+    ["The Truman Show", "Форсаж"],
+  );
+  assert.deepEqual(
+    filterFilmIndex(films, "  форсаж  ").map((film) => film.title),
+    ["Форсаж"],
+  );
+  assert.deepEqual(filterFilmIndex(films, "несуществующий фильм"), []);
 });
