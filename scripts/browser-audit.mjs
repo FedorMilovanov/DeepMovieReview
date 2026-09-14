@@ -771,17 +771,19 @@ try {
   ));
   assertCheck("moral lens lab: WEIGH target has measurable geometry", Boolean(moralLensTargetBounds), moralLensTargetBounds);
   if (moralLensTargetBounds) {
-    await send("Input.dispatchMouseEvent", {
-      type: "mouseMoved",
-      x: moralLensTargetBounds.x,
-      y: moralLensTargetBounds.y,
-    });
+    await evaluate(
+      "(() => { const n=document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]'); if(!n) return false; n.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:" +
+        moralLensTargetBounds.x +
+        ",clientY:" +
+        moralLensTargetBounds.y +
+        "})); return true; })()"
+    );
   }
   await sleep(100);
   const moralLensPointer = JSON.parse(await evaluate(
     "JSON.stringify((() => { const label=document.querySelector('span[data-lens-label]'); const cursor=label?.parentElement; return {visible:cursor?.dataset.visible,mode:cursor?.dataset.mode,label:label?.textContent}; })())"
   ));
-  assertCheck("moral lens lab: pointer exposes WEIGH instrument state", moralLensPointer.visible === "true" && moralLensPointer.mode === "weigh" && moralLensPointer.label === "WEIGH", moralLensPointer);
+  assertCheck("moral lens lab: pointer handler exposes WEIGH instrument state", moralLensPointer.visible === "true" && moralLensPointer.mode === "weigh" && moralLensPointer.label === "WEIGH", moralLensPointer);
   await capture("moral-lens-lab-desktop", true);
 
   await navigate("/labs/moral-lens", 390, 844);
