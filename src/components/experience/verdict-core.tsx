@@ -180,7 +180,7 @@ export function VerdictCore() {
       ref={shellRef}
       className={styles.shell}
       role="img"
-      aria-label="Adaptive cinematic verdict visualization"
+      aria-label="Адаптивная кинематографическая визуализация вердикта"
       data-render-visible={inViewport}
     >
       {gpuEnabled ? (

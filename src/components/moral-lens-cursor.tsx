@@ -93,7 +93,7 @@ export function MoralLensCursor() {
     let targetY = -100;
     let ringX = -100;
     let ringY = -100;
-    let frame = 0;
+    let frame: number | null = null;
     let acquired = false;
 
     const tick = () => {
@@ -107,7 +107,13 @@ export function MoralLensCursor() {
         "transform",
         `translate3d(${ringX}px, ${ringY}px, 0)`,
       );
-      frame = window.requestAnimationFrame(tick);
+
+      const distance = Math.hypot(targetX - ringX, targetY - ringY);
+      frame = distance > 0.2 ? window.requestAnimationFrame(tick) : null;
+    };
+
+    const scheduleTick = () => {
+      if (frame === null) frame = window.requestAnimationFrame(tick);
     };
 
     const handleMove = (event: PointerEvent) => {
@@ -120,6 +126,8 @@ export function MoralLensCursor() {
         ringY = targetY;
         setSettled(true);
       }
+      scheduleTick();
+
       const target = event.target as HTMLElement | null;
       const lensValue = target?.closest?.("[data-lens-cursor]")?.getAttribute("data-lens-cursor");
       const next: LensState =
@@ -135,13 +143,21 @@ export function MoralLensCursor() {
       }
     };
 
-    const handleLeave = () => setSettled(false);
+    const handleLeave = () => {
+      acquired = false;
+      setSettled(false);
+      lensStateRef.current = "default";
+      setLensState("default");
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame);
+        frame = null;
+      }
+    };
 
     document.addEventListener("pointermove", handleMove, { passive: true });
     document.documentElement.addEventListener("pointerleave", handleLeave);
-    frame = window.requestAnimationFrame(tick);
     return () => {
-      window.cancelAnimationFrame(frame);
+      if (frame !== null) window.cancelAnimationFrame(frame);
       document.removeEventListener("pointermove", handleMove);
       document.documentElement.removeEventListener("pointerleave", handleLeave);
     };
@@ -152,8 +168,9 @@ export function MoralLensCursor() {
   return (
     <div
       className={styles.lens}
+      data-moral-lens-cursor
       data-state={lensState}
-      data-visible={settled && !suppressed ? "true" : undefined}
+      data-visible={settled && lensState !== "default" && !suppressed ? "true" : undefined}
       aria-hidden="true"
     >
       <div ref={dotRef} className={styles.dot} />

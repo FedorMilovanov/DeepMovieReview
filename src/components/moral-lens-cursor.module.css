@@ -108,18 +108,18 @@
   white-space: nowrap;
 }
 
-/* Native cursor suppression while the lens is active. Text-entry controls
-   always keep their native cursor and suppress the lens instead. */
-:global(html[data-moral-lens="active"] body),
-:global(html[data-moral-lens="active"] body *) {
+/* Suppress the native cursor only on instrument surfaces that opt into
+   Moral Lens. Ordinary copy/navigation keeps the platform cursor. */
+:global(html[data-moral-lens="active"] [data-lens-cursor]),
+:global(html[data-moral-lens="active"] [data-lens-cursor] *) {
   cursor: none !important;
 }
 
-:global(html[data-moral-lens="active"] body input),
-:global(html[data-moral-lens="active"] body textarea),
-:global(html[data-moral-lens="active"] body select),
-:global(html[data-moral-lens="active"] body [contenteditable="true"]),
-:global(html[data-moral-lens="active"] body [data-native-cursor]) {
+:global(html[data-moral-lens="active"] [data-lens-cursor] input),
+:global(html[data-moral-lens="active"] [data-lens-cursor] textarea),
+:global(html[data-moral-lens="active"] [data-lens-cursor] select),
+:global(html[data-moral-lens="active"] [data-lens-cursor] [contenteditable="true"]),
+:global(html[data-moral-lens="active"] [data-native-cursor]) {
   cursor: auto !important;
 }
 

@@ -10,13 +10,17 @@ export type FilmIndexSearchEntry = {
   status: string;
 };
 
+function normalizeSearchText(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("ru-RU");
+}
+
 export function filterFilmIndex<T extends FilmIndexSearchEntry>(
   films: readonly T[],
   query: string,
 ): T[] {
-  const normalized = query.trim().toLowerCase();
+  const normalized = normalizeSearchText(query);
   if (normalized.length === 0) return [...films];
   return films.filter((film) =>
-    `${film.title} ${film.year} ${film.status}`.toLowerCase().includes(normalized),
+    normalizeSearchText(`${film.title} ${film.year} ${film.status}`).includes(normalized),
   );
 }

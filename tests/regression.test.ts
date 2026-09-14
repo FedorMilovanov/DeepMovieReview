@@ -350,6 +350,56 @@ test("visual asset paths stay app-rooted and protocol-relative paths are rejecte
   assert.ok(errors.some((error) => error.includes("bad") && error.includes("app-root")));
 });
 
+test("generated visual assets require reproducible provenance metadata", () => {
+  const baseManifest = {
+    schemaVersion: 1 as const,
+    id: "generated-visual-test",
+    role: "hero" as const,
+    title: "Generated visual test",
+    alt: "Generated fixture visual",
+    aspectRatio: 2,
+    focalPoint: { x: 0.5, y: 0.5 },
+    variants: [{
+      id: "display",
+      purpose: "display" as const,
+      src: "/assets/generated.webp",
+      format: "webp" as const,
+      width: 1200,
+      height: 600,
+    }],
+  };
+
+  const missing = validateVisualAssetManifest({
+    ...baseManifest,
+    provenance: { sourceKind: "generated" },
+  });
+  assert.ok(missing.includes("Generated assets require provenance.generator."));
+  assert.ok(missing.includes("Generated assets require provenance.promptVersion."));
+  assert.ok(missing.includes("Generated assets require provenance.createdAt."));
+
+  const invalidDate = validateVisualAssetManifest({
+    ...baseManifest,
+    provenance: {
+      sourceKind: "generated",
+      generator: "Test generator",
+      promptVersion: "test-v1",
+      createdAt: "2026-02-30",
+    },
+  });
+  assert.ok(invalidDate.includes("provenance.createdAt must be a real YYYY-MM-DD calendar date."));
+
+  const valid = validateVisualAssetManifest({
+    ...baseManifest,
+    provenance: {
+      sourceKind: "generated",
+      generator: "Test generator",
+      promptVersion: "test-v1",
+      createdAt: "2026-09-14",
+    },
+  });
+  assert.deepEqual(valid, []);
+});
+
 test("experience quality selection is deterministic across fallback scenarios", () => {
   assert.equal(selectInitialTier({
     backend: "none",
@@ -2713,6 +2763,10 @@ test("film index filter matches title, year and status and keeps the full list o
   assert.deepEqual(
     filterFilmIndex(films, "  форсаж  ").map((film) => film.title),
     ["Форсаж"],
+  );
+  assert.deepEqual(
+    filterFilmIndex(films, "The\t\tTruman   Show").map((film) => film.title),
+    ["The Truman Show"],
   );
   assert.deepEqual(filterFilmIndex(films, "несуществующий фильм"), []);
 });

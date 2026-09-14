@@ -120,7 +120,7 @@ export const heroMasterAsset: VisualAssetManifest = {
   variants: [
     { id: "hero-display-1600", purpose: "display", src: "/art/hero-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
-  provenance: { sourceKind: "generated", generator: "Deep Waters art pipeline", promptVersion: "phase-a-v1", editorialNotes: "Original platform art; not a film still." },
+  provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
 };
 
 export const lensMasterAsset: VisualAssetManifest = {
@@ -137,7 +137,7 @@ export const lensMasterAsset: VisualAssetManifest = {
   variants: [
     { id: "lens-display-1600", purpose: "display", src: "/art/lens-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
-  provenance: { sourceKind: "generated", generator: "Deep Waters art pipeline", promptVersion: "phase-a-v1", editorialNotes: "Original platform art; not a film still." },
+  provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
 };
 
 export const relationshipMasterAsset: VisualAssetManifest = {
@@ -152,7 +152,7 @@ export const relationshipMasterAsset: VisualAssetManifest = {
   variants: [
     { id: "relationship-display-1600", purpose: "display", src: "/art/relationship-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
-  provenance: { sourceKind: "generated", generator: "Deep Waters art pipeline", promptVersion: "phase-a-v1", editorialNotes: "Original platform art; not a film still." },
+  provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
 };
 
 export const autopsyMasterAsset: VisualAssetManifest = {
@@ -173,7 +173,7 @@ export const autopsyMasterAsset: VisualAssetManifest = {
     { id: "autopsy-lamp", label: "Лампа", point: { x: 0.42, y: 0.52 }, safeLabelPositions: ["top", "right"] },
     { id: "autopsy-door", label: "Приоткрытая дверь", point: { x: 0.9, y: 0.42 }, safeLabelPositions: ["left", "bottom"] },
   ],
-  provenance: { sourceKind: "generated", generator: "Deep Waters art pipeline", promptVersion: "phase-a-v1", editorialNotes: "Original platform art; not a film still." },
+  provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
 };
 
 export const decisionMasterAsset: VisualAssetManifest = {
@@ -188,7 +188,7 @@ export const decisionMasterAsset: VisualAssetManifest = {
   variants: [
     { id: "decision-display-1600", purpose: "display", src: "/art/decision-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
-  provenance: { sourceKind: "generated", generator: "Deep Waters art pipeline", promptVersion: "phase-a-v1", editorialNotes: "Original platform art; not a film still." },
+  provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
 };
 
 export const craftMasterAsset: VisualAssetManifest = {
@@ -204,7 +204,7 @@ export const craftMasterAsset: VisualAssetManifest = {
   variants: [
     { id: "craft-display-1600", purpose: "display", src: "/art/craft-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
-  provenance: { sourceKind: "generated", generator: "Deep Waters art pipeline", promptVersion: "phase-a-v1", editorialNotes: "Original platform art; not a film still." },
+  provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
 };
 
 export const discoveryMasterAsset: VisualAssetManifest = {
@@ -220,7 +220,7 @@ export const discoveryMasterAsset: VisualAssetManifest = {
   variants: [
     { id: "discovery-display-1600", purpose: "display", src: "/art/discovery-master.jpg", format: "jpg", width: 1600, height: 672, byteSize: 226967 },
   ],
-  provenance: { sourceKind: "generated", generator: "Deep Waters art pipeline", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art; not a film still." },
+  provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
 };
 
 const rawVisualAssetManifests: VisualAssetManifest[] = [fixtureHeroAsset, heroMasterAsset, lensMasterAsset, relationshipMasterAsset, autopsyMasterAsset, decisionMasterAsset, craftMasterAsset, discoveryMasterAsset];

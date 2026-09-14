@@ -64,6 +64,11 @@ export function SiteHeader() {
     return isCurrent ? { "aria-current": "page" as const } : {};
   }
 
+  function closeMenuAfterNavigation() {
+    setMenuOpen(false);
+    menuButtonRef.current?.focus();
+  }
+
   return (
     <header className="siteHeader" data-scrolled={scrolled || undefined}>
       <Link className="brand" href="/" aria-label="Глубокие воды — на главную">
@@ -95,7 +100,12 @@ export function SiteHeader() {
         inert={!menuOpen}
       >
         {NAV_LINKS.map((link) => (
-          <Link key={link.href} href={link.href} {...linkProps(link.href)}>
+          <Link
+            key={link.href}
+            href={link.href}
+            onClick={closeMenuAfterNavigation}
+            {...linkProps(link.href)}
+          >
             {link.label}
           </Link>
         ))}
