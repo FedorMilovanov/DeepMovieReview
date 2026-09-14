@@ -797,6 +797,53 @@ try {
   await inspectNoHorizontalOverflow("moral lens lab zoom 200");
   await capture("moral-lens-lab-zoom-200", true);
 
+  await navigate("/labs/moral-lens", 1280, 900, true);
+  await inspectBasic("moral lens lab reduced motion");
+  await inspectNoindex("moral lens lab reduced motion");
+  await evaluate("document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]')?.scrollIntoView({block:'center'})");
+  await sleep(120);
+  const moralLensReducedTarget = JSON.parse(await evaluate(
+    "JSON.stringify((() => {" +
+      "const target=document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]');" +
+      "const label=document.querySelector('span[data-lens-label]');" +
+      "const cursor=label?.parentElement;" +
+      "const stage=cursor?.parentElement;" +
+      "const tr=target?.getBoundingClientRect();" +
+      "const sr=stage?.getBoundingClientRect();" +
+      "return tr&&sr ? {clientX:tr.left+tr.width/2,clientY:tr.top+tr.height/2,expectedX:tr.left+tr.width/2-sr.left,expectedY:tr.top+tr.height/2-sr.top} : null;" +
+    "})())"
+  ));
+  assertCheck("moral lens lab reduced motion: target geometry is measurable", Boolean(moralLensReducedTarget), moralLensReducedTarget);
+  if (moralLensReducedTarget) {
+    await evaluate(
+      "(() => { const n=document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]'); if(!n) return false; n.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:" +
+        moralLensReducedTarget.clientX +
+        ",clientY:" +
+        moralLensReducedTarget.clientY +
+        "})); return true; })()"
+    );
+  }
+  await sleep(50);
+  const moralLensReducedState = JSON.parse(await evaluate(
+    "JSON.stringify((() => {" +
+      "const label=document.querySelector('span[data-lens-label]');" +
+      "const cursor=label?.parentElement;" +
+      "const match=cursor?.style.transform.match(/translate3d\\(([-\\d.]+)px,\\s*([-\\d.]+)px/);" +
+      "return {media:matchMedia('(prefers-reduced-motion: reduce)').matches,visible:cursor?.dataset.visible,mode:cursor?.dataset.mode,x:match?Number(match[1]):null,y:match?Number(match[2]):null};" +
+    "})())"
+  ));
+  assertCheck("moral lens lab reduced motion: media emulation is active", moralLensReducedState.media, moralLensReducedState);
+  assertCheck(
+    "moral lens lab reduced motion: cursor tracks target without inertia",
+    moralLensReducedTarget &&
+      moralLensReducedState.visible === "true" &&
+      moralLensReducedState.mode === "weigh" &&
+      Math.abs(moralLensReducedState.x - moralLensReducedTarget.expectedX) < 0.5 &&
+      Math.abs(moralLensReducedState.y - moralLensReducedTarget.expectedY) < 0.5,
+    { target: moralLensReducedTarget, state: moralLensReducedState },
+  );
+  await capture("moral-lens-lab-reduced-motion", true);
+
   await navigate("/labs/narrative-permission", 1280, 900);
   await inspectBasic("narrative permission lab desktop");
   await inspectNoindex("narrative permission lab desktop");
