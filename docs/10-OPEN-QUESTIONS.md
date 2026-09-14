@@ -39,8 +39,10 @@ The v0 authoring contract already uses categorical interpretive confidence — `
 
 ## 5. Story / plot model
 
-- Which structural labels are useful without forcing every film into a three-act template?
-- How many synopsis levels are practical to author?
+The v0 Story contract deliberately avoids a fixed act taxonomy: it stores one module-level summary plus an ordered list of free-form plot beats, each with its own label, summary, spoiler boundary and evidence support. Real-film Story modules are validator-gated to contain at least one beat, and both the summary and beats participate in the evidence chain. This settles the current authoring shape without forcing a three-act template.
+
+- Does the free-form ordered-beat model remain expressive enough across very different narrative structures?
+- Are summary + supported beats enough synopsis levels for editorial production and public reading?
 - Are plot beats stored as editorial analysis or semi-factual structural metadata?
 - How should nonlinear narratives be modeled?
 - How are anthology films handled?
@@ -48,8 +50,10 @@ The v0 authoring contract already uses categorical interpretive confidence — `
 
 ## 6. Character model
 
-- Which character fields are worth structuring vs leaving as prose?
-- Can desire/fear/need be used consistently across genres?
+The v0 character contract already structures a spoiler-safe base profile (`wants`, `fears`, `contradiction`) and a separate optional deeper interpretation layer (`believes`, `selfDeception`, `arcSummary`, `roleInArgument`). The two layers carry independent spoiler boundaries and independent `profileSupport` / `interpretiveSupport`, so deeper interpretation cannot silently inherit evidence from the base profile. This resolves the current field/layer split, not whether every field generalizes equally well across genres.
+
+- Do the current base-profile and deeper-interpretation fields remain useful across genres and ensemble structures?
+- Should a distinct `need` field ever be added, or remain prose/interpretation rather than canonical structure?
 - How do we mark an interpretive character motive as uncertain?
 - Is role-model classification public-facing or primarily internal?
 - How do we model ensemble films without artificially choosing one protagonist?
@@ -76,10 +80,12 @@ The v0 relationship contract already models change through authored events plus 
 
 ## 9. Youth / formation model
 
+The v0 Family/Youth contract already represents social-formation observations through a categorical `SocialFormationDomain` plus subject, claim, optional counterevidence, confidence and evidence support. The current domain vocabulary explicitly includes parental presence/example, authority, discipline/boundaries, peer pressure, rebellion/autonomy, responsibility, sexual formation, substance risk, work/study, maturity and adult role models. That settles how these concerns are encoded today, while their interpretation and public presentation remain open.
+
 - What age bands matter analytically, if any?
 - How do we distinguish healthy autonomy from rebellion in a consistent methodology?
 - When is risky behavior merely represented vs normalized/aspirational?
-- How should peer pressure and adult role-model absence be encoded?
+- Does the current `PEER_PRESSURE` / `ADULT_ROLE_MODELS` domain encoding capture those formation dynamics with enough nuance?
 - Should youth-facing `Imitation Pressure` receive a dedicated public indicator?
 - How do we avoid assuming adolescents interpret media identically?
 
@@ -115,9 +121,11 @@ The v0 `NarrativePermissionState` contract is already fixed as `CONDEMNED / COST
 
 ## 13. Moral-event taxonomy
 
-- Build taxonomy from biblical/theological categories, common-language categories, or layered mapping?
+The v0 moral-event contract already represents positive and negative acts symmetrically through `MoralValence = WRONGDOING | VIRTUE | MIXED | PRUDENTIAL`, while each event may separately carry severity, culpability, repentance state, narrative stance, confidence and evidence support. The event `category` itself remains open-ended text, so the source and granularity of the eventual moral taxonomy are intentionally **not** resolved by the schema.
+
+- Build the category taxonomy from biblical/theological categories, common-language categories, or layered mapping?
 - How granular should deception, violence, sexuality, pride, complicity, omission, etc. become?
-- How are virtues/positive moral acts represented symmetrically?
+- Does the current valence model remain sufficient for virtues, mixed acts and prudential choices?
 - How should repeated low-severity events be aggregated without reducing analysis to counting?
 
 ## 14. Film attitude / endorsement model
