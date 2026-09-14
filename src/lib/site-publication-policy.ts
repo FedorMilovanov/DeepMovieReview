@@ -27,7 +27,12 @@ export function canIndexSite({
  */
 export function resolveSiteOrigin(rawValue: string | undefined = process.env.DMR_SITE_URL): string {
   const candidate = rawValue?.trim() || "http://localhost:3000";
-  const url = new URL(candidate);
+  let url: URL;
+  try {
+    url = new URL(candidate);
+  } catch {
+    throw new Error(`DMR_SITE_URL must be an absolute http(s) URL, got "${candidate}".`);
+  }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new Error("DMR_SITE_URL must use http(s).");
   }

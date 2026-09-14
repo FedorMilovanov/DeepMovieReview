@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { FilmMediaFrame } from "@/components/film-media-frame";
-import { FilmTransitionLink } from "@/components/film-transition-link";
+import { FilmIndexFilter, type FilmIndexEntry } from "@/components/film-index-filter";
 import { filmPackages } from "@/data/film-registry";
 import { isPreviewContentEnabled } from "@/data/site-config";
 
@@ -43,27 +42,18 @@ export default function FilmsPage() {
       ) : null}
       {visiblePackages.length === 0 ? (
         <p className="fixtureNotice">Опубликованных разборов пока нет.</p>
-      ) : null}
-      <div className="filmList">
-        {visiblePackages.map((filmPackage, index) => {
-          const { film, modules } = filmPackage;
-          return (
-            <FilmTransitionLink
-              className="filmRow"
-              href={`/films/${film.slug}`}
-              key={film.slug}
-              slug={film.slug}
-            >
-              <span className="filmRowIndex">{String(index + 1).padStart(3, "0")}</span>
-              <FilmMediaFrame slug={film.slug} variant="index" />
-              <span className="filmRowTitle"><strong>{film.title}</strong></span>
-              <span className="filmRowMeta">
-                {film.year} · {packageStatusLabel(filmPackage)} · {modules.length} модулей
-              </span>
-            </FilmTransitionLink>
-          );
-        })}
-      </div>
+      ) : (
+        <FilmIndexFilter
+          films={visiblePackages.map((filmPackage, index): FilmIndexEntry => ({
+            slug: filmPackage.film.slug,
+            title: filmPackage.film.title,
+            year: filmPackage.film.year,
+            status: packageStatusLabel(filmPackage),
+            modules: filmPackage.modules.length,
+            position: index + 1,
+          }))}
+        />
+      )}
     </section>
   );
 }

@@ -134,7 +134,7 @@ export function NarrativePermissionLab() {
           <p>Select a behavior to inspect the evidence behind its categorical reading.</p>
         </div>
 
-        <div className={styles.stateGroups} aria-label="Narrative Permission state families">
+        <div className={styles.stateGroups} role="group" aria-label="Narrative Permission state families">
           {STATE_GROUPS.map((group) => (
             <section key={group.label} className={styles.stateGroup}>
               <h3>{group.label}</h3>

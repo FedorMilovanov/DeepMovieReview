@@ -84,6 +84,16 @@
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--stroke-subtle);
+  transition:
+    background-color var(--duration-standard) var(--ease-quiet),
+    border-color var(--duration-standard) var(--ease-quiet);
+}
+
+.siteHeader[data-scrolled] {
+  border-bottom-color: var(--stroke-default);
+  background: color-mix(in srgb, var(--surface-canvas) 86%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .brand {
@@ -111,6 +121,28 @@
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+}
+
+.menuButton {
+  display: none;
+  min-height: 44px;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--stroke-default);
+  background: transparent;
+  color: var(--ink-1);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.menuButton:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.siteMenu {
+  display: none;
 }
 
 .sectionShell {
@@ -163,20 +195,88 @@ h2 {
 
 .siteFooter {
   width: min(calc(100% - 2 * var(--gutter)), var(--container-max));
-  min-height: 140px;
   margin-inline: auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding-block: 2.2rem;
+  display: grid;
+  grid-template-columns: 1.3fr 0.6fr 0.9fr auto;
   gap: 2rem;
+  align-items: start;
   border-top: 1px solid var(--stroke-subtle);
   color: var(--ink-3);
   font-size: 0.72rem;
 }
 
+.siteFooter p {
+  margin: 0 0 0.5rem;
+  line-height: 1.6;
+}
+
+.siteFooter strong {
+  color: var(--ink-1);
+  font-weight: 600;
+}
+
+.footerNav {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+}
+
+.footerNav a {
+  padding-block: 0.35rem;
+  color: var(--ink-2);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.footerMeta p:last-child {
+  margin-bottom: 0;
+}
+
 .filmIndexHero,
 .filmPageHero {
   padding-top: clamp(6rem, 10vw, 10rem);
+}
+
+.filmFilter {
+  margin-top: 2rem;
+  display: grid;
+  gap: 0.5rem;
+  max-width: 28rem;
+}
+
+.filmFilter label {
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.62rem;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.filmFilter input {
+  min-height: 48px;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--stroke-default);
+  background: var(--surface-1);
+  color: var(--ink-1);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.filmFilter input::placeholder {
+  color: var(--ink-4);
+}
+
+.filmFilter input:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.filmFilterCount {
+  margin-top: 1rem;
+  color: var(--ink-3);
+  font-size: 0.74rem;
 }
 
 .filmList {
@@ -217,13 +317,52 @@ h2 {
   .brandText {
     display: none;
   }
+
+  .siteFooter {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  /* 16px keeps iOS Safari from auto-zooming on input focus. */
+  .filmFilter input {
+    font-size: 16px;
+  }
+
+  .siteNav {
+    display: none;
+  }
+
+  .menuButton {
+    display: block;
+  }
+
+  .siteMenu[data-open] {
+    display: grid;
+    position: absolute;
+    inset: 100% 0 auto;
+    border-bottom: 1px solid var(--stroke-default);
+    background: color-mix(in srgb, var(--surface-canvas) 94%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .siteMenu a {
+    display: flex;
+    align-items: center;
+    min-height: 52px;
+    padding: 0.9rem var(--gutter);
+    border-top: 1px solid var(--stroke-subtle);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
 }
 
 @media (max-width: 620px) {
   .siteFooter {
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 
   .filmRow {

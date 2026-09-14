@@ -79,6 +79,8 @@ The shell now proves the main architectural boundaries that Film 001 will depend
 - semantic accessibility work for Six Lenses tabs and Scene Autopsy interaction;
 - CI gates for locked dependency install, typecheck, domain regression tests, lint, preview production build/smoke, a real headless-Chrome DOM/accessibility/visual audit with screenshot evidence, and a clean public production rebuild/access-security smoke;
 - strict npm install-script allowlisting rather than implicitly executing newly introduced dependency scripts.
+- seven original cinematic platform masters with validated manifests, a production DOM-only Living Frame (pointer parallax + relight, static Lite/reduced-motion fallback) and P0 homepage interactions (lens grades/traces, scroll-spy pipeline, permission markers, craft-linked frame, EXAMINE SCENE autopsy, interactive spoiler ladder, workbench art + fog slider).
+- Moral Lens cursor states, per-slug film stand-in art with shared view-transition morphing, scroll-aware header with mobile menu, expanded footer and a client-side film-index filter.
 
 ## Foundation documents
 

@@ -4,6 +4,7 @@ import "@fontsource-variable/oswald";
 import "@fontsource-variable/jetbrains-mono";
 import { ExperienceDiagnostics } from "@/components/experience/experience-diagnostics";
 import { ExperienceQualityProvider } from "@/components/experience/experience-quality-provider";
+import { MoralLensCursor } from "@/components/moral-lens-cursor";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
@@ -104,6 +105,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <SiteFooter />
           </div>
           <ExperienceDiagnostics />
+          <MoralLensCursor />
         </ExperienceQualityProvider>
       </body>
     </html>

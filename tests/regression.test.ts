@@ -7,7 +7,9 @@ import { validateFilmPackage } from "../src/lib/film-package-integrity";
 import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
-import { canRevealSpoiler, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
+import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
+import { filterFilmIndex } from "../src/lib/film-index";
+import { pluralRu } from "../src/lib/plural-ru";
 import type { FilmPackage, CharactersModule } from "../src/lib/film-package";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
@@ -348,6 +350,56 @@ test("visual asset paths stay app-rooted and protocol-relative paths are rejecte
   assert.ok(errors.some((error) => error.includes("bad") && error.includes("app-root")));
 });
 
+test("generated visual assets require reproducible provenance metadata", () => {
+  const baseManifest = {
+    schemaVersion: 1 as const,
+    id: "generated-visual-test",
+    role: "hero" as const,
+    title: "Generated visual test",
+    alt: "Generated fixture visual",
+    aspectRatio: 2,
+    focalPoint: { x: 0.5, y: 0.5 },
+    variants: [{
+      id: "display",
+      purpose: "display" as const,
+      src: "/assets/generated.webp",
+      format: "webp" as const,
+      width: 1200,
+      height: 600,
+    }],
+  };
+
+  const missing = validateVisualAssetManifest({
+    ...baseManifest,
+    provenance: { sourceKind: "generated" },
+  });
+  assert.ok(missing.includes("Generated assets require provenance.generator."));
+  assert.ok(missing.includes("Generated assets require provenance.promptVersion."));
+  assert.ok(missing.includes("Generated assets require provenance.createdAt."));
+
+  const invalidDate = validateVisualAssetManifest({
+    ...baseManifest,
+    provenance: {
+      sourceKind: "generated",
+      generator: "Test generator",
+      promptVersion: "test-v1",
+      createdAt: "2026-02-30",
+    },
+  });
+  assert.ok(invalidDate.includes("provenance.createdAt must be a real YYYY-MM-DD calendar date."));
+
+  const valid = validateVisualAssetManifest({
+    ...baseManifest,
+    provenance: {
+      sourceKind: "generated",
+      generator: "Test generator",
+      promptVersion: "test-v1",
+      createdAt: "2026-09-14",
+    },
+  });
+  assert.deepEqual(valid, []);
+});
+
 test("experience quality selection is deterministic across fallback scenarios", () => {
   assert.equal(selectInitialTier({
     backend: "none",
@@ -430,6 +482,16 @@ test("spoiler helpers normalize URL state and preserve monotonic reveal permissi
   assert.equal(canRevealSpoiler("FULL", "ENDING"), true);
   assert.equal(withSpoilerQuery("/films/example", "NONE"), "/films/example");
   assert.equal(withSpoilerQuery("/films/example", "MAJOR"), "/films/example?spoilers=major");
+  const scoped = [
+    { id: "safe", spoilerLevel: "NONE" },
+    { id: "minor", spoilerLevel: "MINOR" },
+    { id: "ending", spoilerLevel: "ENDING" },
+  ] as const;
+  assert.deepEqual(
+    filterBySpoilerLevel(scoped, "MINOR").map((item) => item.id),
+    ["safe", "minor"],
+  );
+  assert.deepEqual(filterBySpoilerLevel(scoped, "NONE").map((item) => item.id), ["safe"]);
 });
 
 test("provenance verification and review dates require valid calendar dates", () => {
@@ -2646,4 +2708,65 @@ test("documentation concrete repository file references resolve", () => {
   }
 
   assert.deepEqual(missing, []);
+});
+
+test("russian pluralization follows the one/few/many rule with the 11-14 exception", () => {
+  const cases: Array<[number, string]> = [
+    [0, "many"],
+    [1, "one"],
+    [2, "few"],
+    [4, "few"],
+    [5, "many"],
+    [10, "many"],
+    [11, "many"],
+    [12, "many"],
+    [14, "many"],
+    [21, "one"],
+    [22, "few"],
+    [25, "many"],
+    [101, "one"],
+    [102, "few"],
+    [111, "many"],
+    [112, "many"],
+    [114, "many"],
+    [121, "one"],
+    [122, "few"],
+    [125, "many"],
+  ];
+
+  for (const [count, expected] of cases) {
+    assert.equal(pluralRu(count, "one", "few", "many"), expected, `count=${count}`);
+  }
+});
+
+test("film index filter matches title, year and status and keeps the full list on empty query", () => {
+  const films = [
+    { title: "Пилотный фильм", year: 2024, status: "фикстура" },
+    { title: "The Truman Show", year: 1998, status: "черновик" },
+    { title: "Форсаж", year: 2001, status: "черновик" },
+  ];
+
+  assert.deepEqual(filterFilmIndex(films, ""), films);
+  assert.deepEqual(filterFilmIndex(films, "   "), films);
+  assert.deepEqual(
+    filterFilmIndex(films, "truman").map((film) => film.title),
+    ["The Truman Show"],
+  );
+  assert.deepEqual(
+    filterFilmIndex(films, "1998").map((film) => film.title),
+    ["The Truman Show"],
+  );
+  assert.deepEqual(
+    filterFilmIndex(films, "ЧЕРНОВИК").map((film) => film.title),
+    ["The Truman Show", "Форсаж"],
+  );
+  assert.deepEqual(
+    filterFilmIndex(films, "  форсаж  ").map((film) => film.title),
+    ["Форсаж"],
+  );
+  assert.deepEqual(
+    filterFilmIndex(films, "The\t\tTruman   Show").map((film) => film.title),
+    ["The Truman Show"],
+  );
+  assert.deepEqual(filterFilmIndex(films, "несуществующий фильм"), []);
 });

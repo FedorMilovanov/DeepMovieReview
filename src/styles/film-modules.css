@@ -521,12 +521,16 @@
   color: var(--ink-1);
 }
 
-.evidenceMapCard h4 {
+.evidenceMapCard h3 {
   margin: 1.4rem 0 0;
   font-family: var(--display);
   font-size: clamp(1.25rem, 2.5vw, 2rem);
   font-weight: 500;
   line-height: 1.02;
+  /* Card titles keep sentence case: the global h3 display treatment
+     (uppercase + display tracking) would harm long evidence labels. */
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .evidenceMapCard > p {

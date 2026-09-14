@@ -133,6 +133,20 @@ function isAppRootAssetPath(src: string): boolean {
   return src.startsWith("/") && !src.startsWith("//") && !src.includes("\\");
 }
 
+function isValidCalendarDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
 function matchesManifestAspectRatio(
   variant: VisualAssetVariant,
   manifestAspectRatio: number,
@@ -161,6 +175,24 @@ export function validateVisualAssetManifest(manifest: VisualAssetManifest): stri
     if (!isNormalizedRect(zone)) errors.push(`textSafeZones[${index}] is outside normalized bounds.`);
   }
   if (manifest.subjectSafeZone && !isNormalizedRect(manifest.subjectSafeZone)) errors.push("subjectSafeZone is outside normalized bounds.");
+
+  if (manifest.provenance.sourceKind === "generated") {
+    if (!manifest.provenance.generator?.trim()) {
+      errors.push("Generated assets require provenance.generator.");
+    }
+    if (!manifest.provenance.promptVersion?.trim()) {
+      errors.push("Generated assets require provenance.promptVersion.");
+    }
+    if (!manifest.provenance.createdAt?.trim()) {
+      errors.push("Generated assets require provenance.createdAt.");
+    }
+  }
+  if (
+    manifest.provenance.createdAt !== undefined &&
+    !isValidCalendarDate(manifest.provenance.createdAt)
+  ) {
+    errors.push("provenance.createdAt must be a real YYYY-MM-DD calendar date.");
+  }
 
   const hasUniversalLiteDisplay = manifest.variants.some(
     (variant) =>

@@ -363,6 +363,52 @@ try {
   await navigate("/", 1440, 1000);
   await inspectBasic("home desktop");
 
+  const finePointerAvailable = await evaluate(
+    "matchMedia('(hover: hover) and (pointer: fine)').matches"
+  );
+  if (finePointerAvailable) {
+    await evaluate(
+      "(() => { const n=document.querySelector('.heroCopy'); if(!n) return false; const r=n.getBoundingClientRect(); n.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:r.left+20,clientY:r.top+20})); return true; })()"
+    );
+    await sleep(100);
+    const plainCursorState = JSON.parse(await evaluate(
+      "JSON.stringify((() => { const n=document.querySelector('.heroCopy'); const lens=document.querySelector('[data-moral-lens-cursor]'); return {cursor:n?getComputedStyle(n).cursor:null,lensVisible:lens?.dataset.visible??null,lensState:lens?.dataset.state??null}; })())"
+    ));
+    assertCheck(
+      "home moral lens: ordinary copy keeps the native cursor",
+      plainCursorState.cursor !== "none" && plainCursorState.lensVisible !== "true" && plainCursorState.lensState === "default",
+      plainCursorState,
+    );
+
+    await evaluate(
+      "(() => { const n=document.querySelector('[data-lens-cursor=\"examine\"]'); if(!n) return false; const r=n.getBoundingClientRect(); n.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:r.left+r.width/2,clientY:r.top+r.height/2})); return true; })()"
+    );
+    await sleep(100);
+    const instrumentCursorState = JSON.parse(await evaluate(
+      "JSON.stringify((() => { const n=document.querySelector('[data-lens-cursor=\"examine\"]'); const lens=document.querySelector('[data-moral-lens-cursor]'); return {cursor:n?getComputedStyle(n).cursor:null,lensVisible:lens?.dataset.visible??null,lensState:lens?.dataset.state??null}; })())"
+    ));
+    assertCheck(
+      "home moral lens: instrument surface owns the custom cursor",
+      instrumentCursorState.cursor === "none" && instrumentCursorState.lensVisible === "true" && instrumentCursorState.lensState === "examine",
+      instrumentCursorState,
+    );
+
+    await evaluate(
+      "(() => { const n=document.querySelector('.heroCopy'); if(!n) return false; const r=n.getBoundingClientRect(); n.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:r.left+20,clientY:r.top+20})); return true; })()"
+    );
+    await sleep(100);
+    const restoredCursorState = JSON.parse(await evaluate(
+      "JSON.stringify((() => { const n=document.querySelector('.heroCopy'); const lens=document.querySelector('[data-moral-lens-cursor]'); return {cursor:n?getComputedStyle(n).cursor:null,lensVisible:lens?.dataset.visible??null,lensState:lens?.dataset.state??null}; })())"
+    ));
+    assertCheck(
+      "home moral lens: leaving an instrument restores native cursor behavior",
+      restoredCursorState.cursor !== "none" && restoredCursorState.lensVisible !== "true" && restoredCursorState.lensState === "default",
+      restoredCursorState,
+    );
+  } else {
+    record("home moral lens: fine pointer unavailable in audit browser", true);
+  }
+
   const workbenchState = JSON.parse(await evaluate(
     "JSON.stringify((() => {" +
       "const root=document.querySelector('[data-analysis-workbench]');" +
@@ -413,6 +459,32 @@ try {
   await navigate("/", 390, 844);
   await inspectBasic("home mobile");
   await inspectNoHorizontalOverflow("home mobile");
+
+  await evaluate("document.querySelector('.menuButton')?.click()");
+  await waitForExpression("document.querySelector('.menuButton')?.getAttribute('aria-expanded') === 'true'");
+  const mobileMenuOpened = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const button=document.querySelector('.menuButton'); const menu=document.querySelector('#site-menu'); return {expanded:button?.getAttribute('aria-expanded'),inert:menu?.inert??null,open:menu?.dataset.open??null}; })())"
+  ));
+  assertCheck(
+    "home mobile menu: disclosure opens and becomes interactive",
+    mobileMenuOpened.expanded === "true" && mobileMenuOpened.inert === false && mobileMenuOpened.open === "true",
+    mobileMenuOpened,
+  );
+  await evaluate("document.querySelector('#site-menu a[href=\"/#lenses\"]')?.click()");
+  await waitForExpression("window.location.hash === '#lenses'");
+  await waitForExpression("document.querySelector('.menuButton')?.getAttribute('aria-expanded') === 'false'");
+  const mobileMenuAfterHashNavigation = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const button=document.querySelector('.menuButton'); const menu=document.querySelector('#site-menu'); return {hash:location.hash,expanded:button?.getAttribute('aria-expanded'),inert:menu?.inert??null,open:menu?.dataset.open??null,focusReturned:document.activeElement===button}; })())"
+  ));
+  assertCheck(
+    "home mobile menu: same-route hash navigation closes the disclosure",
+    mobileMenuAfterHashNavigation.hash === "#lenses" &&
+      mobileMenuAfterHashNavigation.expanded === "false" &&
+      mobileMenuAfterHashNavigation.inert === true &&
+      mobileMenuAfterHashNavigation.open === null &&
+      mobileMenuAfterHashNavigation.focusReturned === true,
+    mobileMenuAfterHashNavigation,
+  );
   await inspectMinimumTargetSize("home mobile workbench tabs", "[data-analysis-workbench] [role=tab]");
   await inspectMinimumTargetSize("home mobile workbench evidence controls", "[data-analysis-workbench] [aria-label='Точки доказательств'] button");
   const autopsyDefinitionOverlap = await evaluate(
@@ -678,6 +750,30 @@ try {
   );
   assertCheck("scene autopsy: keyboard activates and preserves focus", autopsyKeyboardActivated);
   await capture("scene-autopsy", true);
+
+  await navigate("/labs/scene-autopsy", 390, 844);
+  await inspectBasic("scene autopsy mobile");
+  await inspectNoHorizontalOverflow("scene autopsy mobile");
+  await inspectMinimumTargetSize("scene autopsy mobile", "[aria-label=\"Scene evidence anchors\"] button");
+  const autopsyMobileState = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "buttons: document.querySelectorAll('[aria-label=\\\"Scene evidence anchors\\\"] button').length," +
+      "pressed: document.querySelectorAll('[aria-label=\\\"Scene evidence anchors\\\"] button[aria-pressed=\\\"true\\\"]').length," +
+      "inspector: Boolean(document.querySelector('#scene-evidence-inspector'))" +
+    "})"
+  ));
+  assertCheck(
+    "scene autopsy mobile: canonical controls and inspector survive reflow",
+    autopsyMobileState.buttons === 4 && autopsyMobileState.pressed === 1 && autopsyMobileState.inspector,
+    autopsyMobileState,
+  );
+  await capture("scene-autopsy-mobile", true);
+
+  await navigate("/labs/scene-autopsy", 720, 500, false, false, 2);
+  await inspectBasic("scene autopsy zoom 200");
+  await inspectNoHorizontalOverflow("scene autopsy zoom 200");
+  await inspectMinimumTargetSize("scene autopsy zoom 200", "[aria-label=\"Scene evidence anchors\"] button");
+  await capture("scene-autopsy-zoom-200", true);
 
   await navigate("/films/pilot-film?spoilers=NONE", 1280, 900);
   await inspectBasic("film NONE");

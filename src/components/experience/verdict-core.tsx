@@ -179,13 +179,20 @@ export function VerdictCore() {
     <div
       ref={shellRef}
       className={styles.shell}
-      aria-label="Adaptive cinematic verdict visualization"
+      role="img"
+      aria-label="Адаптивная кинематографическая визуализация вердикта"
       data-render-visible={inViewport}
     >
       {gpuEnabled ? (
         <VerdictCoreBoundary fallback={fallback}>
           <div className={styles.canvas} aria-hidden="true">
+            {/*
+              Remount on tier change: shadows, tone mapping and exposure are
+              set once at renderer init. Without the remount a quality
+              downgrade would keep expensive shadows enabled.
+            */}
             <Canvas
+              key={tier}
               events={createEventlessManager}
               dpr={[1, maxDpr]}
               frameloop={frameloop}

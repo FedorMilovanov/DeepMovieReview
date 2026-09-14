@@ -155,7 +155,7 @@ export function RelationshipObservatoryLab() {
             <span className={styles.detailEyebrow}>{TONE_LABEL[selected.tone]} / selected event</span>
             <h3>{selected.label}</h3>
             <p>{selected.summary}</p>
-            <div className={styles.readingKey} aria-label="Reading key">
+            <div className={styles.readingKey} role="group" aria-label="Reading key">
               <span data-tone="trust">Trust</span>
               <span data-tone="fracture">Fracture</span>
               <span data-tone="pressure">Pressure</span>

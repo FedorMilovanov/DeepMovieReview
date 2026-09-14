@@ -104,7 +104,10 @@
   pointer-events: none;
   opacity: 0;
   background:
-    radial-gradient(circle at var(--dmr-pointer-x) var(--dmr-pointer-y), rgb(255 255 255 / 0.055), transparent 24%),
+    /* Centered fallback: nothing currently tracks the pointer per row, so the
+       glow renders statically until row-level pointer wiring exists. Without
+       fallbacks the undefined vars invalidate the whole declaration. */
+    radial-gradient(circle at var(--dmr-pointer-x, 50%) var(--dmr-pointer-y, 38%), rgb(255 255 255 / 0.055), transparent 24%),
     linear-gradient(90deg, color-mix(in oklab, var(--event-accent) 5%, transparent), transparent 38%);
   transition: opacity 280ms var(--ease-dmr-precise);
 }

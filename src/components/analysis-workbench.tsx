@@ -1,7 +1,11 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import Image from "next/image";
+import { useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import styles from "./analysis-workbench.module.css";
+import autopsyMaster from "../../public/art/autopsy-master.jpg";
+import decisionMaster from "../../public/art/decision-master.jpg";
+import relationshipMaster from "../../public/art/relationship-master.jpg";
 
 type ModeId = "autopsy" | "relationship" | "decision";
 
@@ -11,10 +15,16 @@ const MODES = [
   { id: "decision", label: "Решение и знание", index: "03" },
 ] as const;
 
+const MODE_ART = {
+  autopsy: autopsyMaster,
+  relationship: relationshipMaster,
+  decision: decisionMaster,
+} as const;
+
 const ANCHORS = [
-  { id: "exit", index: "01", label: "Перекрытый выход", x: 75, y: 48, observation: "Персонаж A остаётся между персонажем B и дверью.", supports: "Пространство усиливает давление разговора.", limitation: "Блокировка сама по себе ещё не доказывает намерение удержать силой." },
-  { id: "letter", index: "02", label: "Скрытое письмо", x: 37, y: 68, observation: "Документ остаётся за спиной A после прямого вопроса.", supports: "В сцене есть наблюдаемое удержание значимой информации.", limitation: "Зритель видит письмо яснее, чем персонаж B." },
-  { id: "reaction", index: "03", label: "Реакция до ответа", x: 57, y: 32, observation: "B смотрит на письмо раньше, чем A отвечает.", supports: "Подозрение возникает до признания.", limitation: "Подозрение не равно знанию факта." },
+  { id: "exit", index: "01", label: "Приоткрытая дверь", x: 88, y: 42, observation: "Дверь комнаты остаётся открытой на протяжении сцены.", supports: "Пространство фиксирует: уход физически возможен.", limitation: "Открытая дверь не равна свободе выбора — давление может быть невидимым." },
+  { id: "letter", index: "02", label: "Непрочитанное письмо", x: 62, y: 67, observation: "Документ лежит на столе на виду, но остаётся нетронутым.", supports: "В сцене есть наблюдаемое удержание значимой информации.", limitation: "Письмо само по себе не раскрывает ни мотива, ни адресата." },
+  { id: "reaction", index: "03", label: "Взгляд в сторону", x: 70, y: 38, observation: "Фигура за столом повёрнута к двери, а не к письму.", supports: "Внимание направлено на выход, а не на документ.", limitation: "Направление взгляда — слабый маркер намерения." },
 ] as const;
 
 const RELATIONSHIP_EVENTS = [
@@ -35,6 +45,7 @@ export function AnalysisWorkbench() {
   const [anchorId, setAnchorId] = useState<(typeof ANCHORS)[number]["id"]>(ANCHORS[0].id);
   const [relationshipId, setRelationshipId] = useState<(typeof RELATIONSHIP_EVENTS)[number]["id"]>(RELATIONSHIP_EVENTS[1].id);
   const [showLater, setShowLater] = useState(false);
+  const [fogDensity, setFogDensity] = useState(100);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const selectedAnchor = ANCHORS.find((item) => item.id === anchorId) ?? ANCHORS[0];
@@ -88,11 +99,9 @@ export function AnalysisWorkbench() {
           <div className={styles.frameColumn}>
             <div className={styles.frame} data-mode={mode}>
               <div className={styles.frameMeta}><span>SCENE / SYNTHETIC / TC DEMO</span><span>2.39:1</span></div>
-              <span className={styles.light} aria-hidden="true" />
-              <span className={styles.door} aria-hidden="true" />
-              <span className={`${styles.figure} ${styles.figureA}`} aria-hidden="true" />
-              <span className={`${styles.figure} ${styles.figureB}`} aria-hidden="true" />
-              <span className={styles.letter} aria-hidden="true" />
+              <span className={styles.frameArt} aria-hidden="true">
+                <Image src={MODE_ART[mode]} alt="" fill sizes="(max-width: 980px) 100vw, 55vw" />
+              </span>
               <span className={styles.vignette} aria-hidden="true" />
               {mode === "autopsy" ? ANCHORS.map((anchor) => (
                 <button
@@ -102,11 +111,12 @@ export function AnalysisWorkbench() {
                   style={{ left: `${anchor.x}%`, top: `${anchor.y}%` }}
                   aria-label={`${anchor.index}: ${anchor.label}`}
                   aria-pressed={anchorId === anchor.id}
+                  data-lens-cursor="trace"
                   onClick={() => setAnchorId(anchor.id)}
                 >{anchor.index}</button>
               )) : null}
               {mode === "relationship" ? <span className={styles.relationshipTrace} aria-hidden="true" /> : null}
-              {mode === "decision" ? <span className={styles.knowledgeVeil} data-knowledge-veil data-open={showLater || undefined} aria-hidden="true" /> : null}
+              {mode === "decision" ? <span className={styles.knowledgeVeil} data-knowledge-veil data-open={showLater || undefined} style={showLater ? undefined : ({ "--veil-opacity": fogDensity / 100 } as CSSProperties)} aria-hidden="true" /> : null}
             </div>
             <p className={styles.frameNote}>Фикстура демонстрирует интерфейс. Никакого опубликованного суждения о реальном фильме.</p>
           </div>
@@ -126,7 +136,7 @@ export function AnalysisWorkbench() {
                   <div><dt>Поддерживает</dt><dd>{selectedAnchor.supports}</dd></div>
                   <div><dt>Ограничение</dt><dd>{selectedAnchor.limitation}</dd></div>
                 </dl>
-                <div className={styles.anchorRail} aria-label="Точки доказательств">
+                <div className={styles.anchorRail} role="group" aria-label="Точки доказательств">
                   {ANCHORS.map((anchor) => (
                     <button key={anchor.id} type="button" aria-pressed={anchorId === anchor.id} onClick={() => setAnchorId(anchor.id)}>
                       <span>{anchor.index}</span><strong>{anchor.label}</strong>
@@ -141,7 +151,7 @@ export function AnalysisWorkbench() {
                 <span className={styles.modeEyebrow}>RELATIONSHIP / A ↔ B</span>
                 <h3>{selectedRelationship.label}</h3>
                 <p className={styles.modeLead}>{selectedRelationship.note}</p>
-                <div className={styles.eventRail} aria-label="События отношений">
+                <div className={styles.eventRail} role="group" aria-label="События отношений">
                   {RELATIONSHIP_EVENTS.map((event, index) => (
                     <button key={event.id} type="button" aria-pressed={relationshipId === event.id} onClick={() => setRelationshipId(event.id)}>
                       <span>{String(index + 1).padStart(2, "0")}</span><strong>{event.label}</strong>
@@ -161,18 +171,30 @@ export function AnalysisWorkbench() {
                 <span className={styles.modeEyebrow}>DECISION / KNOWLEDGE FOG</span>
                 <h3>Судить выбор по тому, что герой знал тогда.</h3>
                 <p className={styles.modeLead}>Позднее раскрытие не должно задним числом становиться знанием персонажа.</p>
-                <div className={styles.knowledgeList}>
+                <div className={styles.knowledgeList} id="workbench-knowledge">
                   {DECISION_FACTS.filter((fact) => fact.state !== "LATER" || showLater).map((fact) => (
                     <article key={fact.state} data-state={fact.state.toLowerCase()}>
                       <span>{fact.label}</span><p>{fact.text}</p>
                     </article>
                   ))}
                 </div>
-                <div className={styles.decisionFork} aria-label="Доступные варианты">
+                <div className={styles.decisionFork} role="group" aria-label="Доступные варианты">
                   <article><span>Вариант A</span><strong>Сказать правду сейчас</strong><small>цена: потеря контроля</small></article>
                   <article><span>Вариант B</span><strong>Скрыть часть фактов</strong><small>цена: риск доверия</small></article>
                 </div>
-                <button className={styles.revealButton} type="button" aria-expanded={showLater} onClick={() => setShowLater((value) => !value)}>
+                <label className={styles.fogControl}>
+                  <span>Плотность тумана</span>
+                  <input
+                    type="range"
+                    min={20}
+                    max={100}
+                    step={5}
+                    value={fogDensity}
+                    onChange={(event) => setFogDensity(Number(event.target.value))}
+                    aria-label="Плотность тумана незнания"
+                  />
+                </label>
+                <button className={styles.revealButton} type="button" aria-expanded={showLater} aria-controls="workbench-knowledge" data-lens-cursor="weigh" onClick={() => setShowLater((value) => !value)}>
                   {showLater ? "Скрыть позднее знание" : "Показать, что выяснилось позже"}
                 </button>
               </div>

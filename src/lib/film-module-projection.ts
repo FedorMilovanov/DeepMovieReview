@@ -1,9 +1,5 @@
 import type { FilmModule } from "@/lib/film-package";
-import { canRevealSpoiler, type SpoilerLevel } from "./spoilers";
-
-function visible<T extends { spoilerLevel: SpoilerLevel }>(items: T[], level: SpoilerLevel): T[] {
-  return items.filter((item) => canRevealSpoiler(level, item.spoilerLevel));
-}
+import { canRevealSpoiler, filterBySpoilerLevel, type SpoilerLevel } from "./spoilers";
 
 /** Hidden nested content is removed before it can enter the render tree. */
 export function projectFilmModule(module: FilmModule, level: SpoilerLevel): FilmModule | null {
@@ -11,7 +7,7 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
 
   switch (module.kind) {
     case "story":
-      return { ...module, beats: visible(module.beats, level) };
+      return { ...module, beats: filterBySpoilerLevel(module.beats, level) };
     case "characters": {
       const characters = module.characters.flatMap((character) => {
         const profileAllowed = canRevealSpoiler(level, character.profileSpoilerLevel ?? module.spoilerLevel);
@@ -36,31 +32,31 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
       return characters.length > 0 ? { ...module, characters } : null;
     }
     case "relationship":
-      return { ...module, events: visible(module.events, level) };
+      return { ...module, events: filterBySpoilerLevel(module.events, level) };
     case "family-youth": {
-      const observations = visible(module.observations, level);
+      const observations = filterBySpoilerLevel(module.observations, level);
       return observations.length > 0 || module.summary ? { ...module, observations } : null;
     }
     case "teaching-signals": {
-      const signals = visible(module.signals, level);
+      const signals = filterBySpoilerLevel(module.signals, level);
       return signals.length > 0 ? { ...module, signals } : null;
     }
     case "permission": {
-      const assessments = visible(module.assessments, level);
+      const assessments = filterBySpoilerLevel(module.assessments, level);
       return assessments.length > 0 ? { ...module, assessments } : null;
     }
     case "craft": {
-      const observations = visible(module.observations, level);
-      const pressureAssessments = visible(module.pressureAssessments ?? [], level);
+      const observations = filterBySpoilerLevel(module.observations, level);
+      const pressureAssessments = filterBySpoilerLevel(module.pressureAssessments ?? [], level);
       return observations.length > 0 || pressureAssessments.length > 0
         ? { ...module, observations, pressureAssessments }
         : null;
     }
     case "decision": {
       const options = module.options.filter((option) => canRevealSpoiler(level, option.spoilerLevel ?? module.spoilerLevel));
-      const facts = visible(module.facts, level);
-      const pressures = visible(module.pressures, level);
-      const dutiesOrGoods = visible(module.dutiesOrGoods, level);
+      const facts = filterBySpoilerLevel(module.facts, level);
+      const pressures = filterBySpoilerLevel(module.pressures, level);
+      const dutiesOrGoods = filterBySpoilerLevel(module.dutiesOrGoods, level);
       const editorialJudgment = module.editorialJudgment && canRevealSpoiler(level, module.editorialJudgment.spoilerLevel)
         ? module.editorialJudgment
         : undefined;
@@ -73,7 +69,7 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
         : null;
     }
     case "moral-analysis": {
-      const events = visible(module.events, level);
+      const events = filterBySpoilerLevel(module.events, level);
       return events.length > 0 || module.summary ? { ...module, events } : null;
     }
     case "meaning":

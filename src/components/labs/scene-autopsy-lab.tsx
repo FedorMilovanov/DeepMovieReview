@@ -134,7 +134,7 @@ export function SceneAutopsyLab() {
           </article>
         </div>
 
-        <div className={styles.evidenceList} aria-label="Scene evidence anchors">
+        <div className={styles.evidenceList} role="group" aria-label="Scene evidence anchors">
           {ANCHORS.map((anchor) => (
             <button
               key={anchor.id}
