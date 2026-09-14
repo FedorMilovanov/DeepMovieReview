@@ -139,6 +139,8 @@
   .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensMarkGroup[data-lens="moral-world"],
   .lensStage:has(.lensRadio[value="craft"]:checked) .lensMarkGroup[data-lens="craft"] {
     opacity: 1;
+    visibility: visible;
+    transition-delay: 40ms, 0s;
   }
 
   .lensStage:has(.lensRadio[value="story"]:checked) .lensReading[data-lens="story"],
@@ -199,6 +201,7 @@
 @supports not selector(:has(*)) {
   .lensMarkGroup {
     opacity: 1;
+    visibility: visible;
   }
 
   .lensReading {

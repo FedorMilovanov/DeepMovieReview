@@ -136,7 +136,7 @@ export function AnalysisWorkbench() {
                   <div><dt>Поддерживает</dt><dd>{selectedAnchor.supports}</dd></div>
                   <div><dt>Ограничение</dt><dd>{selectedAnchor.limitation}</dd></div>
                 </dl>
-                <div className={styles.anchorRail} aria-label="Точки доказательств">
+                <div className={styles.anchorRail} role="group" aria-label="Точки доказательств">
                   {ANCHORS.map((anchor) => (
                     <button key={anchor.id} type="button" aria-pressed={anchorId === anchor.id} onClick={() => setAnchorId(anchor.id)}>
                       <span>{anchor.index}</span><strong>{anchor.label}</strong>
@@ -151,7 +151,7 @@ export function AnalysisWorkbench() {
                 <span className={styles.modeEyebrow}>RELATIONSHIP / A ↔ B</span>
                 <h3>{selectedRelationship.label}</h3>
                 <p className={styles.modeLead}>{selectedRelationship.note}</p>
-                <div className={styles.eventRail} aria-label="События отношений">
+                <div className={styles.eventRail} role="group" aria-label="События отношений">
                   {RELATIONSHIP_EVENTS.map((event, index) => (
                     <button key={event.id} type="button" aria-pressed={relationshipId === event.id} onClick={() => setRelationshipId(event.id)}>
                       <span>{String(index + 1).padStart(2, "0")}</span><strong>{event.label}</strong>
@@ -171,14 +171,14 @@ export function AnalysisWorkbench() {
                 <span className={styles.modeEyebrow}>DECISION / KNOWLEDGE FOG</span>
                 <h3>Судить выбор по тому, что герой знал тогда.</h3>
                 <p className={styles.modeLead}>Позднее раскрытие не должно задним числом становиться знанием персонажа.</p>
-                <div className={styles.knowledgeList}>
+                <div className={styles.knowledgeList} id="workbench-knowledge">
                   {DECISION_FACTS.filter((fact) => fact.state !== "LATER" || showLater).map((fact) => (
                     <article key={fact.state} data-state={fact.state.toLowerCase()}>
                       <span>{fact.label}</span><p>{fact.text}</p>
                     </article>
                   ))}
                 </div>
-                <div className={styles.decisionFork} aria-label="Доступные варианты">
+                <div className={styles.decisionFork} role="group" aria-label="Доступные варианты">
                   <article><span>Вариант A</span><strong>Сказать правду сейчас</strong><small>цена: потеря контроля</small></article>
                   <article><span>Вариант B</span><strong>Скрыть часть фактов</strong><small>цена: риск доверия</small></article>
                 </div>
@@ -194,7 +194,7 @@ export function AnalysisWorkbench() {
                     aria-label="Плотность тумана незнания"
                   />
                 </label>
-                <button className={styles.revealButton} type="button" aria-expanded={showLater} data-lens-cursor="weigh" onClick={() => setShowLater((value) => !value)}>
+                <button className={styles.revealButton} type="button" aria-expanded={showLater} aria-controls="workbench-knowledge" data-lens-cursor="weigh" onClick={() => setShowLater((value) => !value)}>
                   {showLater ? "Скрыть позднее знание" : "Показать, что выяснилось позже"}
                 </button>
               </div>
