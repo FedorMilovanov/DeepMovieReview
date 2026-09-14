@@ -2739,26 +2739,26 @@ test("russian pluralization follows the one/few/many rule with the 11-14 excepti
   }
 });
 
-test("film index filter matches title, year and status and keeps the full list on empty query", () => {
+test("film index filter matches localized/original title, year and status and keeps the full list on empty query", () => {
   const films = [
     { title: "Пилотный фильм", year: 2024, status: "фикстура" },
-    { title: "The Truman Show", year: 1998, status: "черновик" },
-    { title: "Форсаж", year: 2001, status: "черновик" },
+    { title: "Шоу Трумана", originalTitle: "The Truman Show", year: 1998, status: "черновик" },
+    { title: "Форсаж", originalTitle: "The Fast and the Furious", year: 2001, status: "черновик" },
   ];
 
   assert.deepEqual(filterFilmIndex(films, ""), films);
   assert.deepEqual(filterFilmIndex(films, "   "), films);
   assert.deepEqual(
     filterFilmIndex(films, "truman").map((film) => film.title),
-    ["The Truman Show"],
+    ["Шоу Трумана"],
   );
   assert.deepEqual(
     filterFilmIndex(films, "1998").map((film) => film.title),
-    ["The Truman Show"],
+    ["Шоу Трумана"],
   );
   assert.deepEqual(
     filterFilmIndex(films, "ЧЕРНОВИК").map((film) => film.title),
-    ["The Truman Show", "Форсаж"],
+    ["Шоу Трумана", "Форсаж"],
   );
   assert.deepEqual(
     filterFilmIndex(films, "  форсаж  ").map((film) => film.title),
@@ -2766,7 +2766,7 @@ test("film index filter matches title, year and status and keeps the full list o
   );
   assert.deepEqual(
     filterFilmIndex(films, "The\t\tTruman   Show").map((film) => film.title),
-    ["The Truman Show"],
+    ["Шоу Трумана"],
   );
   assert.deepEqual(filterFilmIndex(films, "несуществующий фильм"), []);
 });

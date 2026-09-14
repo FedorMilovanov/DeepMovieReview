@@ -47,6 +47,7 @@ export default function FilmsPage() {
           films={visiblePackages.map((filmPackage, index): FilmIndexEntry => ({
             slug: filmPackage.film.slug,
             title: filmPackage.film.title,
+            originalTitle: filmPackage.film.originalTitle,
             year: filmPackage.film.year,
             status: packageStatusLabel(filmPackage),
             modules: filmPackage.modules.length,
