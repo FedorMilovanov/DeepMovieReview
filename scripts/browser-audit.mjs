@@ -764,6 +764,8 @@ try {
     "})"
   ));
   assertCheck("moral lens lab: click updates selected semantic mode", moralLensSelection.pressed === "true" && moralLensSelection.header, moralLensSelection);
+  await evaluate("document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]')?.scrollIntoView({block:'center'})");
+  await sleep(120);
   const moralLensTargetBounds = JSON.parse(await evaluate(
     "JSON.stringify((() => { const n=document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]'); const r=n?.getBoundingClientRect(); return r ? {x:r.left+r.width/2,y:r.top+r.height/2} : null; })())"
   ));
