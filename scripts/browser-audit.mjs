@@ -671,7 +671,21 @@ try {
   await capture("living-frame-reduced-motion", false);
 
   await navigate("/films", 1280, 900);
-  await inspectBasic("film index");
+  await inspectBasic("film index desktop");
+  await inspectNoHorizontalOverflow("film index desktop");
+  await capture("film-index-desktop", true);
+
+  await navigate("/films", 390, 844);
+  await inspectBasic("film index mobile");
+  await inspectNoHorizontalOverflow("film index mobile");
+  await capture("film-index-mobile", true);
+
+  await navigate("/films", 640, 450, false, false, 2);
+  await inspectBasic("film index zoom 200");
+  await inspectNoHorizontalOverflow("film index zoom 200");
+  await capture("film-index-zoom-200", true);
+
+  await navigate("/films", 1280, 900);
   const transitionSource = await evaluate("Boolean(document.querySelector('[data-film-transition-media=\"pilot-film\"]'))");
   const nativeViewTransitionSupported = await evaluate("typeof document.startViewTransition === 'function'");
   assertCheck("film navigation: shared media source exists", transitionSource);
@@ -700,6 +714,21 @@ try {
   assertCheck("film navigation reduced motion: shared transition is bypassed", !reducedTransitionActive);
   await waitForPath("/films/pilot-film");
   await waitForSelector('[data-film-transition-media="pilot-film"].filmMediaFrameHero');
+
+  await navigate("/methodology", 1280, 900);
+  await inspectBasic("methodology desktop");
+  await inspectNoHorizontalOverflow("methodology desktop");
+  await capture("methodology-desktop", true);
+
+  await navigate("/methodology", 390, 844);
+  await inspectBasic("methodology mobile");
+  await inspectNoHorizontalOverflow("methodology mobile");
+  await capture("methodology-mobile", true);
+
+  await navigate("/methodology", 640, 450, false, false, 2);
+  await inspectBasic("methodology zoom 200");
+  await inspectNoHorizontalOverflow("methodology zoom 200");
+  await capture("methodology-zoom-200", true);
 
   await navigate("/labs/six-lenses", 1280, 900);
   const six = await inspectBasic("six lenses");
