@@ -73,6 +73,7 @@
 
 .livingFrame {
   position: relative;
+  margin: 0;
   overflow: hidden;
   aspect-ratio: 2.39 / 1;
   min-height: 250px;
@@ -233,12 +234,19 @@
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  transition: background var(--duration-standard) var(--ease-quiet);
+  transition:
+    background var(--duration-standard) var(--ease-quiet),
+    box-shadow var(--duration-standard) var(--ease-quiet);
 }
 
 .pipelineStep:hover,
 .pipelineStep:focus-visible {
   background: var(--surface-1);
+}
+
+.pipelineStep[data-active="true"] {
+  background: var(--surface-1);
+  box-shadow: inset 2px 0 0 var(--accent-restoration);
 }
 
 .pipelineStepIndex {
@@ -525,6 +533,34 @@
   align-self: end;
 }
 
+.permissionTrace {
+  position: relative;
+  display: block;
+  height: 2px;
+  margin-top: 0.9rem;
+  background: var(--stroke-subtle);
+}
+
+.permissionTrace i {
+  position: absolute;
+  top: 50%;
+  left: var(--trace-pos, 50%);
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--accent-restoration);
+  font-style: normal;
+}
+
+.permissionTrace[data-ambiguous="true"] {
+  background-image: repeating-linear-gradient(90deg, var(--stroke-strong) 0 4px, transparent 4px 8px);
+  background-color: transparent;
+}
+
+.permissionTrace[data-ambiguous="true"] i {
+  display: none;
+}
+
 .permissionDemoNote {
   margin: 1.2rem 0 0;
   color: var(--ink-3);
@@ -662,6 +698,176 @@
   font-size: 0.7rem;
 }
 
+/* ── Examine (Scene Autopsy teaser) ────────────────────────────────────────── */
+
+.examineWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  min-width: 0;
+}
+
+.examineWrap .livingFrame {
+  aspect-ratio: 16 / 10;
+  min-height: 300px;
+}
+
+.examineControls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.examineToggle {
+  align-self: flex-start;
+  min-height: 48px;
+  padding: 0.75rem 1.4rem;
+  border: 1px solid var(--stroke-strong);
+  background: transparent;
+  color: var(--ink-1);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition:
+    background var(--duration-standard) var(--ease-quiet),
+    border-color var(--duration-standard) var(--ease-quiet);
+}
+
+.examineToggle:hover {
+  background: var(--surface-1);
+}
+
+.examineToggle:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 3px;
+}
+
+.examineWrap[data-examined] .examineToggle {
+  border-color: var(--accent-restoration);
+}
+
+.examinePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.examineRail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--stroke-default);
+  border: 1px solid var(--stroke-default);
+}
+
+.examineRail button {
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.8rem;
+  border: 0;
+  background: var(--surface-canvas);
+  color: var(--ink-3);
+  text-align: left;
+  cursor: pointer;
+}
+
+.examineRail button[aria-pressed="true"] {
+  background: var(--surface-2);
+  color: var(--ink-1);
+  box-shadow: inset 0 -2px 0 var(--accent-restoration);
+}
+
+.examineRail button:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: -2px;
+}
+
+.examineRail button span {
+  font-family: var(--font-meta);
+  font-size: 0.58rem;
+}
+
+.examineRail button strong {
+  font-size: 0.76rem;
+}
+
+.examineCard {
+  margin-top: 0;
+}
+
+.examineAnchor {
+  position: absolute;
+  z-index: 7;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgb(255 255 255 / 0.45);
+  border-radius: 50%;
+  background: rgb(4 4 4 / 0.8);
+  color: #fff;
+  font-family: var(--font-meta);
+  font-size: 0.62rem;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.examineAnchor[aria-pressed="true"] {
+  border-color: var(--accent-restoration);
+  box-shadow: 0 0 0 4px rgb(255 255 255 / 0.1);
+}
+
+.examineAnchor:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.examineReticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 6;
+  width: 72px;
+  height: 72px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgb(255 255 255 / 0.22);
+  pointer-events: none;
+}
+
+.examineReticle::before,
+.examineReticle::after {
+  content: "";
+  position: absolute;
+  background: rgb(255 255 255 / 0.14);
+}
+
+.examineReticle::before {
+  width: 1px;
+  top: -60px;
+  bottom: -60px;
+  left: 50%;
+}
+
+.examineReticle::after {
+  height: 1px;
+  left: -60px;
+  right: -60px;
+  top: 50%;
+}
+
+.examineScan {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: linear-gradient(180deg, transparent 0%, rgb(185 146 91 / 0.09) 50%, transparent 100%);
+  background-size: 100% 34%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
 .evidenceChain {
   list-style: none;
   margin: 0;
@@ -736,6 +942,84 @@
   max-width: 40rem;
 }
 
+/* ── Craft stage: frame + pressure cards ───────────────────────────────────── */
+
+.craftStage {
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+  align-items: start;
+}
+
+.craftStage .craftPressureGrid {
+  margin-top: 0;
+  grid-template-columns: 1fr;
+}
+
+.craftStage .craftPressureCard {
+  min-height: 0;
+  transition:
+    background var(--duration-standard) var(--ease-quiet),
+    border-color var(--duration-standard) var(--ease-quiet);
+}
+
+.craftFrame {
+  aspect-ratio: 16 / 10;
+  min-height: 320px;
+}
+
+.craftGlow {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-quiet);
+  pointer-events: none;
+}
+
+.craftGlow[data-pressure="empathy"] {
+  background:
+    radial-gradient(ellipse 70% 80% at 30% 55%, rgb(240 220 192 / 0.14), transparent 65%),
+    linear-gradient(0deg, rgb(0 0 0 / 0.12), transparent 40%);
+}
+
+.craftGlow[data-pressure="imitation"] {
+  background:
+    radial-gradient(ellipse 55% 70% at 38% 42%, rgb(217 195 156 / 0.2), transparent 62%),
+    linear-gradient(180deg, rgb(217 195 156 / 0.06), transparent 45%);
+}
+
+.craftChip {
+  position: absolute;
+  z-index: 6;
+  padding: 0.32rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  background: color-mix(in srgb, #030303 78%, transparent);
+  color: var(--ink-1);
+  font-family: var(--font-meta);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity var(--duration-standard) var(--ease-quiet),
+    transform var(--duration-standard) var(--ease-quiet);
+  pointer-events: none;
+}
+
+.craftChip[data-pressure="empathy"] {
+  left: 8%;
+  bottom: 18%;
+}
+
+.craftChip[data-pressure="imitation"] {
+  right: 30%;
+  top: 20%;
+}
+
 /* ── Spoiler ladder ────────────────────────────────────────────────────────── */
 
 .spoilerLadder {
@@ -781,6 +1065,49 @@
 .spoilerStep span {
   color: var(--ink-3);
   font-size: 0.74rem;
+}
+
+.spoilerButton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.spoilerButton:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 3px;
+}
+
+.spoilerStep[data-active="true"] {
+  background: var(--surface-1);
+  box-shadow: inset 0 -2px 0 var(--accent-restoration);
+}
+
+.spoilerPreview {
+  margin: 1.4rem 0 0;
+  max-width: 46rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--accent-restoration);
+  color: var(--ink-2);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  min-height: 3.2em;
+}
+
+.spoilerPreviewLevel {
+  color: var(--ink-1);
+  font-weight: 600;
 }
 
 /* ── Biblical section ──────────────────────────────────────────────────────── */
@@ -1234,6 +1561,15 @@
   .evidenceSection {
     grid-template-columns: 1fr;
   }
+
+  .craftStage {
+    grid-template-columns: 1fr;
+  }
+
+  .craftFrame {
+    aspect-ratio: 2.39 / 1;
+    min-height: 250px;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1338,6 +1674,24 @@
     display: none;
   }
 
+  .craftChip,
+  .examineWrap .examineAnchor,
+  .examineWrap .examineReticle {
+    display: none;
+  }
+
+  .examineRail {
+    grid-template-columns: 1fr;
+  }
+
+  .examineRail button {
+    min-height: 52px;
+  }
+
+  .spoilerPreview {
+    min-height: 0;
+  }
+
   .relationshipPanel {
     padding: 1.2rem;
   }
@@ -1388,7 +1742,7 @@
     background: Canvas;
   }
 
-  .frameScene,
+  .lfMedia,
   .portraitPlaceholder,
   .fogPanel,
   .autopsyFrame {

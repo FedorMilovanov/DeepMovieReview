@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AnalysisWorkbench } from "@/components/analysis-workbench";
+import { LivingFrame } from "@/components/living-frame";
+import { AutopsyExamine } from "@/components/home/autopsy-examine";
+import { PipelineSpy } from "@/components/home/pipeline-spy";
+import { SpoilerLadder } from "@/components/home/spoiler-ladder";
 import type { NarrativePermissionState } from "@/lib/content";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { projectHomepage, type HomepageViewModel } from "@/lib/homepage-projection";
 import type { Confidence } from "@/lib/film-package";
+import craftMaster from "../../public/art/craft-master.jpg";
+import heroMaster from "../../public/art/hero-master.jpg";
+import lensMaster from "../../public/art/lens-master.jpg";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -139,6 +146,17 @@ const permissionStops = [
   { state: "CELEBRATED", label: "Прославляется" },
 ] as const satisfies ReadonlyArray<{ state: NarrativePermissionState; label: string }>;
 
+const permissionScaleIndex: Record<NarrativePermissionState, number | null> = {
+  CONDEMNED: 0,
+  COSTLY: 1,
+  QUESTIONED: 2,
+  UNCHALLENGED: 3,
+  NORMALIZED: 4,
+  REWARDED: 5,
+  CELEBRATED: 6,
+  AMBIGUOUS: null,
+};
+
 const permissionExamples = [
   { subject: "Ложь во спасение", state: "COSTLY" },
   { subject: "Верность другу", state: "REWARDED" },
@@ -157,31 +175,19 @@ const evidenceChain = [
   { label: "Синтез", copy: "Итог — прозой, без сведения фильма к одной цифре." },
 ] as const;
 
-const autopsyDemo = [
-  { term: "Действие", value: "Персонаж скрывает информацию, которая меняет выбор другого." },
-  { term: "Мотив", value: "Защита близкого — и удержание контроля." },
-  { term: "Знание", value: "Ему известно то, чего второй участник не знает." },
-  { term: "Давление", value: "Внешняя угроза сжимает время решения." },
-  { term: "Последствие", value: "Доверие повреждено; настоящая цена вскроется позже." },
-] as const;
-
 const craftPressures = [
   {
+    pressure: "empathy",
     label: "Давление эмпатии",
     copy: "Насколько сильно форма приглашает понять и почувствовать героя изнутри — камерой, ритмом, тишиной.",
+    frameNote: "Камера · близко",
   },
   {
+    pressure: "imitation",
     label: "Давление подражания",
     copy: "Насколько сильно форма делает героя, его стиль и его выбор желанными и привлекательными.",
+    frameNote: "Свет · ореол",
   },
-] as const;
-
-const spoilerLevels = [
-  { level: "Без спойлеров", note: "только завязка и метод" },
-  { level: "Минимальные", note: "структура без финала" },
-  { level: "Серьёзные", note: "повороты и развязки" },
-  { level: "Финал", note: "развязка и её цена" },
-  { level: "Полный разбор", note: "вся глубина анализа" },
 ] as const;
 
 const biblicalSteps = [
@@ -190,28 +196,6 @@ const biblicalSteps = [
   { label: "Применение", copy: "Что это значит для фильма и зрителя — без натяжек." },
   { label: "Оговорка", copy: "Где интерпретация или применение остаётся спорным — честно и явно." },
 ] as const;
-
-function FrameScene({ figures = false }: { figures?: boolean }) {
-  return (
-    <div className="frameScene" aria-hidden="true">
-      <div className="sceneSky" />
-      <div className="sceneCloudsA" />
-      <div className="sceneCloudsB" />
-      <div className="sceneOrb" />
-      <div className="sceneHaze" />
-      <div className="sceneHorizon" />
-      <div className="sceneGround" />
-      {figures ? (
-        <>
-          <div className="sceneFigure sceneFigureA" />
-          <div className="sceneFigure sceneFigureB" />
-        </>
-      ) : null}
-      <div className="sceneGrain" />
-      <div className="sceneVignette" />
-    </div>
-  );
-}
 
 function HeroStatusStrip({ preview }: { preview: boolean }) {
   return (
@@ -246,12 +230,24 @@ function LensStage() {
       <div className="lensStage">
         <div className="lensStageGrid">
           <div className="lensFrameWrap">
-            <div className="livingFrame lensFrame">
-              <div className="frameMeta">
-                <span>Кадр · 0002</span>
-                <span>2.39:1</span>
-              </div>
-              <FrameScene figures />
+            <LivingFrame
+              art={lensMaster}
+              alt="Фигура спиной перед светящимся дверным проёмом в тёмном коридоре"
+              metaLeft="Кадр · 0002"
+              metaRight="2.39:1"
+              label="Живой кадр: шесть линз прочтения"
+              className="lensFrame"
+              sizes="(max-width: 1020px) 100vw, 58vw"
+            >
+              {lensStageLenses.map((lens) => (
+                <span className="lensGrade" data-lens={lens.key} key={`grade-${lens.key}`} aria-hidden="true" />
+              ))}
+              <svg className="lensTrace" data-lens="story" viewBox="0 0 100 41.8" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M14,25.9 C26,25 32,14.5 44,14.2 C56,14 60,24.5 72,24.2" />
+              </svg>
+              <svg className="lensTrace" data-lens="relationships" viewBox="0 0 100 41.8" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M12,14.2 C24,14.2 32,9.2 44,9.2 C56,9.2 60,14.2 70,14.2" />
+              </svg>
               {lensStageLenses.map((lens) => (
                 <div className="lensMarkGroup" data-lens={lens.key} key={lens.key}>
                   {lens.marks.map((mark) => (
@@ -261,7 +257,7 @@ function LensStage() {
                   ))}
                 </div>
               ))}
-            </div>
+            </LivingFrame>
             <p className="lensFrameNote">Демонстрация инструмента: разметка живёт в кадре, а не в тексте эссе.</p>
           </div>
           <div className="lensPanel">
@@ -303,7 +299,7 @@ function LensStage() {
 function PlatformLanding({ preview }: { preview: boolean }) {
   return (
     <>
-      <section className="heroSection sectionShell" aria-labelledby="hero-title">
+      <section className="heroSection sectionShell heroEnter" aria-labelledby="hero-title">
         <div className="eyebrow">Исследование кино через библейскую картину мира · {preview ? "структурный просмотр" : "предзапуск"}</div>
         <div className="heroGrid">
           <div className="heroCopy">
@@ -325,17 +321,17 @@ function PlatformLanding({ preview }: { preview: boolean }) {
               </p>
             ) : null}
           </div>
-          <div className="livingFrame" aria-label="Живой кадр «Глубокие воды»">
-            <div className="frameMeta">
-              <span>Кадр · 0001</span>
-              <span>2.39:1</span>
-            </div>
-            <FrameScene />
-            <div className="frameCaption">
-              <strong>Доказательства раньше вердикта</strong>
-              <span>Публичная страница показывает метод. Незавершённые разборы остаются в редакции.</span>
-            </div>
-          </div>
+          <LivingFrame
+            art={heroMaster}
+            alt="Пустой кинозал: луч проектора режет темноту, две фигуры в проходе"
+            priority
+            metaLeft="Кадр · 0001"
+            metaRight="2.39:1"
+            captionTitle="Доказательства раньше вердикта"
+            captionNote="Публичная страница показывает метод. Незавершённые разборы остаются в редакции."
+            label="Живой кадр «Глубокие воды»"
+            sizes="(max-width: 900px) 100vw, 52vw"
+          />
         </div>
         <div className="heroScrollCue" aria-hidden="true">
           <span className="heroScrollLine" />
@@ -375,7 +371,7 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           Каждый слой — отдельные структурированные данные, а не абзацы одного эссе. Так вывод можно проверить —
           и оспорить по-честному.
         </p>
-        <ol className="pipelineTrack" aria-label="Маршрут анализа">
+        <PipelineSpy className="pipelineTrack" ariaLabel="Маршрут анализа">
           {pipelineSteps.map((step, index) => (
             <li className="pipelineStep" key={step.label}>
               <span className="pipelineStepIndex" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
@@ -383,7 +379,7 @@ function PlatformLanding({ preview }: { preview: boolean }) {
               <span className="pipelineStepNote">{step.note}</span>
             </li>
           ))}
-        </ol>
+        </PipelineSpy>
       </section>
 
       <LensStage />
@@ -403,12 +399,22 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           ))}
         </div>
         <ul className="permissionExamples" aria-label="Примеры состояний (демонстрация)">
-          {permissionExamples.map((example) => (
-            <li className="permissionExample" key={example.subject}>
-              <span>{example.subject}</span>
-              <strong>{permissionStateLabels[example.state]}</strong>
-            </li>
-          ))}
+          {permissionExamples.map((example) => {
+            const scaleIndex = permissionScaleIndex[example.state];
+            return (
+              <li className="permissionExample" key={example.subject}>
+                <span>{example.subject}</span>
+                <strong>{permissionStateLabels[example.state]}</strong>
+                <span
+                  className="permissionTrace"
+                  data-ambiguous={scaleIndex === null || undefined}
+                  aria-hidden="true"
+                >
+                  <i style={scaleIndex === null ? undefined : ({ "--trace-pos": `${(scaleIndex / 6) * 100}%` } as React.CSSProperties)} />
+                </span>
+              </li>
+            );
+          })}
         </ul>
         <p className="permissionDemoNote">Демонстрация шкалы — не вердикты по конкретным фильмам.</p>
         <ul className="permissionRules" aria-label="Правила чтения сигналов">
@@ -428,21 +434,7 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           </p>
         </div>
         <div className="evidenceBody">
-          <div className="autopsyFrame" aria-label="Демонстрация вскрытия сцены">
-            <span className="autopsyFrameTag">Сцена 014 · Акт II</span>
-            <span className="autopsyFrameTc">TC 00:47:12</span>
-            <FrameScene figures />
-            <div className="autopsyCrosshair" aria-hidden="true" />
-          </div>
-          <dl className="autopsyGrid">
-            {autopsyDemo.map((item) => (
-              <div key={item.term}>
-                <dt>{item.term}</dt>
-                <dd>{item.value}</dd>
-              </div>
-            ))}
-          </dl>
-          <p className="autopsyDemoNote">Абстрактный пример инструмента — не фрагмент реального разбора.</p>
+          <AutopsyExamine />
         </div>
         <ol className="evidenceChain" aria-label="Цепочка доказательств">
           {evidenceChain.map((step, index) => (
@@ -464,15 +456,34 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           Ракурс, монтаж, музыка, свет и харизма формируют симпатию до нашего согласия. Поэтому форма — не
           «технический раздел», а часть аргумента. Мы разделяем два разных давления:
         </p>
-        <div className="craftPressureGrid">
-          {craftPressures.map((pressure) => (
-            <article className="craftPressureCard" key={pressure.label}>
-              <span className="microLabel">{pressure.label}</span>
-              <p>{pressure.copy}</p>
-            </article>
-          ))}
+        <div className="craftStage">
+          <LivingFrame
+            art={craftMaster}
+            alt="Крупный план лица в тёплом контровом свете на чёрном фоне"
+            metaLeft="Сцена · крупный план"
+            metaRight="2.39:1"
+            label="Демонстрация: как форма формирует симпатию"
+            className="craftFrame"
+            sizes="(max-width: 1020px) 100vw, 55vw"
+          >
+            <span className="craftGlow" data-pressure="empathy" aria-hidden="true" />
+            <span className="craftGlow" data-pressure="imitation" aria-hidden="true" />
+            {craftPressures.map((pressure) => (
+              <span className="craftChip" data-pressure={pressure.pressure} key={pressure.pressure}>
+                {pressure.frameNote}
+              </span>
+            ))}
+          </LivingFrame>
+          <div className="craftPressureGrid">
+            {craftPressures.map((pressure) => (
+              <article className="craftPressureCard" data-pressure={pressure.pressure} key={pressure.pressure}>
+                <span className="microLabel">{pressure.label}</span>
+                <p>{pressure.copy}</p>
+              </article>
+            ))}
+          </div>
         </div>
-        <p className="craftNote">Сочувствие ≠ одобрение: эмпатия к персонажу — ещё не согласие с его выбором.</p>
+        <p className="craftNote">Сочувствие ≠ одобрение: эмпатия к персонажу — ещё не согласие с его выбором. Наведите курсор на карточку — кадр покажет приём.</p>
       </section>
 
       <section className="sectionShell sectionRule" aria-labelledby="spoilers-title">
@@ -483,14 +494,7 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           откроете. Ссылка на скрытый уровень не вскроет его случайно, а вывод не опирается на то, что вам пока
           скрыто.
         </p>
-        <ol className="spoilerLadder" aria-label="Уровни раскрытия спойлеров">
-          {spoilerLevels.map((level, index) => (
-            <li className="spoilerStep" key={level.level} style={{ "--step": index } as React.CSSProperties}>
-              <strong>{level.level}</strong>
-              <span>{level.note}</span>
-            </li>
-          ))}
-        </ol>
+        <SpoilerLadder />
       </section>
 
       <section className="sectionShell sectionRule biblicalSection" aria-labelledby="biblical-title">
@@ -565,7 +569,7 @@ function PlatformLanding({ preview }: { preview: boolean }) {
 function FilmHero({ data }: { data: HomepageViewModel }) {
   const { featuredFilm } = data;
   return (
-    <section className="heroSection sectionShell" aria-labelledby="hero-title">
+    <section className="heroSection sectionShell heroEnter" aria-labelledby="hero-title">
       <div className="eyebrow">Исследование кино через библейскую картину мира · избранный разбор</div>
       <div className="heroGrid">
         <div className="heroCopy">
@@ -579,17 +583,17 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
             <Link className="buttonGhost" href="/methodology">Методология</Link>
           </div>
         </div>
-        <div className="livingFrame" aria-label={`Кадр фильма ${featuredFilm.title}`}>
-          <div className="frameMeta">
-            <span>Кадр · 0001</span>
-            <span>2.39:1</span>
-          </div>
-          <FrameScene />
-          <div className="frameCaption">
-            <strong>{featuredFilm.title}</strong>
-            <span>{featuredFilm.premise}</span>
-          </div>
-        </div>
+        <LivingFrame
+          art={heroMaster}
+          alt={`Кадр фильма ${featuredFilm.title}`}
+          priority
+          metaLeft="Кадр · 0001"
+          metaRight="2.39:1"
+          captionTitle={featuredFilm.title}
+          captionNote={featuredFilm.premise}
+          label={`Кадр фильма ${featuredFilm.title}`}
+          sizes="(max-width: 900px) 100vw, 52vw"
+        />
       </div>
     </section>
   );
