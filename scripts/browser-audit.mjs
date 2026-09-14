@@ -354,6 +354,16 @@ try {
     return { summary, roles };
   }
 
+  async function inspectNoindex(label) {
+    const robots = await evaluate("document.querySelector('meta[name=\\\"robots\\\"]')?.content ?? ''");
+    const directives = String(robots)
+      .toLowerCase()
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    assertCheck(label + ": robots noindex", directives.includes("noindex"), robots);
+  }
+
   await send("Page.enable");
   await send("Network.enable");
   await send("Runtime.enable");
@@ -534,6 +544,7 @@ try {
 
   await navigate("/labs/living-frame", 1280, 900);
   await inspectBasic("living frame desktop");
+  await inspectNoindex("living frame desktop");
   const livingVariantCount = await evaluate("document.querySelectorAll('[data-living-frame-variant]').length");
   assertCheck("living frame: three comparison variants exist", livingVariantCount === 3, livingVariantCount);
   const livingDefaultVariant = await evaluate("document.querySelector('[data-living-frame-rd]')?.dataset.effectiveVariant");
@@ -730,8 +741,139 @@ try {
   await inspectNoHorizontalOverflow("methodology zoom 200");
   await capture("methodology-zoom-200", true);
 
+  await navigate("/labs/moral-lens", 1280, 900);
+  await inspectBasic("moral lens lab desktop");
+  await inspectNoindex("moral lens lab desktop");
+  await inspectNoHorizontalOverflow("moral lens lab desktop");
+  const moralLensState = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "targets: document.querySelectorAll('[data-lens-mode]').length," +
+      "pressed: document.querySelectorAll('[data-lens-mode][aria-pressed=\\\"true\\\"]').length," +
+      "selected: document.querySelector('[data-lens-mode][aria-pressed=\\\"true\\\"]')?.dataset.lensMode" +
+    "})"
+  ));
+  assertCheck("moral lens lab: four semantic targets", moralLensState.targets === 4, moralLensState);
+  assertCheck("moral lens lab: exactly one selected target", moralLensState.pressed === 1 && moralLensState.selected === "EXAMINE", moralLensState);
+  await inspectMinimumTargetSize("moral lens lab", "[data-lens-mode]");
+  await evaluate("document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]')?.click()");
+  await sleep(120);
+  const moralLensSelection = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "pressed: document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]')?.getAttribute('aria-pressed')," +
+      "header: document.body.innerText.includes('SELECTED / WEIGH')" +
+    "})"
+  ));
+  assertCheck("moral lens lab: click updates selected semantic mode", moralLensSelection.pressed === "true" && moralLensSelection.header, moralLensSelection);
+  await evaluate("document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]')?.scrollIntoView({block:'center'})");
+  await sleep(120);
+  const moralLensTargetBounds = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const n=document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]'); const r=n?.getBoundingClientRect(); return r ? {x:r.left+r.width/2,y:r.top+r.height/2} : null; })())"
+  ));
+  assertCheck("moral lens lab: WEIGH target has measurable geometry", Boolean(moralLensTargetBounds), moralLensTargetBounds);
+  if (moralLensTargetBounds) {
+    await evaluate(
+      "(() => { const n=document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]'); if(!n) return false; n.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:" +
+        moralLensTargetBounds.x +
+        ",clientY:" +
+        moralLensTargetBounds.y +
+        "})); return true; })()"
+    );
+  }
+  await sleep(100);
+  const moralLensPointer = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const label=document.querySelector('span[data-lens-label]'); const cursor=label?.parentElement; return {visible:cursor?.dataset.visible,mode:cursor?.dataset.mode,label:label?.textContent}; })())"
+  ));
+  assertCheck("moral lens lab: pointer handler exposes WEIGH instrument state", moralLensPointer.visible === "true" && moralLensPointer.mode === "weigh" && moralLensPointer.label === "WEIGH", moralLensPointer);
+  await capture("moral-lens-lab-desktop", true);
+
+  await navigate("/labs/moral-lens", 390, 844);
+  await inspectBasic("moral lens lab mobile");
+  await inspectNoHorizontalOverflow("moral lens lab mobile");
+  await inspectMinimumTargetSize("moral lens lab mobile", "[data-lens-mode]");
+  await capture("moral-lens-lab-mobile", true);
+
+  await navigate("/labs/moral-lens", 640, 450, false, false, 2);
+  await inspectBasic("moral lens lab zoom 200");
+  await inspectNoHorizontalOverflow("moral lens lab zoom 200");
+  await capture("moral-lens-lab-zoom-200", true);
+
+  await navigate("/labs/narrative-permission", 1280, 900);
+  await inspectBasic("narrative permission lab desktop");
+  await inspectNoindex("narrative permission lab desktop");
+  await inspectNoHorizontalOverflow("narrative permission lab desktop");
+  const permissionState = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "buttons: document.querySelectorAll('nav[aria-label=\\\"Fixture behaviors\\\"] button').length," +
+      "pressed: document.querySelectorAll('nav[aria-label=\\\"Fixture behaviors\\\"] button[aria-pressed=\\\"true\\\"]').length" +
+    "})"
+  ));
+  assertCheck("narrative permission lab: five fixture behaviors", permissionState.buttons === 5, permissionState);
+  assertCheck("narrative permission lab: exactly one selected behavior", permissionState.pressed === 1, permissionState);
+  await inspectMinimumTargetSize("narrative permission lab", "nav[aria-label=\"Fixture behaviors\"] button");
+  await evaluate("document.querySelectorAll('nav[aria-label=\\\"Fixture behaviors\\\"] button')[1]?.click()");
+  await sleep(120);
+  const permissionSelection = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "pressed: document.querySelectorAll('nav[aria-label=\\\"Fixture behaviors\\\"] button')[1]?.getAttribute('aria-pressed')," +
+      "heading: document.querySelector('article h3')?.textContent," +
+      "activeState: document.querySelector('[data-active=\\\"true\\\"]')?.textContent" +
+    "})"
+  ));
+  assertCheck("narrative permission lab: selection updates inspector and state", permissionSelection.pressed === "true" && permissionSelection.heading === "Emotionally absent parenting" && permissionSelection.activeState === "UNCHALLENGED", permissionSelection);
+  await capture("narrative-permission-lab-desktop", true);
+
+  await navigate("/labs/narrative-permission", 390, 844);
+  await inspectBasic("narrative permission lab mobile");
+  await inspectNoHorizontalOverflow("narrative permission lab mobile");
+  await inspectMinimumTargetSize("narrative permission lab mobile", "nav[aria-label=\"Fixture behaviors\"] button");
+  await capture("narrative-permission-lab-mobile", true);
+
+  await navigate("/labs/narrative-permission", 640, 450, false, false, 2);
+  await inspectBasic("narrative permission lab zoom 200");
+  await inspectNoHorizontalOverflow("narrative permission lab zoom 200");
+  await capture("narrative-permission-lab-zoom-200", true);
+
+  await navigate("/labs/relationship-observatory", 1280, 900);
+  await inspectBasic("relationship observatory lab desktop");
+  await inspectNoindex("relationship observatory lab desktop");
+  await inspectNoHorizontalOverflow("relationship observatory lab desktop");
+  const relationshipState = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "buttons: document.querySelectorAll('ol[aria-label=\\\"Relationship events\\\"] button').length," +
+      "pressed: document.querySelectorAll('ol[aria-label=\\\"Relationship events\\\"] button[aria-pressed=\\\"true\\\"]').length," +
+      "rows: document.querySelectorAll('[role=\\\"table\\\"] [role=\\\"row\\\"]').length" +
+    "})"
+  ));
+  assertCheck("relationship observatory lab: five relationship events", relationshipState.buttons === 5, relationshipState);
+  assertCheck("relationship observatory lab: exactly one selected event", relationshipState.pressed === 1, relationshipState);
+  assertCheck("relationship observatory lab: semantic change table is complete", relationshipState.rows === 6, relationshipState);
+  await inspectMinimumTargetSize("relationship observatory lab", "ol[aria-label=\"Relationship events\"] button");
+  await evaluate("document.querySelectorAll('ol[aria-label=\\\"Relationship events\\\"] button')[3]?.click()");
+  await sleep(120);
+  const relationshipSelection = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "pressed: document.querySelectorAll('ol[aria-label=\\\"Relationship events\\\"] button')[3]?.getAttribute('aria-pressed')," +
+      "heading: document.querySelector('article h3')?.textContent," +
+      "tableLabel: document.querySelector('[role=\\\"table\\\"]')?.getAttribute('aria-label')" +
+    "})"
+  ));
+  assertCheck("relationship observatory lab: selection updates event and table", relationshipSelection.pressed === "true" && relationshipSelection.heading === "Costly honesty" && relationshipSelection.tableLabel?.includes("Costly honesty"), relationshipSelection);
+  await capture("relationship-observatory-lab-desktop", true);
+
+  await navigate("/labs/relationship-observatory", 390, 844);
+  await inspectBasic("relationship observatory lab mobile");
+  await inspectNoHorizontalOverflow("relationship observatory lab mobile");
+  await inspectMinimumTargetSize("relationship observatory lab mobile", "ol[aria-label=\"Relationship events\"] button");
+  await capture("relationship-observatory-lab-mobile", true);
+
+  await navigate("/labs/relationship-observatory", 640, 450, false, false, 2);
+  await inspectBasic("relationship observatory lab zoom 200");
+  await inspectNoHorizontalOverflow("relationship observatory lab zoom 200");
+  await capture("relationship-observatory-lab-zoom-200", true);
+
   await navigate("/labs/six-lenses", 1280, 900);
   const six = await inspectBasic("six lenses");
+  await inspectNoindex("six lenses");
   const tabState = JSON.parse(await evaluate(
     "JSON.stringify({" +
       "tablists: document.querySelectorAll('[role=tablist]').length," +
@@ -760,6 +902,7 @@ try {
 
   await navigate("/labs/scene-autopsy", 1280, 900);
   await inspectBasic("scene autopsy");
+  await inspectNoindex("scene autopsy");
   const autopsyState = JSON.parse(await evaluate(
     "JSON.stringify({" +
       "buttons: document.querySelectorAll('[aria-label=\"Scene evidence anchors\"] button').length," +
