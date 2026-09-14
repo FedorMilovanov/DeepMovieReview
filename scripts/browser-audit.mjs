@@ -185,6 +185,27 @@ try {
     await send("Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
   }
 
+  async function typeAscii(text) {
+    for (const character of text) {
+      const upper = character.toUpperCase();
+      const virtualKeyCode = upper.codePointAt(0);
+      const keyEvent = {
+        key: character,
+        code: `Key${upper}`,
+        windowsVirtualKeyCode: virtualKeyCode,
+        nativeVirtualKeyCode: virtualKeyCode,
+      };
+      await send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...keyEvent });
+      await send("Input.dispatchKeyEvent", {
+        type: "char",
+        text: character,
+        unmodifiedText: character,
+        ...keyEvent,
+      });
+      await send("Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
+    }
+  }
+
   async function evaluate(expression) {
     const result = await send("Runtime.evaluate", {
       expression,
@@ -684,6 +705,88 @@ try {
   await navigate("/films", 1280, 900);
   await inspectBasic("film index desktop");
   await inspectNoHorizontalOverflow("film index desktop");
+
+  const filmIndexInitial = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "input: Boolean(document.querySelector('#film-filter[type=search]'))," +
+      "label: document.querySelector('label[for=\\\"film-filter\\\"]')?.textContent?.trim()," +
+      "live: document.querySelector('.filmFilterCount')?.getAttribute('aria-live')," +
+      "count: document.querySelectorAll('.filmRow').length" +
+    "})"
+  ));
+  assertCheck("film index filter: labelled search control exists", filmIndexInitial.input && filmIndexInitial.label === "Поиск по индексу", filmIndexInitial);
+  assertCheck("film index filter: result count is a polite live region", filmIndexInitial.live === "polite", filmIndexInitial);
+  assertCheck("film index filter: initial SSR list is populated", filmIndexInitial.count > 1, filmIndexInitial);
+
+  await evaluate("document.querySelector('#film-filter')?.focus()");
+  await typeAscii("truman");
+  await sleep(120);
+  const filmIndexTypedState = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "value: document.querySelector('#film-filter')?.value," +
+      "activeId: document.activeElement?.id," +
+      "rows: document.querySelectorAll('.filmRow').length" +
+    "})"
+  ));
+  assertCheck("film index filter: keyboard input reaches the search control", filmIndexTypedState.value === "truman", filmIndexTypedState);
+  await waitForExpression("document.querySelectorAll('.filmRow').length === 1");
+  const filmIndexFiltered = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "value: document.querySelector('#film-filter')?.value," +
+      "focused: document.activeElement?.id === 'film-filter'," +
+      "rows: document.querySelectorAll('.filmRow').length," +
+      "title: document.querySelector('.filmRowTitle')?.textContent?.trim()," +
+      "href: document.querySelector('.filmRow')?.getAttribute('href')," +
+      "count: document.querySelector('.filmFilterCount')?.textContent?.trim()" +
+    "})"
+  ));
+  assertCheck(
+    "film index filter: typing narrows the rendered list without losing focus",
+    filmIndexFiltered.value === "truman" &&
+      filmIndexFiltered.focused &&
+      filmIndexFiltered.rows === 1 &&
+      filmIndexFiltered.title === "Шоу Трумана" &&
+      filmIndexFiltered.href === "/films/the-truman-show" &&
+      filmIndexFiltered.count === `Показано 1 из ${filmIndexInitial.count}`,
+    filmIndexFiltered,
+  );
+
+  await evaluate("document.querySelector('#film-filter')?.select()");
+  await typeAscii("zzzzzz");
+  await waitForExpression("document.querySelectorAll('.filmRow').length === 0");
+  const filmIndexEmpty = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "rows: document.querySelectorAll('.filmRow').length," +
+      "empty: document.querySelector('.filmList + .fixtureNotice')?.textContent?.trim()," +
+      "count: document.querySelector('.filmFilterCount')?.textContent?.trim()" +
+    "})"
+  ));
+  assertCheck(
+    "film index filter: unmatched query exposes the empty state and zero count",
+    filmIndexEmpty.rows === 0 &&
+      filmIndexEmpty.empty === "Ничего не найдено. Попробуйте другое название." &&
+      filmIndexEmpty.count === `Показано 0 из ${filmIndexInitial.count}`,
+    filmIndexEmpty,
+  );
+
+  await evaluate("document.querySelector('#film-filter')?.select()");
+  await send("Input.dispatchKeyEvent", { type: "rawKeyDown", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Backspace", code: "Backspace", windowsVirtualKeyCode: 8 });
+  await waitForExpression(`document.querySelectorAll('.filmRow').length === ${filmIndexInitial.count}`);
+  const filmIndexRestored = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "value: document.querySelector('#film-filter')?.value," +
+      "rows: document.querySelectorAll('.filmRow').length," +
+      "empty: Boolean(document.querySelector('.filmList + .fixtureNotice'))" +
+    "})"
+  ));
+  assertCheck(
+    "film index filter: clearing the query restores the complete list",
+    filmIndexRestored.value === "" &&
+      filmIndexRestored.rows === filmIndexInitial.count &&
+      filmIndexRestored.empty === false,
+    filmIndexRestored,
+  );
   await capture("film-index-desktop", true);
 
   await navigate("/films", 390, 844);

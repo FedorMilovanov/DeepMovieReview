@@ -1,11 +1,13 @@
 /**
- * Pure film-index search logic. The query matches against the title, the
- * year and the human-readable status label; an empty query keeps the full
- * list. Matching is case-insensitive and whitespace-tolerant so the
- * component layer stays a thin controlled input over this function.
+ * Pure film-index search logic. The query matches against the localized
+ * title, optional original title, year and human-readable status label; an
+ * empty query keeps the full list. Matching is case-insensitive and
+ * whitespace-tolerant so the component layer stays a thin controlled input
+ * over this function.
  */
 export type FilmIndexSearchEntry = {
   title: string;
+  originalTitle?: string;
   year: number;
   status: string;
 };
@@ -21,6 +23,8 @@ export function filterFilmIndex<T extends FilmIndexSearchEntry>(
   const normalized = normalizeSearchText(query);
   if (normalized.length === 0) return [...films];
   return films.filter((film) =>
-    normalizeSearchText(`${film.title} ${film.year} ${film.status}`).includes(normalized),
+    normalizeSearchText(
+      `${film.title} ${film.originalTitle ?? ""} ${film.year} ${film.status}`,
+    ).includes(normalized),
   );
 }
