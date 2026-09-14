@@ -764,12 +764,20 @@ try {
     "})"
   ));
   assertCheck("moral lens lab: click updates selected semantic mode", moralLensSelection.pressed === "true" && moralLensSelection.header, moralLensSelection);
-  await evaluate(
-    "(() => { const n=document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]'); if(!n) return false; const r=n.getBoundingClientRect(); n.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,pointerType:'mouse',clientX:r.left+r.width/2,clientY:r.top+r.height/2})); return true; })()"
-  );
+  const moralLensTargetBounds = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const n=document.querySelector('[data-lens-mode=\\\"WEIGH\\\"]'); const r=n?.getBoundingClientRect(); return r ? {x:r.left+r.width/2,y:r.top+r.height/2} : null; })())"
+  ));
+  assertCheck("moral lens lab: WEIGH target has measurable geometry", Boolean(moralLensTargetBounds), moralLensTargetBounds);
+  if (moralLensTargetBounds) {
+    await send("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: moralLensTargetBounds.x,
+      y: moralLensTargetBounds.y,
+    });
+  }
   await sleep(100);
   const moralLensPointer = JSON.parse(await evaluate(
-    "JSON.stringify((() => { const label=document.querySelector('[data-lens-label]'); const cursor=label?.parentElement; return {visible:cursor?.dataset.visible,mode:cursor?.dataset.mode,label:label?.textContent}; })())"
+    "JSON.stringify((() => { const label=document.querySelector('span[data-lens-label]'); const cursor=label?.parentElement; return {visible:cursor?.dataset.visible,mode:cursor?.dataset.mode,label:label?.textContent}; })())"
   ));
   assertCheck("moral lens lab: pointer exposes WEIGH instrument state", moralLensPointer.visible === "true" && moralLensPointer.mode === "weigh" && moralLensPointer.label === "WEIGH", moralLensPointer);
   await capture("moral-lens-lab-desktop", true);
@@ -797,7 +805,7 @@ try {
   ));
   assertCheck("narrative permission lab: five fixture behaviors", permissionState.buttons === 5, permissionState);
   assertCheck("narrative permission lab: exactly one selected behavior", permissionState.pressed === 1, permissionState);
-  await inspectMinimumTargetSize("narrative permission lab", "nav[aria-label=\\\"Fixture behaviors\\\"] button");
+  await inspectMinimumTargetSize("narrative permission lab", "nav[aria-label=\"Fixture behaviors\"] button");
   await evaluate("document.querySelectorAll('nav[aria-label=\\\"Fixture behaviors\\\"] button')[1]?.click()");
   await sleep(120);
   const permissionSelection = JSON.parse(await evaluate(
@@ -813,7 +821,7 @@ try {
   await navigate("/labs/narrative-permission", 390, 844);
   await inspectBasic("narrative permission lab mobile");
   await inspectNoHorizontalOverflow("narrative permission lab mobile");
-  await inspectMinimumTargetSize("narrative permission lab mobile", "nav[aria-label=\\\"Fixture behaviors\\\"] button");
+  await inspectMinimumTargetSize("narrative permission lab mobile", "nav[aria-label=\"Fixture behaviors\"] button");
   await capture("narrative-permission-lab-mobile", true);
 
   await navigate("/labs/narrative-permission", 640, 450, false, false, 2);
@@ -835,7 +843,7 @@ try {
   assertCheck("relationship observatory lab: five relationship events", relationshipState.buttons === 5, relationshipState);
   assertCheck("relationship observatory lab: exactly one selected event", relationshipState.pressed === 1, relationshipState);
   assertCheck("relationship observatory lab: semantic change table is complete", relationshipState.rows === 6, relationshipState);
-  await inspectMinimumTargetSize("relationship observatory lab", "ol[aria-label=\\\"Relationship events\\\"] button");
+  await inspectMinimumTargetSize("relationship observatory lab", "ol[aria-label=\"Relationship events\"] button");
   await evaluate("document.querySelectorAll('ol[aria-label=\\\"Relationship events\\\"] button')[3]?.click()");
   await sleep(120);
   const relationshipSelection = JSON.parse(await evaluate(
@@ -851,7 +859,7 @@ try {
   await navigate("/labs/relationship-observatory", 390, 844);
   await inspectBasic("relationship observatory lab mobile");
   await inspectNoHorizontalOverflow("relationship observatory lab mobile");
-  await inspectMinimumTargetSize("relationship observatory lab mobile", "ol[aria-label=\\\"Relationship events\\\"] button");
+  await inspectMinimumTargetSize("relationship observatory lab mobile", "ol[aria-label=\"Relationship events\"] button");
   await capture("relationship-observatory-lab-mobile", true);
 
   await navigate("/labs/relationship-observatory", 640, 450, false, false, 2);
