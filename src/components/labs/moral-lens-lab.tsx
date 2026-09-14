@@ -48,24 +48,68 @@ export function MoralLensLab() {
   const currentPosition = useRef({ x: 0, y: 0 });
   const [selected, setSelected] = useState<LensMode>("EXAMINE");
 
+  const frameRef = useRef<number | null>(null);
+  const reducedMotionRef = useRef(false);
+
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    let frame = 0;
+
+    const syncReducedMotion = () => {
+      reducedMotionRef.current = reducedMotion.matches;
+    };
+
+    syncReducedMotion();
+    reducedMotion.addEventListener("change", syncReducedMotion);
+    return () => {
+      reducedMotion.removeEventListener("change", syncReducedMotion);
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+    };
+  }, []);
+
+  function setCursorPosition(cursor: HTMLDivElement, x: number, y: number) {
+    currentPosition.current = { x, y };
+    cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  }
+
+  function scheduleCursorMotion() {
+    if (frameRef.current !== null) return;
 
     const tick = () => {
       const cursor = cursorRef.current;
-      if (cursor) {
-        const easing = reducedMotion.matches ? 1 : 0.22;
-        currentPosition.current.x += (targetPosition.current.x - currentPosition.current.x) * easing;
-        currentPosition.current.y += (targetPosition.current.y - currentPosition.current.y) * easing;
-        cursor.style.transform = `translate3d(${currentPosition.current.x}px, ${currentPosition.current.y}px, 0)`;
+      if (!cursor) {
+        frameRef.current = null;
+        return;
       }
-      frame = window.requestAnimationFrame(tick);
+
+      const target = targetPosition.current;
+      if (reducedMotionRef.current) {
+        setCursorPosition(cursor, target.x, target.y);
+        frameRef.current = null;
+        return;
+      }
+
+      currentPosition.current.x += (target.x - currentPosition.current.x) * 0.22;
+      currentPosition.current.y += (target.y - currentPosition.current.y) * 0.22;
+      cursor.style.transform =
+        `translate3d(${currentPosition.current.x}px, ${currentPosition.current.y}px, 0)`;
+
+      const remaining = Math.hypot(
+        target.x - currentPosition.current.x,
+        target.y - currentPosition.current.y,
+      );
+      if (remaining > 0.2) {
+        frameRef.current = window.requestAnimationFrame(tick);
+      } else {
+        setCursorPosition(cursor, target.x, target.y);
+        frameRef.current = null;
+      }
     };
 
-    frame = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
+    frameRef.current = window.requestAnimationFrame(tick);
+  }
 
   function updatePointer(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType === "touch") return;
@@ -81,6 +125,16 @@ export function MoralLensLab() {
     targetPosition.current = { x, y };
     stage.style.setProperty("--lens-x", `${x}px`);
     stage.style.setProperty("--lens-y", `${y}px`);
+
+    if (reducedMotionRef.current) {
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+      setCursorPosition(cursor, x, y);
+    } else {
+      scheduleCursorMotion();
+    }
 
     const target = (event.target as HTMLElement).closest<HTMLElement>("[data-lens-mode]");
     const mode = target?.dataset.lensMode ?? "DEFAULT";
@@ -98,11 +152,17 @@ export function MoralLensLab() {
     const x = event.clientX - bounds.left;
     const y = event.clientY - bounds.top;
     targetPosition.current = { x, y };
-    currentPosition.current = { x, y };
-    if (cursorRef.current) cursorRef.current.dataset.visible = "true";
+    if (cursorRef.current) {
+      setCursorPosition(cursorRef.current, x, y);
+      cursorRef.current.dataset.visible = "true";
+    }
   }
 
   function leaveStage() {
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
     if (cursorRef.current) {
       cursorRef.current.dataset.visible = "false";
       cursorRef.current.dataset.mode = "default";
