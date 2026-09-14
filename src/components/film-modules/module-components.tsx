@@ -299,7 +299,7 @@ export function MoralAnalysisModuleView({ module }: { module: MoralAnalysisModul
     <section id={module.id} className="sectionShell sectionRule filmModule filmMoralAnalysis">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       {module.summary ? <p className="sectionIntro">{module.summary}</p> : null}
-      <div className="filmMoralLedgerMeta" aria-label="Сводка видимых моральных событий">
+      <div className="filmMoralLedgerMeta" role="group" aria-label="Сводка видимых моральных событий">
         <div><span>Видимые значимые события</span><strong>{module.events.length}</strong></div>
         <div><span>Видимые проступки</span><strong>{wrongdoingCount}</strong></div>
         <p>Подсчёт событий носит описательный характер и никогда не используется как мера тяжести, качества фильма или одобрения со стороны повествования.</p>

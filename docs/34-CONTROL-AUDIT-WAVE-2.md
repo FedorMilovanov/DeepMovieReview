@@ -27,11 +27,13 @@ typecheck, lint, **52/52** regression tests, production build (15 pages), route 
 
 ## 3. Fixed by this audit
 
-1. **Dead moral-ledger hover glow** — `.filmMoralLedger > li::before` referenced
-   `--dmr-pointer-x/y`, which nothing in the codebase ever sets, so the entire
-   `background` declaration was dropped and hover/focus revealed nothing. The
-   gradient now carries centered fallbacks. Per-row pointer tracking remains a
-   documented future nuance, not a silent breakage.
+1. **Moral-ledger hover glow hardening** — `.filmMoralLedger > li::before` referenced
+   `--dmr-pointer-x/y`. Correction to the first version of this note: the
+   properties ARE registered via `@property` with 50% initial values, so modern
+   browsers always rendered the glow (statically centered) — nothing was
+   visibly broken. The added `var()` fallbacks only extend that to pre-`@property`
+   engines and document the intent. Per-row pointer tracking remains a future
+   nuance, not a silent breakage.
 2. **VerdictCore shell label** — `aria-label` on a role-less `div` never computes;
    the shell now has `role="img"`.
 3. **VerdictCore stale quality state** — shadows, tone mapping and exposure are

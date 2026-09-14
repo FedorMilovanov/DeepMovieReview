@@ -16,7 +16,7 @@ export function FinalSynthesisModuleView({ module }: { module: FinalSynthesisMod
         <VerdictCore />
       </div>
 
-      <div className="filmSynthesisFacets" aria-label="Независимые грани синтеза">
+      <div className="filmSynthesisFacets" role="group" aria-label="Независимые грани синтеза">
         {module.facets.map((facet) => (
           <article key={facet.key}>
             <span>{facet.label}</span>

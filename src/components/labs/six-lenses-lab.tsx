@@ -203,7 +203,7 @@ export function SixLensesLab() {
             </div>
             <h2 id="six-lenses-title">{selected.question}</h2>
             <p>{selected.summary}</p>
-            <div className={styles.annotationList} aria-label={`${selected.id} annotations`}>
+            <div className={styles.annotationList} role="group" aria-label={`${selected.id} annotations`}>
               {selected.annotations.map((annotation) => (
                 <div key={annotation.id}>
                   <span>{annotation.label}</span>
