@@ -56,8 +56,10 @@ The v0 authoring contract already uses categorical interpretive confidence — `
 
 ## 7. Relationship model
 
-- Which relationship dimensions are sufficiently reliable for structured tags?
-- Should `trust`, `power`, `responsibility`, `repair` be states, events or both?
+The v0 relationship contract already models change through authored events plus optional before/after dimension shifts across `TRUST`, `TRUTHFULNESS`, `POWER`, `BOUNDARIES`, `RESPONSIBILITY` and `REPAIR`; published real-film relationships also bind to stable participant character IDs. That settles the current data shape as event-driven change with structured dimension deltas, while the reliability and interpretation of those dimensions still require calibration.
+
+- Which of the current relationship dimensions remain sufficiently reliable for structured comparison after editorial calibration?
+- Does the event + dimension-shift model remain expressive enough across very different relationship types?
 - How do relationship types change over time?
 - How should one-sided/unreciprocated relationships be represented?
 - What is the minimum evidence for claims about a marriage/friendship/family system?
@@ -83,8 +85,10 @@ The v0 authoring contract already uses categorical interpretive confidence — `
 
 ## 10. Themes / meaning / worldview
 
+The v0 `MeaningModule` already links a `theme`, `question`, `apparentClaim`, `counterevidence` and categorical confidence in one authored record. The current schema therefore treats Narrative Question and the apparent Narrative Claim as a paired analytical unit; whether that rule survives broader corpus calibration remains a methodology question.
+
 - How many theme tags before taxonomy becomes generic?
-- Should `Narrative Question` and `Narrative Claim` always be linked?
+- Does requiring a question + apparent claim pair for every Meaning module remain useful across films that deliberately refuse or destabilize an answer?
 - How do we represent films that intentionally refuse an answer?
 - How do we distinguish a film's textual claim from creator interviews/intent?
 - Which worldview topic families are stable enough for structured comparison?
@@ -137,10 +141,12 @@ The v0 moral-event contract already fixes `MoralNarrativeStance` as `CONDEMNS �
 
 ## 16. Craft-as-evidence model
 
-- Which craft observations should be structured?
+The v0 Craft contract already structures observations by `CraftMechanism` (camera distance/movement, point of view, lighting, color, music, sound, editing rhythm, reaction shot, performance, comic timing, slow motion, production design, costume and `OTHER`). It also supports reusable `EMPATHY` / `IMITATION` pressure assessments with an optional `LOW | MEDIUM | HIGH` level, prose rationale, linked craft observations, confidence and evidence support. Treat that as the current authoring shape, not as proof that every mechanism or pressure scale is editorially reliable.
+
+- Does the current `CraftMechanism` vocabulary remain useful without encouraging over-structuring?
 - How do we represent music/camera/editing as evidence without overclaiming intentional symbolism?
-- Is `Empathy Pressure` categorical or prose-only?
-- Is `Imitation Pressure` useful across enough films to justify a reusable component?
+- Does optional categorical level + prose rationale give `Empathy Pressure` enough nuance?
+- Is reusable `Imitation Pressure` justified across enough films after calibration?
 - Which genre/satire qualifications need methodology notes?
 
 ## 17. Scene model
