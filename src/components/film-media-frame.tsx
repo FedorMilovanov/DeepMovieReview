@@ -47,6 +47,7 @@ export function FilmMediaFrame({ slug, variant }: FilmMediaFrameProps) {
       metaRight="платформенный арт"
       className="filmMediaFrameHero"
       transitionSlug={slug}
+      label="Декоративный платформенный арт. Это не кадр из фильма."
     />
   );
 }

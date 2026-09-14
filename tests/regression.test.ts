@@ -7,7 +7,7 @@ import { validateFilmPackage } from "../src/lib/film-package-integrity";
 import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
-import { canRevealSpoiler, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
+import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
 import { filterFilmIndex } from "../src/lib/film-index";
 import { pluralRu } from "../src/lib/plural-ru";
 import type { FilmPackage, CharactersModule } from "../src/lib/film-package";
@@ -432,6 +432,16 @@ test("spoiler helpers normalize URL state and preserve monotonic reveal permissi
   assert.equal(canRevealSpoiler("FULL", "ENDING"), true);
   assert.equal(withSpoilerQuery("/films/example", "NONE"), "/films/example");
   assert.equal(withSpoilerQuery("/films/example", "MAJOR"), "/films/example?spoilers=major");
+  const scoped = [
+    { id: "safe", spoilerLevel: "NONE" },
+    { id: "minor", spoilerLevel: "MINOR" },
+    { id: "ending", spoilerLevel: "ENDING" },
+  ] as const;
+  assert.deepEqual(
+    filterBySpoilerLevel(scoped, "MINOR").map((item) => item.id),
+    ["safe", "minor"],
+  );
+  assert.deepEqual(filterBySpoilerLevel(scoped, "NONE").map((item) => item.id), ["safe"]);
 });
 
 test("provenance verification and review dates require valid calendar dates", () => {

@@ -22,6 +22,11 @@ export type LivingFrameProps = {
   metaRight?: string;
   captionTitle?: string;
   captionNote?: string;
+  /**
+   * Accessible label for the frame, rendered as screen-reader-only text.
+   * (An aria-label would not compute: figure has no implicit role without
+   * a figcaption, and would override the caption when one is present.)
+   */
   label?: string;
   className?: string;
   parallax?: boolean;
@@ -146,7 +151,6 @@ export function LivingFrame({
       ref={frameRef}
       className={frameClassName}
       style={frameStyle}
-      aria-label={label}
       data-lens-cursor={lensCursor}
       data-film-transition-media={transitionSlug}
       data-zoomed={zoomed || undefined}
@@ -181,6 +185,7 @@ export function LivingFrame({
           {captionNote ? <span>{captionNote}</span> : null}
         </figcaption>
       ) : null}
+      {label ? <span className="visuallyHidden">{label}</span> : null}
     </figure>
   );
 }

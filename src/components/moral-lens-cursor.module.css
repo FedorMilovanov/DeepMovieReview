@@ -8,6 +8,9 @@
   inset: 0;
   z-index: 5000;
   pointer-events: none;
+  /* The state tag extends past the cursor; clip it so right/bottom-edge
+     positions never widen the scrollable overflow area. */
+  overflow: clip;
   opacity: 0;
   transition: opacity 300ms var(--ease-quiet);
 }

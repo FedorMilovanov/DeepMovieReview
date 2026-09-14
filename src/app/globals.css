@@ -324,6 +324,11 @@ h2 {
 }
 
 @media (max-width: 720px) {
+  /* 16px keeps iOS Safari from auto-zooming on input focus. */
+  .filmFilter input {
+    font-size: 16px;
+  }
+
   .siteNav {
     display: none;
   }

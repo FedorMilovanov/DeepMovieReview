@@ -66,6 +66,11 @@ export function FilmTransitionLink({
     event.preventDefault();
     const target = new URL(href, window.location.href);
     const selector = `[data-film-transition-media="${CSS.escape(slug)}"]`;
+    // The index row (div) and the film hero (figure) share the transition
+    // key. Wait specifically for the hero figure: the old index row is still
+    // queryable in the commit window where the URL has already flipped, and
+    // matching it would snapshot stale DOM as the "new" state.
+    const heroSelector = `figure${selector}`;
 
     document.documentElement.dataset.routeTransition = "active";
 
@@ -74,7 +79,7 @@ export function FilmTransitionLink({
         await animateView(
           async () => {
             router.push(href);
-            await waitForNavigation(target.pathname, selector);
+            await waitForNavigation(target.pathname, heroSelector);
           },
           { duration: 0.44, ease: [0.22, 1, 0.36, 1] },
         )

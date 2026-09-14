@@ -138,7 +138,7 @@ function EvidenceCard({
           </span>
         ) : null}
       </div>
-      <h4>{record.label}</h4>
+      <h3>{record.label}</h3>
       <p>{record.observation}</p>
       <dl className="evidenceMapMeta">
         {scene ? <div><dt>Сцена</dt><dd>{scene.shortLabel}</dd></div> : null}

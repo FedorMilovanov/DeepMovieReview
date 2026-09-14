@@ -25,6 +25,20 @@ body {
   outline-offset: var(--focus-offset);
 }
 
+/* Screen-reader-only text: removes the element from the visual layout
+   without hiding it from assistive technology. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: clip;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 :where(button, input, textarea, select) {
   font: inherit;
 }
