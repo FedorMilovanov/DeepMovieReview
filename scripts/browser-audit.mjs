@@ -751,6 +751,30 @@ try {
   assertCheck("scene autopsy: keyboard activates and preserves focus", autopsyKeyboardActivated);
   await capture("scene-autopsy", true);
 
+  await navigate("/labs/scene-autopsy", 390, 844);
+  await inspectBasic("scene autopsy mobile");
+  await inspectNoHorizontalOverflow("scene autopsy mobile");
+  await inspectMinimumTargetSize("scene autopsy mobile", "[aria-label=\"Scene evidence anchors\"] button");
+  const autopsyMobileState = JSON.parse(await evaluate(
+    "JSON.stringify({" +
+      "buttons: document.querySelectorAll('[aria-label=\\\"Scene evidence anchors\\\"] button').length," +
+      "pressed: document.querySelectorAll('[aria-label=\\\"Scene evidence anchors\\\"] button[aria-pressed=\\\"true\\\"]').length," +
+      "inspector: Boolean(document.querySelector('#scene-evidence-inspector'))" +
+    "})"
+  ));
+  assertCheck(
+    "scene autopsy mobile: canonical controls and inspector survive reflow",
+    autopsyMobileState.buttons === 4 && autopsyMobileState.pressed === 1 && autopsyMobileState.inspector,
+    autopsyMobileState,
+  );
+  await capture("scene-autopsy-mobile", true);
+
+  await navigate("/labs/scene-autopsy", 720, 500, false, false, 2);
+  await inspectBasic("scene autopsy zoom 200");
+  await inspectNoHorizontalOverflow("scene autopsy zoom 200");
+  await inspectMinimumTargetSize("scene autopsy zoom 200", "[aria-label=\"Scene evidence anchors\"] button");
+  await capture("scene-autopsy-zoom-200", true);
+
   await navigate("/films/pilot-film?spoilers=NONE", 1280, 900);
   await inspectBasic("film NONE");
   const noneLeaksMajor = await evaluate("document.body.innerText.includes('Evidence before conclusion.')");
