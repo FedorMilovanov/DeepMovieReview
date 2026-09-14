@@ -11,6 +11,8 @@ import {
 } from "react";
 import { useExperienceQuality } from "@/components/experience/experience-quality-provider";
 
+export type LensCursorState = "examine" | "trace" | "weigh" | "open";
+
 export type LivingFrameProps = {
   art: StaticImageData;
   alt: string;
@@ -25,6 +27,10 @@ export type LivingFrameProps = {
   parallax?: boolean;
   objectPosition?: string;
   zoomed?: boolean;
+  /** Moral Lens cursor state over this frame (default: examine). */
+  lensCursor?: LensCursorState;
+  /** Shared-element transition key (film slug) for view-transition morphing. */
+  transitionSlug?: string;
   children?: ReactNode;
 };
 
@@ -51,6 +57,8 @@ export function LivingFrame({
   parallax = true,
   objectPosition,
   zoomed = false,
+  lensCursor = "examine",
+  transitionSlug,
   children,
 }: LivingFrameProps) {
   const frameRef = useRef<HTMLElement>(null);
@@ -139,6 +147,8 @@ export function LivingFrame({
       className={frameClassName}
       style={frameStyle}
       aria-label={label}
+      data-lens-cursor={lensCursor}
+      data-film-transition-media={transitionSlug}
       data-zoomed={zoomed || undefined}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}

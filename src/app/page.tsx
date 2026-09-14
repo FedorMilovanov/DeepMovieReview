@@ -11,6 +11,7 @@ import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-c
 import { projectHomepage, type HomepageViewModel } from "@/lib/homepage-projection";
 import type { Confidence } from "@/lib/film-package";
 import craftMaster from "../../public/art/craft-master.jpg";
+import discoveryMaster from "../../public/art/discovery-master.jpg";
 import heroMaster from "../../public/art/hero-master.jpg";
 import lensMaster from "../../public/art/lens-master.jpg";
 
@@ -529,6 +530,14 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           </p>
         </div>
         <div className="discoveryPanel">
+          <LivingFrame
+            art={discoveryMaster}
+            alt="Светящаяся стена контакт-листов с кинокадрами, рука с лупой"
+            metaLeft="Архив"
+            metaRight="Корпус"
+            label="Архив корпуса: стена контакт-листов"
+            sizes="(max-width: 900px) 100vw, 38vw"
+          />
           {preview ? (
             <>
               <article className="discoveryCard">

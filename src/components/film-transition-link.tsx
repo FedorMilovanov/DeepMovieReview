@@ -91,7 +91,7 @@ export function FilmTransitionLink({
   }
 
   return (
-    <Link className={className} href={href} onClick={handleClick}>
+    <Link className={className} href={href} onClick={handleClick} data-lens-cursor="open">
       {children}
     </Link>
   );

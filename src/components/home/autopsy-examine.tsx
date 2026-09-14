@@ -81,6 +81,7 @@ export function AutopsyExamine() {
                 style={{ left: anchor.x, top: anchor.y }}
                 aria-label={`${anchor.index}: ${anchor.label}`}
                 aria-pressed={anchorId === anchor.id}
+                data-lens-cursor="trace"
                 onClick={() => setAnchorId(anchor.id)}
               >
                 {anchor.index}

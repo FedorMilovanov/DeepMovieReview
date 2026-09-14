@@ -207,7 +207,23 @@ export const craftMasterAsset: VisualAssetManifest = {
   provenance: { sourceKind: "generated", generator: "Deep Waters art pipeline", promptVersion: "phase-a-v1", editorialNotes: "Original platform art; not a film still." },
 };
 
-const rawVisualAssetManifests: VisualAssetManifest[] = [fixtureHeroAsset, heroMasterAsset, lensMasterAsset, relationshipMasterAsset, autopsyMasterAsset, decisionMasterAsset, craftMasterAsset];
+export const discoveryMasterAsset: VisualAssetManifest = {
+  schemaVersion: 1,
+  id: "platform-discovery-master",
+  role: "topic",
+  title: "Platform discovery master",
+  alt: "Светящаяся стена контакт-листов с кинокадрами, рука с лупой",
+  aspectRatio: 2.381,
+  focalPoint: { x: 0.35, y: 0.45 },
+  mobileFocalPoint: { x: 0.35, y: 0.45 },
+  subjectSafeZone: { x: 0.02, y: 0.05, width: 0.65, height: 0.9 },
+  variants: [
+    { id: "discovery-display-1600", purpose: "display", src: "/art/discovery-master.jpg", format: "jpg", width: 1600, height: 672, byteSize: 226967 },
+  ],
+  provenance: { sourceKind: "generated", generator: "Deep Waters art pipeline", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art; not a film still." },
+};
+
+const rawVisualAssetManifests: VisualAssetManifest[] = [fixtureHeroAsset, heroMasterAsset, lensMasterAsset, relationshipMasterAsset, autopsyMasterAsset, decisionMasterAsset, craftMasterAsset, discoveryMasterAsset];
 const knownFilmSlugs = filmPackages.map((filmPackage) => filmPackage.film.slug);
 
 assertValidVisualAssetRegistry(rawVisualAssetManifests, knownFilmSlugs);

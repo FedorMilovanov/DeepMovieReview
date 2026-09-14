@@ -1,0 +1,133 @@
+/* Moral Lens cursor (Visual Constitution §8).
+   Tiny light point + lagging ring + contextual state tag.
+   Decorative only: aria-hidden, pointer-events none, never on touch,
+   never under reduced motion or forced colors (see component contract). */
+
+.lens {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms var(--ease-quiet);
+}
+
+.lens[data-visible="true"] {
+  opacity: 1;
+}
+
+.dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--ink-1);
+  box-shadow: 0 0 12px rgb(242 238 230 / 0.45);
+}
+
+.ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 1px solid rgb(242 238 230 / 0.5);
+  border-radius: 50%;
+  transition:
+    width 220ms var(--ease-quiet),
+    height 220ms var(--ease-quiet),
+    margin 220ms var(--ease-quiet),
+    border-color 220ms var(--ease-quiet),
+    background-color 220ms var(--ease-quiet);
+}
+
+.lens[data-state="examine"] .ring {
+  border-color: rgb(242 238 230 / 0.9);
+}
+
+.lens[data-state="examine"] .ring::before,
+.lens[data-state="examine"] .ring::after {
+  content: "";
+  position: absolute;
+  background: rgb(242 238 230 / 0.9);
+}
+
+.lens[data-state="examine"] .ring::before {
+  left: 50%;
+  top: -5px;
+  bottom: -5px;
+  width: 1px;
+}
+
+.lens[data-state="examine"] .ring::after {
+  top: 50%;
+  left: -5px;
+  right: -5px;
+  height: 1px;
+}
+
+.lens[data-state="trace"] .ring {
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-color: var(--accent-restoration);
+}
+
+.lens[data-state="weigh"] .ring {
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-color: var(--accent-restoration);
+  background-color: rgb(185 146 91 / 0.08);
+}
+
+.lens[data-state="open"] .ring {
+  border-color: var(--ink-1);
+  background-color: rgb(242 238 230 / 0.1);
+}
+
+.tag {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--stroke-default);
+  background: rgb(3 3 3 / 0.78);
+  color: var(--ink-1);
+  font-family: var(--font-meta);
+  font-size: 0.56rem;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
+/* Native cursor suppression while the lens is active. Text-entry controls
+   always keep their native cursor and suppress the lens instead. */
+:global(html[data-moral-lens="active"] body),
+:global(html[data-moral-lens="active"] body *) {
+  cursor: none !important;
+}
+
+:global(html[data-moral-lens="active"] body input),
+:global(html[data-moral-lens="active"] body textarea),
+:global(html[data-moral-lens="active"] body select),
+:global(html[data-moral-lens="active"] body [contenteditable="true"]),
+:global(html[data-moral-lens="active"] body [data-native-cursor]) {
+  cursor: auto !important;
+}
+
+@media (forced-colors: active) {
+  .lens {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lens {
+    display: none;
+  }
+}

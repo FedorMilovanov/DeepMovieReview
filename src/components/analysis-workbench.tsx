@@ -111,6 +111,7 @@ export function AnalysisWorkbench() {
                   style={{ left: `${anchor.x}%`, top: `${anchor.y}%` }}
                   aria-label={`${anchor.index}: ${anchor.label}`}
                   aria-pressed={anchorId === anchor.id}
+                  data-lens-cursor="trace"
                   onClick={() => setAnchorId(anchor.id)}
                 >{anchor.index}</button>
               )) : null}
@@ -193,7 +194,7 @@ export function AnalysisWorkbench() {
                     aria-label="Плотность тумана незнания"
                   />
                 </label>
-                <button className={styles.revealButton} type="button" aria-expanded={showLater} onClick={() => setShowLater((value) => !value)}>
+                <button className={styles.revealButton} type="button" aria-expanded={showLater} data-lens-cursor="weigh" onClick={() => setShowLater((value) => !value)}>
                   {showLater ? "Скрыть позднее знание" : "Показать, что выяснилось позже"}
                 </button>
               </div>

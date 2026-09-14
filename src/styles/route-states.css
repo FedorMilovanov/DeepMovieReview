@@ -151,6 +151,10 @@
   box-shadow: var(--shadow-dmr-depth);
 }
 
+.filmMediaFrame > img {
+  object-fit: cover;
+}
+
 .filmMediaGlow,
 .filmMediaHorizon,
 .filmMediaFrameMark {
