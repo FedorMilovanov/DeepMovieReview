@@ -26,9 +26,17 @@ export const theTrumanShowDraftPackage: FilmPackage = {
   },
   ingest: {
     edition: {
-      state: "TARGET_ONLY",
+      state: "MASTER_IDENTIFIED",
       sourceId: "truman-src-master-bdrip",
-      note: "Точный file-based viewing master идентифицирован и измерен 2026-09-15: Matroska BDRip, 13,099,008,485 bytes, SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575, runtime 6177.792 s, 24000/1001 fps. State остаётся TARGET_ONLY как fail-closed миграционный gate, пока SECONDARY_SOURCES сцены/evidence не будут re-anchored и перепроверены против этого master; только после этого допустим атомарный переход в LOCKED.",
+      editionIdentity: "The Truman Show (1998) BDRip.mkv; Matroska; 13,099,008,485 bytes; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575",
+      measuredRuntimeSeconds: 6177.792,
+      timestampConvention: "Matroska presentation timeline from 00:00:00.000; timestamps are elapsed PTS seconds including all opening material present in this file.",
+      identifiedAt: "2026-09-15",
+      note: "Exact viewing master is identified and measured. Canonical promotion remains fail-closed until SECONDARY_SOURCES scenes/evidence are re-observed and re-anchored record-by-record against this master.",
+      frameRate: "24000/1001",
+      audioTrack: "English Original DTS 5.1, 1536 kb/s (stream 5)",
+      subtitleTrack: "Embedded English SubRip (stream 8)",
+      masterDigest: "sha256:E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575",
     },
   },
   research: {
@@ -1684,7 +1692,7 @@ export const theTrumanShowDraftPackage: FilmPackage = {
       methodologyVersion: "deepwaters-method-v1",
       editorialRevision: "research-draft-2-master-intake",
       analyzedEdition:
-        "Viewing master identified 2026-09-15: The Truman Show (1998) BDRip.mkv; Matroska; 13,099,008,485 bytes; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575; 1920×1080 H.264; 24000/1001 fps; measured runtime 01:42:57.792. Dialogue basis: English Original DTS 5.1 + embedded English SubRip. Package remains TARGET_ONLY + SECONDARY_SOURCES until canonical scene/evidence re-anchor; see docs/38-FILM-001-VIEWING-MASTER-INTAKE.md.",
+        "Viewing master identified 2026-09-15: The Truman Show (1998) BDRip.mkv; Matroska; 13,099,008,485 bytes; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575; 1920×1080 H.264; 24000/1001 fps; measured runtime 01:42:57.792. Dialogue basis: English Original DTS 5.1 + embedded English SubRip. Package remains MASTER_IDENTIFIED + SECONDARY_SOURCES until canonical scene/evidence re-anchor; see docs/38-FILM-001-VIEWING-MASTER-INTAKE.md.",
       lastReviewedAt: "2026-09-15",
       sources: [
         {
