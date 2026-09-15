@@ -522,7 +522,9 @@ export type FilmPackage = {
   film: ShellFilm;
   /**
    * Real-film ingest state. Fixtures intentionally omit this.
-   * TARGET_ONLY blocks canonical evidence; LOCKED identifies the exact viewing master.
+   * TARGET_ONLY selects a target, MASTER_IDENTIFIED records the exact measured
+   * viewing copy while canonical promotion stays fail-closed, and only LOCKED
+   * permits canonical scene/evidence chains.
    */
   ingest?: FilmIngestMetadata;
   /**

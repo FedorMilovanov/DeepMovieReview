@@ -11,6 +11,12 @@ import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQ
 import { filterFilmIndex } from "../src/lib/film-index";
 import { pluralRu } from "../src/lib/plural-ru";
 import type { FilmPackage, CharactersModule } from "../src/lib/film-package";
+import { theTrumanShowDraftPackage } from "../src/data/films/the-truman-show";
+import {
+  TRUMAN_MASTER_RUNTIME_SECONDS,
+  trumanEvidenceReanchors,
+  trumanMasterChapters,
+} from "../src/data/films/the-truman-show-master-reanchor";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
   const statuses = ["fixture", "draft", "published"] as const;
@@ -2870,4 +2876,88 @@ test("film index filter matches localized/original title, year and status and ke
     ["Шоу Трумана"],
   );
   assert.deepEqual(filterFilmIndex(films, "несуществующий фильм"), []);
+});
+
+
+test("Film 001 re-anchor ledger exactly covers the research evidence inventory", () => {
+  const evidenceIds = [...(theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id)].sort();
+  const ledgerIds = [...trumanEvidenceReanchors.map((item) => item.evidenceId)].sort();
+
+  assert.equal(trumanEvidenceReanchors.length, 39);
+  assert.equal(new Set(ledgerIds).size, ledgerIds.length);
+  assert.deepEqual(ledgerIds, evidenceIds);
+});
+
+test("Film 001 embedded master chapters form one exact continuous timeline", () => {
+  assert.equal(trumanMasterChapters.length, 24);
+  assert.equal(trumanMasterChapters[0]?.startTimestampSeconds, 0);
+  assert.equal(
+    trumanMasterChapters[trumanMasterChapters.length - 1]?.endTimestampSeconds,
+    TRUMAN_MASTER_RUNTIME_SECONDS,
+  );
+
+  for (const [index, chapter] of trumanMasterChapters.entries()) {
+    assert.equal(chapter.sequenceIndex, index + 1);
+    assert.ok(chapter.endTimestampSeconds > chapter.startTimestampSeconds);
+
+    const next = trumanMasterChapters[index + 1];
+    if (next) {
+      assert.equal(
+        chapter.endTimestampSeconds,
+        next.startTimestampSeconds,
+        `chapter boundary drift between ${chapter.id} and ${next.id}`,
+      );
+    }
+  }
+});
+
+test("Film 001 re-anchor timestamps stay inside their declared master chapters", () => {
+  const chaptersById = new Map(trumanMasterChapters.map((chapter) => [chapter.id, chapter]));
+
+  for (const record of trumanEvidenceReanchors) {
+    const referencedChapterIds = [
+      ...record.candidateChapterIds,
+      ...record.anchors.map((anchor) => anchor.chapterId),
+    ];
+
+    for (const chapterId of referencedChapterIds) {
+      assert.ok(chaptersById.has(chapterId), `${record.evidenceId}: unknown chapter ${chapterId}`);
+    }
+
+    if (record.status === "TRANSCRIPT_ANCHORED") {
+      assert.ok(record.anchors.length > 0, `${record.evidenceId}: transcript state requires anchors`);
+      assert.equal(record.candidateChapterIds.length, 0);
+    }
+
+    if (record.status === "MIXED_REVIEW_REQUIRED") {
+      assert.ok(record.anchors.length > 0, `${record.evidenceId}: mixed state requires a grounded cue`);
+      assert.ok(
+        record.candidateChapterIds.length > 0,
+        `${record.evidenceId}: mixed state must preserve the visual-review boundary`,
+      );
+    }
+
+    if (record.status === "VISUAL_REVIEW_REQUIRED") {
+      assert.equal(
+        record.anchors.length,
+        0,
+        `${record.evidenceId}: visual-only state must not masquerade as transcript verification`,
+      );
+      assert.ok(
+        record.candidateChapterIds.length > 0,
+        `${record.evidenceId}: visual-review record needs at least one bounded search chapter`,
+      );
+    }
+
+    for (const anchor of record.anchors) {
+      assert.equal(anchor.basis, "EMBEDDED_ENGLISH_SUBTITLE");
+      const chapter = chaptersById.get(anchor.chapterId);
+      assert.ok(chapter);
+      assert.ok(
+        anchor.timestampSeconds >= chapter.startTimestampSeconds &&
+          anchor.timestampSeconds < chapter.endTimestampSeconds,
+        `${record.evidenceId}: ${anchor.timestampSeconds} must stay inside ${anchor.chapterId}`,
+      );
+    }
+  }
 });
