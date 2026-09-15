@@ -3,10 +3,10 @@ import type { FilmPackage } from "@/lib/film-package";
 /**
  * «Шоу Трумана» (The Truman Show, 1998, Питер Уир).
  *
- * Исследовательский черновик (research tier: SECONDARY_SOURCES). Издание
- * выбрано (Paramount 25th Anniversary 4K UHD), но мастер ещё не заблокирован:
- * сцены и таймкоды приблизительны, доказательства ссылаются на вторичные
- * источники, публикация по этому ярусу невозможна в принципе.
+ * Исследовательский черновик (research tier: SECONDARY_SOURCES). Точный
+ * file-based viewing master идентифицирован 2026-09-15 и измерен, но пакет
+ * намеренно остаётся на исследовательском ярусе до покадровой/посценовой
+ * перепривязки: сцены и evidence ещё не становятся каноническими автоматически.
  */
 export const theTrumanShowDraftPackage: FilmPackage = {
   schemaVersion: 1,
@@ -27,13 +27,13 @@ export const theTrumanShowDraftPackage: FilmPackage = {
   ingest: {
     edition: {
       state: "TARGET_ONLY",
-      sourceId: "truman-src-target",
-      note: "Целевое издание определено (Paramount, 4K UHD, 2023), но мастер ещё не acquired/identified/measured. Хронометраж по вторичным источникам расходится: blu-ray.com — 103 мин, Paramount — 104 мин, BFI — 102 мин. До блокировки мастера все таймкоды — приблизительные оценки по вторичным источникам.",
+      sourceId: "truman-src-master-bdrip",
+      note: "Точный file-based viewing master идентифицирован и измерен 2026-09-15: Matroska BDRip, 13,099,008,485 bytes, SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575, runtime 6177.792 s, 24000/1001 fps. State остаётся TARGET_ONLY как fail-closed миграционный gate, пока SECONDARY_SOURCES сцены/evidence не будут re-anchored и перепроверены против этого master; только после этого допустим атомарный переход в LOCKED.",
     },
   },
   research: {
     state: "SECONDARY_SOURCES",
-    note: "Разбор собран по вторичным источникам: опубликованный сценарий Э. Никкола, интервью создателей, фильмографические справочники кадровая документация сцен. Границы сцен и таймкоды приблизительны и будут заменены кадровой сверкой после блокировки мастера. Каждое доказательство цитирует вторичный источник; целевое издание доказательствами не цитируется.",
+    note: "Разбор собран по вторичным источникам: опубликованный сценарий Э. Никкола, интервью создателей, фильмографические справочники и кадровая документация сцен. Точный viewing master уже идентифицирован, но существующие границы сцен, таймкоды и evidence остаются исследовательскими до record-by-record re-anchor против него. Каждое текущее доказательство по-прежнему цитирует вторичный источник; master не считается доказательством до явной перепроверки конкретного наблюдения.",
     assembledAt: "2026-09-12",
   },
   scenes: [
@@ -1682,16 +1682,23 @@ export const theTrumanShowDraftPackage: FilmPackage = {
       heading: "Источники и издание — Шоу Трумана",
       spoilerLevel: "NONE",
       methodologyVersion: "deepwaters-method-v1",
-      editorialRevision: "research-draft-1",
+      editorialRevision: "research-draft-2-master-intake",
       analyzedEdition:
-        "Целевое издание: The Truman Show, Paramount 25th Anniversary Edition, 4K Ultra HD + Blu-ray (2023). Мастер не заблокирован: издание определено, но не приобретено и не измерено. Разбор собран по вторичным источникам; границы сцен и таймкоды приблизительны.",
-      lastReviewedAt: "2026-09-12",
+        "Viewing master identified 2026-09-15: The Truman Show (1998) BDRip.mkv; Matroska; 13,099,008,485 bytes; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575; 1920×1080 H.264; 24000/1001 fps; measured runtime 01:42:57.792. Dialogue basis: English Original DTS 5.1 + embedded English SubRip. Package remains TARGET_ONLY + SECONDARY_SOURCES until canonical scene/evidence re-anchor; see docs/38-FILM-001-VIEWING-MASTER-INTAKE.md.",
+      lastReviewedAt: "2026-09-15",
       sources: [
         {
-          id: "truman-src-target",
-          label: "Целевое издание: The Truman Show 4K UHD (Paramount, 2023)",
+          id: "truman-src-master-bdrip",
+          label: "Viewing master: The Truman Show (1998) BDRip MKV",
           kind: "film-edition",
-          locator: "Blu-ray.com, издание 337202: 2160p Dolby Vision, 103 мин (по данным релиза)",
+          locator: "Matroska; 13,099,008,485 bytes; 1920×1080 H.264; 24000/1001 fps; 6177.792 s; English Original DTS 5.1 + embedded English SubRip; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575. Upstream retail-disc/region lineage is not independently established.",
+        },
+        {
+          id: "truman-src-target",
+          label: "Ранее выбранный target: The Truman Show 4K UHD (Paramount, 2023)",
+          kind: "reference",
+          researchRole: "database-transcript",
+          locator: "Blu-ray.com, издание 337202: ранее выбранная 2160p Dolby Vision цель; не является текущим viewing master.",
           href: "https://www.blu-ray.com/movies/The-Truman-Show-4K-Blu-ray/337202/",
         },
         {
