@@ -10,7 +10,8 @@ import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experi
 import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
 import { filterFilmIndex } from "../src/lib/film-index";
 import { pluralRu } from "../src/lib/plural-ru";
-import type { FilmPackage, CharactersModule } from "../src/lib/film-package";\nimport { theTrumanShowDraftPackage } from "../src/data/films/the-truman-show";
+import type { FilmPackage, CharactersModule } from "../src/lib/film-package";
+import { theTrumanShowDraftPackage } from "../src/data/films/the-truman-show";
 import {
   TRUMAN_MASTER_RUNTIME_SECONDS,
   trumanEvidenceReanchors,
