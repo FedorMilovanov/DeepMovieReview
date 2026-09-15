@@ -13,6 +13,12 @@ export type TrumanEvidenceReplacementCandidate = {
   note: string;
 };
 
+export type TrumanDirectEvidenceRewire = {
+  consumerId: string;
+  replacementId: string;
+  note: string;
+};
+
 export type TrumanEvidenceMigrationPlan = {
   retiringEvidenceId: string;
   expectedSupportReferences: number;
@@ -20,6 +26,7 @@ export type TrumanEvidenceMigrationPlan = {
   replacements: TrumanEvidenceReplacementCandidate[];
   claimLayerNotes: string[];
   sourceReanchorStatus: TrumanReanchorStatus;
+  directEvidenceRewires?: TrumanDirectEvidenceRewire[];
 };
 
 /**
@@ -296,6 +303,117 @@ export const trumanEvidenceMigrationWave2: TrumanEvidenceMigrationPlan[] = [
     ],
     claimLayerNotes: [
       "Ratings impact and the assertion that Truman is returned to normal routine are separate editorial/contextual claims and must not remain inside one evidence observation.",
+    ],
+  },
+];
+
+
+/**
+ * Third migration wave: high-fan-out compound evidence.
+ *
+ * These three records carry 33 downstream references. They are intentionally
+ * modeled last and include explicit direct-consumer rewires where a consumer
+ * stores one evidenceId outside normal ClaimSupport arrays.
+ */
+export const trumanEvidenceMigrationWave3: TrumanEvidenceMigrationPlan[] = [
+  {
+    retiringEvidenceId: "truman-ev-knife",
+    expectedSupportReferences: 8,
+    migrationKind: "SPLIT",
+    sourceReanchorStatus: "MIXED_REVIEW_REQUIRED",
+    replacements: [
+      {
+        id: "truman-ev-meryl-confrontation",
+        grounding: "VISUAL",
+        chapterIds: ["truman-ch-14"],
+        note: "Kitchen confrontation and weapon handling require picture verification.",
+      },
+      {
+        id: "truman-ev-meryl-call-for-help",
+        grounding: "TRANSCRIPT",
+        chapterIds: ["truman-ch-14"],
+        anchorTimestampSeconds: 3272.199,
+        note: "Meryl's direct appeal for intervention is master-grounded.",
+      },
+      {
+        id: "truman-ev-marlon-intervention",
+        grounding: "MIXED",
+        chapterIds: ["truman-ch-14"],
+        note: "Marlon's arrival/intervention is a separate event and still needs exact picture/dialogue boundary verification.",
+      },
+    ],
+    claimLayerNotes: [
+      "Do not keep the interpretation that performer/character can no longer endure the fake marriage inside raw evidence.",
+      "Consumers about weapon use, performance break and third-party intervention must not all receive the same replacement automatically.",
+    ],
+  },
+  {
+    retiringEvidenceId: "truman-ev-storm",
+    expectedSupportReferences: 11,
+    migrationKind: "SPLIT",
+    sourceReanchorStatus: "TRANSCRIPT_ANCHORED",
+    replacements: [
+      {
+        id: "truman-ev-storm-escalation",
+        grounding: "VISUAL",
+        chapterIds: ["truman-ch-20"],
+        note: "Manufactured storm escalation is picture/sound-sequence evidence requiring manual verification.",
+      },
+      {
+        id: "truman-ev-storm-defiance",
+        grounding: "TRANSCRIPT",
+        chapterIds: ["truman-ch-20"],
+        anchorTimestampSeconds: 5169.945,
+        note: "Truman's verbal defiance sequence begins here; the explicit kill-me continuation follows at 5173.407.",
+      },
+      {
+        id: "truman-ev-storm-control-decision",
+        grounding: "MIXED",
+        chapterIds: ["truman-ch-20"],
+        note: "Control-room continuation/stop decision must be verified independently from Truman's own defiance.",
+      },
+    ],
+    claimLayerNotes: [
+      "Decision/autonomy claims should use defiance; Christof/moral-control claims need escalation/control-decision evidence.",
+      "Craft/music consumers must not inherit a moralized umbrella event merely because they refer to the same sequence.",
+    ],
+  },
+  {
+    retiringEvidenceId: "truman-ev-exit",
+    expectedSupportReferences: 14,
+    migrationKind: "SPLIT",
+    sourceReanchorStatus: "MIXED_REVIEW_REQUIRED",
+    replacements: [
+      {
+        id: "truman-ev-final-greeting",
+        grounding: "TRANSCRIPT",
+        chapterIds: ["truman-ch-23"],
+        anchorTimestampSeconds: 5691.316,
+        note: "Final signature greeting is master-grounded.",
+      },
+      {
+        id: "truman-ev-final-exit",
+        grounding: "VISUAL",
+        chapterIds: ["truman-ch-23"],
+        note: "Bow, door and physical departure require picture-level verification.",
+      },
+      {
+        id: "truman-ev-final-audience-reaction",
+        grounding: "VISUAL",
+        chapterIds: ["truman-ch-23"],
+        note: "Worldwide audience-reaction montage is a separate visual observation.",
+      },
+    ],
+    claimLayerNotes: [
+      "Truman's final act and the audience's reaction must not remain one evidence record.",
+      "Craft-ending claims should combine the verified exit event with the already-separate guards evidence when appropriate.",
+    ],
+    directEvidenceRewires: [
+      {
+        consumerId: "truman-anchor-bow",
+        replacementId: "truman-ev-final-exit",
+        note: "Scene Autopsy bow/door anchor must point specifically to the physical exit observation.",
+      },
     ],
   },
 ];
