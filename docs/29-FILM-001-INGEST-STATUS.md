@@ -1,8 +1,8 @@
 # DeepMovieReview — Film 001 Ingest Status
 
 > Film: **The Truman Show (1998)**
-> Status: **draft research ingest (SECONDARY_SOURCES tier)**
-> Date: 2026-09-11 — updated 2026-09-12
+> Status: **identified master + draft research ingest (`MASTER_IDENTIFIED` + `SECONDARY_SOURCES`)**
+> Date: 2026-09-11 — updated 2026-09-15
 > Tracking: issue #43
 
 ## 1. Current boundary
@@ -13,16 +13,19 @@ The repository currently knows:
 
 - the selected title / year / director;
 - official production metadata;
-- a target 25th Anniversary Paramount 4K presentation;
+- a previously selected 25th Anniversary Paramount 4K presentation as a historical target/reference, **not** the active viewing master;
+- an exact file-based viewing master: `The Truman Show (1998) BDRip.mkv`, Matroska, 13,099,008,485 bytes, SHA-256 `E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575`;
+- measured playback duration **6177.792 s / 01:42:57.792**, video **1920×1080 H.264**, frame rate **24000/1001**, English Original DTS 5.1 and embedded English SubRip dialogue basis;
+- a reproducible timestamp convention from Matroska presentation time `00:00:00.000`;
+- 24 embedded chapter landmarks and a full-video heuristic shot-boundary scan;
 - secondary craft/development/script research sources;
-- a machine-validated **research-tier draft analysis** (see §7): fifteen DRAFT scenes with estimated bounds, secondary-source evidence records and all fourteen module kinds, assembled under `FilmPackage.research.state = "SECONDARY_SOURCES"`;
-- the editorial rule that the finished locked film master outranks screenplay drafts and web summaries.
+- a machine-validated **research-tier draft analysis** (see §7): fifteen existing DRAFT scene estimates, secondary-source evidence records and all fourteen module kinds, assembled under `FilmPackage.research.state = "SECONDARY_SOURCES"`;
+- the editorial rule that identifying/measuring the master does **not** promote those research hypotheses automatically.
 
 The repository does **not** yet know:
 
-- the exact editorial master identity / region actually used for analysis;
-- measured playback duration of that exact master;
-- canonical scene timestamps;
+- independently verified upstream retail-disc / region / encode lineage for this BDRip (and does not claim it);
+- canonical scene timestamps for the existing analytical scene model;
 - canonical film observations;
 - reviewed character / relationship / moral claims;
 - a publishable biblical synthesis;
@@ -34,8 +37,10 @@ Those fields must not be fabricated merely to make the package look complete.
 
 The gate is machine-readable through `FilmPackage.ingest.edition`:
 
-- `TARGET_ONLY` means a release/master target is selected and **canonical** `scenes[]`, canonical evidence and publishable analytical modules are forbidden. Normally only `sources-method` may exist; the sole pre-lock exception is the explicit `SECONDARY_SOURCES` research tier described in §7, whose scenes stay DRAFT, whose evidence cannot cite any `film-edition`, and whose working modules are structurally unpublishable;
-- `LOCKED` requires exact edition identity, positive `measuredRuntimeSeconds`, timestamp convention and verification date;
+- `TARGET_ONLY` means a release/master target is selected but the exact viewing copy has not been measured. **Canonical** `scenes[]`, canonical evidence and publishable analytical modules are forbidden;
+- `MASTER_IDENTIFIED` means the exact viewing copy is known and measured. It requires exact `editionIdentity`, positive `measuredRuntimeSeconds`, timestamp convention, identification date and a note explaining the remaining pre-lock boundary. Measured runtime bounds already constrain DRAFT scene/evidence timestamps, but canonical promotion is still forbidden;
+- `LOCKED` is the canonical-evidence state: it requires the measured identity metadata plus verification date and is the only state that permits canonical scene/evidence chains;
+- the explicit `SECONDARY_SOURCES` research tier may coexist with either **pre-lock** state (`TARGET_ONLY` or `MASTER_IDENTIFIED`): its scenes stay DRAFT, its evidence cannot cite any `film-edition`, and its working modules remain structurally unpublishable;
 - every real-film Sources/Method module requires nonblank `methodologyVersion`, `editorialRevision` and human-readable `analyzedEdition` during draft authoring; `lastReviewedAt` remains a publication/review field;
 - real-film scenes use numeric start/end seconds. In the canonical LOCKED path they are measured from the declared timestamp origin; in `SECONDARY_SOURCES` they are explicitly approximate DRAFT bounds only;
 - outside `SECONDARY_SOURCES`, a scene must be `VERIFIED` before evidence or a Scene Autopsy may reference it. Research-tier evidence/autopsy may reference DRAFT scene estimates, but those references remain provisional and unpublishable;
@@ -47,19 +52,20 @@ The gate is machine-readable through `FilmPackage.ingest.edition`:
 - character evidence is split into `profileSupport` and `interpretiveSupport`, each checked against its own spoiler boundary; published base profiles require profile support, while published deep interpretation fields require separate interpretive support;
 - `interpretiveSpoilerLevel` cannot be lower than the character profile boundary; deeper interpretation may stay equally restricted or become more restricted, never less;
 - every canonical evidence record for a real film must reference the locked `film-edition` source;
-- published real-film packages cannot remain `TARGET_ONLY`.
+- published real-film packages must be `LOCKED`; neither `TARGET_ONLY` nor `MASTER_IDENTIFIED` is publishable.
 
-Before promoting research estimates into canonical scene/evidence authoring:
+The first six intake steps are now complete for the exact file-based viewing master and are recorded in `docs/38-FILM-001-VIEWING-MASTER-INTAKE.md`. Film 001 therefore sits in `MASTER_IDENTIFIED`, not `TARGET_ONLY`.
 
-1. acquire the exact editorial viewing master;
-2. record disc / region / file identity;
-3. confirm the presented aspect ratio and measured playback duration;
-4. define timestamp convention (playback clock, including any studio logos/leader policy);
-5. record audio/subtitle track used when dialogue wording matters;
-6. update `film-001-sources.analyzedEdition` from "target" to the actual master;
-7. only then verify/promote scene IDs and timestamped evidence into the canonical LOCKED chain; any pre-existing `SECONDARY_SOURCES` scene/timestamp estimates remain DRAFT until this pass.
+Before canonical promotion:
 
-External runtime listings disagree by ordinary metadata/rounding: Paramount currently lists 104 min, while the referenced 2023 4K release listing reports 103 min. That is precisely why the package contains only provisional research-tier scene/timestamp estimates today, not canonical timestamps from a locked master.
+1. rebuild/re-anchor the scene registry against this exact master;
+2. re-observe each retained evidence claim against the film itself;
+3. assign exact master timestamps and the correct measured scene/chapter range;
+4. use the locked `film-edition` source only for observations actually verified against the film;
+5. retain secondary references for production/history/craft-intention claims they genuinely support;
+6. remove `SECONDARY_SOURCES` and transition to `LOCKED` **atomically** only when the canonical graph validates.
+
+The old research timestamps are not related to the measured master by one constant offset; record-by-record re-verification is required.
 
 ## 3. Evidence policy
 

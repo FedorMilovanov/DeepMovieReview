@@ -1326,6 +1326,105 @@ test("SECONDARY_SOURCES research tier admits draft scenes, secondary evidence an
   assert.deepEqual(errors, []);
 });
 
+test("MASTER_IDENTIFIED keeps the research tier fail-closed while recording measured master identity", () => {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.ingest = {
+    edition: {
+      state: "MASTER_IDENTIFIED",
+      sourceId: "film-master",
+      editionIdentity: "Exact file-based viewing master",
+      measuredRuntimeSeconds: 6000,
+      timestampConvention: "Matroska PTS from 00:00:00.000",
+      identifiedAt: "2026-09-15",
+      note: "Master measured; canonical evidence re-verification still in progress.",
+      frameRate: "24000/1001",
+      audioTrack: "English Original",
+      subtitleTrack: "Embedded English SubRip",
+      masterDigest: "sha256:test-master",
+    },
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.deepEqual(errors, []);
+});
+
+test("MASTER_IDENTIFIED requires complete measured identity metadata", () => {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.ingest = {
+    edition: {
+      state: "MASTER_IDENTIFIED",
+      sourceId: "film-master",
+      editionIdentity: "   ",
+      measuredRuntimeSeconds: 0,
+      timestampConvention: "",
+      identifiedAt: "2026-13-99",
+      note: "",
+    },
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("film: MASTER_IDENTIFIED edition requires editionIdentity."));
+  assert.ok(errors.includes("film: MASTER_IDENTIFIED edition requires positive measuredRuntimeSeconds."));
+  assert.ok(errors.includes("film: MASTER_IDENTIFIED edition requires timestampConvention."));
+  assert.ok(errors.includes("film: MASTER_IDENTIFIED edition state requires a note."));
+  assert.ok(errors.includes("film: MASTER_IDENTIFIED edition identifiedAt must use a valid YYYY-MM-DD calendar date."));
+});
+
+test("MASTER_IDENTIFIED measured runtime constrains research scene and evidence timestamps", () => {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.ingest = {
+    edition: {
+      state: "MASTER_IDENTIFIED",
+      sourceId: "film-master",
+      editionIdentity: "Exact file-based viewing master",
+      measuredRuntimeSeconds: 100,
+      timestampConvention: "Matroska PTS from 00:00:00.000",
+      identifiedAt: "2026-09-15",
+      note: "Measured master under re-verification.",
+    },
+  };
+  filmPackage.scenes = [{
+    id: "research-scene",
+    sequenceIndex: 1,
+    shortLabel: "Opening",
+    startTimestampSeconds: 10,
+    verificationState: "DRAFT",
+    spoilerLevel: "NONE",
+  }];
+  filmPackage.evidence = [{
+    id: "research-evidence",
+    label: "Secondary evidence",
+    observation: "Timestamp deliberately outside measured runtime.",
+    sceneId: "research-scene",
+    timestampSeconds: 101,
+    sourceIds: ["reference-source"],
+    spoilerLevel: "NONE",
+  }];
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("evidence/research-evidence: timestampSeconds must be inside the measured edition runtime."));
+});
+
+test("MASTER_IDENTIFIED still blocks canonical evidence outside the research tier", () => {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.research = undefined;
+  filmPackage.ingest = {
+    edition: {
+      state: "MASTER_IDENTIFIED",
+      sourceId: "film-master",
+      editionIdentity: "Exact file-based viewing master",
+      measuredRuntimeSeconds: 6000,
+      timestampConvention: "Matroska PTS from 00:00:00.000",
+      identifiedAt: "2026-09-15",
+      note: "Master measured; canonical promotion not complete.",
+    },
+  };
+
+  const errors = validateFilmPackage(filmPackage);
+  assert.ok(errors.includes("film: canonical evidence requires a LOCKED edition, not MASTER_IDENTIFIED."));
+  assert.ok(errors.includes("film: canonical scene registry requires a LOCKED edition, not MASTER_IDENTIFIED."));
+});
+
 test("research tier cannot stay in place once the package is published", () => {
   const filmPackage = buildResearchTierPackage();
   filmPackage.film.status = "published";
@@ -1333,7 +1432,7 @@ test("research tier cannot stay in place once the package is published", () => {
   assert.ok(errors.includes("research: a published package cannot remain in the SECONDARY_SOURCES research tier."));
 });
 
-test("research tier is only valid while the edition is TARGET_ONLY", () => {
+test("research tier is rejected once the edition is LOCKED", () => {
   const filmPackage = buildResearchTierPackage();
   filmPackage.ingest = {
     edition: {
@@ -1346,7 +1445,7 @@ test("research tier is only valid while the edition is TARGET_ONLY", () => {
     },
   };
   const errors = validateFilmPackage(filmPackage);
-  assert.ok(errors.includes("research: the SECONDARY_SOURCES tier is only valid while the edition is TARGET_ONLY."));
+  assert.ok(errors.includes("research: the SECONDARY_SOURCES tier is only valid before the edition is LOCKED."));
 });
 
 test("research-tier scenes must stay DRAFT until the master is locked", () => {
@@ -1364,7 +1463,7 @@ test("research-tier scenes must stay DRAFT until the master is locked", () => {
   assert.ok(errors.includes("scene/research-scene: research-tier scenes must stay DRAFT until the viewing master is LOCKED."));
 });
 
-test("research-tier evidence must not cite the target film-edition source", () => {
+test("research-tier evidence must not cite the active pre-lock film-edition source", () => {
   const filmPackage = buildResearchTierPackage();
   filmPackage.evidence = [{
     id: "research-evidence",
@@ -1376,7 +1475,7 @@ test("research-tier evidence must not cite the target film-edition source", () =
     spoilerLevel: "NONE",
   }];
   const errors = validateFilmPackage(filmPackage);
-  assert.ok(errors.some((error) => error.includes("research-tier evidence must not cite the target film-edition source \"film-master\" (the master is not locked).")));
+  assert.ok(errors.some((error) => error.includes("research-tier evidence must not cite the active pre-lock film-edition source \"film-master\".")));
 });
 
 test("research-tier evidence rejects any film-edition source before master lock", () => {
@@ -1914,8 +2013,8 @@ test("scene registry validates ids, sequence indexes and verified time ranges", 
   assert.ok(errors.includes('scenes: duplicate scene id "scene-1".'));
   assert.ok(errors.includes('scenes: duplicate sequence index "0".'));
   assert.ok(errors.includes("scene/scene-1: VERIFIED scene requires endTimestampSeconds."));
-  assert.ok(errors.includes("scene/scene-1: startTimestampSeconds must be inside the locked edition runtime."));
-  assert.ok(errors.includes("scene/scene-1: endTimestampSeconds exceeds the locked edition runtime."));
+  assert.ok(errors.includes("scene/scene-1: startTimestampSeconds must be inside the measured edition runtime."));
+  assert.ok(errors.includes("scene/scene-1: endTimestampSeconds exceeds the measured edition runtime."));
 });
 
 test("real-film evidence scene references must resolve to verified canonical scenes", () => {
@@ -2674,9 +2773,11 @@ test("documentation preserves the SECONDARY_SOURCES pre-lock exception", () => {
   const ingestStatus = readFileSync("docs/29-FILM-001-INGEST-STATUS.md", "utf8");
 
   assert.ok(readme.includes("SECONDARY_SOURCES"));
+  assert.ok(readme.includes("MASTER_IDENTIFIED"));
   assert.ok(!readme.includes(
     "`TARGET_ONLY` packages cannot contain analytical modules beyond `sources-method`, canonical scenes or evidence"
   ));
+  assert.ok(agentRules.includes("MASTER_IDENTIFIED"));
   assert.ok(agentRules.includes("Research-tier evidence may reference only `DRAFT` scene estimates"));
   assert.ok(domainModules.includes("Outside the explicit `SECONDARY_SOURCES` research tier"));
   assert.ok(ingestStatus.includes(

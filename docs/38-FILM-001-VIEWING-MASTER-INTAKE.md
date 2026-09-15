@@ -134,19 +134,19 @@ This scan is an editorial aid only. A visual cut, dissolve or large luminance ch
 
 ## 8. Current repository transition state
 
-The viewing-master blocker is now removed, but the package must **not** be flipped mechanically from `TARGET_ONLY + SECONDARY_SOURCES` to `LOCKED`.
+The viewing-master blocker is now removed. The package therefore uses the explicit intermediate state `MASTER_IDENTIFIED + SECONDARY_SOURCES`: exact master metadata is machine-readable, while canonical promotion remains fail-closed.
 
 The existing Film 001 package contains provisional secondary-source scene ranges and evidence. Several estimated timestamps differ materially from the measured master timeline. They must be re-anchored to this file before becoming canonical.
 
 Safe promotion order:
 
-1. record this exact master as the active analyzed edition;
+1. keep this exact master recorded as the active `MASTER_IDENTIFIED` analyzed edition;
 2. build canonical scene inventory v1 from the master, using embedded chapter boundaries plus verified narrative transitions;
 3. re-observe each retained evidence claim against the film itself;
 4. assign an exact `sceneId` and numeric master timestamp;
-5. replace secondary-only evidence provenance with the locked `film-edition` source where the claim is an on-screen observation;
-6. retain secondary references only for production/history/craft-intention claims they actually support;
-7. only when the package satisfies the canonical integrity graph, drop `SECONDARY_SOURCES` and transition the edition atomically to `LOCKED`;
+5. replace secondary-only evidence provenance with the locked `film-edition` source only where the claim has actually been verified against the film;
+6. retain secondary references for production/history/craft-intention claims they actually support;
+7. only when the package satisfies the canonical integrity graph, drop `SECONDARY_SOURCES` and transition the edition atomically from `MASTER_IDENTIFIED` to `LOCKED`;
 8. keep Film 001 `draft`, preview-only and noindex until the separate publication gate is satisfied.
 
 ## 9. Copyright / publication boundary

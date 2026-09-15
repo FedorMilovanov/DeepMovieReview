@@ -445,6 +445,27 @@ export type FilmEditionLock =
       note: string;
     }
   | {
+      /**
+       * Exact viewing master has been identified and measured, but canonical
+       * scene/evidence promotion is still fail-closed until re-verification.
+       */
+      state: "MASTER_IDENTIFIED";
+      sourceId: string;
+      editionIdentity: string;
+      measuredRuntimeSeconds: number;
+      timestampConvention: string;
+      identifiedAt: string;
+      note: string;
+      frameRate?: string;
+      audioTrack?: string;
+      subtitleTrack?: string;
+      masterDigest?: string;
+    }
+  | {
+      /**
+       * Exact viewing master is the canonical evidence authority.
+       * LOCKED is the only state that permits canonical scene/evidence chains.
+       */
       state: "LOCKED";
       sourceId: string;
       editionIdentity: string;
@@ -465,12 +486,12 @@ export type FilmIngestMetadata = {
  * Research-draft tier for real films.
  *
  * The LOCKED+VERIFIED pipeline stays the only road to publication. This tier
- * exists for the real editorial stage between "edition selected" and "master
- * locked": the analysis is assembled from secondary sources (published
- * scripts, interviews, frame documentation, reference catalogs), scenes stay
- * DRAFT with approximate bounds, and evidence cites references — never the
- * target edition, because nobody has verified anything against the master
- * yet. Publishing from this tier is structurally impossible.
+ * exists throughout the pre-lock editorial stages: TARGET_ONLY before an exact
+ * master is measured, and MASTER_IDENTIFIED after exact master identity/runtime
+ * are known but canonical re-verification is still incomplete. Research scenes
+ * stay DRAFT and evidence cites secondary references — never a film-edition —
+ * until each retained observation is re-verified and the package transitions
+ * atomically to LOCKED. Publishing from this tier is structurally impossible.
  */
 export type FilmResearchState = {
   state: "SECONDARY_SOURCES";
