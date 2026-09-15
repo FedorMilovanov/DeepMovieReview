@@ -478,8 +478,31 @@ export type FilmEditionLock =
       masterDigest?: string;
     };
 
+export type FilmMasterSegment = {
+  id: string;
+  /** One-based structural order inside the exact viewing master. */
+  sequenceIndex: number;
+  /** Optional display label supplied by the container/disc metadata. */
+  label?: string;
+  startTimestampSeconds: number;
+  endTimestampSeconds: number;
+};
+
+export type FilmMasterSegmentation = {
+  /** Objective structural metadata from the exact viewing master, not editorial scene grammar. */
+  basis: "EMBEDDED_CHAPTERS";
+  /** This basis is accepted only when the segments cover the measured master continuously. */
+  coverage: "COMPLETE";
+  segments: FilmMasterSegment[];
+};
+
 export type FilmIngestMetadata = {
   edition: FilmEditionLock;
+  /**
+   * Optional edition-bound structural segmentation. It is provenance/navigation
+   * metadata and must never be treated as a substitute for FilmPackage.scenes.
+   */
+  masterSegmentation?: FilmMasterSegmentation;
 };
 
 /**
