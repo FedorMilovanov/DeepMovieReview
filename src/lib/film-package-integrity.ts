@@ -333,7 +333,8 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
             );
           }
         }
-      }    }
+      }
+    }
   }
 
   for (const sourceModule of sourcesModules) {
