@@ -18,6 +18,13 @@ import {
   trumanMasterChapters,
 } from "../src/data/films/the-truman-show-master-reanchor";
 import { trumanEvidenceMigrationWave1 } from "../src/data/films/the-truman-show-evidence-migration";
+import {
+  TRUMAN_MASTER_ENGLISH_SUBTITLE_CUES,
+  TRUMAN_MASTER_SCENE_CHANGE_CANDIDATES,
+  TRUMAN_SCENE_CHANGE_THRESHOLD,
+  deriveTrumanMasterChapterMetrics,
+  trumanMasterChapterMetrics,
+} from "../src/data/films/the-truman-show-master-metrics";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
   const statuses = ["fixture", "draft", "published"] as const;
@@ -3057,4 +3064,67 @@ test("Film 001 evidence migration wave 1 is dependency-safe", () => {
   }
 
   assert.equal(new Set(replacementIds).size, replacementIds.length);
+});
+
+
+test("Film 001 master-derived metrics reconcile to the measured scan", () => {
+  assert.equal(TRUMAN_SCENE_CHANGE_THRESHOLD, 0.32);
+  assert.equal(trumanMasterChapterMetrics.length, 24);
+
+  const ids = trumanMasterChapterMetrics.map((metric) => metric.chapterId);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.deepEqual(
+    ids,
+    trumanMasterChapters.map((chapter) => chapter.id),
+  );
+
+  for (const metric of trumanMasterChapterMetrics) {
+    assert.ok(Number.isInteger(metric.sceneChangeCandidates));
+    assert.ok(metric.sceneChangeCandidates >= 0);
+    assert.ok(Number.isInteger(metric.embeddedEnglishSubtitleCues));
+    assert.ok(metric.embeddedEnglishSubtitleCues >= 0);
+  }
+
+  assert.equal(
+    trumanMasterChapterMetrics.reduce(
+      (total, metric) => total + metric.sceneChangeCandidates,
+      0,
+    ),
+    TRUMAN_MASTER_SCENE_CHANGE_CANDIDATES,
+  );
+  assert.equal(TRUMAN_MASTER_SCENE_CHANGE_CANDIDATES, 1036);
+
+  assert.equal(
+    trumanMasterChapterMetrics.reduce(
+      (total, metric) => total + metric.embeddedEnglishSubtitleCues,
+      0,
+    ),
+    TRUMAN_MASTER_ENGLISH_SUBTITLE_CUES,
+  );
+  assert.equal(TRUMAN_MASTER_ENGLISH_SUBTITLE_CUES, 695);
+});
+
+test("Film 001 derived chapter rates stay reproducible and bounded", () => {
+  const derived = deriveTrumanMasterChapterMetrics();
+  assert.equal(derived.length, 24);
+
+  for (const metric of derived) {
+    assert.ok(metric.durationSeconds > 0);
+    assert.ok(Number.isFinite(metric.sceneChangeCandidatesPerMinute));
+    assert.ok(Number.isFinite(metric.embeddedEnglishSubtitleCuesPerMinute));
+    assert.ok(Number.isFinite(metric.meanSecondsPerCandidateSegment));
+    assert.ok(metric.sceneChangeCandidatesPerMinute >= 0);
+    assert.ok(metric.embeddedEnglishSubtitleCuesPerMinute >= 0);
+    assert.ok(metric.meanSecondsPerCandidateSegment > 0);
+  }
+
+  const byId = new Map(derived.map((metric) => [metric.chapterId, metric]));
+  assert.equal(byId.get("truman-ch-11")?.sceneChangeCandidatesPerMinute, 23.47);
+  assert.equal(byId.get("truman-ch-20")?.sceneChangeCandidatesPerMinute, 19.74);
+  assert.equal(byId.get("truman-ch-20")?.embeddedEnglishSubtitleCuesPerMinute, 4.82);
+  assert.equal(byId.get("truman-ch-15")?.sceneChangeCandidatesPerMinute, 4.35);
+  assert.equal(byId.get("truman-ch-15")?.embeddedEnglishSubtitleCuesPerMinute, 8.52);
+  assert.equal(byId.get("truman-ch-21")?.embeddedEnglishSubtitleCues, 0);
+  assert.equal(byId.get("truman-ch-24")?.sceneChangeCandidates, 1);
+  assert.equal(byId.get("truman-ch-24")?.embeddedEnglishSubtitleCues, 0);
 });
