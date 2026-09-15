@@ -372,8 +372,9 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     if (research && (item.sourceIds?.length ?? 0) === 0) {
       errors.push(`evidence/${item.id}: research-tier evidence requires at least one secondary source reference.`);
     }
-    if (research && filmPackage.ingest?.edition.state !== "LOCKED") {
-      const editionSourceId = filmPackage.ingest.edition.sourceId;
+    const researchEdition = filmPackage.ingest?.edition;
+    if (research && researchEdition && researchEdition.state !== "LOCKED") {
+      const editionSourceId = researchEdition.sourceId;
       for (const sourceId of item.sourceIds ?? []) {
         const source = sourcesById.get(sourceId);
         if (source?.kind !== "film-edition") continue;
