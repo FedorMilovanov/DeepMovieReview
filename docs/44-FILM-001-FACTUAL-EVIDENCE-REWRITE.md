@@ -25,7 +25,21 @@ Machine-readable source:
 - **6 TRANSCRIPT_PLUS_VISUAL** — transcript supports only part of the event; picture-dependent assertions remain pending;
 - **8 VISUAL_ONLY** — no factual rewrite text is accepted yet; `candidateObservation` is deliberately `null`.
 
-Total: **23**.
+Total rewrite candidates: **23**.
+
+Two additional evidence records are intentionally outside the rewrite list because their current structure is already a bounded dialogue observation rather than a compound event:
+
+- `truman-ev-interviews`;
+- `truman-ev-dialog`.
+
+They still remain pre-canonical and require the same final locked-source migration, but they do not need factual-prose decomposition first.
+
+Thus the complete classification is:
+
+- 23 stable rewrite candidates;
+- 14 retiring compound records from Waves 1–3;
+- 2 already-atomic dialogue records;
+- **39/39 total**.
 
 ## Why visual-only candidateObservation is null
 
