@@ -85,6 +85,7 @@ chrome.stderr.on("data", (chunk) => {
 const checks = [];
 const browserErrors = [];
 const networkErrors = [];
+const expectedNetworkErrors = [];
 const livingFrameMeasurements = {};
 let socket;
 
@@ -383,6 +384,54 @@ try {
       .map((value) => value.trim())
       .filter(Boolean);
     assertCheck(label + ": robots noindex", directives.includes("noindex"), robots);
+  }
+
+  async function inspectNotFound(pathname, width, height, label, deviceScaleFactor = 1) {
+    const networkStart = networkErrors.length;
+    const browserErrorStart = browserErrors.length;
+
+    await navigate(pathname, width, height, false, false, deviceScaleFactor);
+    await inspectBasic(label);
+    await inspectNoindex(label);
+    await inspectNoHorizontalOverflow(label);
+    await inspectMinimumTargetSize(label, ".heroActions a");
+
+    const state = JSON.parse(await evaluate(
+      "JSON.stringify({" +
+        "marker: document.querySelector('.sectionIndex')?.textContent?.trim()," +
+        "home: Boolean(document.querySelector('.heroActions a[href=\\\"/\\\"]'))," +
+        "films: Boolean(document.querySelector('.heroActions a[href=\\\"/films\\\"]'))," +
+        "filmMedia: document.querySelectorAll('[data-film-transition-media]').length," +
+        "filmRows: document.querySelectorAll('.filmRow').length" +
+      "})"
+    ));
+    assertCheck(
+      label + ": canonical 404 marker is visible",
+      state.marker?.toLocaleLowerCase("ru-RU") === "404 / не найдено",
+      state,
+    );
+    assertCheck(label + ": recovery links target home and film index", state.home && state.films, state);
+    assertCheck(label + ": no film content leaks through the boundary", state.filmMedia === 0 && state.filmRows === 0, state);
+
+    const networkDelta = networkErrors.slice(networkStart);
+    const expectedPath = new URL(pathname, baseUrl).pathname;
+    const onlyExpectedDocument404 =
+      networkDelta.length === 0 ||
+      networkDelta.every((entry) => {
+        try {
+          return entry.status === 404 &&
+            entry.type === "Document" &&
+            new URL(entry.url).pathname === expectedPath;
+        } catch {
+          return false;
+        }
+      });
+    assertCheck(label + ": only the expected 404 document may fail HTTP", onlyExpectedDocument404, networkDelta);
+    if (onlyExpectedDocument404 && networkDelta.length > 0) {
+      expectedNetworkErrors.push(...networkDelta);
+      networkErrors.splice(networkStart, networkDelta.length);
+    }
+    assertCheck(label + ": no console/runtime errors", browserErrors.length === browserErrorStart, browserErrors.slice(browserErrorStart));
   }
 
   await send("Page.enable");
@@ -1126,7 +1175,16 @@ try {
   assertCheck("reduced motion: experience runtime reflects system preference", reducedMotionState.dataset === "true", reducedMotionState);
   await capture("film-reduced-motion", false);
 
-  assertCheck("browser network: no failed HTTP resources", networkErrors.length === 0, networkErrors);
+  await inspectNotFound("/films/not-a-film", 1280, 900, "not found desktop");
+  await capture("not-found-desktop", true);
+
+  await inspectNotFound("/films/not-a-film", 390, 844, "not found mobile");
+  await capture("not-found-mobile", true);
+
+  await inspectNotFound("/films/not-a-film", 640, 450, "not found zoom 200", 2);
+  await capture("not-found-zoom-200", true);
+
+  assertCheck("browser network: no unexpected failed HTTP resources", networkErrors.length === 0, networkErrors);
   assertCheck("browser console/runtime: no errors", browserErrors.length === 0, browserErrors);
 } catch (error) {
   record("browser audit execution", false, error instanceof Error ? error.stack ?? error.message : String(error));
@@ -1138,6 +1196,7 @@ try {
     checks,
     browserErrors,
     networkErrors,
+    expectedNetworkErrors,
     livingFrameMeasurements,
     chromeStderr: chromeStderr.slice(-12000),
   };
