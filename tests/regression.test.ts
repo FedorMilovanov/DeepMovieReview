@@ -17,7 +17,10 @@ import {
   trumanEvidenceReanchors,
   trumanMasterChapters,
 } from "../src/data/films/the-truman-show-master-reanchor";
-import { trumanEvidenceMigrationWave1 } from "../src/data/films/the-truman-show-evidence-migration";
+import {
+  trumanEvidenceMigrationWave1,
+  trumanEvidenceMigrationWave2,
+} from "../src/data/films/the-truman-show-evidence-migration";
 import {
   TRUMAN_MASTER_ENGLISH_SUBTITLE_CUES,
   TRUMAN_MASTER_SCENE_CHANGE_CANDIDATES,
@@ -3127,4 +3130,116 @@ test("Film 001 derived chapter rates stay reproducible and bounded", () => {
   assert.equal(byId.get("truman-ch-21")?.embeddedEnglishSubtitleCues, 0);
   assert.equal(byId.get("truman-ch-24")?.sceneChangeCandidates, 1);
   assert.equal(byId.get("truman-ch-24")?.embeddedEnglishSubtitleCues, 0);
+});
+
+
+test("Film 001 evidence migration wave 2 is dependency-safe", () => {
+  const currentEvidenceIds = new Set(
+    (theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id),
+  );
+  const source = readFileSync("src/data/films/the-truman-show.ts", "utf8");
+  const wave1ReplacementIds = new Set(
+    trumanEvidenceMigrationWave1.flatMap((plan) =>
+      plan.replacements.map((replacement) => replacement.id),
+    ),
+  );
+  const wave2ReplacementIds: string[] = [];
+
+  assert.equal(trumanEvidenceMigrationWave2.length, 4);
+  assert.equal(
+    trumanEvidenceMigrationWave2.reduce(
+      (total, plan) => total + plan.expectedSupportReferences,
+      0,
+    ),
+    24,
+  );
+
+  const wave1RetiringIds = new Set(
+    trumanEvidenceMigrationWave1.map((plan) => plan.retiringEvidenceId),
+  );
+
+  for (const plan of trumanEvidenceMigrationWave2) {
+    assert.ok(
+      currentEvidenceIds.has(plan.retiringEvidenceId),
+      `${plan.retiringEvidenceId}: retiring evidence must still exist`,
+    );
+    assert.ok(
+      !wave1RetiringIds.has(plan.retiringEvidenceId),
+      `${plan.retiringEvidenceId}: retiring ID cannot appear in two migration waves`,
+    );
+
+    const occurrences = source.split(`"${plan.retiringEvidenceId}"`).length - 1;
+    assert.equal(
+      occurrences - 1,
+      plan.expectedSupportReferences,
+      `${plan.retiringEvidenceId}: support fan-out drifted`,
+    );
+    assert.ok(
+      plan.expectedSupportReferences >= 4 &&
+        plan.expectedSupportReferences <= 7,
+      `${plan.retiringEvidenceId}: wave 2 must remain medium-fan-out`,
+    );
+
+    const reanchor = trumanEvidenceReanchors.find(
+      (record) => record.evidenceId === plan.retiringEvidenceId,
+    );
+    assert.ok(reanchor, `${plan.retiringEvidenceId}: missing master re-anchor record`);
+
+    for (const replacement of plan.replacements) {
+      wave2ReplacementIds.push(replacement.id);
+      assert.ok(
+        !currentEvidenceIds.has(replacement.id),
+        `${replacement.id}: replacement ID already exists in Film 001`,
+      );
+      assert.ok(
+        !wave1ReplacementIds.has(replacement.id),
+        `${replacement.id}: replacement ID collides with wave 1`,
+      );
+      assert.ok(replacement.chapterIds.length > 0);
+
+      for (const chapterId of replacement.chapterIds) {
+        assert.ok(
+          trumanMasterChapters.some((chapter) => chapter.id === chapterId),
+          `${replacement.id}: unknown chapter ${chapterId}`,
+        );
+      }
+
+      if (replacement.grounding === "TRANSCRIPT") {
+        assert.notEqual(
+          replacement.anchorTimestampSeconds,
+          undefined,
+          `${replacement.id}: transcript replacement requires a master cue`,
+        );
+      }
+
+      if (replacement.grounding === "VISUAL") {
+        assert.equal(
+          replacement.anchorTimestampSeconds,
+          undefined,
+          `${replacement.id}: visual-only replacement must remain untimestamped until visual review`,
+        );
+      }
+
+      if (replacement.anchorTimestampSeconds !== undefined) {
+        const containingChapter = trumanMasterChapters.find(
+          (chapter) =>
+            replacement.chapterIds.includes(chapter.id) &&
+            replacement.anchorTimestampSeconds! >= chapter.startTimestampSeconds &&
+            replacement.anchorTimestampSeconds! < chapter.endTimestampSeconds,
+        );
+        assert.ok(
+          containingChapter,
+          `${replacement.id}: anchor must fall inside a declared master chapter`,
+        );
+        assert.ok(
+          reanchor?.anchors.some(
+            (anchor) => anchor.timestampSeconds === replacement.anchorTimestampSeconds,
+          ),
+          `${replacement.id}: anchor must come from the measured re-anchor ledger`,
+        );
+      }
+    }
+  }
+
+  assert.equal(new Set(wave2ReplacementIds).size, wave2ReplacementIds.length);
 });
