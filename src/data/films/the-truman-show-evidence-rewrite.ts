@@ -24,6 +24,11 @@ export type TrumanEvidenceRewriteCandidate = {
  * Visual-only entries intentionally carry candidateObservation=null so no
  * unreviewed picture claim can masquerade as master-verified evidence.
  */
+export const trumanEvidenceAlreadyAtomicIds = [
+  "truman-ev-interviews",
+  "truman-ev-dialog",
+] as const;
+
 export const trumanEvidenceRewriteCandidates: TrumanEvidenceRewriteCandidate[] = [
   {
     evidenceId: "truman-ev-greeting",
