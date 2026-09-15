@@ -2879,7 +2879,7 @@ test("film index filter matches localized/original title, year and status and ke
 
 
 test("Film 001 re-anchor ledger exactly covers the research evidence inventory", () => {
-  const evidenceIds = [...theTrumanShowDraftPackage.evidence.map((item) => item.id)].sort();
+  const evidenceIds = [...(theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id)].sort();
   const ledgerIds = [...trumanEvidenceReanchors.map((item) => item.evidenceId)].sort();
 
   assert.equal(trumanEvidenceReanchors.length, 39);
