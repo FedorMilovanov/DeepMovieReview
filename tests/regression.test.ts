@@ -1463,7 +1463,7 @@ test("research-tier scenes must stay DRAFT until the master is locked", () => {
   assert.ok(errors.includes("scene/research-scene: research-tier scenes must stay DRAFT until the viewing master is LOCKED."));
 });
 
-test("research-tier evidence must not cite the target film-edition source", () => {
+test("research-tier evidence must not cite the active pre-lock film-edition source", () => {
   const filmPackage = buildResearchTierPackage();
   filmPackage.evidence = [{
     id: "research-evidence",
@@ -2013,8 +2013,8 @@ test("scene registry validates ids, sequence indexes and verified time ranges", 
   assert.ok(errors.includes('scenes: duplicate scene id "scene-1".'));
   assert.ok(errors.includes('scenes: duplicate sequence index "0".'));
   assert.ok(errors.includes("scene/scene-1: VERIFIED scene requires endTimestampSeconds."));
-  assert.ok(errors.includes("scene/scene-1: startTimestampSeconds must be inside the locked edition runtime."));
-  assert.ok(errors.includes("scene/scene-1: endTimestampSeconds exceeds the locked edition runtime."));
+  assert.ok(errors.includes("scene/scene-1: startTimestampSeconds must be inside the measured edition runtime."));
+  assert.ok(errors.includes("scene/scene-1: endTimestampSeconds exceeds the measured edition runtime."));
 });
 
 test("real-film evidence scene references must resolve to verified canonical scenes", () => {
