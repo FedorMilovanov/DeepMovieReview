@@ -29,7 +29,10 @@ import {
   deriveTrumanMasterChapterMetrics,
   trumanMasterChapterMetrics,
 } from "../src/data/films/the-truman-show-master-metrics";
-import { trumanEvidenceRewriteCandidates } from "../src/data/films/the-truman-show-evidence-rewrite";
+import {
+  trumanEvidenceAlreadyAtomicIds,
+  trumanEvidenceRewriteCandidates,
+} from "../src/data/films/the-truman-show-evidence-rewrite";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
   const statuses = ["fixture", "draft", "published"] as const;
@@ -3512,10 +3515,18 @@ test("Film 001 factual rewrite candidates preserve stable IDs and provenance bou
     VISUAL_ONLY: 8,
   });
 
+  const alreadyAtomicIds = new Set(trumanEvidenceAlreadyAtomicIds);
+  assert.equal(alreadyAtomicIds.size, 2);
+  for (const evidenceId of alreadyAtomicIds) {
+    assert.ok(currentEvidenceIds.has(evidenceId));
+    assert.ok(!retiringEvidenceIds.has(evidenceId));
+    assert.ok(!ids.includes(evidenceId));
+  }
+
   assert.equal(
-    ids.length + retiringEvidenceIds.size,
+    ids.length + retiringEvidenceIds.size + alreadyAtomicIds.size,
     (theTrumanShowDraftPackage.evidence ?? []).length,
-    "stable rewrite candidates plus retiring compound IDs must partition the 39 research evidence records",
+    "rewrite candidates, retiring compound IDs and already-atomic records must partition all 39 research evidence records",
   );
 });
 
