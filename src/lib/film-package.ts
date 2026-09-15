@@ -486,12 +486,12 @@ export type FilmIngestMetadata = {
  * Research-draft tier for real films.
  *
  * The LOCKED+VERIFIED pipeline stays the only road to publication. This tier
- * exists for the real editorial stage between "edition selected" and "master
- * locked": the analysis is assembled from secondary sources (published
- * scripts, interviews, frame documentation, reference catalogs), scenes stay
- * DRAFT with approximate bounds, and evidence cites references — never the
- * target edition, because nobody has verified anything against the master
- * yet. Publishing from this tier is structurally impossible.
+ * exists throughout the pre-lock editorial stages: TARGET_ONLY before an exact
+ * master is measured, and MASTER_IDENTIFIED after exact master identity/runtime
+ * are known but canonical re-verification is still incomplete. Research scenes
+ * stay DRAFT and evidence cites secondary references — never a film-edition —
+ * until each retained observation is re-verified and the package transitions
+ * atomically to LOCKED. Publishing from this tier is structurally impossible.
  */
 export type FilmResearchState = {
   state: "SECONDARY_SOURCES";
