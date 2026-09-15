@@ -445,6 +445,27 @@ export type FilmEditionLock =
       note: string;
     }
   | {
+      /**
+       * Exact viewing master has been identified and measured, but canonical
+       * scene/evidence promotion is still fail-closed until re-verification.
+       */
+      state: "MASTER_IDENTIFIED";
+      sourceId: string;
+      editionIdentity: string;
+      measuredRuntimeSeconds: number;
+      timestampConvention: string;
+      identifiedAt: string;
+      note: string;
+      frameRate?: string;
+      audioTrack?: string;
+      subtitleTrack?: string;
+      masterDigest?: string;
+    }
+  | {
+      /**
+       * Exact viewing master is the canonical evidence authority.
+       * LOCKED is the only state that permits canonical scene/evidence chains.
+       */
       state: "LOCKED";
       sourceId: string;
       editionIdentity: string;
