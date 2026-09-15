@@ -29,6 +29,10 @@ import {
   deriveTrumanMasterChapterMetrics,
   trumanMasterChapterMetrics,
 } from "../src/data/films/the-truman-show-master-metrics";
+import {
+  trumanEvidenceAlreadyAtomicIds,
+  trumanEvidenceRewriteCandidates,
+} from "../src/data/films/the-truman-show-evidence-rewrite";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
   const statuses = ["fixture", "draft", "published"] as const;
@@ -3389,4 +3393,151 @@ test("Film 001 evidence migration wave 3 guards high-fan-out and direct consumer
       note: "Scene Autopsy bow/door anchor must point specifically to the physical exit observation.",
     },
   ]);
+});
+
+
+test("Film 001 factual rewrite candidates preserve stable IDs and provenance boundaries", () => {
+  const currentEvidenceIds = new Set(
+    (theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id),
+  );
+  const retiringEvidenceIds = new Set(
+    [
+      ...trumanEvidenceMigrationWave1,
+      ...trumanEvidenceMigrationWave2,
+      ...trumanEvidenceMigrationWave3,
+    ].map((plan) => plan.retiringEvidenceId),
+  );
+  const source = readFileSync("src/data/films/the-truman-show.ts", "utf8");
+
+  assert.equal(trumanEvidenceRewriteCandidates.length, 23);
+  assert.equal(
+    trumanEvidenceRewriteCandidates.reduce(
+      (total, candidate) => total + candidate.expectedSupportReferences,
+      0,
+    ),
+    92,
+  );
+
+  const counts = {
+    TRANSCRIPT_ONLY: 0,
+    TRANSCRIPT_PLUS_VISUAL: 0,
+    VISUAL_ONLY: 0,
+  };
+
+  const ids: string[] = [];
+
+  for (const candidate of trumanEvidenceRewriteCandidates) {
+    ids.push(candidate.evidenceId);
+    counts[candidate.verification] += 1;
+
+    assert.ok(
+      currentEvidenceIds.has(candidate.evidenceId),
+      `${candidate.evidenceId}: stable rewrite ID must still exist in Film 001`,
+    );
+    assert.ok(
+      !retiringEvidenceIds.has(candidate.evidenceId),
+      `${candidate.evidenceId}: stable rewrite cannot overlap a retiring compound ID`,
+    );
+
+    const occurrences = source.split(`"${candidate.evidenceId}"`).length - 1;
+    assert.equal(
+      occurrences - 1,
+      candidate.expectedSupportReferences,
+      `${candidate.evidenceId}: support fan-out drifted`,
+    );
+
+    const reanchor = trumanEvidenceReanchors.find(
+      (record) => record.evidenceId === candidate.evidenceId,
+    );
+    assert.ok(reanchor, `${candidate.evidenceId}: missing master re-anchor record`);
+    assert.equal(
+      reanchor?.status,
+      candidate.sourceReanchorStatus,
+      `${candidate.evidenceId}: rewrite verification must track re-anchor state`,
+    );
+
+    for (const chapterId of candidate.chapterIds) {
+      assert.ok(
+        trumanMasterChapters.some((chapter) => chapter.id === chapterId),
+        `${candidate.evidenceId}: unknown chapter ${chapterId}`,
+      );
+    }
+
+    if (candidate.verification === "TRANSCRIPT_ONLY") {
+      assert.equal(candidate.sourceReanchorStatus, "TRANSCRIPT_ANCHORED");
+      assert.notEqual(candidate.anchorTimestampSeconds, undefined);
+      assert.ok(candidate.candidateObservation?.trim());
+      assert.equal(candidate.visualReviewTarget, undefined);
+    }
+
+    if (candidate.verification === "TRANSCRIPT_PLUS_VISUAL") {
+      assert.equal(candidate.sourceReanchorStatus, "MIXED_REVIEW_REQUIRED");
+      assert.notEqual(candidate.anchorTimestampSeconds, undefined);
+      assert.ok(candidate.candidateObservation?.trim());
+      assert.ok(candidate.visualReviewTarget?.trim());
+    }
+
+    if (candidate.verification === "VISUAL_ONLY") {
+      assert.equal(candidate.sourceReanchorStatus, "VISUAL_REVIEW_REQUIRED");
+      assert.equal(candidate.anchorTimestampSeconds, undefined);
+      assert.equal(candidate.candidateObservation, null);
+      assert.ok(candidate.visualReviewTarget?.trim());
+    }
+
+    if (candidate.anchorTimestampSeconds !== undefined) {
+      assert.ok(
+        candidate.chapterIds.some((chapterId) => {
+          const chapter = trumanMasterChapters.find(
+            (item) => item.id === chapterId,
+          );
+          return (
+            chapter !== undefined &&
+            candidate.anchorTimestampSeconds! >= chapter.startTimestampSeconds &&
+            candidate.anchorTimestampSeconds! < chapter.endTimestampSeconds
+          );
+        }),
+        `${candidate.evidenceId}: candidate anchor must stay inside a declared chapter`,
+      );
+
+      assert.ok(
+        reanchor?.anchors.some(
+          (anchor) => anchor.timestampSeconds === candidate.anchorTimestampSeconds,
+        ),
+        `${candidate.evidenceId}: candidate anchor must come from the measured re-anchor ledger`,
+      );
+    }
+  }
+
+  assert.equal(new Set(ids).size, ids.length);
+  assert.deepEqual(counts, {
+    TRANSCRIPT_ONLY: 9,
+    TRANSCRIPT_PLUS_VISUAL: 6,
+    VISUAL_ONLY: 8,
+  });
+
+  const alreadyAtomicIds = new Set(trumanEvidenceAlreadyAtomicIds);
+  assert.equal(alreadyAtomicIds.size, 2);
+  for (const evidenceId of alreadyAtomicIds) {
+    assert.ok(currentEvidenceIds.has(evidenceId));
+    assert.ok(!retiringEvidenceIds.has(evidenceId));
+    assert.ok(!ids.includes(evidenceId));
+  }
+
+  assert.equal(
+    ids.length + retiringEvidenceIds.size + alreadyAtomicIds.size,
+    (theTrumanShowDraftPackage.evidence ?? []).length,
+    "rewrite candidates, retiring compound IDs and already-atomic records must partition all 39 research evidence records",
+  );
+});
+
+test("Film 001 factual rewrite contract keeps visual-only prose fail-closed", () => {
+  for (const candidate of trumanEvidenceRewriteCandidates) {
+    if (candidate.verification === "VISUAL_ONLY") {
+      assert.equal(candidate.candidateObservation, null);
+      assert.ok(candidate.visualReviewTarget);
+      continue;
+    }
+
+    assert.ok(candidate.candidateObservation);
+  }
 });
