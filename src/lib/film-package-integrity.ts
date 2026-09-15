@@ -180,7 +180,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
 
   // Research tier: declares a secondary-source research draft. It is the only
   // way a real-film package may carry scenes, evidence and analytical modules
-  // while the edition is still TARGET_ONLY — and it can never be published.
+  // before the edition is LOCKED — and it can never be published.
   if (filmPackage.research) {
     if (filmPackage.research.state !== "SECONDARY_SOURCES") {
       errors.push(`research: unknown research state "${String(filmPackage.research.state)}".`);
@@ -194,7 +194,7 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     }
   }
   if (research && filmPackage.ingest?.edition.state === "LOCKED") {
-    errors.push("research: the SECONDARY_SOURCES tier is only valid while the edition is TARGET_ONLY.");
+    errors.push("research: the SECONDARY_SOURCES tier is only valid before the edition is LOCKED.");
   }
 
   if (sourcesModules.length > 1) {
@@ -258,14 +258,15 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         errors.push(`film: ingest edition source "${edition.sourceId}" must have kind "film-edition".`);
       }
 
-      if (edition.state === "TARGET_ONLY") {
-        if (isBlank(edition.note)) errors.push("film: TARGET_ONLY edition state requires a note.");
+      const preLock = edition.state !== "LOCKED";
+
+      if (preLock) {
         if (published) errors.push("film: published package requires a LOCKED edition.");
         if (scenes.length > 0 && !research) {
-          errors.push("film: canonical scene registry requires a LOCKED edition, not TARGET_ONLY.");
+          errors.push(`film: canonical scene registry requires a LOCKED edition, not ${edition.state}.`);
         }
         if (evidence.length > 0 && !research) {
-          errors.push("film: canonical evidence requires a LOCKED edition, not TARGET_ONLY.");
+          errors.push(`film: canonical evidence requires a LOCKED edition, not ${edition.state}.`);
         }
         for (const scene of scenes) {
           if (research && scene.verificationState === "VERIFIED") {
@@ -275,17 +276,33 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
         for (const filmModule of filmPackage.modules) {
           if (filmModule.kind !== "sources-method" && !research) {
             errors.push(
-              `module/${filmModule.id}: TARGET_ONLY real-film packages may contain only sources-method modules until the viewing master is LOCKED.`,
+              `module/${filmModule.id}: ${edition.state} real-film packages may contain only sources-method modules until the viewing master is LOCKED.`,
             );
           }
         }
+      }
+
+      if (edition.state === "TARGET_ONLY") {
+        if (isBlank(edition.note)) errors.push("film: TARGET_ONLY edition state requires a note.");
       } else {
-        if (isBlank(edition.editionIdentity)) errors.push("film: LOCKED edition requires editionIdentity.");
-        if (!Number.isFinite(edition.measuredRuntimeSeconds) || edition.measuredRuntimeSeconds <= 0) {
-          errors.push("film: LOCKED edition requires positive measuredRuntimeSeconds.");
+        if (isBlank(edition.editionIdentity)) {
+          errors.push(`film: ${edition.state} edition requires editionIdentity.`);
         }
-        if (isBlank(edition.timestampConvention)) errors.push("film: LOCKED edition requires timestampConvention.");
-        if (isBlank(edition.verifiedAt)) {
+        if (!Number.isFinite(edition.measuredRuntimeSeconds) || edition.measuredRuntimeSeconds <= 0) {
+          errors.push(`film: ${edition.state} edition requires positive measuredRuntimeSeconds.`);
+        }
+        if (isBlank(edition.timestampConvention)) {
+          errors.push(`film: ${edition.state} edition requires timestampConvention.`);
+        }
+
+        if (edition.state === "MASTER_IDENTIFIED") {
+          if (isBlank(edition.note)) errors.push("film: MASTER_IDENTIFIED edition state requires a note.");
+          if (isBlank(edition.identifiedAt)) {
+            errors.push("film: MASTER_IDENTIFIED edition requires identifiedAt.");
+          } else if (!isIsoCalendarDate(edition.identifiedAt)) {
+            errors.push("film: MASTER_IDENTIFIED edition identifiedAt must use a valid YYYY-MM-DD calendar date.");
+          }
+        } else if (isBlank(edition.verifiedAt)) {
           errors.push("film: LOCKED edition requires verifiedAt.");
         } else if (!isIsoCalendarDate(edition.verifiedAt)) {
           errors.push("film: LOCKED edition verifiedAt must use a valid YYYY-MM-DD calendar date.");
@@ -293,25 +310,30 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
 
         for (const scene of scenes) {
           if (scene.startTimestampSeconds >= edition.measuredRuntimeSeconds) {
-            errors.push(`scene/${scene.id}: startTimestampSeconds must be inside the locked edition runtime.`);
+            errors.push(`scene/${scene.id}: startTimestampSeconds must be inside the measured edition runtime.`);
           }
           if (
             scene.endTimestampSeconds !== undefined &&
             scene.endTimestampSeconds > edition.measuredRuntimeSeconds
           ) {
-            errors.push(`scene/${scene.id}: endTimestampSeconds exceeds the locked edition runtime.`);
+            errors.push(`scene/${scene.id}: endTimestampSeconds exceeds the measured edition runtime.`);
           }
         }
 
         for (const item of evidence) {
-          if (!(item.sourceIds ?? []).includes(edition.sourceId)) {
+          if (
+            item.timestampSeconds !== undefined &&
+            item.timestampSeconds >= edition.measuredRuntimeSeconds
+          ) {
+            errors.push(`evidence/${item.id}: timestampSeconds must be inside the measured edition runtime.`);
+          }
+          if (edition.state === "LOCKED" && !(item.sourceIds ?? []).includes(edition.sourceId)) {
             errors.push(
               `evidence/${item.id}: real-film canonical evidence must reference locked film-edition source "${edition.sourceId}".`,
             );
           }
         }
-      }
-    }
+      }    }
   }
 
   for (const sourceModule of sourcesModules) {
@@ -349,13 +371,13 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     if (research && (item.sourceIds?.length ?? 0) === 0) {
       errors.push(`evidence/${item.id}: research-tier evidence requires at least one secondary source reference.`);
     }
-    if (research && filmPackage.ingest?.edition.state === "TARGET_ONLY") {
+    if (research && filmPackage.ingest?.edition.state !== "LOCKED") {
       const editionSourceId = filmPackage.ingest.edition.sourceId;
       for (const sourceId of item.sourceIds ?? []) {
         const source = sourcesById.get(sourceId);
         if (source?.kind !== "film-edition") continue;
         if (sourceId === editionSourceId) {
-          errors.push(`evidence/${item.id}: research-tier evidence must not cite the target film-edition source "${editionSourceId}" (the master is not locked).`);
+          errors.push(`evidence/${item.id}: research-tier evidence must not cite the active pre-lock film-edition source "${editionSourceId}".`);
         } else {
           errors.push(`evidence/${item.id}: research-tier evidence must not cite film-edition source "${sourceId}" before the viewing master is LOCKED.`);
         }
