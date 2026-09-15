@@ -17,6 +17,7 @@ import {
   trumanEvidenceReanchors,
   trumanMasterChapters,
 } from "../src/data/films/the-truman-show-master-reanchor";
+import { trumanEvidenceMigrationWave1 } from "../src/data/films/the-truman-show-evidence-migration";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
   const statuses = ["fixture", "draft", "published"] as const;
@@ -2960,4 +2961,100 @@ test("Film 001 re-anchor timestamps stay inside their declared master chapters",
       );
     }
   }
+});
+
+
+test("Film 001 evidence migration wave 1 is dependency-safe", () => {
+  const currentEvidenceIds = new Set(
+    (theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id),
+  );
+  const source = readFileSync("src/data/films/the-truman-show.ts", "utf8");
+  const replacementIds: string[] = [];
+
+  assert.equal(trumanEvidenceMigrationWave1.length, 7);
+  assert.equal(
+    trumanEvidenceMigrationWave1.reduce(
+      (total, plan) => total + plan.expectedSupportReferences,
+      0,
+    ),
+    14,
+  );
+
+  for (const plan of trumanEvidenceMigrationWave1) {
+    assert.ok(
+      currentEvidenceIds.has(plan.retiringEvidenceId),
+      `${plan.retiringEvidenceId}: retiring evidence must still exist`,
+    );
+
+    const occurrences = source.split(`"${plan.retiringEvidenceId}"`).length - 1;
+    assert.equal(
+      occurrences - 1,
+      plan.expectedSupportReferences,
+      `${plan.retiringEvidenceId}: support fan-out drifted`,
+    );
+
+    assert.ok(
+      plan.expectedSupportReferences <= 3,
+      `${plan.retiringEvidenceId}: wave 1 must remain low-fan-out`,
+    );
+
+    const reanchor = trumanEvidenceReanchors.find(
+      (record) => record.evidenceId === plan.retiringEvidenceId,
+    );
+    assert.ok(reanchor, `${plan.retiringEvidenceId}: missing master re-anchor record`);
+
+    for (const replacement of plan.replacements) {
+      replacementIds.push(replacement.id);
+      assert.ok(
+        !currentEvidenceIds.has(replacement.id),
+        `${replacement.id}: replacement ID already exists in Film 001`,
+      );
+
+      assert.ok(replacement.chapterIds.length > 0);
+      for (const chapterId of replacement.chapterIds) {
+        assert.ok(
+          trumanMasterChapters.some((chapter) => chapter.id === chapterId),
+          `${replacement.id}: unknown chapter ${chapterId}`,
+        );
+      }
+
+      if (replacement.grounding === "TRANSCRIPT") {
+        assert.notEqual(
+          replacement.anchorTimestampSeconds,
+          undefined,
+          `${replacement.id}: transcript replacement requires a master cue`,
+        );
+      }
+
+      if (replacement.grounding === "VISUAL") {
+        assert.equal(
+          replacement.anchorTimestampSeconds,
+          undefined,
+          `${replacement.id}: visual-only replacement must not fake a transcript timestamp`,
+        );
+      }
+
+      if (replacement.anchorTimestampSeconds !== undefined) {
+        const containingChapter = trumanMasterChapters.find(
+          (chapter) =>
+            replacement.chapterIds.includes(chapter.id) &&
+            replacement.anchorTimestampSeconds! >= chapter.startTimestampSeconds &&
+            replacement.anchorTimestampSeconds! < chapter.endTimestampSeconds,
+        );
+        assert.ok(
+          containingChapter,
+          `${replacement.id}: anchor must fall inside one declared master chapter`,
+        );
+
+        assert.ok(
+          reanchor?.anchors.some(
+            (anchor) => anchor.timestampSeconds === replacement.anchorTimestampSeconds,
+          ),
+          `${replacement.id}: anchor must come from the measured re-anchor ledger`,
+        );
+      }
+    }
+  }
+
+  assert.equal(new Set(replacementIds).size, replacementIds.length);
 });
