@@ -201,3 +201,101 @@ export const trumanEvidenceMigrationWave1: TrumanEvidenceMigrationPlan[] = [
     ],
   },
 ];
+
+
+/**
+ * Second dependency-safe migration wave.
+ *
+ * These four compound records have medium fan-out (24 support references
+ * total). As in wave 1, this is a pre-mutation contract: it distinguishes
+ * film-observable replacements from secondary/contextual assertions that
+ * should leave the canonical evidence graph rather than being laundered
+ * through the viewing master.
+ */
+export const trumanEvidenceMigrationWave2: TrumanEvidenceMigrationPlan[] = [
+  {
+    retiringEvidenceId: "truman-ev-daycount",
+    expectedSupportReferences: 7,
+    migrationKind: "REWRITE",
+    sourceReanchorStatus: "VISUAL_REVIEW_REQUIRED",
+    replacements: [
+      {
+        id: "truman-ev-day-counter",
+        grounding: "VISUAL",
+        chapterIds: ["truman-ch-02"],
+        note: "On-screen day counter only; exact picture timestamp remains pending visual review.",
+      },
+    ],
+    claimLayerNotes: [
+      "Do not carry age, continuous-broadcast duration or camera-count metadata into this film observation unless separately supported.",
+      "Off-screen production scale belongs in Sources/Method or separately attributed secondary context, not canonical film observation.",
+    ],
+  },
+  {
+    retiringEvidenceId: "truman-ev-sylvia",
+    expectedSupportReferences: 4,
+    migrationKind: "REWRITE",
+    sourceReanchorStatus: "TRANSCRIPT_ANCHORED",
+    replacements: [
+      {
+        id: "truman-ev-sylvia-disclosure",
+        grounding: "TRANSCRIPT",
+        chapterIds: ["truman-ch-07"],
+        anchorTimestampSeconds: 1592.136,
+        note: "Sylvia's disclosure sequence begins here; the stronger explicit set/fabrication cue follows at 1615.201.",
+      },
+    ],
+    claimLayerNotes: [
+      "Do not bundle later identity/activism context into the beach/library disclosure observation.",
+      "Any claim that she is part of an organized Free Truman movement needs its own on-screen or secondary provenance.",
+    ],
+  },
+  {
+    retiringEvidenceId: "truman-ev-fiji",
+    expectedSupportReferences: 6,
+    migrationKind: "SPLIT",
+    sourceReanchorStatus: "MIXED_REVIEW_REQUIRED",
+    replacements: [
+      {
+        id: "truman-ev-fiji-departure",
+        grounding: "TRANSCRIPT",
+        chapterIds: ["truman-ch-07"],
+        anchorTimestampSeconds: 1644.899,
+        note: "Departure-to-Fiji dialogue is master-grounded.",
+      },
+      {
+        id: "truman-ev-sylvia-collage",
+        grounding: "VISUAL",
+        chapterIds: ["truman-ch-02", "truman-ch-07"],
+        note: "Magazine/collage imagery requires picture-level location and timestamp verification; candidate chapters intentionally remain broad.",
+      },
+    ],
+    claimLayerNotes: [
+      "The interpretation that Fiji becomes the name of everything real outside Seahaven belongs in a supported thematic/character claim, not raw evidence.",
+    ],
+  },
+  {
+    retiringEvidenceId: "truman-ev-reunion",
+    expectedSupportReferences: 7,
+    migrationKind: "SPLIT",
+    sourceReanchorStatus: "MIXED_REVIEW_REQUIRED",
+    replacements: [
+      {
+        id: "truman-ev-father-reunion",
+        grounding: "VISUAL",
+        chapterIds: ["truman-ch-15"],
+        note: "Father/son reunion staging requires picture-level verification.",
+      },
+      {
+        id: "truman-ev-amnesia-explanation",
+        grounding: "TRANSCRIPT",
+        chapterIds: ["truman-ch-16"],
+        anchorTimestampSeconds: 3880.242,
+        note: "Control-room dialogue explicitly labels the amnesia explanation.",
+      },
+    ],
+    claimLayerNotes: [
+      "Ratings impact and the assertion that Truman is returned to normal routine are separate editorial/contextual claims and must not remain inside one evidence observation.",
+    ],
+  },
+];
