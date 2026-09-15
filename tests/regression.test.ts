@@ -16,7 +16,8 @@ import {
   TRUMAN_MASTER_RUNTIME_SECONDS,
   trumanEvidenceReanchors,
   trumanMasterChapters,
-} from "../src/data/films/the-truman-show-master-reanchor";\nimport { trumanEvidenceMigrationWave1 } from "../src/data/films/the-truman-show-evidence-migration";
+} from "../src/data/films/the-truman-show-master-reanchor";
+import { trumanEvidenceMigrationWave1 } from "../src/data/films/the-truman-show-evidence-migration";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
   const statuses = ["fixture", "draft", "published"] as const;
