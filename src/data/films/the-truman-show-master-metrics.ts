@@ -1,4 +1,4 @@
-import { trumanMasterChapters } from "./the-truman-show-master-reanchor";
+import { trumanMasterChapters } from "./the-truman-show-master-segmentation";
 
 /**
  * Reproducible, master-derived editorial metrics for Film 001.

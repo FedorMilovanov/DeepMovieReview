@@ -1,4 +1,5 @@
 import type { FilmPackage } from "@/lib/film-package";
+import { trumanMasterSegmentation } from "./the-truman-show-master-segmentation";
 
 /**
  * «Шоу Трумана» (The Truman Show, 1998, Питер Уир).
@@ -38,6 +39,7 @@ export const theTrumanShowDraftPackage: FilmPackage = {
       subtitleTrack: "Embedded English SubRip (stream 8)",
       masterDigest: "sha256:E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575",
     },
+    masterSegmentation: trumanMasterSegmentation,
   },
   research: {
     state: "SECONDARY_SOURCES",

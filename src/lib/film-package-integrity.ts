@@ -259,6 +259,85 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
       }
 
       const preLock = edition.state !== "LOCKED";
+      const masterSegmentation = filmPackage.ingest?.masterSegmentation;
+
+      if (masterSegmentation) {
+        const segmentIds = masterSegmentation.segments.map((segment) => segment.id);
+        const segmentIndexes = masterSegmentation.segments.map((segment) => String(segment.sequenceIndex));
+        const epsilon = 1e-6;
+
+        if (edition.state === "TARGET_ONLY") {
+          errors.push("film: masterSegmentation requires an identified/measured viewing master.");
+        }
+        if (masterSegmentation.segments.length === 0) {
+          errors.push("film: masterSegmentation COMPLETE coverage requires at least one segment.");
+        }
+        for (const id of duplicateIds(segmentIds)) {
+          errors.push(`masterSegmentation: duplicate segment id "${id}".`);
+        }
+        for (const index of duplicateIds(segmentIndexes)) {
+          errors.push(`masterSegmentation: duplicate sequence index "${index}".`);
+        }
+
+        for (const [index, segment] of masterSegmentation.segments.entries()) {
+          if (isBlank(segment.id)) {
+            errors.push("masterSegmentation: segment id is required.");
+          }
+          if (!Number.isInteger(segment.sequenceIndex) || segment.sequenceIndex !== index + 1) {
+            errors.push(
+              `masterSegmentation/${segment.id || index}: sequenceIndex must match one-based array order.`,
+            );
+          }
+          if (!Number.isFinite(segment.startTimestampSeconds) || segment.startTimestampSeconds < 0) {
+            errors.push(
+              `masterSegmentation/${segment.id || index}: startTimestampSeconds must be a non-negative finite number.`,
+            );
+          }
+          if (
+            !Number.isFinite(segment.endTimestampSeconds) ||
+            segment.endTimestampSeconds <= segment.startTimestampSeconds
+          ) {
+            errors.push(
+              `masterSegmentation/${segment.id || index}: endTimestampSeconds must be finite and greater than startTimestampSeconds.`,
+            );
+          }
+
+          if (index === 0 && Math.abs(segment.startTimestampSeconds) > epsilon) {
+            errors.push("masterSegmentation: COMPLETE coverage must start at 0.");
+          }
+
+          const previous = masterSegmentation.segments[index - 1];
+          if (
+            previous &&
+            Math.abs(previous.endTimestampSeconds - segment.startTimestampSeconds) > epsilon
+          ) {
+            errors.push(
+              `masterSegmentation/${segment.id}: COMPLETE coverage must be gapless and non-overlapping with "${previous.id}".`,
+            );
+          }
+
+          if (
+            edition.state !== "TARGET_ONLY" &&
+            segment.endTimestampSeconds > edition.measuredRuntimeSeconds + epsilon
+          ) {
+            errors.push(
+              `masterSegmentation/${segment.id}: endTimestampSeconds exceeds the measured edition runtime.`,
+            );
+          }
+        }
+
+        const finalSegment =
+          masterSegmentation.segments[masterSegmentation.segments.length - 1];
+        if (
+          finalSegment &&
+          edition.state !== "TARGET_ONLY" &&
+          Math.abs(finalSegment.endTimestampSeconds - edition.measuredRuntimeSeconds) > epsilon
+        ) {
+          errors.push(
+            "masterSegmentation: COMPLETE coverage must end at measuredRuntimeSeconds.",
+          );
+        }
+      }
 
       if (preLock) {
         if (published) errors.push("film: published package requires a LOCKED edition.");
