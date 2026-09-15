@@ -16,6 +16,26 @@ export {
 } from "./the-truman-show-master-segmentation";
 export type { TrumanMasterChapter } from "./the-truman-show-master-segmentation";
 
+export type TrumanReanchorStatus =
+  | "TRANSCRIPT_ANCHORED"
+  | "MIXED_REVIEW_REQUIRED"
+  | "VISUAL_REVIEW_REQUIRED";
+
+export type TrumanTranscriptAnchor = {
+  chapterId: string;
+  timestampSeconds: number;
+  basis: "EMBEDDED_ENGLISH_SUBTITLE";
+  note: string;
+};
+
+export type TrumanEvidenceReanchor = {
+  evidenceId: string;
+  status: TrumanReanchorStatus;
+  anchors: TrumanTranscriptAnchor[];
+  candidateChapterIds: string[];
+  note: string;
+};
+
 const cue = (
   chapterId: string,
   timestampSeconds: number,
