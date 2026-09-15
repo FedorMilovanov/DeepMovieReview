@@ -1682,10 +1682,10 @@ export const theTrumanShowDraftPackage: FilmPackage = {
       heading: "Источники и издание — Шоу Трумана",
       spoilerLevel: "NONE",
       methodologyVersion: "deepwaters-method-v1",
-      editorialRevision: "research-draft-1",
+      editorialRevision: "research-draft-2-master-intake",
       analyzedEdition:
         "Viewing master identified 2026-09-15: The Truman Show (1998) BDRip.mkv; Matroska; 13,099,008,485 bytes; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575; 1920×1080 H.264; 24000/1001 fps; measured runtime 01:42:57.792. Dialogue basis: English Original DTS 5.1 + embedded English SubRip. Package remains TARGET_ONLY + SECONDARY_SOURCES until canonical scene/evidence re-anchor; see docs/38-FILM-001-VIEWING-MASTER-INTAKE.md.",
-      lastReviewedAt: "2026-09-12",
+      lastReviewedAt: "2026-09-15",
       sources: [
         {
           id: "truman-src-master-bdrip",
@@ -1695,9 +1695,10 @@ export const theTrumanShowDraftPackage: FilmPackage = {
         },
         {
           id: "truman-src-target",
-          label: "Целевое издание: The Truman Show 4K UHD (Paramount, 2023)",
-          kind: "film-edition",
-          locator: "Blu-ray.com, издание 337202: 2160p Dolby Vision, 103 мин (по данным релиза)",
+          label: "Ранее выбранный target: The Truman Show 4K UHD (Paramount, 2023)",
+          kind: "reference",
+          researchRole: "database-transcript",
+          locator: "Blu-ray.com, издание 337202: ранее выбранная 2160p Dolby Vision цель; не является текущим viewing master.",
           href: "https://www.blu-ray.com/movies/The-Truman-Show-4K-Blu-ray/337202/",
         },
         {
