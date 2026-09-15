@@ -20,6 +20,7 @@ import {
 import {
   trumanEvidenceMigrationWave1,
   trumanEvidenceMigrationWave2,
+  trumanEvidenceMigrationWave3,
 } from "../src/data/films/the-truman-show-evidence-migration";
 import {
   TRUMAN_MASTER_ENGLISH_SUBTITLE_CUES,
@@ -3242,4 +3243,150 @@ test("Film 001 evidence migration wave 2 is dependency-safe", () => {
   }
 
   assert.equal(new Set(wave2ReplacementIds).size, wave2ReplacementIds.length);
+});
+
+
+test("Film 001 evidence migration wave 3 guards high-fan-out and direct consumers", () => {
+  const currentEvidenceIds = new Set(
+    (theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id),
+  );
+  const source = readFileSync("src/data/films/the-truman-show.ts", "utf8");
+
+  const priorRetiringIds = new Set(
+    [...trumanEvidenceMigrationWave1, ...trumanEvidenceMigrationWave2].map(
+      (plan) => plan.retiringEvidenceId,
+    ),
+  );
+  const priorReplacementIds = new Set(
+    [...trumanEvidenceMigrationWave1, ...trumanEvidenceMigrationWave2].flatMap(
+      (plan) => plan.replacements.map((replacement) => replacement.id),
+    ),
+  );
+  const wave3ReplacementIds: string[] = [];
+
+  assert.equal(trumanEvidenceMigrationWave3.length, 3);
+  assert.equal(
+    trumanEvidenceMigrationWave3.reduce(
+      (total, plan) => total + plan.expectedSupportReferences,
+      0,
+    ),
+    33,
+  );
+
+  for (const plan of trumanEvidenceMigrationWave3) {
+    assert.ok(
+      currentEvidenceIds.has(plan.retiringEvidenceId),
+      `${plan.retiringEvidenceId}: retiring evidence must still exist`,
+    );
+    assert.ok(
+      !priorRetiringIds.has(plan.retiringEvidenceId),
+      `${plan.retiringEvidenceId}: retiring ID cannot appear in multiple waves`,
+    );
+    assert.ok(
+      plan.expectedSupportReferences >= 8,
+      `${plan.retiringEvidenceId}: wave 3 is reserved for high-fan-out evidence`,
+    );
+
+    const occurrences = source.split(`"${plan.retiringEvidenceId}"`).length - 1;
+    assert.equal(
+      occurrences - 1,
+      plan.expectedSupportReferences,
+      `${plan.retiringEvidenceId}: support/direct-reference fan-out drifted`,
+    );
+
+    const reanchor = trumanEvidenceReanchors.find(
+      (record) => record.evidenceId === plan.retiringEvidenceId,
+    );
+    assert.ok(reanchor, `${plan.retiringEvidenceId}: missing master re-anchor record`);
+
+    const replacementIdsForPlan = new Set(
+      plan.replacements.map((replacement) => replacement.id),
+    );
+
+    for (const replacement of plan.replacements) {
+      wave3ReplacementIds.push(replacement.id);
+      assert.ok(
+        !currentEvidenceIds.has(replacement.id),
+        `${replacement.id}: replacement ID already exists in Film 001`,
+      );
+      assert.ok(
+        !priorReplacementIds.has(replacement.id),
+        `${replacement.id}: replacement ID collides with an earlier wave`,
+      );
+      assert.ok(replacement.chapterIds.length > 0);
+
+      for (const chapterId of replacement.chapterIds) {
+        assert.ok(
+          trumanMasterChapters.some((chapter) => chapter.id === chapterId),
+          `${replacement.id}: unknown chapter ${chapterId}`,
+        );
+      }
+
+      if (replacement.grounding === "TRANSCRIPT") {
+        assert.notEqual(
+          replacement.anchorTimestampSeconds,
+          undefined,
+          `${replacement.id}: transcript replacement requires a master cue`,
+        );
+      }
+
+      if (replacement.grounding === "VISUAL") {
+        assert.equal(
+          replacement.anchorTimestampSeconds,
+          undefined,
+          `${replacement.id}: visual-only replacement must remain untimestamped until visual review`,
+        );
+      }
+
+      if (replacement.anchorTimestampSeconds !== undefined) {
+        assert.ok(
+          trumanMasterChapters.some(
+            (chapter) =>
+              replacement.chapterIds.includes(chapter.id) &&
+              replacement.anchorTimestampSeconds! >= chapter.startTimestampSeconds &&
+              replacement.anchorTimestampSeconds! < chapter.endTimestampSeconds,
+          ),
+          `${replacement.id}: anchor must fall inside a declared master chapter`,
+        );
+        assert.ok(
+          reanchor?.anchors.some(
+            (anchor) => anchor.timestampSeconds === replacement.anchorTimestampSeconds,
+          ),
+          `${replacement.id}: anchor must come from the measured re-anchor ledger`,
+        );
+      }
+    }
+
+    for (const directRewire of plan.directEvidenceRewires ?? []) {
+      assert.ok(
+        replacementIdsForPlan.has(directRewire.replacementId),
+        `${directRewire.consumerId}: direct rewire must target a replacement from the same plan`,
+      );
+
+      const consumerNeedle = `id: "${directRewire.consumerId}"`;
+      const consumerIndex = source.indexOf(consumerNeedle);
+      assert.ok(
+        consumerIndex >= 0,
+        `${directRewire.consumerId}: direct evidence consumer must still exist`,
+      );
+      const consumerBlock = source.slice(consumerIndex, consumerIndex + 320);
+      assert.ok(
+        consumerBlock.includes(`evidenceId: "${plan.retiringEvidenceId}"`),
+        `${directRewire.consumerId}: expected retiring evidence direct reference drifted`,
+      );
+    }
+  }
+
+  assert.equal(new Set(wave3ReplacementIds).size, wave3ReplacementIds.length);
+
+  const exitPlan = trumanEvidenceMigrationWave3.find(
+    (plan) => plan.retiringEvidenceId === "truman-ev-exit",
+  );
+  assert.deepEqual(exitPlan?.directEvidenceRewires, [
+    {
+      consumerId: "truman-anchor-bow",
+      replacementId: "truman-ev-final-exit",
+      note: "Scene Autopsy bow/door anchor must point specifically to the physical exit observation.",
+    },
+  ]);
 });
