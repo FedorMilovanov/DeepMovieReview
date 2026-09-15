@@ -2773,9 +2773,11 @@ test("documentation preserves the SECONDARY_SOURCES pre-lock exception", () => {
   const ingestStatus = readFileSync("docs/29-FILM-001-INGEST-STATUS.md", "utf8");
 
   assert.ok(readme.includes("SECONDARY_SOURCES"));
+  assert.ok(readme.includes("MASTER_IDENTIFIED"));
   assert.ok(!readme.includes(
     "`TARGET_ONLY` packages cannot contain analytical modules beyond `sources-method`, canonical scenes or evidence"
   ));
+  assert.ok(agentRules.includes("MASTER_IDENTIFIED"));
   assert.ok(agentRules.includes("Research-tier evidence may reference only `DRAFT` scene estimates"));
   assert.ok(domainModules.includes("Outside the explicit `SECONDARY_SOURCES` research tier"));
   assert.ok(ingestStatus.includes(
