@@ -17,6 +17,7 @@ import {
   trumanEvidenceReanchors,
   trumanMasterChapters,
 } from "../src/data/films/the-truman-show-master-reanchor";
+import { trumanMasterSegmentation } from "../src/data/films/the-truman-show-master-segmentation";
 import {
   trumanEvidenceMigrationWave1,
   trumanEvidenceMigrationWave2,
@@ -3540,4 +3541,119 @@ test("Film 001 factual rewrite contract keeps visual-only prose fail-closed", ()
 
     assert.ok(candidate.candidateObservation);
   }
+});
+
+
+test("master segmentation requires a measured edition and complete contiguous coverage", () => {
+  const targetOnly = buildResearchTierPackage();
+  targetOnly.ingest = {
+    edition: {
+      state: "TARGET_ONLY",
+      sourceId: "film-master",
+      note: "Target only.",
+    },
+    masterSegmentation: {
+      basis: "EMBEDDED_CHAPTERS",
+      coverage: "COMPLETE",
+      segments: [
+        {
+          id: "segment-1",
+          sequenceIndex: 1,
+          startTimestampSeconds: 0,
+          endTimestampSeconds: 6000,
+        },
+      ],
+    },
+  };
+
+  assert.ok(
+    validateFilmPackage(targetOnly).includes(
+      "film: masterSegmentation requires an identified/measured viewing master.",
+    ),
+  );
+
+  const identified = buildResearchTierPackage();
+  identified.ingest = {
+    edition: {
+      state: "MASTER_IDENTIFIED",
+      sourceId: "film-master",
+      editionIdentity: "Measured fixture master",
+      measuredRuntimeSeconds: 6000,
+      timestampConvention: "PTS from 00:00:00.000",
+      identifiedAt: "2026-09-16",
+      note: "Measured fixture.",
+    },
+    masterSegmentation: {
+      basis: "EMBEDDED_CHAPTERS",
+      coverage: "COMPLETE",
+      segments: [
+        {
+          id: "segment-1",
+          sequenceIndex: 1,
+          startTimestampSeconds: 0,
+          endTimestampSeconds: 3000,
+        },
+        {
+          id: "segment-2",
+          sequenceIndex: 2,
+          startTimestampSeconds: 3000,
+          endTimestampSeconds: 6000,
+        },
+      ],
+    },
+  };
+
+  assert.deepEqual(validateFilmPackage(identified), []);
+
+  identified.ingest.masterSegmentation!.segments[1]!.startTimestampSeconds = 3001;
+  const gapErrors = validateFilmPackage(identified);
+  assert.ok(
+    gapErrors.includes(
+      'masterSegmentation/segment-2: COMPLETE coverage must be gapless and non-overlapping with "segment-1".',
+    ),
+  );
+
+  identified.ingest.masterSegmentation!.segments[1]!.startTimestampSeconds = 3000;
+  identified.ingest.masterSegmentation!.segments[1]!.sequenceIndex = 3;
+  assert.ok(
+    validateFilmPackage(identified).includes(
+      "masterSegmentation/segment-2: sequenceIndex must match one-based array order.",
+    ),
+  );
+
+  identified.ingest.masterSegmentation!.segments[1]!.sequenceIndex = 2;
+  identified.ingest.masterSegmentation!.segments[1]!.endTimestampSeconds = 5999;
+  assert.ok(
+    validateFilmPackage(identified).includes(
+      "masterSegmentation: COMPLETE coverage must end at measuredRuntimeSeconds.",
+    ),
+  );
+});
+
+test("Film 001 ingest exposes the exact master segmentation without promoting scenes", () => {
+  assert.deepEqual(
+    theTrumanShowDraftPackage.ingest?.masterSegmentation,
+    trumanMasterSegmentation,
+  );
+  assert.equal(trumanMasterSegmentation.basis, "EMBEDDED_CHAPTERS");
+  assert.equal(trumanMasterSegmentation.coverage, "COMPLETE");
+  assert.equal(trumanMasterSegmentation.segments.length, 24);
+  assert.equal(
+    trumanMasterSegmentation.segments[0]?.startTimestampSeconds,
+    0,
+  );
+  assert.equal(
+    trumanMasterSegmentation.segments[23]?.endTimestampSeconds,
+    TRUMAN_MASTER_RUNTIME_SECONDS,
+  );
+
+  assert.equal(theTrumanShowDraftPackage.ingest?.edition.state, "MASTER_IDENTIFIED");
+  assert.ok(
+    (theTrumanShowDraftPackage.scenes ?? []).every(
+      (scene) => scene.verificationState === "DRAFT",
+    ),
+    "master segmentation must not promote research scenes",
+  );
+
+  assert.deepEqual(validateFilmPackage(theTrumanShowDraftPackage), []);
 });
