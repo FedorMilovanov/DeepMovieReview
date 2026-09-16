@@ -4,6 +4,10 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
+import {
+  prepareLockedFilmPromotion,
+  type LockedFilmPromotionInput,
+} from "../src/lib/film-package-promotion";
 import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
@@ -3799,4 +3803,215 @@ test("Film 001 promotion readiness visual blockers derive from source contracts"
     assert.ok(readiness);
     assert.equal(readiness.blockers.includes("VISUAL_REVIEW"), false);
   }
+});
+
+
+function buildIdentifiedPromotionFixture(): FilmPackage {
+  const filmPackage = buildResearchTierPackage();
+  filmPackage.ingest = {
+    edition: {
+      state: "MASTER_IDENTIFIED",
+      sourceId: "film-master",
+      editionIdentity: "Exact file-based viewing master",
+      measuredRuntimeSeconds: 6000,
+      timestampConvention: "Matroska PTS from 00:00:00.000",
+      identifiedAt: "2026-09-15",
+      note: "Measured master; canonical migration still pending.",
+      frameRate: "24000/1001",
+      audioTrack: "English Original",
+      subtitleTrack: "Embedded English SubRip",
+      masterDigest: "sha256:test-master",
+    },
+    masterSegmentation: {
+      basis: "EMBEDDED_CHAPTERS",
+      coverage: "COMPLETE",
+      segments: [
+        {
+          id: "segment-1",
+          sequenceIndex: 1,
+          startTimestampSeconds: 0,
+          endTimestampSeconds: 3000,
+        },
+        {
+          id: "segment-2",
+          sequenceIndex: 2,
+          startTimestampSeconds: 3000,
+          endTimestampSeconds: 6000,
+        },
+      ],
+    },
+  };
+  return filmPackage;
+}
+
+function buildValidPromotionInput(
+  sourcePackage: FilmPackage,
+): LockedFilmPromotionInput {
+  const sourcesModule = sourcePackage.modules.find(
+    (module) => module.kind === "sources-method",
+  );
+  if (!sourcesModule || sourcesModule.kind !== "sources-method") {
+    throw new Error("promotion fixture requires sources-method");
+  }
+
+  return {
+    verifiedAt: "2026-09-17",
+    scenes: [
+      {
+        id: "canonical-scene",
+        sequenceIndex: 1,
+        shortLabel: "Verified scene",
+        startTimestampSeconds: 10,
+        endTimestampSeconds: 120,
+        verificationState: "VERIFIED",
+        spoilerLevel: "NONE",
+      },
+    ],
+    evidence: [
+      {
+        id: "canonical-evidence",
+        label: "Canonical evidence",
+        observation: "Observed directly in the locked viewing master.",
+        sceneId: "canonical-scene",
+        timestampSeconds: 30,
+        sourceIds: ["film-master"],
+        spoilerLevel: "NONE",
+      },
+    ],
+    modules: [
+      {
+        ...structuredClone(sourcesModule),
+        editorialRevision: "canonical-1",
+        analyzedEdition: "Exact file-based viewing master; locked canonical pass.",
+      },
+    ],
+  };
+}
+
+test("atomic FilmPackage promotion validates a complete LOCKED candidate without mutating research", () => {
+  const source = buildIdentifiedPromotionFixture();
+  const sourceSnapshot = structuredClone(source);
+  const input = buildValidPromotionInput(source);
+
+  const result = prepareLockedFilmPromotion(source, input);
+  assert.equal(result.ok, true);
+
+  if (!result.ok) return;
+
+  assert.deepEqual(validateFilmPackage(result.filmPackage), []);
+  assert.equal(result.filmPackage.research, undefined);
+  assert.equal(result.filmPackage.ingest?.edition.state, "LOCKED");
+
+  const lockedEdition = result.filmPackage.ingest?.edition;
+  assert.ok(lockedEdition && lockedEdition.state === "LOCKED");
+  assert.equal(lockedEdition.sourceId, "film-master");
+  assert.equal(lockedEdition.editionIdentity, "Exact file-based viewing master");
+  assert.equal(lockedEdition.measuredRuntimeSeconds, 6000);
+  assert.equal(lockedEdition.timestampConvention, "Matroska PTS from 00:00:00.000");
+  assert.equal(lockedEdition.verifiedAt, "2026-09-17");
+  assert.equal(lockedEdition.frameRate, "24000/1001");
+  assert.equal(lockedEdition.audioTrack, "English Original");
+  assert.equal(lockedEdition.subtitleTrack, "Embedded English SubRip");
+  assert.equal(lockedEdition.masterDigest, "sha256:test-master");
+
+  assert.deepEqual(
+    result.filmPackage.ingest?.masterSegmentation,
+    source.ingest?.masterSegmentation,
+  );
+  assert.notEqual(
+    result.filmPackage.ingest?.masterSegmentation,
+    source.ingest?.masterSegmentation,
+  );
+
+  assert.deepEqual(source, sourceSnapshot);
+  assert.equal(source.research?.state, "SECONDARY_SOURCES");
+  assert.equal(source.ingest?.edition.state, "MASTER_IDENTIFIED");
+  assert.equal(source.scenes?.[0]?.verificationState, "DRAFT");
+  assert.deepEqual(source.evidence?.[0]?.sourceIds, ["reference-source"]);
+});
+
+test("atomic FilmPackage promotion fails closed on DRAFT scenes and secondary-source evidence", () => {
+  const source = buildIdentifiedPromotionFixture();
+  const input = buildValidPromotionInput(source);
+  input.scenes[0] = {
+    ...input.scenes[0]!,
+    verificationState: "DRAFT",
+  };
+  input.evidence[0] = {
+    ...input.evidence[0]!,
+    sourceIds: ["reference-source"],
+  };
+
+  const result = prepareLockedFilmPromotion(source, input);
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+
+  assert.ok(
+    result.errors.includes(
+      'evidence/canonical-evidence: real-film canonical evidence must reference locked film-edition source "film-master".',
+    ),
+  );
+  assert.ok(
+    result.errors.includes(
+      'evidence/canonical-evidence: canonical evidence cannot reference unverified scene "canonical-scene".',
+    ),
+  );
+  assert.equal(source.ingest?.edition.state, "MASTER_IDENTIFIED");
+  assert.equal(source.research?.state, "SECONDARY_SOURCES");
+});
+
+test("atomic FilmPackage promotion accepts only MASTER_IDENTIFIED as its source transition state", () => {
+  const targetOnly = buildResearchTierPackage();
+  const targetInput: LockedFilmPromotionInput = {
+    verifiedAt: "2026-09-17",
+    scenes: [],
+    evidence: [],
+    modules: [],
+  };
+
+  const targetResult = prepareLockedFilmPromotion(targetOnly, targetInput);
+  assert.deepEqual(targetResult, {
+    ok: false,
+    errors: [
+      "promotion: source edition must be MASTER_IDENTIFIED; received TARGET_ONLY.",
+    ],
+  });
+
+  const identified = buildIdentifiedPromotionFixture();
+  const successful = prepareLockedFilmPromotion(
+    identified,
+    buildValidPromotionInput(identified),
+  );
+  assert.equal(successful.ok, true);
+  if (!successful.ok) return;
+
+  const lockedResult = prepareLockedFilmPromotion(successful.filmPackage, {
+    verifiedAt: "2026-09-18",
+    scenes: successful.filmPackage.scenes ?? [],
+    evidence: successful.filmPackage.evidence ?? [],
+    modules: successful.filmPackage.modules,
+  });
+  assert.deepEqual(lockedResult, {
+    ok: false,
+    errors: [
+      "promotion: source edition must be MASTER_IDENTIFIED; received LOCKED.",
+    ],
+  });
+});
+
+test("atomic FilmPackage promotion delegates verifiedAt validity to the canonical validator", () => {
+  const source = buildIdentifiedPromotionFixture();
+  const input = buildValidPromotionInput(source);
+  input.verifiedAt = "2026-13-40";
+
+  const result = prepareLockedFilmPromotion(source, input);
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+
+  assert.ok(
+    result.errors.includes(
+      "film: LOCKED edition verifiedAt must use a valid YYYY-MM-DD calendar date.",
+    ),
+  );
+  assert.equal(source.ingest?.edition.state, "MASTER_IDENTIFIED");
 });
