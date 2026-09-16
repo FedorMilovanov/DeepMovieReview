@@ -3718,7 +3718,7 @@ test("Film 001 promotion readiness exhaustively covers the live research evidenc
     factualRewrite: 23,
     alreadyAtomic: 2,
     currentSupportReferences: 182,
-    visualReviewBlocked: trumanEvidencePromotionSummary.visualReviewBlocked,
+    visualReviewBlocked: 25,
   });
   assert.equal(trumanEvidencePromotionSummary.currentSupportReferences, 182);
 
