@@ -38,6 +38,10 @@ import {
   trumanEvidencePromotionReadiness,
   trumanEvidencePromotionSummary,
 } from "../src/data/films/the-truman-show-promotion-readiness";
+import {
+  trumanSceneMigrationReadiness,
+  trumanSceneMigrationSummary,
+} from "../src/data/films/the-truman-show-scene-migration";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
   const statuses = ["fixture", "draft", "published"] as const;
@@ -3799,4 +3803,129 @@ test("Film 001 promotion readiness visual blockers derive from source contracts"
     assert.ok(readiness);
     assert.equal(readiness.blockers.includes("VISUAL_REVIEW"), false);
   }
+});
+
+
+test("Film 001 scene migration readiness exhaustively covers the live DRAFT scene graph", () => {
+  const scenes = theTrumanShowDraftPackage.scenes ?? [];
+  const evidence = theTrumanShowDraftPackage.evidence ?? [];
+  const sceneIds = scenes.map((scene) => scene.id).sort();
+  const readinessIds = trumanSceneMigrationReadiness
+    .map((item) => item.currentSceneId)
+    .sort();
+
+  assert.equal(scenes.length, 15);
+  assert.equal(trumanSceneMigrationReadiness.length, 15);
+  assert.equal(new Set(readinessIds).size, readinessIds.length);
+  assert.deepEqual(readinessIds, sceneIds);
+
+  assert.deepEqual(trumanSceneMigrationSummary, {
+    researchScenes: 15,
+    evidenceSceneReferences: 39,
+    directModuleSceneReferences: 1,
+    singleSegmentCandidates: 6,
+    multiSegmentAggregates: 9,
+  });
+
+  const masterSegmentIds = new Set(
+    trumanMasterSegmentation.segments.map((segment) => segment.id),
+  );
+
+  for (const item of trumanSceneMigrationReadiness) {
+    const scene = scenes.find((candidate) => candidate.id === item.currentSceneId);
+    assert.ok(scene, `${item.currentSceneId}: current scene must still exist`);
+    assert.equal(
+      scene.verificationState,
+      "DRAFT",
+      `${item.currentSceneId}: migration contract applies only to research-era DRAFT scenes`,
+    );
+
+    const liveEvidenceIds = evidence
+      .filter((entry) => entry.sceneId === item.currentSceneId)
+      .map((entry) => entry.id)
+      .sort();
+    const plannedEvidenceIds = [...item.evidenceIds].sort();
+
+    assert.equal(
+      liveEvidenceIds.length,
+      item.expectedEvidenceReferences,
+      `${item.currentSceneId}: evidence scene fan-out drifted`,
+    );
+    assert.deepEqual(
+      plannedEvidenceIds,
+      liveEvidenceIds,
+      `${item.currentSceneId}: evidence placement list drifted`,
+    );
+
+    assert.ok(item.masterSegmentIds.length > 0);
+    for (const segmentId of item.masterSegmentIds) {
+      assert.ok(
+        masterSegmentIds.has(segmentId),
+        `${item.currentSceneId}: unknown master segment ${segmentId}`,
+      );
+    }
+
+    assert.equal(
+      item.shape,
+      item.masterSegmentIds.length === 1
+        ? "SINGLE_MASTER_SEGMENT_CANDIDATE"
+        : "MULTI_SEGMENT_AGGREGATE",
+      `${item.currentSceneId}: scene shape must derive from measured master-segment cardinality`,
+    );
+
+    assert.ok(item.blockers.includes("EVIDENCE_REWIRE"));
+    assert.ok(item.blockers.includes("EDITORIAL_SCENE_REVIEW"));
+
+    if (item.expectedDirectModuleSceneReferences > 0) {
+      assert.ok(item.blockers.includes("DIRECT_SCENE_CONSUMER_REWIRE"));
+      assert.ok((item.directSceneConsumers?.length ?? 0) > 0);
+    } else {
+      assert.equal(item.blockers.includes("DIRECT_SCENE_CONSUMER_REWIRE"), false);
+      assert.equal(item.directSceneConsumers, undefined);
+    }
+  }
+
+  assert.equal(
+    trumanSceneMigrationReadiness.reduce(
+      (total, item) => total + item.expectedEvidenceReferences,
+      0,
+    ),
+    evidence.length,
+  );
+});
+
+test("Film 001 scene migration guards the direct Scene Autopsy dependency", () => {
+  const source = readFileSync("src/data/films/the-truman-show.ts", "utf8");
+  const door = trumanSceneMigrationReadiness.find(
+    (item) => item.currentSceneId === "truman-sc-door",
+  );
+
+  assert.ok(door);
+  assert.equal(door.expectedEvidenceReferences, 5);
+  assert.equal(door.expectedDirectModuleSceneReferences, 1);
+  assert.deepEqual(door.directSceneConsumers, [
+    {
+      consumerId: "truman-mod-autopsy",
+      note: "Scene Autopsy currently points directly to truman-sc-door; its sceneId must migrate atomically with its evidence anchors.",
+    },
+  ]);
+
+  const autopsyIndex = source.indexOf('id: "truman-mod-autopsy"');
+  assert.ok(autopsyIndex >= 0, "Scene Autopsy module must still exist");
+  const autopsyBlock = source.slice(autopsyIndex, autopsyIndex + 900);
+  assert.ok(
+    autopsyBlock.includes('sceneId: "truman-sc-door"'),
+    "Scene Autopsy direct scene dependency drifted",
+  );
+
+  const moduleSection = source.slice(source.indexOf("  modules: ["));
+  const directSceneRefs = trumanSceneMigrationReadiness.reduce(
+    (total, item) =>
+      total +
+      (moduleSection.match(
+        new RegExp(`sceneId:\\s*"${item.currentSceneId}"`, "g"),
+      )?.length ?? 0),
+    0,
+  );
+  assert.equal(directSceneRefs, 1);
 });
