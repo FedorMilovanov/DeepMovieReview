@@ -34,6 +34,10 @@ import {
   trumanEvidenceAlreadyAtomicIds,
   trumanEvidenceRewriteCandidates,
 } from "../src/data/films/the-truman-show-evidence-rewrite";
+import {
+  trumanEvidencePromotionReadiness,
+  trumanEvidencePromotionSummary,
+} from "../src/data/films/the-truman-show-promotion-readiness";
 
 test("site indexing is allowed only for a published non-preview public build", () => {
   const statuses = ["fixture", "draft", "published"] as const;
@@ -3656,4 +3660,143 @@ test("Film 001 ingest exposes the exact master segmentation without promoting sc
   );
 
   assert.deepEqual(validateFilmPackage(theTrumanShowDraftPackage), []);
+});
+
+
+test("Film 001 promotion readiness exhaustively covers the live research evidence graph", () => {
+  const evidence = theTrumanShowDraftPackage.evidence ?? [];
+  const currentEvidenceIds = evidence.map((item) => item.id).sort();
+  const readinessIds = trumanEvidencePromotionReadiness
+    .map((item) => item.evidenceId)
+    .sort();
+  const source = readFileSync("src/data/films/the-truman-show.ts", "utf8");
+
+  assert.equal(evidence.length, 39);
+  assert.equal(trumanEvidencePromotionReadiness.length, 39);
+  assert.equal(new Set(readinessIds).size, readinessIds.length);
+  assert.deepEqual(readinessIds, currentEvidenceIds);
+
+  const pathCounts = trumanEvidencePromotionReadiness.reduce(
+    (counts, item) => {
+      counts[item.path] += 1;
+      return counts;
+    },
+    {
+      SPLIT_REQUIRED: 0,
+      FACTUAL_REWRITE: 0,
+      ALREADY_ATOMIC: 0,
+    },
+  );
+
+  assert.deepEqual(pathCounts, {
+    SPLIT_REQUIRED: 14,
+    FACTUAL_REWRITE: 23,
+    ALREADY_ATOMIC: 2,
+  });
+
+  const pathSupportTotals = trumanEvidencePromotionReadiness.reduce(
+    (totals, item) => {
+      totals[item.path] += item.currentSupportReferences;
+      return totals;
+    },
+    {
+      SPLIT_REQUIRED: 0,
+      FACTUAL_REWRITE: 0,
+      ALREADY_ATOMIC: 0,
+    },
+  );
+
+  assert.deepEqual(pathSupportTotals, {
+    SPLIT_REQUIRED: 71,
+    FACTUAL_REWRITE: 92,
+    ALREADY_ATOMIC: 19,
+  });
+
+  assert.deepEqual(trumanEvidencePromotionSummary, {
+    evidenceRecords: 39,
+    splitRequired: 14,
+    factualRewrite: 23,
+    alreadyAtomic: 2,
+    currentSupportReferences: 182,
+    visualReviewBlocked: 25,
+  });
+  assert.equal(trumanEvidencePromotionSummary.currentSupportReferences, 182);
+
+  for (const item of trumanEvidencePromotionReadiness) {
+    const occurrences = source.split(`"${item.evidenceId}"`).length - 1;
+    assert.equal(
+      occurrences - 1,
+      item.currentSupportReferences,
+      `${item.evidenceId}: live support fan-out drifted`,
+    );
+
+    assert.ok(
+      item.blockers.includes("EDITORIAL_SCENE_VERIFICATION"),
+      `${item.evidenceId}: pre-lock record must remain scene-verification blocked`,
+    );
+    assert.ok(
+      item.blockers.includes("LOCKED_FILM_EDITION"),
+      `${item.evidenceId}: pre-lock record must remain locked-source blocked`,
+    );
+
+    if (item.path === "SPLIT_REQUIRED") {
+      assert.ok(item.blockers.includes("CONSUMER_REWIRE"));
+      assert.ok(!item.blockers.includes("FACTUAL_REWRITE"));
+    }
+
+    if (item.path === "FACTUAL_REWRITE") {
+      assert.ok(item.blockers.includes("FACTUAL_REWRITE"));
+      assert.ok(!item.blockers.includes("CONSUMER_REWIRE"));
+    }
+
+    if (item.path === "ALREADY_ATOMIC") {
+      assert.deepEqual(item.blockers, [
+        "EDITORIAL_SCENE_VERIFICATION",
+        "LOCKED_FILM_EDITION",
+      ]);
+    }
+  }
+});
+
+test("Film 001 promotion readiness visual blockers derive from source contracts", () => {
+  const readinessById = new Map(
+    trumanEvidencePromotionReadiness.map((item) => [item.evidenceId, item]),
+  );
+
+  for (const candidate of trumanEvidenceRewriteCandidates) {
+    const readiness = readinessById.get(candidate.evidenceId);
+    assert.ok(readiness);
+
+    assert.equal(
+      readiness.blockers.includes("VISUAL_REVIEW"),
+      candidate.verification !== "TRANSCRIPT_ONLY",
+      `${candidate.evidenceId}: rewrite visual gate drifted`,
+    );
+  }
+
+  for (const plan of [
+    ...trumanEvidenceMigrationWave1,
+    ...trumanEvidenceMigrationWave2,
+    ...trumanEvidenceMigrationWave3,
+  ]) {
+    const readiness = readinessById.get(plan.retiringEvidenceId);
+    assert.ok(readiness);
+
+    const requiresPicture = plan.replacements.some(
+      (replacement) =>
+        replacement.grounding === "VISUAL" ||
+        replacement.grounding === "MIXED",
+    );
+    assert.equal(
+      readiness.blockers.includes("VISUAL_REVIEW"),
+      requiresPicture,
+      `${plan.retiringEvidenceId}: migration visual gate drifted`,
+    );
+  }
+
+  for (const evidenceId of trumanEvidenceAlreadyAtomicIds) {
+    const readiness = readinessById.get(evidenceId);
+    assert.ok(readiness);
+    assert.equal(readiness.blockers.includes("VISUAL_REVIEW"), false);
+  }
 });
