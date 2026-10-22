@@ -58,7 +58,7 @@
 **Можно без просмотра фильма. Это не "просмотр", это инструмент, который сделает просмотр однозначным.**
 
 - [ ] Transcript-only кандидаты: 9 шт (`greeting`, `radio`, `mococoa`, `beer`, `marlon`, `cuesun`, `nocamera`, `guards`, `born-live`) — отполировать `candidateObservation` до дословного факта, отделённого от интерпретации (уже в `44-FACTUAL-REWRITE`, но wording финальный — в этой партии).
-- [ ] `prepare-canonical-migration.ts` скрипт: читает `the-truman-show-master-reanchor.ts` + `evidence-rewrite.ts` + `evidence-migration.ts`, генерирует `preview` будущих VERIFIED сцен (только TRANSCRIPT-anchored, без VISUAL) в `MASTER_IDENTIFIED` без перехода в `LOCKED`. Скрипт не мутирует `FilmPackage`, только артефакт в `docs/48-*.md` для review.
+- [ ] `prepare-canonical-migration.ts` скрипт: читает `the-truman-show-master-reanchor.ts` + `evidence-rewrite.ts` + `evidence-migration.ts`, генерирует `preview` будущих VERIFIED сцен (только TRANSCRIPT-anchored, без VISUAL) в `MASTER_IDENTIFIED` без перехода в `LOCKED`. Скрипт не мутирует `FilmPackage`, только артефакт в `docs/` для review.
 - [ ] `scene-inventory-v1-preview.md` — черновик VERIFIED сцен на базе 24 embedded-глав + 1036 shot-candidates (median 3.25s, 90% 11.3s) — но с явной пометкой `DRAFT` до ручной проверки.
 - [ ] CI freeze: уже есть 71 тест, включая promotion-readiness exhaustive (14/23/2, 71/92/19=182, VISUAL_REVIEW 25). Добавить тест на новый скрипт-артефакт.
 

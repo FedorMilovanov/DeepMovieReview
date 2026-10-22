@@ -118,6 +118,7 @@ export const heroMasterAsset: VisualAssetManifest = {
   subjectSafeZone: { x: 0.4, y: 0.3, width: 0.4, height: 0.6 },
   palette: { background: "#050505", foreground: "#f2eee6", fractureAccent: "#8f2027", restorationAccent: "#b9925b" },
   variants: [
+    { id: "hero-display-960", purpose: "display", src: "/art/hero-master-960.jpg", format: "jpg", width: 960, height: 403 },
     { id: "hero-display-1600", purpose: "display", src: "/art/hero-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
   provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
@@ -135,6 +136,7 @@ export const lensMasterAsset: VisualAssetManifest = {
   mobileFocalPoint: { x: 0.5, y: 0.55 },
   subjectSafeZone: { x: 0.35, y: 0.15, width: 0.3, height: 0.7 },
   variants: [
+    { id: "lens-display-960", purpose: "display", src: "/art/lens-master-960.jpg", format: "jpg", width: 960, height: 403 },
     { id: "lens-display-1600", purpose: "display", src: "/art/lens-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
   provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
@@ -150,6 +152,7 @@ export const relationshipMasterAsset: VisualAssetManifest = {
   focalPoint: { x: 0.5, y: 0.5 },
   subjectSafeZone: { x: 0.15, y: 0.2, width: 0.7, height: 0.7 },
   variants: [
+    { id: "relationship-display-960", purpose: "display", src: "/art/relationship-master-960.jpg", format: "jpg", width: 960, height: 403 },
     { id: "relationship-display-1600", purpose: "display", src: "/art/relationship-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
   provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
@@ -166,6 +169,7 @@ export const autopsyMasterAsset: VisualAssetManifest = {
   mobileFocalPoint: { x: 0.6, y: 0.55 },
   subjectSafeZone: { x: 0.35, y: 0.3, width: 0.55, height: 0.55 },
   variants: [
+    { id: "autopsy-display-960", purpose: "display", src: "/art/autopsy-master-960.jpg", format: "jpg", width: 960, height: 403 },
     { id: "autopsy-display-1600", purpose: "display", src: "/art/autopsy-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
   anchors: [
@@ -186,6 +190,7 @@ export const decisionMasterAsset: VisualAssetManifest = {
   focalPoint: { x: 0.55, y: 0.55 },
   subjectSafeZone: { x: 0.3, y: 0.25, width: 0.45, height: 0.65 },
   variants: [
+    { id: "decision-display-960", purpose: "display", src: "/art/decision-master-960.jpg", format: "jpg", width: 960, height: 403 },
     { id: "decision-display-1600", purpose: "display", src: "/art/decision-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
   provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
@@ -202,6 +207,7 @@ export const craftMasterAsset: VisualAssetManifest = {
   mobileFocalPoint: { x: 0.35, y: 0.5 },
   subjectSafeZone: { x: 0.05, y: 0.1, width: 0.55, height: 0.8 },
   variants: [
+    { id: "craft-display-960", purpose: "display", src: "/art/craft-master-960.jpg", format: "jpg", width: 960, height: 403 },
     { id: "craft-display-1600", purpose: "display", src: "/art/craft-master.jpg", format: "jpg", width: 1600, height: 672 },
   ],
   provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
@@ -218,6 +224,7 @@ export const discoveryMasterAsset: VisualAssetManifest = {
   mobileFocalPoint: { x: 0.35, y: 0.45 },
   subjectSafeZone: { x: 0.02, y: 0.05, width: 0.65, height: 0.9 },
   variants: [
+    { id: "discovery-display-960", purpose: "display", src: "/art/discovery-master-960.jpg", format: "jpg", width: 960, height: 403 },
     { id: "discovery-display-1600", purpose: "display", src: "/art/discovery-master.jpg", format: "jpg", width: 1600, height: 672, byteSize: 226967 },
   ],
   provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
