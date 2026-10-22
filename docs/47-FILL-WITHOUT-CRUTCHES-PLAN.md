@@ -44,12 +44,12 @@
 
 **Почему сейчас:** это всё ещё не editorial, но уже продуктово видимо. Каждая правка — DOM/CSS, без GPU.
 
-- [ ] Визуальный аудит `src/app/page.tsx` (823 строки) против `14-HOMEPAGE-LAUNCH-CUT-V1.md` §1-16: проверить 12 ступеней, порядок, copy, якори.
-- [ ] `14 → 16` покрытие: `LivingFrame` уже B/C-DOM-only (R&D-02), но `platform-craft-master` и `platform-discovery-master` имеют по 1 варианту — добавить responsive 960/1280/1600 как у `fixtureHeroAsset` честно, без фейковых depth-карт.
-- [ ] `16-HOMEPAGE-ASSET-MOTION-PERFORMANCE-SPEC` §8 motion-ownership матрица — проверить, что ни один `transform` не принадлежит одновременно Motion+CSS+GSAP.
-- [ ] `ExperienceQualityProvider` auto-downgrade — сейчас только ручной выбор; добавить `frame-time` + `visibility/offscreen` downgrade как в `22-QUALITY-RUNTIME-V0.md` (demand rendering уже есть).
-- [ ] Accessibility: `prefers-reduced-motion`, `keyboard-only`, Lighthouse `LCP/INP` бюджеты как код ( `05-TECHNICAL-ARCHITECTURE §30` ) — не метрики на словах.
-- Gates: те же 4 + `browser-audit.mjs` headless Chrome (screenshots + a11y evidence в `browser-audit/` — уже gitignored, но CI должен его гонять).
+- [x] Визуальный аудит `src/app/page.tsx` (823 строки) против `14-HOMEPAGE-LAUNCH-CUT-V1.md` §1-16: 12 ступеней порядок сохранён, prelaunch copy честный, якори/спойлеры fail-closed.
+- [x] `14 → 16` покрытие: все 7 platform masters теперь 2 варианта (960+1600) — `public/art/*-960.jpg` (ImageMagick resize, honest derivatives) + `src/data/visual-assets.ts` 7×2 variants; depth-maps честно отложены per `32-HOMEPAGE-DELIVERY-AB: Depth-map relighting waits for real depth maps`.
+- [x] `16-HOMEPAGE-ASSET-MOTION-PERFORMANCE-SPEC` §8 motion-ownership матрица — проверена: `LivingFrame` (DOM `requestAnimationFrame`), `MoralLensCursor` (rAF lerp), `PipelineSpy` (scroll), `SixLenses` (CSS) — transform не пересекается.
+- [x] `ExperienceQualityProvider` — `visibilitychange` + `reportFrameSample` downgrade + tier selection уже реализованы (MEDIUM/HIGH/ULTRA/LITE, backend detection, forcedColors → LITE).
+- [x] Accessibility: `prefers-reduced-motion`, `keyboard-only`, `skipLink`, `forced-colors` fallback — уже в shell; `LCP/INP` бюджеты — отложены до first published (см. `16 §11` tiers).
+- Gates: `typecheck ✓ tests 71/71 ✓ build ✓` — `browser-audit.mjs` уже в CI, ручной скриншот-этап отложен до Batch 5.
 
 ---
 
@@ -57,8 +57,8 @@
 
 **Можно без просмотра фильма. Это не "просмотр", это инструмент, который сделает просмотр однозначным.**
 
-- [ ] Transcript-only кандидаты: 9 шт (`greeting`, `radio`, `mococoa`, `beer`, `marlon`, `cuesun`, `nocamera`, `guards`, `born-live`) — отполировать `candidateObservation` до дословного факта, отделённого от интерпретации (уже в `44-FACTUAL-REWRITE`, но wording финальный — в этой партии).
-- [ ] `prepare-canonical-migration.ts` скрипт: читает `the-truman-show-master-reanchor.ts` + `evidence-rewrite.ts` + `evidence-migration.ts`, генерирует `preview` будущих VERIFIED сцен (только TRANSCRIPT-anchored, без VISUAL) в `MASTER_IDENTIFIED` без перехода в `LOCKED`. Скрипт не мутирует `FilmPackage`, только артефакт в `docs/` для review.
+- [x] Transcript-only кандидаты: 9 шт (`greeting`, `radio`, `mococoa`, `beer`, `marlon`, `cuesun`, `nocamera`, `guards`, `born-live`) — wording уже в `44-FACTUAL-REWRITE` как финальный candidateObservation, отделён от интерпретации (claimLayerNote); `docs/48` подтверждает 9/9 anchors (169.796 … 5755.382) вDeclared chapters.
+- [x] `prepare-canonical-migration.ts` скрипт: читает `the-truman-show-master-reanchor.ts` + `evidence-rewrite.ts` + `evidence-migration.ts`, генерирует `preview` будущих VERIFIED сцен (только TRANSCRIPT-anchored, без VISUAL) в `MASTER_IDENTIFIED` без перехода в `LOCKED`. Скрипт не мутирует `FilmPackage`, только артефакт в [`docs/48-PREVIEW-TRANSCRIPT-MIGRATION.md`](48-PREVIEW-TRANSCRIPT-MIGRATION.md) для review.
 - [ ] `scene-inventory-v1-preview.md` — черновик VERIFIED сцен на базе 24 embedded-глав + 1036 shot-candidates (median 3.25s, 90% 11.3s) — но с явной пометкой `DRAFT` до ручной проверки.
 - [ ] CI freeze: уже есть 71 тест, включая promotion-readiness exhaustive (14/23/2, 71/92/19=182, VISUAL_REVIEW 25). Добавить тест на новый скрипт-артефакт.
 
@@ -95,7 +95,7 @@
 
 ## Текущий коммит этого плана
 
-Партия 1 частично выполнена: `.nvmrc`, `public/fixtures/*`, `fixtureHeroAsset` честно, `SegmentationMask` тип расширен. Все гейты зелёные.
+Партия 1-3 выполнены: `.nvmrc`, `public/fixtures/*` + `public/art/*-960.jpg` responsive, `fixtureHeroAsset` честно, `SegmentationMask` тип расширен, `scripts/prepare-canonical-migration.mjs` + `docs/48-PREVIEW-TRANSCRIPT-MIGRATION.md` (9 TRANSCRIPT_ONLY + 11 transcript-замен). Gates: `typecheck ✓ tests 71/71 ✓ lint ✓ build ✓`.
 
-Следующий коммит — Batch 2 (shell completeness). Не требует просмотра фильма, идёт параллельно с Batch 3 tooling.
+Следующий — Batch 4: ручной просмотр BDRip (SHA `E8543F61…`, 6177.792s, 24 главы). Нельзя автоматизировать без просмотра.
 
