@@ -39,7 +39,7 @@ export type SegmentationMask = {
   id: string;
   label: string;
   src: string;
-  format: "png" | "webp";
+  format: "png" | "webp" | "jpg";
   semanticRole: "foreground" | "subject" | "background" | "object" | "custom";
 };
 
