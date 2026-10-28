@@ -861,6 +861,7 @@ export function validateFilmPackage(
       editorialRevision: sourcesModules[0]?.editorialRevision,
       resolveMeasurement: options.resolveArticleMeasurement,
       measuredValues: options.articleMeasuredValues,
+      moduleLevels: new Map(filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.spoilerLevel])),
     }),
   );
 

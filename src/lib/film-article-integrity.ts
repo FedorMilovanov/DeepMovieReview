@@ -111,6 +111,8 @@ export type ArticleIntegrityContext = {
   editorialRevision?: string;
   /** Resolves a measurement reference against the committed dataset. */
   resolveMeasurement?: (ref: ArticleMeasurementRef) => boolean;
+  /** Spoiler level of every module in the package, keyed by module id. */
+  moduleLevels?: Map<string, SpoilerLevel>;
   /**
    * Digit strings the master measured (1019, 6177.792, 124.75 …). Prose may not
    * contain any of them: measured numbers are rendered from the dataset so they
@@ -421,6 +423,25 @@ export function validateFilmArticle(
     if (section.blocks.length > BLOCK_MAX) errors.push(`${sectionPath}: too many blocks (${section.blocks.length}).`);
 
     checkSupport(section.support, `${sectionPath}/support`, section.spoilerLevel, context, errors, false);
+
+    // A section may point at the module it reads alongside — but only at one the
+    // reader can open without being sent to a higher spoiler level.
+    if (section.moduleId !== undefined) {
+      if (isBlank(section.moduleId)) {
+        errors.push(`${sectionPath}: moduleId must not be blank.`);
+      } else if (!context.moduleLevels) {
+        errors.push(`${sectionPath}: module links require the package's module levels to resolve against.`);
+      } else {
+        const moduleLevel = context.moduleLevels.get(section.moduleId);
+        if (moduleLevel === undefined) {
+          errors.push(`${sectionPath}: unknown module id "${section.moduleId}".`);
+        } else if (!canRevealSpoiler(section.spoilerLevel, moduleLevel)) {
+          errors.push(
+            `${sectionPath}: module "${section.moduleId}" needs spoiler level "${moduleLevel}", above the section's "${section.spoilerLevel}".`,
+          );
+        }
+      }
+    }
 
     let supported = Boolean(section.support);
     for (const block of section.blocks) {

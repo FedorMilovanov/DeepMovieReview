@@ -166,3 +166,75 @@ invariant.
 - **Stills** — the article carries no imagery. Authorizing stills is still the
   open question from `docs/38` §9, and it is an editorial-rights decision, not a
   build decision.
+
+## 7. Second pass: the article was re-read against its own ledger
+
+Recorded 2026-10-28, same edition, same revision (`article-v2`, still a draft).
+The pass had one rule: every sentence that carries a fact about the film has to
+be checkable against `the-truman-show-canonical-evidence.ts`, and every number
+against the measurement dataset. What could not be checked was rewritten or
+dropped.
+
+### 7.1 A gap, not a typo: no character analysis
+
+`docs/03` §3 puts characters and relationships (steps 2–3) before themes, form
+and moral analysis. The article went from the plot (`02 / История`) straight to
+props, craft and morality — the characters were discussed only where the
+argument needed them. That made the readable layer weaker than the package it
+sits on, which has a full `characters` module.
+
+A seventh section, `03 / Персонажи` («Шесть человек, которые держат его небо»),
+now stands between the plot and the props. It carries the dimensions the
+schema gained in `docs/52` §3.1 — presentation, identification, loyalties,
+unchanged — as prose: Truman as the film's one non-actor, Christof as the
+cautionary figure with almost no identification invitation, Meryl and Marlon as
+mixed cases (the ad recited into a quarrel; the promise delivered twice),
+Sylvia as the one person removed for telling the truth, the mother as the case
+where tenderness and job description cannot be told apart. The section is
+`MAJOR`; the following three sections stay `ENDING` and the verdict `FULL`, so
+gating is still a suffix, and the renderer hides exactly the last section at
+`ENDING` (verified by `curl` on all five levels).
+
+### 7.2 Claims this pass corrected
+
+| Was | Now | Why |
+| --- | --- | --- |
+| «Эту сцену **полвека** читают…» | «почти три десятилетия» | The film is from 1998; the claim was simply wrong about time. |
+| «самая короткая роль в фильме» | «одна из самых коротких ролей» | A comparative no data supports. |
+| «Это **единственные** места, где никто не монтирует героя»; «монтаж исчезает совсем — **ровно один раз**» | «места, где…»; «в двух сценах монтаж пропадает на минуту и на полторы» | §3 of this document records **seven** zero-transition minutes in the main body, so uniqueness was false — and it was false against our own ledger. |
+| «Свадебных фотографий в фильме достаточно» | dropped | No evidence record supports the existence of wedding photos; the correction table keeps the point that the crossed fingers are on the button. |
+| «Фиджи, **самолёт**, посмотреть мир» | «Фиджи, вырваться, посмотреть мир» | No canonical record anchors the ticket. |
+| «Кристоф держит волну **собственными руками**» | «не отдаёт команду прекратить, пока человек не оказывается на грани гибели» | Keeps the fact (the storm is his decision) and drops the picture claim. |
+| «самый любимый человек на планете» | «его знает весь мир, а он об этом не знает» | Hyperbole stated as fact. |
+| «Мы **всё время** на его стороне кадра» | «почти всегда» | The film does cut away to the control room and to the audience. |
+| «в переполохе камеры мечутся, **в тишине — стоят**» | «в переполохе город режется в несколько раз чаще, чем у стены» | The old sentence contradicted the table printed directly above it: the quiet wall window has 28 transitions of its own. |
+| «средняя плотность… один переход на несколько секунд» | «один переход примерно на шесть секунд» | The dataset measured 6.06 s; the round number is now a word, not a typed figure. |
+
+### 7.3 Scripture references are declared, not implied
+
+The biblical section paraphrased Psalm 138, Acts 17 and Exodus 20 without
+naming them. It now names them in the text and declares them in
+`scriptureRefs`, which is the only way a colon may appear in article prose:
+the validator strips declared references before it checks for clock readings.
+Numbering follows the Synodal tradition the sources module already uses
+(Псалом 138 = Hebrew 139).
+
+### 7.4 The article now links into the analysis
+
+Every section names the module it reads alongside (`moduleId`), and the page
+renders that as a link that carries the reader's current spoiler level:
+`/films/the-truman-show?spoilers=major#truman-mod-characters`. The rule is
+enforced, not decorative — `validateFilmArticle` rejects an unknown module id,
+a module whose spoiler level sits above the section's, and a run with no module
+index at all (fail closed). `docs/09` §19 asks for traceability from the
+readable layer into the evidence graph; this is the first link of that chain
+that the reader can click.
+
+### 7.5 State after the pass
+
+- Article: 8 sections, `NONE → MINOR → MAJOR → ENDING ×4 → FULL`.
+- Tests: 98 (the spoiler-gating test now derives its expectation from the
+  section levels instead of hard-coding numbers, so adding a section no longer
+  needs a test edit but a level regression still fails).
+- Unchanged: edition `LOCKED`, 46 canonical records, no `reviewedAt`, film still
+  `draft` and unindexed.

@@ -38,6 +38,7 @@
 | `docs/09` §7 | Форма как доказательство | `truman-mod-craft`: наблюдения с `support`, а не список приёмов |
 | `docs/09` §8 | Данные, влияющие на метод, версионируются | `methodologyVersion`, `editorialRevision`, `analyzedEdition` в `sources-method`; валидатор требует их для реального фильма |
 | `docs/09` §17 | Приватность | Издание не публикует файл и не отдаёт ссылок на него; `docs/38` §9 |
+| `docs/09` §19 | Читаемый слой не отрывается от графа | Раздел статьи называет `moduleId`, и валидатор проверяет, что модуль существует и открывается на уровне этого раздела; иначе ссылка вела бы в скрытое |
 | `docs/09` §18 | Спойлер — состояние данных, а не блюр | `projectFilmModule` вырезает скрытое до рендера, по каждому `kind`; скрытое не попадает в дерево |
 | `docs/09` §19 | Высокоуровневое утверждение трассируется до записи | `checkScopedSupport` в `film-package-integrity.ts`: для реального фильма поддержка обязательна и не может быть ниже уровня утверждения |
 | `docs/09` §13 | Lite-режим и reduced motion | `experienceMode: "lite"` — не подпись, а принудительный тир: `allowedTier = "LITE"` и отключение тяжёлого цикла в `experience-quality-provider.tsx`; `prefers-reduced-motion` в `experience.css`, `film-verdict.css`, `homepage-optics.css`, `route-states.css` |
@@ -129,7 +130,10 @@
 | `src/lib/film-module-projection.ts` | профильные измерения не вырезаются гейтом |
 | `src/lib/film-package-integrity.ts` | обязательность полей для `LOCKED` |
 | `src/data/films/the-truman-show-canonical.ts` | данные шести персонажей; порядок модулей; снят `lastReviewedAt` |
-| `tests/regression.test.ts` | три новых гварда (измерения персонажей, спойлер-проекция, порядок `docs/03` §3) |
+| `tests/regression.test.ts` | гварды: измерения персонажей, спойлер-проекция, порядок `docs/03` §3, ссылки разделов статьи на модули |
+| `src/lib/film-package.ts` | `ArticleSection.moduleId` — ссылка раздела на модуль |
+| `src/lib/film-article-integrity.ts` | `moduleLevels` в контексте и правило «модуль не глубже раздела» |
+| `src/components/film-article/article-view.tsx`, `src/styles/film-article.css` | ссылка «Аналитический модуль этого раздела» с сохранением уровня спойлеров |
 
 ## 5. Гварды
 

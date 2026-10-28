@@ -577,6 +577,12 @@ export type ArticleSection = {
   heading: string;
   standfirst?: string;
   spoilerLevel: SpoilerLevel;
+  /**
+   * Analytical module this section reads alongside. The article is the readable
+   * layer over the package, not a separate silo: the link may only point at a
+   * module the reader can open at this section's spoiler level.
+   */
+  moduleId?: string;
   /** Module-level claim, e.g. the section's thesis. */
   support?: ClaimSupport;
   blocks: ArticleBlock[];

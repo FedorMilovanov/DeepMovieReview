@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ArticleBlock, ArticleMeasurementRef, FilmArticle } from "@/lib/film-package";
 import type { ArticleMeasurementView, ArticleProjection } from "@/lib/film-article";
 import { articleReadingMinutes } from "@/lib/film-article";
-import type { SpoilerLevel } from "@/lib/spoilers";
+import { withSpoilerQuery, type SpoilerLevel } from "@/lib/spoilers";
 
 type ArticleViewProps = {
   article: FilmArticle;
@@ -183,6 +183,15 @@ export function ArticleView({
             <div className="sectionIndex">{section.eyebrow}</div>
             <h2 id={`${section.id}-title`}>{section.heading}</h2>
             {section.standfirst ? <p className="sectionIntro">{section.standfirst}</p> : null}
+            {section.moduleId ? (
+              <Link
+                className="articleModuleLink"
+                href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#${section.moduleId}`}
+              >
+                Аналитический модуль этого раздела
+                <span aria-hidden="true">→</span>
+              </Link>
+            ) : null}
           </div>
           <div className="articleBody">
             {section.blocks.map((block) => (

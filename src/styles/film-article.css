@@ -105,6 +105,28 @@
   max-width: 26ch;
 }
 
+.articleModuleLink {
+  justify-self: start;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-height: 42px;
+  padding: 0.5rem 0;
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-decoration: none;
+  border-bottom: 1px solid var(--stroke-default);
+}
+
+.articleModuleLink:hover,
+.articleModuleLink:focus-visible {
+  color: var(--ink-1);
+  border-bottom-color: var(--accent-fracture);
+}
+
 .articleBody {
   display: grid;
   gap: var(--space-5);

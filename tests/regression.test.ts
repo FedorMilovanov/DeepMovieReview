@@ -4106,6 +4106,7 @@ function trumanArticleContext(overrides: Record<string, unknown> = {}) {
     resolveMeasurement: (ref: Parameters<typeof resolveTrumanMeasurement>[0]) =>
       Boolean(resolveTrumanMeasurement(ref)),
     measuredValues: trumanMeasuredDigitStrings,
+    moduleLevels: new Map(filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.spoilerLevel])),
     ...overrides,
   };
 }
@@ -4263,12 +4264,23 @@ test("Film 001 article spoiler gating hides a suffix, never a hole", () => {
   assert.equal(none.nextHiddenLevel, "MINOR");
   assert.equal(none.hiddenSections, theTrumanShowArticle.sections.length - 1);
 
+  // Derive the expectation from the levels themselves: the rule is "a suffix
+  // is hidden", not "these exact numbers". Adding a section must not need a
+  // test edit, and a level regression must fail here.
+  const readableAt = (limit: "MINOR" | "ENDING") =>
+    theTrumanShowArticle.sections
+      .filter((section) => canRevealSpoiler(limit, section.spoilerLevel))
+      .map((section) => section.number);
+
   const minor = projectArticleSections(theTrumanShowArticle, "MINOR");
-  assert.deepEqual(minor.visibleSections.map((section) => section.number), [1, 2]);
+  assert.deepEqual(minor.visibleSections.map((section) => section.number), readableAt("MINOR"));
 
   const ending = projectArticleSections(theTrumanShowArticle, "ENDING");
-  assert.deepEqual(ending.visibleSections.map((section) => section.number), [1, 2, 3, 4, 5, 6]);
-  assert.equal(ending.hiddenSections, 1);
+  assert.deepEqual(ending.visibleSections.map((section) => section.number), readableAt("ENDING"));
+  assert.equal(
+    ending.hiddenSections,
+    theTrumanShowArticle.sections.length - readableAt("ENDING").length,
+  );
 
   const full = projectArticleSections(theTrumanShowArticle, "FULL");
   assert.equal(full.hiddenSections, 0);
@@ -4619,4 +4631,40 @@ test("Film 001 module order follows the analytical order of docs/03 §3", () => 
     [...numbers].sort((a, b) => a - b),
     "eyebrow numbers never run backwards",
   );
+});
+
+test("Film 001 article sections link only to modules the reader can open", () => {
+  const article = structuredClone(theTrumanShowArticle);
+  const method = article.sections.find((section) => section.id === "truman-article-method");
+  assert.ok(method);
+  assert.equal(method.moduleId, "truman-mod-sources");
+  assert.deepEqual(validateFilmArticle(article, trumanArticleContext()), []);
+
+  // A section may not point at a module that sits behind a higher spoiler gate.
+  method.moduleId = "truman-mod-final";
+  assert.match(
+    validateFilmArticle(article, trumanArticleContext()).join("\n"),
+    /truman-article-method: module "truman-mod-final" needs spoiler level "FULL", above the section's "NONE"/,
+  );
+
+  // Nor at a module that does not exist.
+  method.moduleId = "truman-mod-does-not-exist";
+  assert.match(
+    validateFilmArticle(article, trumanArticleContext()).join("\n"),
+    /unknown module id "truman-mod-does-not-exist"/,
+  );
+
+  // And without a module index the check fails closed instead of passing silently.
+  method.moduleId = "truman-mod-sources";
+  assert.match(
+    validateFilmArticle(article, trumanArticleContext({ moduleLevels: undefined })).join("\n"),
+    /module links require the package's module levels/,
+  );
+
+  // Every shipped section that names a module names a real one.
+  const levels = trumanArticleContext().moduleLevels as Map<string, string>;
+  for (const section of theTrumanShowArticle.sections) {
+    if (!section.moduleId) continue;
+    assert.ok(levels.has(section.moduleId), `${section.id}: ${section.moduleId} is not a module of this package`);
+  }
 });
