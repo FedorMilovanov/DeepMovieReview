@@ -149,7 +149,11 @@ export function ArticleView({
         <p className="articleStandfirst">{article.standfirst}</p>
         <div className="articleByline">
           <span>{article.byline.author}</span>
-          <span>редакция {article.byline.editorialRevision}</span>
+          <span>
+            {article.byline.reviewedAt
+              ? `редакция ${article.byline.editorialRevision}`
+              : `черновик · ${article.byline.editorialRevision}`}
+          </span>
           <span>{readingMinutes} мин чтения</span>
           <span>точка зрения: {levelLabels[spoilerLevel]}</span>
         </div>

@@ -209,6 +209,8 @@ gating is still a suffix, and the renderer hides exactly the last section at
 | «Мы **всё время** на его стороне кадра» | «почти всегда» | The film does cut away to the control room and to the audience. |
 | «в переполохе камеры мечутся, **в тишине — стоят**» | «в переполохе город режется в несколько раз чаще, чем у стены» | The old sentence contradicted the table printed directly above it: the quiet wall window has 28 transitions of its own. |
 | «средняя плотность… один переход на несколько секунд» | «один переход примерно на шесть секунд» | The dataset measured 6.06 s; the round number is now a word, not a typed figure. |
+| Correction row: «ни в субтитрах, ни в кадрах **соответствующей главы**» | «ни в одной проверенной главе, а в дорожке субтитров слово rain не встречается ни разу» | The old cell described a check we had not run that way; the new one states exactly what was checked. |
+| Byline printed «редакция article-v2» | «черновик · article-v2» | An unsigned draft may not present itself as a reviewed edition. |
 
 ### 7.3 Scripture references are declared, not implied
 
