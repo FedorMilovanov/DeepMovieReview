@@ -698,7 +698,7 @@ export const theTrumanShowArticle: FilmArticle = {
       id: "truman-article-verdict",
       number: 9,
       eyebrow: "09 / Вердикт",
-      heading: "Дверь закрывается, вопрос остаётся",
+      heading: "Вопрос остаётся",
       spoilerLevel: "FULL",
       moduleId: "truman-mod-final",
       blocks: [
