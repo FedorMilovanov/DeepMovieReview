@@ -4713,3 +4713,61 @@ test("Film 001 page metadata describes the page, not the site, and cannot spoil 
   // A package without an article has no article card at all.
   assert.equal(articlePageMetadata(theTrumanShowDraftPackage), undefined);
 });
+
+test("dark palette keeps every text token above WCAG AA contrast", () => {
+  const tokens = readFileSync("src/styles/tokens.css", "utf8");
+  const value = (name: string): string => {
+    const match = new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`).exec(tokens);
+    assert.ok(match, `token --${name} must be a hex colour so contrast is checkable`);
+    return match[1].toLowerCase();
+  };
+
+  const luminance = (hex: string): number => {
+    const channels = [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255);
+    const linear = channels.map((channel) =>
+      channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+    );
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  };
+  const contrast = (foreground: string, background: string): number => {
+    const [a, b] = [luminance(foreground), luminance(background)];
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  };
+
+  // Every ink step is used for text at 0.68–1rem (meta labels, timecodes, table
+  // heads), so the normal-text threshold applies to all four.
+  const surfaces = ["surface-canvas", "surface-1", "surface-2", "surface-3", "surface-warm"];
+  for (const ink of ["ink-1", "ink-2", "ink-3", "ink-4"]) {
+    for (const surface of surfaces) {
+      const ratio = contrast(value(ink), value(surface));
+      assert.ok(
+        ratio >= 4.5,
+        `--${ink} on --${surface} is ${ratio.toFixed(2)}:1, below the 4.5:1 needed for normal text`,
+      );
+    }
+  }
+
+  // Accents: restoration is a text colour, fracture is not — it is far too dark
+  // for text on this palette and may only be used for lines and fills.
+  for (const surface of surfaces) {
+    const ratio = contrast(value("accent-restoration"), value(surface));
+    assert.ok(ratio >= 4.5, `--accent-restoration on --${surface} is ${ratio.toFixed(2)}:1`);
+  }
+  assert.ok(
+    contrast(value("accent-fracture"), value("surface-canvas")) < 3,
+    "--accent-fracture is a structural colour: if it ever becomes legible as text, this guard should be revisited along with a contrast fix",
+  );
+
+  const stylesheets = readdirSync("src/styles")
+    .filter((file) => file.endsWith(".css"))
+    .map((file) => [file, readFileSync(`src/styles/${file}`, "utf8")] as const);
+  // `(?<![-a-z])` keeps `border-color`/`background-color` out of the text check.
+  const fractureAsText = stylesheets.filter(([, css]) =>
+    /(?<![-a-z])color:\s*var\(--accent-fracture\)/.test(css),
+  );
+  assert.deepEqual(
+    fractureAsText.map(([file]) => file),
+    [],
+    "--accent-fracture must not be used as a text colour: it fails contrast on the dark palette",
+  );
+});

@@ -298,12 +298,12 @@ the build does not have.
 
 | Gap | Why it is still open | Who closes it |
 | --- | --- | --- |
-| **Editorial signature** (`reviewedAt`, `lastReviewedAt`) | A human has to read the text and own it; the build cannot sign | editor |
+| **Editorial signature** (`reviewedAt`, `lastReviewedAt`) | A human has to read the text and own it; the build cannot sign — an agent-issued date would turn a verifiable claim about an editorial act into a false one. Protocol ready: `docs/53` §1–§4 | editor |
 | **Stills in the article** | The page is text-only. Stills need an editorial decision on quotation and a provenance entry in the visual-asset manifest (`docs/38` §9) | editor |
 | **Per-film share art** | `og:image` is the site card; a proper per-film image is a design task, not a code default | design |
-| **External source liveness** | ~30 `sources-method` hrefs are validated for shape, never for reachability: this environment has no outbound network (verified: `curl` to an external host returns 000) | editor's browser or a CI link checker |
-| **Production facts** (budget, gross, awards) | They live in source *locators*, not in the evidence graph: unverifiable against the master by construction | editor |
-| **Manual quality passes** | Contrast in the dark palette, 200 % zoom, touch targets on a real phone, Lite mode on a mid-range Android. The repo has no browser/E2E/axe tooling; `npm test` is data and contract only | editor, or a new test tier |
+| **External source liveness** | Partly closed: the three load-bearing references (Wikipedia EN, BFI film card, BFI interview) were reachability- and content-checked on 2026-10-28 — see `docs/53` §5. The remaining ~27 hrefs are still shape-only; `curl` from the sandbox cannot leave it (000) | editor's browser or a CI link checker |
+| **Production facts** (budget, gross, awards) | Cross-checked against Wikipedia/BFI on 2026-10-28 and recorded in `docs/53` §6. They stay in source locators, not in the evidence graph — by construction they are unverifiable against the master, and no conclusion in the article rests on them | editor |
+| **Manual quality passes** | ~~Contrast~~ — now measured by a test (see `docs/52` §3.4: it found `--ink-4` at 3.90:1 under six blocks of small article text). Still manual: 200 % zoom, touch targets on a real phone, Lite mode on a mid-range Android. The repo has no browser/E2E/axe tooling | editor for the rest, or a new test tier |
 | **Reader-facing evidence** | The reader can jump to a module but cannot see which evidence record backs a paragraph. Data-level traceability is enforced; the UI step is a product decision | product |
 | **Article discovery** | There is no `/articles` index; the article is reachable from the film page and the sitemap, nothing else | product |
 | **Relationship-module depth** | The article now carries the relationships in prose, but `truman-mod-relationship` still has research-era depth in places (`docs/48` §6) | editorial pass |
