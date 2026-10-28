@@ -29,6 +29,8 @@ import {
   trumanNonSceneChapters,
 } from "../src/data/films/the-truman-show-scene-inventory";
 import {
+  trumanPostLockEvidenceSummary,
+  trumanPostLockEvidenceVerifications,
   trumanVisualVerificationSummary,
   trumanVisualVerifications,
 } from "../src/data/films/the-truman-show-visual-verification";
@@ -4271,6 +4273,25 @@ test("Film 001 article spoiler gating hides a suffix, never a hole", () => {
   assert.ok(articleReadingMinutes(theTrumanShowArticle) >= 5);
 });
 
+test("Film 001 article prose carries no claim the module audit refuted", () => {
+  const prose: string[] = [];
+  for (const section of theTrumanShowArticle.sections) {
+    for (const block of section.blocks) {
+      if (block.kind === "paragraph" || block.kind === "pullquote" || block.kind === "subhead") {
+        prose.push(block.text);
+      }
+    }
+  }
+  const text = prose.join(" ");
+  for (const refuted of ["наушник", "булавк", "личный дождь"]) {
+    assert.equal(
+      text.toLowerCase().includes(refuted),
+      false,
+      `article prose still carries the refuted claim "${refuted}"`,
+    );
+  }
+});
+
 test("Film 001 article keeps the five refuted claims inside the corrections table", () => {
   const corrections = theTrumanShowArticle.sections
     .flatMap((section) => section.blocks)
@@ -4388,4 +4409,124 @@ test("Film 001 measurement figures add up: end minus start equals the printed le
     assert.ok(view && /^\d+:\d{2}–\d+:\d{2}/.test(view.detail), `${window.id}: window has no span`);
     assert.ok(!/undefined|NaN/.test(`${view.primary} ${view.secondary} ${view.detail}`));
   }
+});
+
+/* ------------------------------------------------------------------------- *
+ * Film 001 — module prose audit.
+ *
+ * The article layer has structural guards; the module layer needs editorial
+ * ones. These tests encode what the audit in docs/51 found: research-era
+ * garbling, a prop misidentified as a knife, a lapel button attributed to the
+ * wrong character, and an «earpiece» nobody could source.
+ * ------------------------------------------------------------------------- */
+
+type ProseString = { path: string; moduleKind: string; key: string; text: string };
+
+function collectModuleStrings(
+  value: unknown,
+  moduleKind: string,
+  path: string,
+  out: ProseString[],
+): void {
+  if (typeof value === "string") {
+    const key = path.split(".").at(-1) ?? "";
+    out.push({ path, moduleKind, key, text: value });
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectModuleStrings(item, moduleKind, `${path}[${index}]`, out));
+    return;
+  }
+  if (value && typeof value === "object") {
+    for (const [key, item] of Object.entries(value)) {
+      collectModuleStrings(item, moduleKind, `${path}.${key}`, out);
+    }
+  }
+}
+
+function packageProse(): ProseString[] {
+  const out: ProseString[] = [];
+  for (const filmModule of theTrumanShowCanonicalPackage.modules) {
+    collectModuleStrings(filmModule, filmModule.kind, filmModule.id, out);
+  }
+  return out;
+}
+
+test("Film 001 module prose carries no research-era garbling", () => {
+  // Typos and half-words that survived the promotion untouched.
+  const garbled = ["вшейт", "немошен", "переназ", "сопережевании", "Аланис", "Ханна Гилл", "Omnicom"];
+  const offenders = packageProse().filter((item) =>
+    garbled.some((needle) => item.text.toLowerCase().includes(needle.toLowerCase())),
+  );
+  assert.deepEqual(
+    offenders.map((item) => `${item.path}: ${item.text.slice(0, 80)}`),
+    [],
+  );
+});
+
+test("Film 001 modules state no refuted claim as a fact of the film", () => {
+  // Every one of these was disproved against the locked master. Outside the
+  // sources-method locators they must not appear at all; inside a locator they
+  // are allowed only when the string also says who claims it and that the film
+  // does not bear it out.
+  const refuted = ["наушник", "подкоп", "кто нуждается в европе", "who needs europe", "личный дождь", "булавк"];
+  const attribution = ["в источнике", "не подтверждено", "в фильме отсутствует", "не читается", "в фильме нет"];
+
+  const offenders = packageProse().filter((item) => {
+    const text = item.text.toLowerCase();
+    if (!refuted.some((needle) => text.includes(needle))) return false;
+    if (item.moduleKind !== "sources-method") return true;
+    // A reference keeps its own title and URL; only its locator is our prose.
+    if (item.key === "href" || item.key === "label") return false;
+    return !attribution.some((marker) => text.includes(marker));
+  });
+
+  assert.deepEqual(
+    offenders.map((item) => `${item.path}: ${item.text.slice(0, 90)}`),
+    [],
+  );
+});
+
+test("Film 001 modules attribute the lapel button and the grater to the right people", () => {
+  const prose = packageProse();
+  const byId = (id: string) => prose.filter((item) => item.path.includes(id));
+
+  const sylvia = byId("truman-ch-sylvia").map((item) => item.text).join(" ");
+  assert.equal(
+    /как всё это закончится|how's it going to end/i.test(sylvia),
+    false,
+    "the «HOW'S IT GOING TO END?» button belongs to Truman's basement, not to Sylvia",
+  );
+
+  const merylRelationship = byId("truman-rel-knife").map((item) => item.text).join(" ");
+  assert.equal(/нож/i.test(merylRelationship), false, "the scene has a grater, not a knife");
+});
+
+test("Film 001 post-lock evidence additions are ledgered and counted", () => {
+  const canonicalIds = new Set((theTrumanShowCanonicalPackage.evidence ?? []).map((item) => item.id));
+  const ledgered = new Map(
+    trumanPostLockEvidenceVerifications.map((record) => [record.evidenceId, record]),
+  );
+
+  assert.deepEqual(
+    [...trumanCanonicalEvidenceSummary.postLock].sort(),
+    [...ledgered.keys()].sort(),
+    "every post-lock record must have a post-lock ledger entry and vice versa",
+  );
+
+  for (const id of trumanCanonicalEvidenceSummary.postLock) {
+    assert.ok(canonicalIds.has(id), `${id}: post-lock record is missing from the package`);
+    assert.ok(
+      (trumanCanonicalEvidenceSummary.added as readonly string[]).includes(id),
+      `${id}: post-lock records are also records without a research counterpart`,
+    );
+    const record = ledgered.get(id);
+    assert.ok(record);
+    assert.equal(record.status, "TRANSCRIPT_CONFIRMED", `${id}: dialogue-only additions are transcript-checked`);
+    assert.ok(record.frames.length > 0, `${id}: no observed second`);
+  }
+
+  // The research-era ledger stays pinned to its own 39 records.
+  assert.equal(trumanVisualVerificationSummary.records, 39);
+  assert.equal(trumanPostLockEvidenceSummary.visualConfirmed, 0);
 });

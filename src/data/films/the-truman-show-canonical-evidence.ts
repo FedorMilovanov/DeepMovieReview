@@ -408,6 +408,25 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "MAJOR",
     "В студийном эфире Кристоф отвечает на обвинение в эксплуатации: «Мир, в котором вы живёте, — больной. Сихейвен — это то, каким мир должен быть».",
   ),
+  // ---- Second post-lock batch (module audit) ------------------------------
+  // Both records replace claims the modules had carried without an anchor: an
+  // unverified «earpiece» and a camera count that lived in a secondary source.
+  record(
+    "truman-ev-marlon-retake",
+    "Обещание, произнесённое дважды",
+    "truman-sc-father-and-son-reunion",
+    3459.2,
+    "MAJOR",
+    "Ночью на мосту Марлон дважды произносит обещание — «скорее брошусь под машину» и «последнее, что я стал бы делать, — врать тебе», — и оба раза повторяет фразу с поправкой через несколько секунд: реплику подают заново, пока она не прозвучит правильно.",
+  ),
+  record(
+    "truman-ev-camera-count",
+    "«Порядка пяти тысяч камер»",
+    "truman-sc-trutalk",
+    3895,
+    "MAJOR",
+    "В студийном эфире на вопрос зрителя, сколько камер установлено в городе, отвечают: «где-то порядка пяти тысяч».",
+  ),
 ];
 
 export const trumanCanonicalEvidenceSummary = {
@@ -428,6 +447,8 @@ export const trumanCanonicalEvidenceSummary = {
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",
     "truman-ev-seahaven-design",
+    "truman-ev-marlon-retake",
+    "truman-ev-camera-count",
   ],
   /**
    * Records added after the edition was LOCKED, in a separate batch, to support
@@ -439,5 +460,7 @@ export const trumanCanonicalEvidenceSummary = {
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",
     "truman-ev-seahaven-design",
+    "truman-ev-marlon-retake",
+    "truman-ev-camera-count",
   ],
 } as const;

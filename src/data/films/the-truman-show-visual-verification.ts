@@ -517,6 +517,32 @@ export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
     note:
       "Added after lock for article v2. This is Christof's own statement of design intent and replaces a paraphrase the article previously had to make without an anchor.",
   },
+  {
+    evidenceId: "truman-ev-marlon-retake",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-father-and-son-reunion",
+    frames: [
+      frame(
+        3459.2,
+        "Track lines 3447.8 / 3459.2 and 3464.3 / 3469.9: Marlon delivers both halves of his promise twice, the second time with a correction — the same words reshot.",
+      ),
+    ],
+    note:
+      "Added after lock in the module-audit batch. It carries no claim about an earpiece or any device: only that the line is delivered twice with a correction. The modules previously asserted a earpiece prompt that no ledger entry supported, and that assertion was removed.",
+  },
+  {
+    evidenceId: "truman-ev-camera-count",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-trutalk",
+    frames: [
+      frame(
+        3895,
+        "Track exchange 3889.6 / 3895.0: «How many cameras you got in that town?» — «Somewhere in the vicinity of 5,000.»",
+      ),
+    ],
+    note:
+      "Added after lock in the module-audit batch. The camera count had been borrowed from a secondary source; it is stated in the show's own broadcast and is now anchored in the master.",
+  },
 ];
 
 export const trumanPostLockEvidenceSummary = {

@@ -126,8 +126,10 @@ They are ledgered in `trumanPostLockEvidenceVerifications` as
 `TRANSCRIPT_CONFIRMED`, with **no picture claim**. The research-era ledger in
 `the-truman-show-visual-verification.ts` stays pinned to its original 39
 records; the addition is a separate batch and a separate count. Canonical
-evidence goes 41 → 44, and `trumanCanonicalEvidenceSummary.postLock` names the
-three so the promotion ledger in `docs/48` still reconciles.
+evidence goes 41 → 46 in total: these three, plus two more added by the module
+audit in `docs/51` (`truman-ev-marlon-retake`, `truman-ev-camera-count`).
+`trumanCanonicalEvidenceSummary.postLock` names all five so the promotion ledger
+in `docs/48` still reconciles.
 
 ## 5. What changed in the package
 

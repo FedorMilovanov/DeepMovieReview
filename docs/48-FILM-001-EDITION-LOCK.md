@@ -143,7 +143,12 @@ Each was read off the embedded English subtitle track at the stated second and
 makes **no picture claim**: no prop, no gesture, no staging. They are ledgered in
 `trumanPostLockEvidenceVerifications`, kept separate from the 39-record
 research-era ledger, and named in `trumanCanonicalEvidenceSummary.postLock`.
-Canonical evidence: 41 → 44. `editorialRevision` moved `canonical-lock-1` →
+Two further dialogue records (`truman-ev-marlon-retake`, 3459.2;
+`truman-ev-camera-count`, 3895.0) were added in the same post-lock regime by the
+module audit in `docs/51`, replacing an unverified «earpiece» claim and a camera
+count borrowed from a secondary source.
+
+Canonical evidence: 41 → 46. `editorialRevision` moved `canonical-lock-1` →
 `article-v2`.
 
 Nothing above is re-opened: the edition stays `LOCKED`, the scenes stay
