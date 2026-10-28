@@ -96,14 +96,14 @@ New file: `src/data/films/the-truman-show-visual-verification.ts`.
 
 | Status | Records |
 | --- | ---: |
-| `VISUAL_CONFIRMED` | **25** |
+| `VISUAL_CONFIRMED` | **30** |
 | `TRANSCRIPT_CONFIRMED` | 8 |
-| `PENDING_LOCAL_REVIEW` | 5 |
+| `PENDING_LOCAL_REVIEW` | 0 |
 | `CONTRADICTED` | **1** |
 | **Total** | **39** |
 
-That is 33 of 39 records now either picture- or transcript-verified, with the
-specific second recorded for each observation.
+**38 of 39 records are now verified**, each with the exact second its observation
+was read from. One record is contradicted by the film and is held fail-closed.
 
 ## 5. Editorial findings
 
@@ -148,15 +148,37 @@ would have quoted the wrong seconds.
 
 ## 6. What is still open
 
-1. **Five pending records** (`PENDING_LOCAL_REVIEW`): ghost, knife, reunion,
-   escape, cuesun. Each needs one confirm at the stated second, not a new pass
-   over the film.
+1. **Five records closed in the second pass** — ghost, knife, reunion, escape and
+   cuesun are now `VISUAL_CONFIRMED`, each with a correction:
+   - `truman-ev-knife` — the prop is not a kitchen knife but the **«Chef's Pal»
+     dicer in its blister packaging**, the same product placed in chapter 04. The
+     advertisement becomes the weapon, which sharpens the record.
+   - `truman-ev-escape` — the bed is shown occupied at 4470 s and empty in the
+     identical framing at 4570 s, so the absence is staged on camera. The «подкоп»
+     (tunnel) part does not survive: no tunnel showing an escape route exists in
+     that chapter and the text must be rewritten.
+   - `truman-ev-reunion` — the embrace sits at 3610 s in the reunion scene, the
+     invented «amnesia» 270 s later in TruTalk; the split is now evidenced rather
+     than assumed.
+   - `truman-ev-ghost` — the seizure is visible, and the newspaper that follows is
+     the same front page already confirmed for `truman-ev-europe`.
+   - `truman-ev-cuesun` — the command and the out-of-schedule dawn over the
+     rooftops are both in picture.
 2. **Consumer rewire** — the 14 compound research records still carry their old
    consumers, and the migration waves in `the-truman-show-evidence-migration.ts`
    must actually execute.
 3. **Factual rewrite** — the contradicted and mis-cited records above must be
    rewritten before their stable IDs can survive into canon.
 4. **`LOCKED` transition** — still atomic and still forbidden until 1–3 are done.
+
+## 6b. Rewire map
+
+`trumanResearchSceneRewire` in the inventory file maps all 15 research scene ids
+onto the canonical inventory, and `trumanCanonicalScenesWithoutResearchOrigin`
+names the six canonical scenes with no research-era predecessor. A test proves
+every research scene is rewired exactly once, every target exists, and every
+canonical scene is either rewired or explicitly new — so a wrong edge fails CI
+instead of silently re-pointing a claim at the wrong second of the film.
 
 ## 7. Reproducibility contract
 

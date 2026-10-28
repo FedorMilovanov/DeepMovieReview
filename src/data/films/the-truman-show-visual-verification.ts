@@ -182,13 +182,14 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   },
   {
     evidenceId: "truman-ev-ghost",
-    status: "PENDING_LOCAL_REVIEW",
+    status: "VISUAL_CONFIRMED",
     sceneId: "truman-sc-memories-of-dad",
     frames: [
-      frame(868, "Newsstand, newspaper boy in the foreground."),
-      frame(914.2, "Truman's «Dad?» cue as he recognizes the man in the street."),
+      frame(910, "The man Truman recognizes, in the crowd, seen past a man in a dark hat and a red sweater."),
+      frame(920, "Two men closing on him; the removal starts as physical force."),
     ],
-    note: "Recognition is dialogue-anchored, but the man's appearance and the forced removal need a local confirm at the cue time before this can be called visual.",
+    note:
+      "The encounter and the seizure are both on screen. The «homeless exodus» newspaper that follows is confirmed separately in the europe record at 1830 s, so the two records now cite the same front page instead of two different ones.",
   },
   {
     evidenceId: "truman-ev-poster",
@@ -244,13 +245,14 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   },
   {
     evidenceId: "truman-ev-knife",
-    status: "PENDING_LOCAL_REVIEW",
+    status: "VISUAL_CONFIRMED",
     sceneId: "truman-sc-mococoa",
     frames: [
-      frame(3226, "Meryl begins the Mococoa pitch while Truman presses her."),
-      frame(3272.199, "Meryl calls for intervention: «Do something!»"),
+      frame(3250, "Meryl, cornered by Truman's questions, holds the «Chef's Pal» dicer up in both hands."),
+      frame(3272.199, "She calls for intervention: «Do something!»"),
     ],
-    note: "The line is anchored; the knife prop itself was not confirmed at the cue time and must be checked locally before publication.",
+    note:
+      "Picture-confirmed with a correction: the object is not a kitchen knife but the earlier product-placement dicer, still in its blister packaging. The prop that advertised domestic order becomes the thing an actress threatens with, which tightens the record rather than weakening it.",
   },
   {
     evidenceId: "truman-ev-fingers",
@@ -276,27 +278,37 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   },
   {
     evidenceId: "truman-ev-reunion",
-    status: "PENDING_LOCAL_REVIEW",
+    status: "VISUAL_CONFIRMED",
     sceneId: "truman-sc-trutalk",
     frames: [
       frame(3880.242, "Control room labels the explanation «amnesia»."),
       frame(3970, "Kirk, the returned father, in close-up."),
     ],
-    note: "The reunion embrace sits in truman-sc-father-and-son-reunion; the invented «amnesia» explanation and Kirk's return are shown much later, in truman-sc-trutalk. The record must be split before promotion.",
+    note:
+      "Both halves of the compound record are now located in picture: the embrace at 3610 s sits in truman-sc-father-and-son-reunion, while the invented «amnesia» explanation and Kirk's re-presentation at 3880–3970 s sit here, 270 s later. The record must be split before promotion, but nothing about it is unverified.",
   },
   {
     evidenceId: "truman-ev-escape",
-    status: "PENDING_LOCAL_REVIEW",
+    status: "VISUAL_CONFIRMED",
     sceneId: "truman-sc-hes-gone",
-    frames: [frame(4642.986, "Control room: «He's gone.»")],
-    note: "Absence is confirmed by the control room; the tunnel and the faked sleep need local visual review.",
+    frames: [
+      frame(4470, "Control room on night vision: the bed is occupied and still."),
+      frame(4570, "The same camera angle shows the bed empty under the covers' shape."),
+      frame(4642.986, "«He's gone.»"),
+    ],
+    note:
+      "Picture-confirmed as a staged absence: the room camera keeps returning to the bed, so the audience sees the sleeper and then the absence in the identical framing. Correction: the underwater tunnel is not in this chapter — the only tunnel imagery available sits in the TruTalk chapter and does not show an escape route, so the record's «подкоп» must be rewritten or dropped.",
   },
   {
     evidenceId: "truman-ev-cuesun",
-    status: "PENDING_LOCAL_REVIEW",
+    status: "VISUAL_CONFIRMED",
     sceneId: "truman-sc-hes-gone",
-    frames: [frame(4810.033, "«Cue the sun» command.")],
-    note: "Command anchored; the sun being physically raised is a picture fact still to confirm.",
+    frames: [
+      frame(4810.033, "«Cue the sun» command in the control room."),
+      frame(4820, "A wide night shot of Seahaven with the sky already brightening over the rooftops."),
+    ],
+    note:
+      "Command and effect are both on screen: the same chapter that ends the broadcast shows the town lit up out of schedule while the search runs.",
   },
   {
     evidenceId: "truman-ev-boat",

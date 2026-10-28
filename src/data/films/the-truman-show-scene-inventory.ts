@@ -323,3 +323,40 @@ export const trumanCanonicalSceneSummary = {
   coveredUntilSeconds:
     trumanCanonicalScenes[trumanCanonicalScenes.length - 1]?.endTimestampSeconds ?? 0,
 } as const;
+
+/**
+ * Research-tier scene id → canonical scene id.
+ *
+ * The 15 DRAFT scenes cannot be renamed mechanically: two of them split across
+ * several canonical scenes, and three canonical scenes have no research-era
+ * counterpart at all. This map is the bridge the promotion must consume, and it
+ * is deliberately explicit so a wrong edge fails a test instead of silently
+ * re-pointing a claim at the wrong second of the film.
+ */
+export const trumanResearchSceneRewire: Record<string, string[]> = {
+  "truman-sc-morning": ["truman-sc-day-10909"],
+  "truman-sc-light": ["truman-sc-day-10909"],
+  "truman-sc-radio": ["truman-sc-paranoia"],
+  "truman-sc-school": ["truman-sc-aquaphobia", "truman-sc-memories-of-dad"],
+  "truman-sc-sylvia": ["truman-sc-lauren-sylvia"],
+  "truman-sc-ferry": ["truman-sc-aquaphobia"],
+  "truman-sc-father": ["truman-sc-memories-of-dad"],
+  "truman-sc-elevator": ["truman-sc-paranoia"],
+  "truman-sc-travel": ["truman-sc-chefs-pal", "truman-sc-dreaming-of-fiji", "truman-sc-travelers-beware"],
+  "truman-sc-bridge": ["truman-sc-im-being-spontaneous"],
+  "truman-sc-meryl": ["truman-sc-mococoa"],
+  "truman-sc-reunion": ["truman-sc-father-and-son-reunion", "truman-sc-trutalk"],
+  "truman-sc-escape": ["truman-sc-hes-gone"],
+  "truman-sc-storm": ["truman-sc-cue-the-storm"],
+  "truman-sc-door": ["truman-sc-skys-the-limit", "truman-sc-who-am-i", "truman-sc-good-afternoon"],
+};
+
+/** Canonical scenes with no research-era predecessor: they are new coverage. */
+export const trumanCanonicalScenesWithoutResearchOrigin = [
+  "truman-sc-prologue",
+  "truman-sc-no-place-like-home",
+  "truman-sc-lady-flowers-dented-beetle",
+  "truman-sc-blocked-at-every-turn",
+  "truman-sc-do-you-think-he-knows",
+  "truman-sc-setting-sail",
+] as const;

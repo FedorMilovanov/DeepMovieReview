@@ -19,6 +19,8 @@ import {
 } from "../src/data/films/the-truman-show-master-reanchor";
 import { trumanMasterSegmentation } from "../src/data/films/the-truman-show-master-segmentation";
 import {
+  trumanCanonicalScenesWithoutResearchOrigin,
+  trumanResearchSceneRewire,
   TRUMAN_CREDITS_START_SECONDS,
   TRUMAN_INVENTORY_RUNTIME_SECONDS,
   trumanCanonicalSceneSummary,
@@ -3931,4 +3933,36 @@ test("Film 001 contradicted research records stay fail-closed", () => {
       `${record.evidenceId}: contradicted record must state its promotion block`,
     );
   }
+});
+
+test("Film 001 research scene rewire bridges the old registry to the canonical inventory", () => {
+  const canonicalIds = new Set(trumanCanonicalScenes.map((scene) => scene.id));
+  const researchIds = new Set((theTrumanShowDraftPackage.scenes ?? []).map((scene) => scene.id));
+
+  assert.equal(researchIds.size, 15, "research registry size changed");
+  assert.deepEqual(
+    [...Object.keys(trumanResearchSceneRewire)].sort(),
+    [...researchIds].sort(),
+    "every research scene must be rewired exactly once",
+  );
+
+  const targets = new Set<string>();
+  for (const [researchId, rewired] of Object.entries(trumanResearchSceneRewire)) {
+    assert.ok(rewired.length > 0, `${researchId}: rewire must target at least one scene`);
+    for (const targetId of rewired) {
+      assert.ok(canonicalIds.has(targetId), `${researchId}: unknown canonical target ${targetId}`);
+      targets.add(targetId);
+    }
+  }
+
+  for (const sceneId of trumanCanonicalScenesWithoutResearchOrigin) {
+    assert.ok(canonicalIds.has(sceneId), `${sceneId}: declared new coverage is not canonical`);
+    assert.equal(targets.has(sceneId), false, `${sceneId}: cannot be both new and rewired`);
+  }
+
+  assert.equal(
+    targets.size + trumanCanonicalScenesWithoutResearchOrigin.length,
+    trumanCanonicalScenes.length,
+    "every canonical scene must be either rewired or explicitly new",
+  );
 });
