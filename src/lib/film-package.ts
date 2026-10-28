@@ -438,6 +438,153 @@ export type SourcesMethodModule = FilmModuleBase & {
   }>;
 };
 
+/* ------------------------------------------------------------------------- *
+ * Editorial article
+ *
+ * The article is the readable layer of a locked edition, not a marketing page.
+ * It is stored as structured data so that three things are structurally
+ * impossible: quoting a timestamp no evidence record supports, quoting a
+ * measurement the master never produced, and publishing prose that outranks the
+ * edition it describes.
+ * ------------------------------------------------------------------------- */
+
+/** Measurement tables committed for Film 001 by the measurement script. */
+export type ArticleMeasurementTable = "totals" | "window" | "hold" | "silence";
+
+/** A pointer into the committed measurement dataset. Never a literal number. */
+export type ArticleMeasurementRef = {
+  table: ArticleMeasurementTable;
+  id: string;
+};
+
+export type ArticleTimelineItem = {
+  id: string;
+  /** Must equal the cited evidence record's timestampSeconds. */
+  timestampSeconds: number;
+  label: string;
+  evidenceId: string;
+};
+
+export type ArticleCorrectionRow = {
+  id: string;
+  /** The claim that circulates in secondary texts. */
+  commonClaim: string;
+  /** What the locked master actually shows or says. */
+  onScreen: string;
+  /** Canonical evidence for an observable correction. */
+  evidenceId?: string;
+  /** …or a measured pointer, for corrections the master proves by counting. */
+  measurement?: ArticleMeasurementRef;
+  /**
+   * True only for a correction whose point is that the beat does not exist.
+   * Such a row must not cite evidence for something it claims is absent.
+   */
+  absentFromMaster?: boolean;
+};
+
+export type ArticleTableRow = {
+  id: string;
+  /** Left column: what the article asserts about this row. */
+  label: string;
+  /** Right column: measured values, filled from the measurement dataset. */
+  measurement: ArticleMeasurementRef;
+};
+
+export type ArticleBlock =
+  | {
+      kind: "paragraph";
+      id: string;
+      text: string;
+      support?: ClaimSupport;
+      /**
+       * Scripture references that appear verbatim in `text`. Declared so the
+       * validator can tell «Деяния 17:26» from a film timecode: prose may not
+       * carry a clock reading unless it is a declared Scripture reference.
+       */
+      scriptureRefs?: string[];
+    }
+  | {
+      kind: "subhead";
+      id: string;
+      text: string;
+    }
+  | {
+      kind: "pullquote";
+      id: string;
+      text: string;
+      attribution?: string;
+      support?: ClaimSupport;
+    }
+  | {
+      /** Canonical moments: every timestamp here is a verified evidence anchor. */
+      kind: "timeline";
+      id: string;
+      items: ArticleTimelineItem[];
+    }
+  | {
+      /** A single measured headline number, rendered from the dataset. */
+      kind: "measurement";
+      id: string;
+      measurement: ArticleMeasurementRef;
+      text: string;
+      support?: ClaimSupport;
+    }
+  | {
+      /** Several measured rows side by side. */
+      kind: "measurement-table";
+      id: string;
+      caption: string;
+      columns: [string, string, string];
+      rows: ArticleTableRow[];
+    }
+  | {
+      kind: "corrections";
+      id: string;
+      caption: string;
+      rows: ArticleCorrectionRow[];
+    };
+
+export type ArticleSection = {
+  id: string;
+  /** One-based reading order; sections are gated by spoiler level as a suffix. */
+  number: number;
+  eyebrow: string;
+  heading: string;
+  standfirst?: string;
+  spoilerLevel: SpoilerLevel;
+  /** Module-level claim, e.g. the section's thesis. */
+  support?: ClaimSupport;
+  blocks: ArticleBlock[];
+};
+
+export type FilmArticle = {
+  id: string;
+  /** Small label above the title. */
+  kicker: string;
+  title: string;
+  standfirst: string;
+  byline: {
+    author: string;
+    /** Must match the sources-method module's editorialRevision. */
+    editorialRevision: string;
+    /** ISO calendar date the text was drafted. */
+    draftedAt: string;
+    /** ISO calendar date a human editor signed the text off. Absent while unsigned. */
+    reviewedAt?: string;
+  };
+  /** The article is edition-bound: it may only quote the master it names here. */
+  edition: {
+    sourceId: string;
+    measuredRuntimeSeconds: number;
+  };
+  sections: ArticleSection[];
+  closing?: {
+    heading: string;
+    text: string;
+    support?: ClaimSupport;
+  };
+};
+
 export type FilmEditionLock =
   | {
       state: "TARGET_ONLY";
@@ -556,6 +703,12 @@ export type FilmPackage = {
    * a LOCKED edition or a published status.
    */
   research?: FilmResearchState;
+  /**
+   * Editorial article bound to the locked edition. Optional: a locked package
+   * may be analysed without a readable layer, but an article may never exist
+   * without a LOCKED edition (see `validateFilmArticle`).
+   */
+  article?: FilmArticle;
   /** Canonical edition-bound scene registry. Real-film scenes require a LOCKED edition. */
   scenes?: FilmSceneRecord[];
   /** Stable evidence graph shared by every analytical module. */

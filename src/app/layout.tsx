@@ -21,6 +21,7 @@ import "../styles/homepage-optics.css";
 import "../styles/route-states.css";
 import "../styles/methodology.css";
 import "../styles/spoilers.css";
+import "../styles/film-article.css";
 import "../styles/film-modules.css";
 import "../styles/film-verdict.css";
 import "../styles/experience.css";

@@ -121,6 +121,23 @@ record the discrepancy instead of proceeding:
   threshold `0.32` on a 320 px downscale; this script scans at full resolution,
   so expect a somewhat different count — the *count* is not the contract).
 
+## Measuring the bundle
+
+`measure-master-windows.mjs` reads `04-cuts.csv`, `03-subs-en.srt` and
+`00-manifest.txt` and emits the timing dataset the public article is allowed to
+quote — total detected transitions, the longest stretches without a transition,
+the longest stretches without dialogue, and named editorial windows:
+
+```
+node measure-master-windows.mjs --bundle <bundle dir> \
+  --out ../../src/data/films/the-truman-show-master-windows.json
+```
+
+The committed JSON is that command's output, verbatim. It records the SHA-256 of
+its own inputs, so a different bundle cannot silently produce a different
+article. Method and the definitions of *transition*, *hold*, *cue start* and
+*silence* are in `docs/50-FILM-001-ARTICLE-V2.md` §2.
+
 ## Boundaries
 
 - The bundle is **working evidence**, not a publication artifact.

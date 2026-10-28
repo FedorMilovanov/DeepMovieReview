@@ -112,6 +112,13 @@ New file: `src/data/films/the-truman-show-visual-verification.ts`.
 **38 of 39 records are now verified**, each with the exact second its observation
 was read from. One record is contradicted by the film and is held fail-closed.
 
+> **Amendment (2026-10-28, article v2).** Three further canonical evidence
+> records were added *after* the edition was locked, all dialogue-only and all
+> inside the already verified `truman-sc-trutalk`. They are not part of the 39
+> above and do not change this table: they are ledgered separately in
+> `trumanPostLockEvidenceVerifications` as `TRANSCRIPT_CONFIRMED`, with no
+> picture claim attached. See `docs/50-FILM-001-ARTICLE-V2.md` §4.
+
 ## 5. Editorial findings
 
 These are corrections to the research tier, not cosmetic edits.

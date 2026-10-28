@@ -2,6 +2,7 @@ import type { FilmPackage } from "@/lib/film-package";
 import { trumanMasterSegmentation } from "./the-truman-show-master-segmentation";
 import { trumanCanonicalEvidence } from "./the-truman-show-canonical-evidence";
 import { trumanCanonicalScenes } from "./the-truman-show-scene-inventory";
+import { theTrumanShowArticle } from "./the-truman-show-article";
 
 /**
  * «Шоу Трумана» (The Truman Show, 1998, Питер Уир) — canonical edition.
@@ -67,6 +68,12 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
             : ("NONE" as const),
   })),
   evidence: trumanCanonicalEvidence,
+  /**
+   * The readable layer of the same edition. Validated against the evidence
+   * graph above and the measured timing dataset, so neither a timestamp nor a
+   * number can be typed in by hand.
+   */
+  article: theTrumanShowArticle,
   modules: [
     {
       id: "truman-mod-story",
@@ -1168,9 +1175,9 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       heading: "Источники и издание — Шоу Трумана",
       spoilerLevel: "NONE",
       methodologyVersion: "deepwaters-method-v1",
-      editorialRevision: "canonical-lock-1",
+      editorialRevision: "article-v2",
       analyzedEdition:
-        "Viewing master identified 2026-09-15: The Truman Show (1998) BDRip.mkv; Matroska; 13,099,008,485 bytes; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575; 1920×1080 H.264; 24000/1001 fps; measured runtime 01:42:57.792. Dialogue basis: English Original DTS 5.1 + embedded English SubRip. Edition LOCKED 2026-10-28 after scene-by-scene and record-by-record verification; 21 canonical scenes and 41 canonical evidence records cite this master directly. The film remains draft and unindexed. See docs/47-FILM-001-VISUAL-VERIFICATION.md and docs/48-FILM-001-EDITION-LOCK.md.",
+        "Viewing master identified 2026-09-15: The Truman Show (1998) BDRip.mkv; Matroska; 13,099,008,485 bytes; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575; 1920×1080 H.264; 24000/1001 fps; measured runtime 01:42:57.792. Dialogue basis: English Original DTS 5.1 + embedded English SubRip. Edition LOCKED 2026-10-28 after scene-by-scene and record-by-record verification; 21 canonical scenes and 44 canonical evidence records cite this master directly (41 at lock; 3 dialogue facts added afterwards for the public article, ledgered separately). The film remains draft and unindexed. See docs/47-FILM-001-VISUAL-VERIFICATION.md and docs/48-FILM-001-EDITION-LOCK.md.",
       lastReviewedAt: "2026-09-15",
       sources: [
         {

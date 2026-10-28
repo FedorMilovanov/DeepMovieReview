@@ -21,6 +21,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${origin}/methodology` },
     ...filmPackages
       .filter((filmPackage) => filmPackage.film.status === "published")
-      .map((filmPackage) => ({ url: `${origin}/films/${filmPackage.film.slug}` })),
+      .flatMap((filmPackage) => [
+        { url: `${origin}/films/${filmPackage.film.slug}` },
+        ...(filmPackage.article
+          ? [{ url: `${origin}/films/${filmPackage.film.slug}/article` }]
+          : []),
+      ]),
   ];
 }

@@ -463,3 +463,68 @@ export const trumanVisualVerificationSummary = {
   ).length,
   contradicted: trumanVisualVerifications.filter((r) => r.status === "CONTRADICTED").length,
 } as const;
+
+/**
+ * Post-lock evidence additions (article v2).
+ *
+ * The research-era ledger above closes `VISUAL_REVIEW` for the 39 records that
+ * existed before the edition was locked, and it is pinned to that set. Three
+ * records were added *after* the lock because the public article needed anchors
+ * the first batch could not carry. They make no picture claim: each one is a
+ * line of dialogue read off the embedded English subtitle track at the stated
+ * second, inside the already verified `truman-sc-trutalk`.
+ *
+ * They are therefore ledgered here as `TRANSCRIPT_CONFIRMED` and never counted
+ * as visual review of a prop, a gesture or a set.
+ */
+export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
+  {
+    evidenceId: "truman-ev-manufactured-limits",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-trutalk",
+    frames: [
+      frame(
+        3842.5,
+        "Track line: «As Truman grew up, we manufactured ways to keep him on the island.» Spoken over the growing-up montage; no picture claim.",
+      ),
+    ],
+    note:
+      "Added after lock for article v2. The line is the production's own account of manufacturing consent, so the article can quote intent instead of inferring it.",
+  },
+  {
+    evidenceId: "truman-ev-nothing-left",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-trutalk",
+    frames: [
+      frame(
+        3847.7,
+        "Track line: «— I'd like to be a great explorer. — There's nothing left to explore.» The exchange is dubbed over the classroom flashback; the speaker is the teacher, the child is Truman.",
+      ),
+    ],
+    note:
+      "Added after lock for article v2. Only the exchange is claimed. The framing of the flashback stays a scene-level observation and is not restated as evidence.",
+  },
+  {
+    evidenceId: "truman-ev-seahaven-design",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-trutalk",
+    frames: [
+      frame(
+        4052.5,
+        "Track line: «The world, the place you live in, is the sick place. Seahaven is the way the world should be.» Christof, in the studio interview.",
+      ),
+    ],
+    note:
+      "Added after lock for article v2. This is Christof's own statement of design intent and replaces a paraphrase the article previously had to make without an anchor.",
+  },
+];
+
+export const trumanPostLockEvidenceSummary = {
+  records: trumanPostLockEvidenceVerifications.length,
+  transcriptConfirmed: trumanPostLockEvidenceVerifications.filter(
+    (record) => record.status === "TRANSCRIPT_CONFIRMED",
+  ).length,
+  visualConfirmed: trumanPostLockEvidenceVerifications.filter(
+    (record) => record.status === "VISUAL_CONFIRMED",
+  ).length,
+} as const;

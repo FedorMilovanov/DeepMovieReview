@@ -377,6 +377,37 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "FULL",
     "Двое охранников на посту, смотревшие финал, спрашивают: «Ну что, что ещё идёт?» — и один тянется к пульту.",
   ),
+  // ---- Post-lock additions (article v2) -----------------------------------
+  // Added after the edition was LOCKED, because the article had to state three
+  // things the first forty-one records could not carry. All three are dialogue
+  // facts read off the embedded English subtitle track at the stated second and
+  // sit inside the already verified `truman-sc-trutalk`. They claim nothing
+  // about picture, which is why they are ledgered as TRANSCRIPT_CONFIRMED in
+  // `trumanPostLockEvidenceVerifications` instead of the research-era ledger.
+  record(
+    "truman-ev-manufactured-limits",
+    "«Мы придумывали способы удержать его»",
+    "truman-sc-trutalk",
+    3842.5,
+    "MAJOR",
+    "Поверх кадров взросления Трумана звучит голос производства: «Пока Труман рос, мы придумывали способы удержать его на острове».",
+  ),
+  record(
+    "truman-ev-nothing-left",
+    "«Исследовать больше нечего»",
+    "truman-sc-trutalk",
+    3847.7,
+    "MAJOR",
+    "В том же флешбэке мальчик говорит, что хочет стать исследователем, и слышит в ответ: «Исследовать больше нечего» — то есть отказ от мира вложен в него до всякого выбора.",
+  ),
+  record(
+    "truman-ev-seahaven-design",
+    "«Сихейвен — это то, каким мир должен быть»",
+    "truman-sc-trutalk",
+    4052.5,
+    "MAJOR",
+    "В студийном эфире Кристоф отвечает на обвинение в эксплуатации: «Мир, в котором вы живёте, — больной. Сихейвен — это то, каким мир должен быть».",
+  ),
 ];
 
 export const trumanCanonicalEvidenceSummary = {
@@ -392,5 +423,21 @@ export const trumanCanonicalEvidenceSummary = {
     "truman-ev-reunion": ["truman-ev-reunion", "truman-ev-reunion-amnesia"],
   },
   /** Canonical records that have no research-era counterpart. */
-  added: ["truman-ev-setting-sail"],
+  added: [
+    "truman-ev-setting-sail",
+    "truman-ev-manufactured-limits",
+    "truman-ev-nothing-left",
+    "truman-ev-seahaven-design",
+  ],
+  /**
+   * Records added after the edition was LOCKED, in a separate batch, to support
+   * article v2. They are dialogue facts only: no picture claim, no scene change.
+   * See `trumanPostLockEvidenceVerifications` in
+   * `the-truman-show-visual-verification.ts` and docs/50.
+   */
+  postLock: [
+    "truman-ev-manufactured-limits",
+    "truman-ev-nothing-left",
+    "truman-ev-seahaven-design",
+  ],
 } as const;

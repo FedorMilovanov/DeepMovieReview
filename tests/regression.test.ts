@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
+import { validateFilmArticle } from "../src/lib/film-article-integrity";
 import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
@@ -37,6 +38,18 @@ import {
   trumanCanonicalEvidenceSummary,
 } from "../src/data/films/the-truman-show-canonical-evidence";
 import { theTrumanShowCanonicalPackage } from "../src/data/films/the-truman-show-canonical";
+import { theTrumanShowArticle } from "../src/data/films/the-truman-show-article";
+import {
+  describeTrumanMeasurement,
+  formatMasterTimecode,
+  resolveTrumanMeasurement,
+  trumanMasterHolds,
+  trumanMasterSilences,
+  trumanMasterTimingTotals,
+  trumanMasterWindows,
+  trumanMeasuredDigitStrings,
+} from "../src/data/films/the-truman-show-master-windows";
+import { projectArticleSections, articleReadingMinutes } from "../src/lib/film-article";
 import {
   trumanEvidenceMigrationWave1,
   trumanEvidenceMigrationWave2,
@@ -3974,7 +3987,10 @@ test("Film 001 research scene rewire bridges the old registry to the canonical i
 });
 
 test("Film 001 canonical package satisfies the full integrity graph", () => {
-  const errors = validateFilmPackage(theTrumanShowCanonicalPackage);
+  const errors = validateFilmPackage(theTrumanShowCanonicalPackage, {
+    resolveArticleMeasurement: (ref) => Boolean(resolveTrumanMeasurement(ref)),
+    articleMeasuredValues: trumanMeasuredDigitStrings,
+  });
   assert.deepEqual(errors, [], `canonical package errors:\n${errors.join("\n")}`);
 });
 
@@ -4057,4 +4073,319 @@ test("Film 001 article metrics agree with the recorded master measurements", () 
     (a, b) => b.sceneChangeCandidatesPerMinute - a.sceneChangeCandidatesPerMinute,
   )[0];
   assert.ok(busiest.sceneChangeCandidatesPerMinute > 0);
+});
+
+/* ------------------------------------------------------------------------- *
+ * Film 001 — the article layer.
+ *
+ * The article is data, so it can be attacked like data: these tests mutate the
+ * real text and assert that the validator refuses the mutation. A rule that is
+ * never tested is a comment.
+ * ------------------------------------------------------------------------- */
+
+function trumanArticleContext(overrides: Record<string, unknown> = {}) {
+  const filmPackage = theTrumanShowCanonicalPackage;
+  const sourcesModule = filmPackage.modules.find(
+    (filmModule) => filmModule.kind === "sources-method",
+  );
+  return {
+    evidenceById: new Map((filmPackage.evidence ?? []).map((item) => [item.id, item])),
+    sceneById: new Map((filmPackage.scenes ?? []).map((scene) => [scene.id, scene])),
+    edition: filmPackage.ingest?.edition,
+    realFilm: true,
+    published: false,
+    editorialRevision:
+      sourcesModule?.kind === "sources-method" ? sourcesModule.editorialRevision : undefined,
+    resolveMeasurement: (ref: Parameters<typeof resolveTrumanMeasurement>[0]) =>
+      Boolean(resolveTrumanMeasurement(ref)),
+    measuredValues: trumanMeasuredDigitStrings,
+    ...overrides,
+  };
+}
+
+function firstParagraph(article: typeof theTrumanShowArticle) {
+  const section = article.sections[0];
+  const block = section.blocks.find((candidate) => candidate.kind === "paragraph");
+  assert.ok(block && block.kind === "paragraph");
+  return block;
+}
+
+test("Film 001 article is bound to the exact locked edition it names", () => {
+  const base = structuredClone(theTrumanShowArticle);
+  assert.deepEqual(validateFilmArticle(base, trumanArticleContext()), []);
+
+  const wrongSource = structuredClone(base);
+  wrongSource.edition.sourceId = "truman-src-some-other-file";
+  assert.match(
+    validateFilmArticle(wrongSource, trumanArticleContext()).join("\n"),
+    /does not match the locked source/,
+  );
+
+  const wrongRuntime = structuredClone(base);
+  wrongRuntime.edition.measuredRuntimeSeconds = 6000;
+  assert.match(
+    validateFilmArticle(wrongRuntime, trumanArticleContext()).join("\n"),
+    /does not match the locked master/,
+  );
+
+  // A pre-lock edition cannot carry a public article at all.
+  const unlocked = validateFilmArticle(base, trumanArticleContext({
+    edition: {
+      state: "MASTER_IDENTIFIED",
+      sourceId: "truman-src-master-bdrip",
+      editionIdentity: "test",
+      measuredRuntimeSeconds: 6177.792,
+      timestampConvention: "test",
+      identifiedAt: "2026-09-15",
+      note: "test",
+    },
+  }));
+  assert.match(unlocked.join("\n"), /requires a LOCKED edition/);
+});
+
+test("Film 001 article prose may not carry a clock reading or a measured number", () => {
+  const withClock = structuredClone(theTrumanShowArticle);
+  firstParagraph(withClock).text = "Библиотечная сцена начинается на 22:00 и не режется.";
+  assert.match(
+    validateFilmArticle(withClock, trumanArticleContext()).join("\n"),
+    /clock reading "22:00"/,
+  );
+
+  const withMeasurement = structuredClone(theTrumanShowArticle);
+  firstParagraph(withMeasurement).text = "Детектор нашёл в фильме 1019 переходов.";
+  assert.match(
+    validateFilmArticle(withMeasurement, trumanArticleContext()).join("\n"),
+    /measured value "1019"/,
+  );
+
+  // The escape hatch is narrow by design: a declared Scripture reference may
+  // contain a colon, an undeclared one may not.
+  const scripture = structuredClone(theTrumanShowArticle);
+  const biblical = scripture.sections.find((section) => section.id === "truman-article-biblical");
+  assert.ok(biblical);
+  const paragraph = biblical.blocks.find((block) => block.kind === "paragraph");
+  assert.ok(paragraph && paragraph.kind === "paragraph");
+  paragraph.text = "Апостол говорит о пределах обитания (Деяния 17:26–27).";
+  paragraph.scriptureRefs = ["Деяния 17:26–27"];
+  assert.deepEqual(validateFilmArticle(scripture, trumanArticleContext()), []);
+
+  paragraph.scriptureRefs = undefined;
+  assert.match(
+    validateFilmArticle(scripture, trumanArticleContext()).join("\n"),
+    /clock reading "17:26"/,
+  );
+});
+
+test("Film 001 article cannot quote a timestamp its evidence does not support", () => {
+  const article = structuredClone(theTrumanShowArticle);
+  const section = article.sections.find((candidate) => candidate.id === "truman-article-props");
+  assert.ok(section);
+  const timeline = section.blocks.find((block) => block.kind === "timeline");
+  assert.ok(timeline && timeline.kind === "timeline");
+  timeline.items[0].timestampSeconds = 1699;
+
+  const errors = validateFilmArticle(article, trumanArticleContext()).join("\n");
+  assert.match(errors, /does not match evidence "truman-ev-fingers"/);
+
+  const unknownEvidence = structuredClone(theTrumanShowArticle);
+  const section2 = unknownEvidence.sections.find(
+    (candidate) => candidate.id === "truman-article-props",
+  );
+  assert.ok(section2);
+  const timeline2 = section2.blocks.find((block) => block.kind === "timeline");
+  assert.ok(timeline2 && timeline2.kind === "timeline");
+  timeline2.items[0].evidenceId = "truman-ev-invented";
+  assert.match(
+    validateFilmArticle(unknownEvidence, trumanArticleContext()).join("\n"),
+    /unknown evidence id "truman-ev-invented"/,
+  );
+});
+
+test("Film 001 article measurement references must resolve against the dataset", () => {
+  const article = structuredClone(theTrumanShowArticle);
+  const section = article.sections.find((candidate) => candidate.id === "truman-article-craft");
+  assert.ok(section);
+  const figure = section.blocks.find((block) => block.kind === "measurement");
+  assert.ok(figure && figure.kind === "measurement");
+  figure.measurement = { table: "hold", id: "hold-99" };
+  assert.match(
+    validateFilmArticle(article, trumanArticleContext()).join("\n"),
+    /unknown hold measurement "hold-99"/,
+  );
+
+  // Without the dataset an article cannot be validated at all: it would be a
+  // page of numbers nobody can trace.
+  assert.match(
+    validateFilmArticle(theTrumanShowArticle, trumanArticleContext({
+      resolveMeasurement: undefined,
+    })).join("\n"),
+    /require a measurement dataset/,
+  );
+});
+
+test("Film 001 article needs a human signature before it can be published", () => {
+  const unsigned = validateFilmArticle(
+    theTrumanShowArticle,
+    trumanArticleContext({ published: true }),
+  ).join("\n");
+  assert.match(unsigned, /requires a human editorial signature \(reviewedAt\)/);
+
+  const signed = structuredClone(theTrumanShowArticle);
+  signed.byline.reviewedAt = "2026-10-28";
+  const signedErrors = validateFilmArticle(
+    signed,
+    trumanArticleContext({ published: true }),
+  );
+  assert.equal(
+    signedErrors.some((error) => error.includes("reviewedAt")),
+    false,
+    `signed article still reports a byline error: ${signedErrors.join("\n")}`,
+  );
+
+  const backdated = structuredClone(theTrumanShowArticle);
+  backdated.byline.reviewedAt = "2026-10-01";
+  assert.match(
+    validateFilmArticle(backdated, trumanArticleContext()).join("\n"),
+    /reviewedAt cannot precede draftedAt/,
+  );
+});
+
+test("Film 001 article spoiler gating hides a suffix, never a hole", () => {
+  const none = projectArticleSections(theTrumanShowArticle, "NONE");
+  assert.deepEqual(none.visibleSections.map((section) => section.number), [1]);
+  assert.equal(none.nextHiddenLevel, "MINOR");
+  assert.equal(none.hiddenSections, theTrumanShowArticle.sections.length - 1);
+
+  const minor = projectArticleSections(theTrumanShowArticle, "MINOR");
+  assert.deepEqual(minor.visibleSections.map((section) => section.number), [1, 2]);
+
+  const ending = projectArticleSections(theTrumanShowArticle, "ENDING");
+  assert.deepEqual(ending.visibleSections.map((section) => section.number), [1, 2, 3, 4, 5, 6]);
+  assert.equal(ending.hiddenSections, 1);
+
+  const full = projectArticleSections(theTrumanShowArticle, "FULL");
+  assert.equal(full.hiddenSections, 0);
+  assert.equal(full.visibleSections.length, theTrumanShowArticle.sections.length);
+  assert.equal(full.nextHiddenLevel, undefined);
+
+  assert.ok(articleReadingMinutes(theTrumanShowArticle) >= 5);
+});
+
+test("Film 001 article keeps the five refuted claims inside the corrections table", () => {
+  const corrections = theTrumanShowArticle.sections
+    .flatMap((section) => section.blocks)
+    .find((block) => block.kind === "corrections");
+  assert.ok(corrections && corrections.kind === "corrections");
+  assert.equal(corrections.rows.length, 5);
+
+  // The piece may *discuss* a refuted claim in prose (that is the point of the
+  // section), but the correction itself must live in the table, with a source:
+  // evidence for a rewritten fact, an explicit absence for a beat that does not
+  // exist, and nothing hanging unsupported.
+  assert.equal(
+    corrections.rows.filter((row) => row.absentFromMaster).length,
+    1,
+    "exactly one correction is an absent-beat claim",
+  );
+  for (const row of corrections.rows) {
+    assert.ok(row.commonClaim.length > 0 && row.onScreen.length > 0);
+    assert.ok(
+      Boolean(row.evidenceId) !== Boolean(row.absentFromMaster),
+      `${row.id}: a correction cites evidence or declares absence, never both`,
+    );
+  }
+
+  const claims = corrections.rows.map((row) => row.commonClaim.toLowerCase()).join(" | ");
+  for (const marker of ["дождь", "нож", "полос", "пальц", "подкоп"]) {
+    assert.ok(claims.includes(marker), `corrections table lost the "${marker}" claim`);
+  }
+
+  // The five refuted claims are exactly the ones the promoted evidence graph
+  // can answer; the absent one is absent from the subtitle track as well.
+  const evidenceIds = new Set((theTrumanShowCanonicalPackage.evidence ?? []).map((item) => item.id));
+  for (const row of corrections.rows) {
+    if (row.evidenceId) {
+      assert.ok(evidenceIds.has(row.evidenceId), `${row.id}: unknown evidence ${row.evidenceId}`);
+    }
+  }
+});
+
+test("Film 001 measured timing dataset is internally consistent", () => {
+  assert.equal(trumanMasterTimingTotals.detectedTransitions, 1019);
+  assert.equal(trumanMasterTimingTotals.subtitleCues, 695);
+  assert.equal(trumanMasterTimingTotals.meanSecondsBetweenTransitions, 6.06);
+
+  for (const window of trumanMasterWindows) {
+    assert.ok(window.to > window.from, `${window.id}: window must move forward`);
+    assert.ok(
+      Math.abs(window.to - window.from - window.durationSeconds) < 0.001,
+      `${window.id}: duration must match its bounds`,
+    );
+    assert.ok(window.startSceneId, `${window.id}: window must resolve to a scene`);
+  }
+
+  // Ranked longest-first: the article's "longest hold" claim depends on it.
+  for (let index = 1; index < trumanMasterHolds.length; index += 1) {
+    assert.ok(
+      trumanMasterHolds[index - 1].durationSeconds >= trumanMasterHolds[index].durationSeconds,
+      "holds must stay sorted by duration",
+    );
+  }
+  assert.equal(trumanMasterHolds[0].id, "hold-01");
+  assert.ok(trumanMasterHolds[0].durationSeconds > 120);
+  assert.ok(trumanMasterSilences[0].durationSeconds > 240);
+  assert.ok(trumanMasterSilences[0].detectedTransitions > 0);
+
+  // Every measurement the article points at must render.
+  for (const section of theTrumanShowArticle.sections) {
+    for (const block of section.blocks) {
+      if (block.kind === "measurement") {
+        assert.ok(describeTrumanMeasurement(block.measurement), `${block.id}: no view`);
+      }
+      if (block.kind === "measurement-table") {
+        for (const row of block.rows) {
+          assert.ok(describeTrumanMeasurement(row.measurement), `${row.id}: no view`);
+        }
+      }
+    }
+  }
+
+  // The generated dataset must still describe the template its article assumes.
+  const library = trumanMasterWindows.find((window) => window.id === "library");
+  assert.ok(library);
+  assert.equal(library.detectedTransitions, 0);
+  assert.equal(library.startSceneId, "truman-sc-lauren-sylvia");
+
+  assert.equal(formatMasterTimecode(1320), "22:00");
+  assert.equal(formatMasterTimecode(5755.382), "95:55");
+});
+
+test("Film 001 measurement figures add up: end minus start equals the printed length", () => {
+  const toSeconds = (timecode: string) => {
+    const [minutes, seconds] = timecode.split(":").map(Number);
+    return minutes * 60 + seconds;
+  };
+
+  const holdsAndSilences = [
+    ...trumanMasterHolds.map((hold) => ({ table: "hold" as const, id: hold.id })),
+    ...trumanMasterSilences.map((silence) => ({ table: "silence" as const, id: silence.id })),
+  ];
+
+  for (const ref of holdsAndSilences) {
+    const view = describeTrumanMeasurement(ref);
+    assert.ok(view, `${ref.table}/${ref.id}: no view`);
+    const bounds = view.detail.match(/^(\d+:\d{2})–(\d+:\d{2})/);
+    assert.ok(bounds, `${ref.table}/${ref.id}: detail has no span`);
+    assert.equal(
+      toSeconds(bounds[2]) - toSeconds(bounds[1]),
+      toSeconds(view.primary),
+      `${ref.table}/${ref.id}: printed span and printed length disagree`,
+    );
+  }
+
+  for (const window of trumanMasterWindows) {
+    const view = describeTrumanMeasurement({ table: "window", id: window.id });
+    assert.ok(view && /^\d+:\d{2}–\d+:\d{2}/.test(view.detail), `${window.id}: window has no span`);
+    assert.ok(!/undefined|NaN/.test(`${view.primary} ${view.secondary} ${view.detail}`));
+  }
 });

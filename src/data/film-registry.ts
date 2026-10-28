@@ -1,11 +1,18 @@
 import { filmPackages as fixtureFilmPackages } from "@/data/film-fixtures";
 import { theFastAndTheFuriousDraftPackage } from "@/data/films/the-fast-and-the-furious";
 import { theTrumanShowCanonicalPackage } from "@/data/films/the-truman-show-canonical";
+import {
+  resolveTrumanMeasurement,
+  trumanMeasuredDigitStrings,
+} from "@/data/films/the-truman-show-master-windows";
 import { assertValidFilmRegistry } from "@/lib/film-package-integrity";
 
 const rawFilmPackages = [...fixtureFilmPackages, theTrumanShowCanonicalPackage, theFastAndTheFuriousDraftPackage];
 
-assertValidFilmRegistry(rawFilmPackages);
+assertValidFilmRegistry(rawFilmPackages, {
+  resolveArticleMeasurement: (ref) => Boolean(resolveTrumanMeasurement(ref)),
+  articleMeasuredValues: trumanMeasuredDigitStrings,
+});
 
 /** Canonical validated read surface for application routes and projections. */
 export const filmPackages = rawFilmPackages;

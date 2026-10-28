@@ -81,6 +81,16 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
           <div><span>Жанр</span><strong>{film.genre.join(" / ")}</strong></div>
           <div><span>Вопрос</span><strong>{film.thesisQuestion}</strong></div>
         </div>
+        {filmPackage.article ? (
+          <Link
+            className="articleEntryLink"
+            href={withSpoilerQuery(`/films/${film.slug}/article`, spoilerLevel)}
+          >
+            <span>Читать разбор целиком</span>
+            <strong>{filmPackage.article.title}</strong>
+            <small>{filmPackage.article.standfirst}</small>
+          </Link>
+        ) : null}
         {researchDraft ? (
           <aside className="researchDraftNotice" aria-label="Статус исследовательского черновика">
             <strong>Исследовательский черновик · вторичные источники · мастер не заблокирован</strong>

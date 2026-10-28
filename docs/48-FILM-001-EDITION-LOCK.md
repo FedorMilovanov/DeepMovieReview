@@ -126,3 +126,25 @@ CI fails.
 - **Character/relationship depth.** The modules still carry research-era depth in
   places. They are now *supported* by verified evidence, which is a different
   claim from being finished.
+
+## 7. Post-lock amendment: three dialogue records for article v2
+
+Recorded 2026-10-28. The lock covers the viewing master, not the editorial
+surface built on it. Writing the public article exposed three statements that
+carry the film's own argument and had no canonical anchor:
+
+| Record | Second | Scene | Ledger status |
+| --- | ---: | --- | --- |
+| `truman-ev-manufactured-limits` | 3842.5 | `truman-sc-trutalk` | `TRANSCRIPT_CONFIRMED` |
+| `truman-ev-nothing-left` | 3847.7 | `truman-sc-trutalk` | `TRANSCRIPT_CONFIRMED` |
+| `truman-ev-seahaven-design` | 4052.5 | `truman-sc-trutalk` | `TRANSCRIPT_CONFIRMED` |
+
+Each was read off the embedded English subtitle track at the stated second and
+makes **no picture claim**: no prop, no gesture, no staging. They are ledgered in
+`trumanPostLockEvidenceVerifications`, kept separate from the 39-record
+research-era ledger, and named in `trumanCanonicalEvidenceSummary.postLock`.
+Canonical evidence: 41 → 44. `editorialRevision` moved `canonical-lock-1` →
+`article-v2`.
+
+Nothing above is re-opened: the edition stays `LOCKED`, the scenes stay
+`VERIFIED`, and the publication gate stays closed.

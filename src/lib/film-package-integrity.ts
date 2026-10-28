@@ -1,4 +1,5 @@
 import type {
+  ArticleMeasurementRef,
   ClaimSupport,
   EvidenceRecord,
   FilmModule,
@@ -6,6 +7,7 @@ import type {
   FinalSynthesisFacetKey,
   SourcesMethodModule,
 } from "@/lib/film-package";
+import { validateFilmArticle } from "./film-article-integrity";
 import { canRevealSpoiler, type SpoilerLevel } from "./spoilers";
 
 const ROUTE_SAFE_FILM_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -127,7 +129,22 @@ function sourceModules(filmPackage: FilmPackage): SourcesMethodModule[] {
   return filmPackage.modules.filter((candidate): candidate is SourcesMethodModule => candidate.kind === "sources-method");
 }
 
-export function validateFilmPackage(filmPackage: FilmPackage): string[] {
+/**
+ * Article validation needs the committed measurement dataset, which lives with
+ * the film data and not in this schema module. The registry (and the tests that
+ * validate a complete package) inject it; without it, an article is rejected
+ * rather than silently accepted.
+ */
+export type FilmPackageValidationOptions = {
+  resolveArticleMeasurement?: (ref: ArticleMeasurementRef) => boolean;
+  /** Digit strings the master measured; prose may not retype them. */
+  articleMeasuredValues?: string[];
+};
+
+export function validateFilmPackage(
+  filmPackage: FilmPackage,
+  options: FilmPackageValidationOptions = {},
+): string[] {
   const errors: string[] = [];
   const published = filmPackage.film.status === "published";
   const realFilm = filmPackage.film.status !== "fixture";
@@ -811,14 +828,34 @@ export function validateFilmPackage(filmPackage: FilmPackage): string[] {
     }
   }
 
+  errors.push(
+    ...validateFilmArticle(filmPackage.article, {
+      evidenceById,
+      sceneById: scenesById,
+      edition: filmPackage.ingest?.edition,
+      realFilm,
+      published,
+      editorialRevision: sourcesModules[0]?.editorialRevision,
+      resolveMeasurement: options.resolveArticleMeasurement,
+      measuredValues: options.articleMeasuredValues,
+    }),
+  );
+
   return errors;
 }
 
-export function assertValidFilmRegistry(packages: FilmPackage[]): void {
+export function assertValidFilmRegistry(
+  packages: FilmPackage[],
+  options: FilmPackageValidationOptions = {},
+): void {
   const errors: string[] = [];
   for (const slug of duplicateIds(packages.map((item) => item.film.slug))) errors.push(`registry: duplicate film slug "${slug}".`);
   for (const filmPackage of packages) {
-    errors.push(...validateFilmPackage(filmPackage).map((error) => `${filmPackage.film.slug}: ${error}`));
+    errors.push(
+      ...validateFilmPackage(filmPackage, options).map(
+        (error) => `${filmPackage.film.slug}: ${error}`,
+      ),
+    );
   }
   if (errors.length > 0) throw new Error(`Invalid film registry:\n${errors.map((error) => `- ${error}`).join("\n")}`);
 }
