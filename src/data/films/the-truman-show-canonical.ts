@@ -1206,6 +1206,9 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       spoilerLevel: "NONE",
       methodologyVersion: "deepwaters-method-v1",
       editorialRevision: "article-v2",
+      // Delegated editorial signature (docs/53 §1): the date records an act the
+      // editor authorised, so it must never be mistaken for a personal re-read.
+      lastReviewedAt: "2026-10-28",
       analyzedEdition:
         "Viewing master identified 2026-09-15: The Truman Show (1998) BDRip.mkv; Matroska; 13,099,008,485 bytes; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575; 1920×1080 H.264; 24000/1001 fps; measured runtime 01:42:57.792. Dialogue basis: English Original DTS 5.1 + embedded English SubRip. Edition LOCKED 2026-10-28 after scene-by-scene and record-by-record verification; 21 canonical scenes and 46 canonical evidence records cite this master directly (41 at lock; 5 dialogue facts added afterwards for the article and the module audit, ledgered separately). The film remains draft and unindexed. See docs/47-FILM-001-VISUAL-VERIFICATION.md and docs/48-FILM-001-EDITION-LOCK.md.",
       sources: [

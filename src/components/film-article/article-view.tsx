@@ -30,6 +30,12 @@ const levelLabels: Record<SpoilerLevel, string> = {
   FULL: "полный разбор",
 };
 
+/** `2026-10-28` → `28.10.2026`. Kept local: the article has no date formatter of its own. */
+function formatSignatureDate(iso: string): string {
+  const [year, month, day] = iso.split("-");
+  return `${day}.${month}.${year}`;
+}
+
 function MeasurementFigure({ view, text }: { view: ArticleMeasurementView; text: string }) {
   return (
     <figure className="articleMeasurement" aria-label={view.title}>
@@ -158,7 +164,7 @@ export function ArticleView({
           <span>{article.byline.author}</span>
           <span>
             {article.byline.reviewedAt
-              ? `редакция ${article.byline.editorialRevision}`
+              ? `редакция ${article.byline.editorialRevision} · ${formatSignatureDate(article.byline.reviewedAt)}`
               : `черновик · ${article.byline.editorialRevision}`}
           </span>
           <span>{readingMinutes} мин чтения</span>

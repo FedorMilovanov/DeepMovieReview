@@ -28,6 +28,10 @@ export const theTrumanShowArticle: FilmArticle = {
     author: "Редакция «Глубоких вод»",
     editorialRevision: "article-v2",
     draftedAt: "2026-10-28",
+    // Signed on delegated authority: the editor authorised the date in advance
+    // and owns the verdict, the build only records it (docs/53 §1).
+    reviewedAt: "2026-10-28",
+    signatureBasis: "DELEGATED",
   },
   edition: {
     sourceId: "truman-src-master-bdrip",

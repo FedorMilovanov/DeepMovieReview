@@ -4233,25 +4233,43 @@ test("Film 001 article measurement references must resolve against the dataset",
   );
 });
 
-test("Film 001 article needs a human signature before it can be published", () => {
-  const unsigned = validateFilmArticle(
-    theTrumanShowArticle,
-    trumanArticleContext({ published: true }),
-  ).join("\n");
-  assert.match(unsigned, /requires a human editorial signature \(reviewedAt\)/);
-
-  const signed = structuredClone(theTrumanShowArticle);
-  signed.byline.reviewedAt = "2026-10-28";
-  const signedErrors = validateFilmArticle(
-    signed,
-    trumanArticleContext({ published: true }),
-  );
-  assert.equal(
-    signedErrors.some((error) => error.includes("reviewedAt")),
-    false,
-    `signed article still reports a byline error: ${signedErrors.join("\n")}`,
+test("Film 001 article is signed, and the publish gate still needs a signature", () => {
+  // The shipped text carries a signature issued on delegated authority: the
+  // editor authorised the date, the data says so, and the two never separate.
+  assert.equal(theTrumanShowArticle.byline.reviewedAt, "2026-10-28");
+  assert.equal(theTrumanShowArticle.byline.signatureBasis, "DELEGATED");
+  assert.deepEqual(
+    validateFilmArticle(theTrumanShowArticle, trumanArticleContext({ published: true })),
+    [],
+    "a signed article passes the publication gate",
   );
 
+  // The gate is real: an unsigned text cannot be published.
+  const unsigned = structuredClone(theTrumanShowArticle);
+  delete unsigned.byline.reviewedAt;
+  delete unsigned.byline.signatureBasis;
+  assert.match(
+    validateFilmArticle(unsigned, trumanArticleContext({ published: true })).join("\n"),
+    /requires an editorial signature \(reviewedAt\)/,
+  );
+
+  // A date with no stated authority is an anonymous date, not a signature.
+  const anonymous = structuredClone(theTrumanShowArticle);
+  delete anonymous.byline.signatureBasis;
+  assert.match(
+    validateFilmArticle(anonymous, trumanArticleContext()).join("\n"),
+    /reviewedAt requires signatureBasis/,
+  );
+
+  // A basis with no date is a promise, not a signature.
+  const promised = structuredClone(theTrumanShowArticle);
+  delete promised.byline.reviewedAt;
+  assert.match(
+    validateFilmArticle(promised, trumanArticleContext()).join("\n"),
+    /signatureBasis is meaningless without reviewedAt/,
+  );
+
+  // And a signature cannot predate the draft it signs.
   const backdated = structuredClone(theTrumanShowArticle);
   backdated.byline.reviewedAt = "2026-10-01";
   assert.match(

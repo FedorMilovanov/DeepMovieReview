@@ -378,9 +378,18 @@ export function validateFilmArticle(
       errors.push(`${path}/byline: reviewedAt cannot precede draftedAt.`);
     }
   }
+  // A signature is a claim about an editorial act, so it has to say on whose
+  // authority it was issued. A date with no basis is an unsigned text wearing a
+  // date; a basis with no date is a promise.
+  if (article.byline.reviewedAt !== undefined && article.byline.signatureBasis === undefined) {
+    errors.push(`${path}/byline: reviewedAt requires signatureBasis ("HUMAN" or "DELEGATED").`);
+  }
+  if (article.byline.signatureBasis !== undefined && article.byline.reviewedAt === undefined) {
+    errors.push(`${path}/byline: signatureBasis is meaningless without reviewedAt.`);
+  }
   if (context.published && article.byline.reviewedAt === undefined) {
     errors.push(
-      `${path}/byline: a published article requires a human editorial signature (reviewedAt).`,
+      `${path}/byline: a published article requires an editorial signature (reviewedAt).`,
     );
   }
 

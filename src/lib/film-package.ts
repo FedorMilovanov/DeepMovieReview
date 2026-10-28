@@ -605,8 +605,18 @@ export type FilmArticle = {
     editorialRevision: string;
     /** ISO calendar date the text was drafted. */
     draftedAt: string;
-    /** ISO calendar date a human editor signed the text off. Absent while unsigned. */
+    /** ISO calendar date the editorial signature was issued. Absent while unsigned. */
     reviewedAt?: string;
+    /**
+     * On whose authority the signature was issued.
+     *
+     * `HUMAN` — the editor read the text and signed it personally.
+     * `DELEGATED` — the editor explicitly authorised the signature in advance,
+     * recorded in `docs/53` §1. The distinction exists so a delegated date can
+     * never pass for a personal read: the field is required as soon as
+     * `reviewedAt` is set.
+     */
+    signatureBasis?: "HUMAN" | "DELEGATED";
   };
   /** The article is edition-bound: it may only quote the master it names here. */
   edition: {

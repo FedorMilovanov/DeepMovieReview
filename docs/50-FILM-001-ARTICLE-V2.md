@@ -298,7 +298,7 @@ the build does not have.
 
 | Gap | Why it is still open | Who closes it |
 | --- | --- | --- |
-| **Editorial signature** (`reviewedAt`, `lastReviewedAt`) | A human has to read the text and own it; the build cannot sign — an agent-issued date would turn a verifiable claim about an editorial act into a false one. Protocol ready: `docs/53` §1–§4 | editor |
+| **Editorial signature** (`reviewedAt`, `lastReviewedAt`) | Closed by delegation, and marked as such: `signatureBasis: "DELEGATED"` plus `lastReviewedAt: "2026-10-28"` (`docs/53` §1–§2). The film stays `draft`/`noindex` — signing is not publishing | done |
 | **Stills in the article** | The page is text-only. Stills need an editorial decision on quotation and a provenance entry in the visual-asset manifest (`docs/38` §9) | editor |
 | **Per-film share art** | Closed: the film and its article now share their own card (`/og/truman-show-share.jpg`), declared in `src/data/film-share-assets.ts` and validated by the visual-asset registry — see §12 | done |
 | **External source liveness** | Partly closed: the three load-bearing references (Wikipedia EN, BFI film card, BFI interview) were reachability- and content-checked on 2026-10-28 — see `docs/53` §5. The remaining ~27 hrefs are still shape-only; `curl` from the sandbox cannot leave it (000) | editor's browser or a CI link checker |
@@ -354,7 +354,7 @@ became `moduleIds: string[]`:
 | | Before | After |
 | --- | --- | --- |
 | Sections | 9 | 10 |
-| Words / reading time | ≈2245 / 23 min | ≈3713 / 25 min |
+| Words / reading time | ≈2245 / 23 min | ≈3800 / 26 min |
 | Sections per spoiler level | 1 / 2 / 3 / 8 / 9 | 1 / 2 / 4 / 9 / 10 |
 | Modules linked from the article | 9 of 16 | 11 of 16 |
 | Tests | 100 | 100 |
