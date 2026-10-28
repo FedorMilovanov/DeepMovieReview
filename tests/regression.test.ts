@@ -5284,3 +5284,45 @@ test("Metadata fits the places it is shown: tabs truncate at 60, snippets at 160
     true,
   );
 });
+
+test("An aside may speak for the site's conviction, but never as a reading of the film", () => {
+  const biblical = theTrumanShowArticle.sections.find(
+    (section) => section.id === "truman-article-biblical",
+  );
+  assert.ok(biblical);
+  const asides = biblical.blocks.filter((block) => block.kind === "aside");
+  assert.equal(asides.length, 1, "the section carries exactly one note of this kind");
+  const [aside] = asides;
+  assert.ok(aside.label.trim().length > 0, "an aside says where it stands");
+  assert.match(aside.label, /не про фильм/);
+
+  // The distinction is structural, not tonal: an aside names no evidence, so it
+  // cannot be read as a claim about what happens on screen or how to read it.
+  assert.equal("support" in aside, false);
+
+  // Every Scripture reference is declared, appears verbatim, and is resolved by
+  // the same prose rules as the rest of the article.
+  const refs = aside.scriptureRefs ?? [];
+  assert.equal(refs.length >= 2, true);
+  for (const ref of refs) assert.ok(aside.text.includes(ref), `${ref} appears in the text`);
+
+  // Fail closed: the moment an aside starts citing the master, it stops being an
+  // aside. The validator must refuse rather than quietly downgrade the claim.
+  // The type itself refuses the field, which is the first line of defence; the
+  // validator is the second, for data that arrives without a type.
+  const smuggled = structuredClone(biblical);
+  const index = smuggled.blocks.findIndex((block) => block.kind === "aside");
+  smuggled.blocks[index] = {
+    ...smuggled.blocks[index],
+    support: { evidenceIds: ["truman-ev-dialog"] },
+  } as unknown as (typeof smuggled.blocks)[number];
+  const errors = validateFilmArticle(
+    { ...theTrumanShowArticle, sections: [smuggled] },
+    trumanArticleContext(),
+  );
+  assert.equal(
+    errors.some((error) => error.includes("an aside may not carry evidence")),
+    true,
+    "citing the master inside an aside is an error",
+  );
+});

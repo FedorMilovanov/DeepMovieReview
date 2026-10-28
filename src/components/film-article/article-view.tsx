@@ -64,6 +64,13 @@ function ArticleBlockView({
   switch (block.kind) {
     case "paragraph":
       return <p className="articleParagraph">{block.text}</p>;
+    case "aside":
+      return (
+        <aside className="articleAside" aria-label={block.label}>
+          <p className="microLabel">{block.label}</p>
+          <p>{block.text}</p>
+        </aside>
+      );
     case "subhead":
       return <h3 className="articleSubhead">{block.text}</h3>;
     case "pullquote":

@@ -162,6 +162,20 @@
   border-top: 1px solid var(--stroke-warm);
 }
 
+.articleAside {
+  margin: var(--space-6) 0;
+  padding: var(--space-4) var(--space-5);
+  border-left: 2px solid var(--stroke-strong, var(--stroke-default));
+  background: var(--surface-1);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.articleAside > p:last-child {
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
 .articlePullquote {
   margin: 0;
   padding-left: var(--space-5);

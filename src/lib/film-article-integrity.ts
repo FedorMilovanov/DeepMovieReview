@@ -45,7 +45,7 @@ const ISO_CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** "12:34" / "123:45" — a clock reading, which belongs to a timeline block. */
 const CLOCK_READING = /(?<![\d:])\d{1,3}:\d{2}(?![\d:])/;
 
-const proseKinds = new Set(["paragraph", "subhead", "pullquote"]);
+const proseKinds = new Set(["paragraph", "subhead", "pullquote", "aside"]);
 
 function isBlank(value: string | undefined | null): boolean {
   return !value || value.trim().length === 0;
@@ -87,6 +87,7 @@ function blockIds(section: ArticleSection): string[] {
 function blockText(block: ArticleBlock): string {
   switch (block.kind) {
     case "paragraph":
+    case "aside":
     case "subhead":
     case "pullquote":
     case "measurement":
@@ -251,8 +252,14 @@ function checkBlock(
       path,
       context,
       errors,
-      block.kind === "paragraph" ? block.scriptureRefs : undefined,
+      block.kind === "paragraph" || block.kind === "aside" ? block.scriptureRefs : undefined,
     );
+    // An aside may never cite film evidence: it is a note about conviction,
+    // not a claim about what is on screen. Unsupported prose is free to stand,
+    // but an aside that starts citing the master is a category error.
+    if (block.kind === "aside" && "support" in block) {
+      errors.push(`${path}: an aside may not carry evidence; it is not a reading of the film.`);
+    }
     checkSupport(
       "support" in block ? block.support : undefined,
       path,

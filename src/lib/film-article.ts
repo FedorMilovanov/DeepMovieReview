@@ -50,6 +50,7 @@ export function projectArticleSections(
 function blockProse(block: ArticleBlock): string {
   switch (block.kind) {
     case "paragraph":
+    case "aside":
     case "subhead":
     case "pullquote":
     case "measurement":

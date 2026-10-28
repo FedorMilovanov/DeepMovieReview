@@ -529,6 +529,24 @@ export type ArticleBlock =
       scriptureRefs?: string[];
     }
   | {
+      /**
+       * A note that stands outside the argument: edification, not analysis.
+       *
+       * It is a separate kind rather than a paragraph with a soft opening
+       * sentence because the distinction has to be structural. An aside names no
+       * evidence — it may not cite a moment of the master, and the validator
+       * rejects it if it tries — so it can never be mistaken for a reading of the
+       * film. What it says is the site's own conviction, labelled as such.
+       */
+      kind: "aside";
+      id: string;
+      /** Where the note stands, e.g. «К слову». */
+      label: string;
+      text: string;
+      /** Scripture references that appear verbatim in `text`. */
+      scriptureRefs?: string[];
+    }
+  | {
       kind: "subhead";
       id: string;
       text: string;
