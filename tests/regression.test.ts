@@ -5326,3 +5326,33 @@ test("An aside may speak for the site's conviction, but never as a reading of th
     "citing the master inside an aside is an error",
   );
 });
+
+test("Moral judgement is grounded in Scripture inside the argument, not only in the aside", () => {
+  const morality = theTrumanShowArticle.sections.find(
+    (section) => section.id === "truman-article-morality",
+  );
+  assert.ok(morality, "the moral section exists");
+  const refs = morality.blocks.flatMap((block) =>
+    block.kind === "paragraph" ? (block.scriptureRefs ?? []) : [],
+  );
+  assert.ok(refs.length >= 2, `the moral account cites Scripture: ${refs.length}`);
+  for (const ref of refs) {
+    assert.match(ref, /^(Бытие|Марк|Лука|Иоанн|Исход|Деяния|Псалом|Второзаконие|Иона)\s/);
+  }
+
+  // Every citation is load-bearing: the paragraph carrying it must judge a
+  // concrete act in the story and cite the moment it judges, otherwise the verse
+  // is decoration in a section that is supposed to keep accounts.
+  for (const block of morality.blocks) {
+    if (block.kind !== "paragraph" || !block.scriptureRefs?.length) continue;
+    assert.ok(block.support?.evidenceIds?.length, `${block.id} cites the film it judges`);
+    for (const ref of block.scriptureRefs) assert.ok(block.text.includes(ref));
+  }
+
+  // The section's last word hands the reader to the next section rather than
+  // stopping dead, so the labelled aside that follows does not read as an
+  // appendix bolted onto the article.
+  const lastParagraph = morality.blocks.filter((block) => block.kind === "paragraph").at(-1);
+  assert.ok(lastParagraph && lastParagraph.kind === "paragraph");
+  assert.match(lastParagraph.text, /следующий раздел/);
+});
