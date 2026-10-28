@@ -49,7 +49,29 @@ Timestamp mapping is exact and documented in the manifest:
 
 ## Usage
 
-Install ffmpeg first (Windows: `winget install Gyan.FFmpeg`, then reopen the shell).
+Install ffmpeg first (Windows: `winget install Gyan.FFmpeg`, then reopen the
+shell) and confirm both binaries answer:
+
+```powershell
+ffmpeg -version
+ffprobe -version
+```
+
+**Recommended entry point — plain Node, no shell required** (Node >= 20;
+`ffprobe` must be the one shipped with ffmpeg):
+
+```powershell
+cd C:\Users\Fedor\Projects\film001-tools
+node .\make-evidence-bundle.mjs `
+  --input "C:\Users\Fedor\Downloads\The Truman Show (1998) BDRip.mkv" `
+  --out   "C:\Users\Fedor\Projects\film001-bundle"
+```
+
+Options: `--sub 0:s:2` (subtitle map), `--grid 30`, `--sheet 10`, `--tile 6x5`,
+`--scene 0.32`, `--skip-hash`, `--skip-scan`. The SHA-256 identity check runs
+against the digest recorded in `docs/38` and prints `MATCH` / `DIFFERENT FILE`.
+
+Other entry points, same behaviour (the `.sh` is the original tested engine):
 
 Git Bash / WSL / macOS / Linux:
 
