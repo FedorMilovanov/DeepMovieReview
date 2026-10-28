@@ -1,0 +1,370 @@
+#!/usr/bin/env node
+/**
+ * Film 001 — master evidence bundle extractor (Node entry point).
+ *
+ * Turns the exact local viewing master into a small, reviewable bundle of
+ * derived metadata and review stills, so canonical master work can proceed
+ * without shipping the 12.2 GiB movie file anywhere.
+ *
+ * Cross-platform on purpose: no bash, no PowerShell, no GNU coreutils. Only
+ * Node (>=20) and ffmpeg/ffprobe on PATH.
+ *
+ * Usage:
+ *   node make-evidence-bundle.mjs --input "<file.mkv>" --out "<dir>" [--sub 0:s:2]
+ *
+ * Options:
+ *   --input  <path>   viewing master (required)
+ *   --out    <path>   output directory (default ./truman-bundle)
+ *   --sub    <map>    ffmpeg subtitle map (default 0:s:2 = 3rd subtitle track)
+ *   --grid   <sec>    seconds between individual stills (default 30)
+ *   --sheet  <sec>    seconds between contact-sheet thumbnails (default 10)
+ *   --tile   <WxH>    contact-sheet grid (default 6x5)
+ *   --width  <px>     still width (default 800)
+ *   --thumb  <px>     thumbnail width (default 360)
+ *   --scene  <score>  shot-change threshold (default 0.32)
+ *   --skip-hash       do not hash the input (faster re-runs)
+ *   --skip-scan       do not run the shot-boundary scan
+ *
+ * Nothing here writes into the git working tree: the output directory is
+ * whatever you pass with --out.
+ */
+
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
+import fs from "node:fs/promises";
+import path from "node:path";
+import process from "node:process";
+
+/** Digest recorded in docs/38-FILM-001-VIEWING-MASTER-INTAKE.md. */
+const EXPECTED_SHA256 =
+  "E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575";
+
+const argv = process.argv.slice(2);
+
+function arg(name, fallback) {
+  const i = argv.indexOf(`--${name}`);
+  if (i === -1) return fallback;
+  const value = argv[i + 1];
+  if (value === undefined || value.startsWith("--")) {
+    fail(`--${name} requires a value`);
+  }
+  return value;
+}
+const flag = (name) => argv.includes(`--${name}`);
+
+function fail(message) {
+  console.error(`\nERROR: ${message}\n`);
+  process.exit(1);
+}
+
+const INPUT = arg("input");
+const OUT = arg("out", "./truman-bundle");
+const SUB_MAP = arg("sub", "0:s:2");
+const GRID_STEP = Number(arg("grid", "30"));
+const SHEET_STEP = Number(arg("sheet", "10"));
+const SHEET_TILE = arg("tile", "6x5");
+const FRAME_W = Number(arg("width", "800"));
+const THUMB_W = Number(arg("thumb", "360"));
+const SCENE_THRESHOLD = Number(arg("scene", "0.32"));
+const SKIP_HASH = flag("skip-hash");
+const SKIP_SCAN = flag("skip-scan");
+
+const SHEET_CHUNK = SHEET_STEP * 30; // implied sheet length in seconds
+
+if (!INPUT) fail("--input is required");
+if (!Number.isFinite(GRID_STEP) || GRID_STEP <= 0) fail("--grid must be positive");
+if (!Number.isFinite(SHEET_STEP) || SHEET_STEP <= 0) fail("--sheet must be positive");
+
+const startedAt = Date.now();
+const log = (msg) => console.log(msg);
+const step = (n, msg) => console.log(`\n[${n}] ${msg}`);
+
+function tool(name) {
+  const probe = spawnSync(name, ["-hide_banner", "-version"], {
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  if (probe.error || probe.status !== 0) {
+    fail(
+      `${name} not found on PATH. Install ffmpeg (Windows: winget install Gyan.FFmpeg), ` +
+        `reopen the terminal, then verify with: ${name} -version`,
+    );
+  }
+  return (probe.stdout || "").split(/\r?\n/)[0];
+}
+
+function run(name, args, { capture = false, allowFailure = false } = {}) {
+  const result = spawnSync(name, args, {
+    encoding: "utf8",
+    windowsHide: true,
+    maxBuffer: 256 * 1024 * 1024,
+    stdio: capture ? ["ignore", "pipe", "pipe"] : ["ignore", "inherit", "pipe"],
+  });
+  if (result.status !== 0 && !allowFailure) {
+    const stderr = (result.stderr || "").trim().split(/\r?\n/).slice(-6).join("\n");
+    fail(`${name} exited with code ${result.status}\n${stderr}`);
+  }
+  return result;
+}
+
+async function main() {
+  const stat = await fs.stat(INPUT).catch(() => null);
+  if (!stat || !stat.isFile()) fail(`input file not found: ${INPUT}`);
+  if (stat.size === 0) fail(`input file is empty: ${INPUT}`);
+
+  const ffmpegVersion = tool("ffmpeg");
+  const ffprobeVersion = tool("ffprobe");
+
+  await fs.mkdir(path.join(OUT, "05-frames"), { recursive: true });
+  await fs.mkdir(path.join(OUT, "06-sheets"), { recursive: true });
+
+  log(`== input:    ${INPUT}`);
+  log(`== out:      ${path.resolve(OUT)}`);
+  log(`== size:     ${stat.size} bytes (${(stat.size / 1024 ** 3).toFixed(3)} GiB)`);
+  log(`== ffmpeg:   ${ffmpegVersion}`);
+  log(`== ffprobe:  ${ffprobeVersion}`);
+
+  // ------------------------------------------------------- 0. identity -----
+  let sha256 = "SKIPPED";
+  let identity = "UNVERIFIED";
+  if (SKIP_HASH) {
+    step(0, "sha256 identity guard skipped (--skip-hash)");
+  } else {
+    step(0, "sha256 identity guard (reads the whole file)");
+    sha256 = await hashFile(INPUT, stat.size);
+    if (sha256 === EXPECTED_SHA256) {
+      identity = "MATCH";
+      log(`   sha256:   ${sha256}`);
+      log("   identity: MATCHES recorded Film 001 viewing master");
+    } else {
+      identity = "MISMATCH";
+      log(`   sha256:   ${sha256}`);
+      log("   identity: *** DIFFERENT FILE ***");
+      log(`   expected: ${EXPECTED_SHA256}`);
+      log("   The bundle is still produced, but it is NOT Film 001 evidence");
+      log("   until this difference is recorded in the intake document.");
+    }
+  }
+
+  // ---------------------------------------------------------- 1. probe -----
+  step(1, "ffprobe -> 01-probe.json");
+  const probeJson = run(
+    "ffprobe",
+    [
+      "-v", "error",
+      "-print_format", "json",
+      "-show_format", "-show_streams", "-show_chapters",
+      INPUT,
+    ],
+    { capture: true },
+  ).stdout;
+  await fs.writeFile(path.join(OUT, "01-probe.json"), probeJson, "utf8");
+
+  const probe = JSON.parse(probeJson);
+  const duration = Number(probe.format?.duration ?? 0);
+  log(`   duration: ${duration.toFixed(3)} s (${clock(duration)})`);
+  log(`   streams:  ${probe.streams?.length ?? 0}, chapters: ${probe.chapters?.length ?? 0}`);
+
+  const subs = (probe.streams ?? []).filter(
+    (s) => String(s.codec_type ?? "").toLowerCase() === "subtitle",
+  );
+  log(
+    `   subtitle tracks: ${
+      subs.length
+        ? subs
+            .map(
+              (s, i) =>
+                `[${i}] stream ${s.index} ${s.tags?.language ?? "?"} ${
+                  s.tags?.title ?? ""
+                }`.trim(),
+            )
+            .join("; ")
+        : "none"
+    }`,
+  );
+
+  // ------------------------------------------------------- 2. chapters -----
+  step(2, "chapters -> 02-chapters.csv");
+  const chapters = probe.chapters ?? [];
+  const chapterRows = [
+    "index,id,start_s,end_s,title",
+    ...chapters.map((c, i) => {
+      const [num, den] = String(c.time_base ?? "1/1000").split("/").map(Number);
+      const tb = den ? num / den : 1;
+      const start = (Number(c.start) * tb).toFixed(3);
+      const end = (Number(c.end) * tb).toFixed(3);
+      const title = String(c.tags?.title ?? "").replace(/,/g, " ");
+      return `${i},${c.id ?? i},${start},${end},${title}`;
+    }),
+  ].join("\n");
+  await fs.writeFile(path.join(OUT, "02-chapters.csv"), `${chapterRows}\n`, "utf8");
+  log(`   chapters: ${chapters.length}`);
+
+  // ------------------------------------------------------ 3. subtitles -----
+  step(3, `subtitles (${SUB_MAP}) -> 03-subs-en.srt`);
+  const srtPath = path.join(OUT, "03-subs-en.srt");
+  const subsResult = run(
+    "ffmpeg",
+    ["-y", "-hide_banner", "-loglevel", "error", "-i", INPUT, "-map", SUB_MAP, "-c:s", "srt", srtPath],
+    { allowFailure: true, capture: true },
+  );
+  if (subsResult.status === 0) {
+    const srt = await fs.readFile(srtPath, "utf8");
+    const cues = (srt.match(/-->/g) ?? []).length;
+    const plain = srt
+      .split(/\r?\n/)
+      .filter((line) => !line.includes("-->"))
+      .filter((line) => !/^\s*\d+\s*$/.test(line))
+      .filter((line) => line.trim() !== "")
+      .join("\n");
+    await fs.writeFile(path.join(OUT, "07-srt-plain.txt"), `${plain}\n`, "utf8");
+    log(`   cues: ${cues}`);
+  } else {
+    log(`   WARNING: subtitle extraction failed for map ${SUB_MAP}`);
+    log(`   ${(subsResult.stderr || "").trim().split(/\r?\n/).slice(-2).join(" ")}`);
+    log("   Pick a real map from the subtitle track list printed in step 1.");
+  }
+
+  // ---------------------------------------------------- 4. shot changes -----
+  step(4, "shot-boundary scan -> 04-cuts.csv (full decode)");
+  if (SKIP_SCAN) {
+    log("   skipped (--skip-scan)");
+    await fs.writeFile(path.join(OUT, "04-cuts.csv"), "", "utf8");
+  } else {
+    const scan = run(
+      "ffmpeg",
+      [
+        "-hide_banner", "-loglevel", "error",
+        "-i", INPUT,
+        "-vf", `select='gt(scene,${SCENE_THRESHOLD})',metadata=print:file=-`,
+        "-an", "-f", "null", "-",
+      ],
+      { capture: true, allowFailure: true },
+    );
+    const rows = [];
+    let pendingTime = null;
+    for (const line of (scan.stdout ?? "").split(/\r?\n/)) {
+      const timeMatch = line.match(/pts_time:\s*([0-9.]+)/);
+      if (timeMatch) {
+        pendingTime = timeMatch[1];
+        continue;
+      }
+      const scoreMatch = line.match(/lavfi\.scene_score=([0-9.]+)/);
+      if (scoreMatch && pendingTime !== null) {
+        rows.push(`${Number(pendingTime).toFixed(3)},${Number(scoreMatch[1]).toFixed(4)}`);
+        pendingTime = null;
+      }
+    }
+    await fs.writeFile(
+      path.join(OUT, "04-cuts.csv"),
+      rows.length ? `time_s,score\n${rows.join("\n")}\n` : "time_s,score\n",
+      "utf8",
+    );
+    log(`   cut candidates: ${rows.length}`);
+    if (rows.length === 0 && scan.status !== 0) {
+      log(`   WARNING: scan exit ${scan.status}`);
+    }
+  }
+
+  // ------------------------------------- 5. stills + contact sheets --------
+  step(5, `stills every ${GRID_STEP}s + contact sheets ${SHEET_TILE}@${SHEET_STEP}s (single decode)`);
+  const filter =
+    `[0:v]split=2[g][s];` +
+    `[g]fps=1/${GRID_STEP},scale=${FRAME_W}:-2[grid];` +
+    `[s]fps=1/${SHEET_STEP},scale=${THUMB_W}:-2,tile=${SHEET_TILE}[sheet]`;
+  const framesResult = run(
+    "ffmpeg",
+    [
+      "-y", "-hide_banner", "-loglevel", "error",
+      "-i", INPUT,
+      "-filter_complex", filter,
+      "-map", "[grid]", "-q:v", "4", "-fps_mode", "passthrough",
+      path.join(OUT, "05-frames", "f_%05d.jpg"),
+      "-map", "[sheet]", "-q:v", "4", "-fps_mode", "passthrough",
+      path.join(OUT, "06-sheets", "sheet_%03d.jpg"),
+    ],
+    { allowFailure: true, capture: true },
+  );
+  if (framesResult.status !== 0) {
+    log("   WARNING: still extraction failed");
+    log(`   ${(framesResult.stderr || "").trim().split(/\r?\n/).slice(-4).join("\n   ")}`);
+  }
+  const frameCount = (await fs.readdir(path.join(OUT, "05-frames"))).length;
+  const sheetCount = (await fs.readdir(path.join(OUT, "06-sheets"))).length;
+  log(`   stills: ${frameCount}`);
+  log(`   sheets: ${sheetCount}`);
+
+  // ------------------------------------------------------- 6. manifest -----
+  const manifest = [
+    "Film 001 evidence bundle",
+    `generated_at_utc: ${new Date().toISOString().replace(/\.\d+Z$/, "Z")}`,
+    `elapsed_seconds: ${Math.round((Date.now() - startedAt) / 1000)}`,
+    `generator: make-evidence-bundle.mjs`,
+    `input_path: ${path.resolve(INPUT)}`,
+    `input_basename: ${path.basename(INPUT)}`,
+    `input_bytes: ${stat.size}`,
+    `input_sha256: ${sha256}`,
+    `identity_vs_recorded_master: ${identity}`,
+    `duration_seconds: ${duration.toFixed(3)}`,
+    `chapters: ${chapters.length}`,
+    `subtitle_map: ${SUB_MAP}`,
+    `grid_step_seconds: ${GRID_STEP}`,
+    `sheet_step_seconds: ${SHEET_STEP}`,
+    `sheet_tile: ${SHEET_TILE}`,
+    `sheet_chunk_seconds: ${SHEET_CHUNK}`,
+    `frame_width: ${FRAME_W}`,
+    `thumb_width: ${THUMB_W}`,
+    `scene_threshold: ${SCENE_THRESHOLD}`,
+    `ffmpeg: ${ffmpegVersion}`,
+    `ffprobe: ${ffprobeVersion}`,
+    "",
+    `mapping_stills: f_00001.jpg = t=0s, f_0000N.jpg = t=(N-1)*${GRID_STEP}s`,
+    `mapping_sheets: sheet_N tile k (row-major, 0-based) = (N-1)*${SHEET_CHUNK} + k*${SHEET_STEP}s`,
+    "",
+  ].join("\n");
+  await fs.writeFile(path.join(OUT, "00-manifest.txt"), manifest, "utf8");
+
+  step(6, "done");
+  log(`   elapsed: ${clock((Date.now() - startedAt) / 1000)}`);
+  log(`   output:  ${path.resolve(OUT)}`);
+
+  if (identity === "MISMATCH") {
+    console.log(
+      "\n!! The input does not match the recorded Film 001 master digest.\n" +
+        "!! Do not treat this bundle as canonical evidence. Report the digest.\n",
+    );
+  }
+  if (identity === "MATCH") {
+    console.log("\nOK: bundle matches the recorded viewing master.\n");
+  }
+}
+
+async function hashFile(file, size) {
+  const hash = createHash("sha256");
+  const stream = createReadStream(file, { highWaterMark: 8 * 1024 * 1024 });
+  let read = 0;
+  let lastLogged = -1;
+
+  for await (const chunk of stream) {
+    hash.update(chunk);
+    read += chunk.length;
+    const pct = Math.floor((read / size) * 10) * 10;
+    if (pct !== lastLogged && pct < 100) {
+      lastLogged = pct;
+      process.stdout.write(`\r   hashing... ${pct}%`);
+    }
+  }
+  process.stdout.write("\r   hashing... 100%\n");
+  return hash.digest("hex").toUpperCase();
+}
+
+function clock(totalSeconds) {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const h = String(Math.floor(s / 3600)).padStart(2, "0");
+  const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+  const sec = String(s % 60).padStart(2, "0");
+  return `${h}:${m}:${sec}`;
+}
+
+await main();
