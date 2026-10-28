@@ -32,6 +32,12 @@ import {
   trumanVisualVerifications,
 } from "../src/data/films/the-truman-show-visual-verification";
 import {
+  TRUMAN_LOCKED_EDITION_SOURCE_ID,
+  trumanCanonicalEvidence,
+  trumanCanonicalEvidenceSummary,
+} from "../src/data/films/the-truman-show-canonical-evidence";
+import { theTrumanShowCanonicalPackage } from "../src/data/films/the-truman-show-canonical";
+import {
   trumanEvidenceMigrationWave1,
   trumanEvidenceMigrationWave2,
   trumanEvidenceMigrationWave3,
@@ -3965,4 +3971,70 @@ test("Film 001 research scene rewire bridges the old registry to the canonical i
     trumanCanonicalScenes.length,
     "every canonical scene must be either rewired or explicitly new",
   );
+});
+
+test("Film 001 canonical package satisfies the full integrity graph", () => {
+  const errors = validateFilmPackage(theTrumanShowCanonicalPackage);
+  assert.deepEqual(errors, [], `canonical package errors:\n${errors.join("\n")}`);
+});
+
+test("Film 001 canonical package is LOCKED, draft, and free of the research tier", () => {
+  const edition = theTrumanShowCanonicalPackage.ingest?.edition;
+  assert.ok(edition);
+  assert.equal(edition.state, "LOCKED");
+  assert.equal(edition.sourceId, TRUMAN_LOCKED_EDITION_SOURCE_ID);
+  assert.equal(theTrumanShowCanonicalPackage.research, undefined);
+  assert.equal(theTrumanShowCanonicalPackage.film.status, "draft");
+
+  const scenes = theTrumanShowCanonicalPackage.scenes ?? [];
+  assert.equal(scenes.length, trumanCanonicalScenes.length);
+  for (const scene of scenes) {
+    assert.equal(scene.verificationState, "VERIFIED", `${scene.id}: canonical scenes must be VERIFIED`);
+  }
+
+  for (const item of theTrumanShowCanonicalPackage.evidence ?? []) {
+    assert.ok(
+      (item.sourceIds ?? []).includes(TRUMAN_LOCKED_EDITION_SOURCE_ID),
+      `${item.id}: canonical evidence must cite the locked film-edition source`,
+    );
+    assert.ok(item.sceneId, `${item.id}: canonical evidence requires a sceneId`);
+    assert.ok(
+      typeof item.timestampSeconds === "number",
+      `${item.id}: canonical evidence requires a numeric timestamp`,
+    );
+  }
+});
+
+test("Film 001 canonical evidence retires, splits and adds exactly as declared", () => {
+  const canonicalIds = new Set(trumanCanonicalEvidence.map((item) => item.id));
+  const researchIds = new Set((theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id));
+  const { retired, split, added } = trumanCanonicalEvidenceSummary;
+
+  // The «personal rain» beat does not exist in the film.
+  for (const retiredId of retired) {
+    assert.ok(researchIds.has(retiredId), `${retiredId}: must be an existing research record`);
+    assert.equal(canonicalIds.has(retiredId), false, `${retiredId}: retired records cannot survive`);
+  }
+
+  // Compound research records were split into scene-accurate halves.
+  for (const [researchId, replacements] of Object.entries(split)) {
+    assert.ok(researchIds.has(researchId), `${researchId}: must exist in research tier`);
+    for (const replacementId of replacements) {
+      assert.ok(canonicalIds.has(replacementId), `${replacementId}: missing canonical replacement`);
+    }
+  }
+
+  // New canonical records have no research-era counterpart.
+  for (const addedId of added) {
+    assert.ok(canonicalIds.has(addedId), `${addedId}: missing canonical record`);
+    assert.equal(researchIds.has(addedId), false, `${addedId}: must be new, not inherited`);
+  }
+
+  const inherited = [...researchIds].filter((id) => !(retired as readonly string[]).includes(id));
+  const expected =
+    inherited.length -
+    Object.keys(split).length +
+    Object.values(split).reduce((total, ids) => total + ids.length, 0) +
+    added.length;
+  assert.equal(canonicalIds.size, expected, "canonical evidence count drifted");
 });

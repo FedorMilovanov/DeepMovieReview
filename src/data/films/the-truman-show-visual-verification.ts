@@ -340,7 +340,7 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   {
     evidenceId: "truman-ev-wall",
     status: "VISUAL_CONFIRMED",
-    sceneId: "truman-sc-skys-the-limit",
+    sceneId: "truman-sc-final-act",
     frames: [
       frame(5270, "Boat drifting on the painted sea under a flat sky."),
       frame(5510, "Painted staircase rising to a flat panel edge against clouds."),
@@ -350,21 +350,21 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   {
     evidenceId: "truman-ev-dialog",
     status: "TRANSCRIPT_CONFIRMED",
-    sceneId: "truman-sc-who-am-i",
+    sceneId: "truman-sc-final-act",
     frames: [frame(5544.206, "«I'm the creator of a TV show...»")],
     note: "The creator conversation is anchored; the voice-from-the-sky staging is separately visible at 5510.",
   },
   {
     evidenceId: "truman-ev-nocamera",
     status: "TRANSCRIPT_CONFIRMED",
-    sceneId: "truman-sc-who-am-i",
+    sceneId: "truman-sc-final-act",
     frames: [frame(5596.426, "«You never had a camera in my head.»")],
     note: "Dialogue only.",
   },
   {
     evidenceId: "truman-ev-exit",
     status: "VISUAL_CONFIRMED",
-    sceneId: "truman-sc-good-afternoon",
+    sceneId: "truman-sc-final-act",
     frames: [
       frame(5695, "Truman in the open doorway, half-turned back toward the audience, mid-bow."),
       frame(5691.316, "Final signature greeting."),
@@ -374,7 +374,7 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   {
     evidenceId: "truman-ev-guards",
     status: "VISUAL_CONFIRMED",
-    sceneId: "truman-sc-good-afternoon",
+    sceneId: "truman-sc-final-act",
     frames: [
       frame(5755.382, "«What else is on?»"),
       frame(5757, "Two security guards at their post; one reaches for the remote."),

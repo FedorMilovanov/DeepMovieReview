@@ -271,37 +271,17 @@ export const trumanCanonicalScenes: TrumanCanonicalScene[] = [
     note: "Punishment is administered by the creator personally, not by the system.",
   },
   {
-    id: "truman-sc-skys-the-limit",
+    id: "truman-sc-final-act",
     sequenceIndex: 21,
-    shortLabel: "Небо — это предел",
-    summary: "Лодка бьётся в нарисованный горизонт, Труман идёт вдоль стены.",
+    shortLabel: "Край неба и дверь",
+    summary:
+      "Лодка бьётся в нарисованный горизонт, Труман идёт вдоль стены, говорит с создателем и уходит в дверь EXIT; охранники переключают канал.",
     startTimestampSeconds: 5264.092,
-    endTimestampSeconds: 5511.214,
-    chapterIds: ["truman-ch-21"],
-    verificationState: "VERIFIED",
-    note: "The sky is shown as a painted panel with a staircase; the metaphor becomes a physical fact.",
-  },
-  {
-    id: "truman-sc-who-am-i",
-    sequenceIndex: 22,
-    shortLabel: "«Кто я?»",
-    summary: "Разговор с голосом из-за неба; «у вас не было камеры в моей голове».",
-    startTimestampSeconds: 5511.214,
-    endTimestampSeconds: 5689.308,
-    chapterIds: ["truman-ch-22"],
-    verificationState: "VERIFIED",
-    note: "The only scene where creator and character speak directly; the whole thesis is argued here.",
-  },
-  {
-    id: "truman-sc-good-afternoon",
-    sequenceIndex: 23,
-    shortLabel: "Добрый день, добрый вечер",
-    summary: "Фраза-подпись, поклон, дверь EXIT; охранники переключают канал.",
-    startTimestampSeconds: 5689.308,
     endTimestampSeconds: 5760.755,
-    chapterIds: ["truman-ch-23"],
+    chapterIds: ["truman-ch-21", "truman-ch-22", "truman-ch-23"],
     verificationState: "VERIFIED",
-    note: "The exit is answered by the audience's next channel, which is the film's final judgment.",
+    note:
+      "One continuous dramatic sequence with no intervening location, spanning three embedded chapters. Kept as a single editorial scene because the Scene Autopsy contract requires one honest range that actually contains all four anchors (wall, creator dialogue, «no camera in my head», exit). This is the case docs/45-FILM-001-MASTER-SEGMENTATION.md anticipated: the chapter map and the autopsy range are different objects.",
   },
 ];
 
@@ -348,7 +328,7 @@ export const trumanResearchSceneRewire: Record<string, string[]> = {
   "truman-sc-reunion": ["truman-sc-father-and-son-reunion", "truman-sc-trutalk"],
   "truman-sc-escape": ["truman-sc-hes-gone"],
   "truman-sc-storm": ["truman-sc-cue-the-storm"],
-  "truman-sc-door": ["truman-sc-skys-the-limit", "truman-sc-who-am-i", "truman-sc-good-afternoon"],
+  "truman-sc-door": ["truman-sc-final-act"],
 };
 
 /** Canonical scenes with no research-era predecessor: they are new coverage. */

@@ -2,7 +2,7 @@
 
 **DeepMovieReview** is an interactive platform for deep analysis of cinema as stories about people. It combines plot and story structure, characters and psychology, relationships, family/youth/social formation, themes and worldview claims, narrative teaching signals, filmmaking craft, scene-level moral analysis, difficult decisions, biblical principles, editorial synthesis and — later — a clearly separate audience/community layer.
 
-The repository is now in **Film 001 vertical-slice production**. The reusable shell is hardened, and **The Truman Show (1998)** has entered the registry as a real `draft` research package. Structural fixture content remains separate and is still not a published film judgment.
+The repository is now in **Film 001 vertical-slice production**. The reusable shell is hardened, and **The Truman Show (1998)** is served from a **`LOCKED` canonical edition**: 21 chapter-verified scenes, 41 canonical evidence records citing the exact viewing master, and the research tier retired. The film itself is still `draft` and unindexed — locking the edition is an evidence milestone, not a publication decision. Structural fixture content remains separate and is still not a published film judgment.
 
 ## Core thesis
 
