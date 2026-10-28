@@ -40,7 +40,7 @@ export const theTrumanShowArticle: FilmArticle = {
       eyebrow: "01 / Метод",
       heading: "Что мы на самом деле смотрели",
       spoilerLevel: "NONE",
-      moduleId: "truman-mod-sources",
+      moduleIds: ["truman-mod-sources"],
       blocks: [
         {
           kind: "paragraph",
@@ -104,7 +104,7 @@ export const theTrumanShowArticle: FilmArticle = {
       eyebrow: "02 / История",
       heading: "Сюжет как машина, у которой нет режиссёра в кадре",
       spoilerLevel: "MINOR",
-      moduleId: "truman-mod-story",
+      moduleIds: ["truman-mod-story"],
       blocks: [
         {
           kind: "paragraph",
@@ -185,7 +185,7 @@ export const theTrumanShowArticle: FilmArticle = {
       standfirst:
         "В этом фильме нет злодея: есть шесть профессионалов и один человек, который не знает, что он в кадре. Разница между ними не в доброте, а в том, чем каждый владеет — собой или ролью.",
       spoilerLevel: "MAJOR",
-      moduleId: "truman-mod-characters",
+      moduleIds: ["truman-mod-characters"],
       blocks: [
         {
           kind: "paragraph",
@@ -279,14 +279,128 @@ export const theTrumanShowArticle: FilmArticle = {
       ],
     },
     {
-      id: "truman-article-props",
+      id: "truman-article-bonds",
       number: 4,
-      eyebrow: "04 / Реквизит",
+      eyebrow: "04 / Связи",
+      heading: "Три контракта вместо трёх отношений",
+      standfirst:
+        "В Сихейвене никто никого не любит бесплатно. У брака есть спонсор, у дружбы — смена, у отцовства — эфирная сетка. Фильм показывает не измену, а форму занятости.",
+      spoilerLevel: "MAJOR",
+      moduleIds: ["truman-mod-relationship", "truman-mod-friendship"],
+      blocks: [
+        {
+          kind: "paragraph",
+          id: "truman-article-bonds-1",
+          text:
+            "Если по отдельности все шестеро выглядят скорее уставшими, чем виноватыми, то дело не в них, а в связях. Фильм выстраивает три близкие связи героя как три договора, и в каждом одна сторона знает условия, а другая — нет. Это не метафора: у каждой связи в кадре есть адресат, которому она отчитывается, — и камера этого адресата показывает.",
+        },
+        { kind: "subhead", id: "truman-article-bonds-marriage-head", text: "Брак, у которого есть спонсор" },
+        {
+          kind: "paragraph",
+          id: "truman-article-bonds-marriage",
+          text:
+            "Ссора на кухне — сцена, где брак перестаёт притворяться. Мэрил обрывает разговор на полуслове, отворачивается к невидимой камере и рекламирует какао, а затем возвращается к семейному тону. Дальше в кадр входит предмет из супермаркета: она поднимает на мужа кухонную тёрку — ту самую, которую в начале фильма дарили в подарок за покупку. Интимность оказывается эфирной площадкой, и реквизит это подтверждает раньше слов.",
+          support: { evidenceIds: ["truman-ev-mococoa"] },
+        },
+        {
+          kind: "paragraph",
+          id: "truman-article-bonds-marriage-2",
+          text:
+            "Ломается она не в момент разоблачения, а в момент усталости. Когда Труман требует ответа, она кричит: «Сделай же что-нибудь!» — и кричит не мужу, а в пустоту, где стоит съёмочная группа. Адресат выдаёт всё: у неё есть работодатель, у него — жена.",
+          support: { evidenceIds: ["truman-ev-knife", "truman-ev-knife-call"] },
+        },
+        { kind: "subhead", id: "truman-article-bonds-friendship-head", text: "Дружба, у которой есть смена" },
+        {
+          kind: "paragraph",
+          id: "truman-article-bonds-friendship",
+          text:
+            "Единственная дружба героя устроена так же, только тоньше. На мосту, после сорванной попытки уехать, Марлон слушает про Фиджи — несколько минут настоящей честности в мире декораций. И поверх этих минут ложится рекламная пауза: «Вот это… пиво». Честность есть, и она в эфире.",
+          support: { evidenceIds: ["truman-ev-beer"] },
+        },
+        {
+          kind: "paragraph",
+          id: "truman-article-bonds-friendship-2",
+          text:
+            "Сцена, которая должна успокоить героя, выдаёт себя техникой. Обещание — «последнее, что я стал бы делать, это врать тебе» — звучит дважды, а второй раз с поправкой: реплику подали заново, пока она не прозвучала правильно. Марлон при этом, похоже, верит каждому слову, и именно поэтому дубль работает: доверие друга применяют как успокоительное.",
+          support: { evidenceIds: ["truman-ev-marlon", "truman-ev-marlon-retake"] },
+        },
+        {
+          kind: "paragraph",
+          id: "truman-article-bonds-friendship-3",
+          text:
+            "Дальше Марлону дают роль, которой он не просил: он помогает разыграть «возвращение отца» и тем самым участвует в самом крупном обмане шоу. Предаёт героя не враг — лучший друг. Фильм держит этот парадокс без иронии: чтобы удержать человека, нужен тот, кому он верит.",
+          support: { evidenceIds: ["truman-ev-reunion"] },
+        },
+        {
+          kind: "pullquote",
+          id: "truman-article-bonds-pullquote",
+          text: "У каждого, кто его любит, есть работодатель. У него самого — только расписание.",
+        },
+        {
+          kind: "paragraph",
+          id: "truman-article-bonds-3",
+          text:
+            "Третья связь — с создателем — устроена иначе: это уже не договор, а односторонняя зависимость. Кристоф знает о нём всё, он о Кристофе — ничего. Разговор об этой паре стоит отдельно, в разделе о решении, потому что там она перестаёт быть отношением и становится выбором.",
+        },
+        {
+          kind: "timeline",
+          id: "truman-article-bonds-anchors",
+          items: [
+            {
+              id: "truman-article-bond-beer",
+              timestampSeconds: 587.226,
+              label: "Разговор о Фиджи на мосту, поверх которого ложится реклама пива",
+              evidenceId: "truman-ev-beer",
+            },
+            {
+              id: "truman-article-bond-mococoa",
+              timestampSeconds: 3226.152,
+              label: "Жена отворачивается к камере и рекламирует какао посреди ссоры",
+              evidenceId: "truman-ev-mococoa",
+            },
+            {
+              id: "truman-article-bond-knife",
+              timestampSeconds: 3250,
+              label: "Кухонная тёрка из супермаркета поднята на мужа",
+              evidenceId: "truman-ev-knife",
+            },
+            {
+              id: "truman-article-bond-knife-call",
+              timestampSeconds: 3272.199,
+              label: "«Сделай же что-нибудь!» — крик в сторону съёмочной группы",
+              evidenceId: "truman-ev-knife-call",
+            },
+            {
+              id: "truman-article-bond-retake",
+              timestampSeconds: 3459.2,
+              label: "Обещание друга произносится дважды — с поправкой на второй раз",
+              evidenceId: "truman-ev-marlon-retake",
+            },
+            {
+              id: "truman-article-bond-marlon",
+              timestampSeconds: 3464.272,
+              label: "«Последнее, что я стал бы делать, — врать тебе»",
+              evidenceId: "truman-ev-marlon",
+            },
+          ],
+        },
+        {
+          kind: "paragraph",
+          id: "truman-article-bonds-4",
+          text:
+            "Отсюда простая мысль, которую фильм проводит без нажима: ложь в нём — не свойство человека, а условие занятости. Мэрил не злая, Марлон не подлец, мать не чудовище. Просто каждая из этих связей оплачена, а оплата проходит через того, кто об этом не знает.",
+        },
+      ],
+    },
+    {
+      id: "truman-article-props",
+      number: 5,
+      eyebrow: "05 / Реквизит",
       heading: "Мир как реквизит: три предмета, которые всё объясняют",
       standfirst:
         "Кнопка, тёрка и лестница. Ни один из них не пришёл в кадр как символ: каждый пришёл как товар или как декорация — и уже потом стал доказательством.",
       spoilerLevel: "ENDING",
-      moduleId: "truman-mod-autopsy",
+      moduleIds: ["truman-mod-autopsy"],
       blocks: [
         { kind: "subhead", id: "truman-article-props-button-head", text: "Кнопка" },
         {
@@ -365,13 +479,13 @@ export const theTrumanShowArticle: FilmArticle = {
     },
     {
       id: "truman-article-craft",
-      number: 5,
-      eyebrow: "05 / Ремесло",
+      number: 6,
+      eyebrow: "06 / Ремесло",
       heading: "Что показал счёт: фильм, который умеет молчать",
       standfirst:
         "Есть соблазн хвалить эту картину словами: скрытые камеры, виньетки, эффект подглядывания. Всё это верно и всё это говорено. У неё есть более редкое умение, и его можно посчитать: она знает, когда не резать.",
       spoilerLevel: "ENDING",
-      moduleId: "truman-mod-craft",
+      moduleIds: ["truman-mod-craft"],
       blocks: [
         {
           kind: "measurement",
@@ -467,13 +581,13 @@ export const theTrumanShowArticle: FilmArticle = {
     },
     {
       id: "truman-article-decision",
-      number: 6,
-      eyebrow: "06 / Решение",
+      number: 7,
+      eyebrow: "07 / Решение",
       heading: "Дверь, море и поклон",
       standfirst:
         "Фильм ставит героя перед выбором, который нельзя выиграть: с одной стороны ложь с гарантиями, с другой — правда без обещаний. Разобрать этот выбор — значит посмотреть, что он знает, чем на него давят и что он теряет.",
       spoilerLevel: "ENDING",
-      moduleId: "truman-mod-decision",
+      moduleIds: ["truman-mod-decision"],
       blocks: [
         {
           kind: "paragraph",
@@ -549,11 +663,11 @@ export const theTrumanShowArticle: FilmArticle = {
     },
     {
       id: "truman-article-morality",
-      number: 7,
-      eyebrow: "07 / Нравственный счёт",
+      number: 8,
+      eyebrow: "08 / Нравственный счёт",
       heading: "Кто виноват и в чём",
       spoilerLevel: "ENDING",
-      moduleId: "truman-mod-moral",
+      moduleIds: ["truman-mod-moral"],
       blocks: [
         {
           kind: "paragraph",
@@ -625,11 +739,11 @@ export const theTrumanShowArticle: FilmArticle = {
     },
     {
       id: "truman-article-biblical",
-      number: 8,
-      eyebrow: "08 / Библейская оптика",
+      number: 9,
+      eyebrow: "09 / Библейская оптика",
       heading: "Подмена, а не аллегория",
       spoilerLevel: "ENDING",
-      moduleId: "truman-mod-biblical",
+      moduleIds: ["truman-mod-biblical"],
       blocks: [
         {
           kind: "paragraph",
@@ -696,11 +810,11 @@ export const theTrumanShowArticle: FilmArticle = {
     },
     {
       id: "truman-article-verdict",
-      number: 9,
-      eyebrow: "09 / Вердикт",
+      number: 10,
+      eyebrow: "10 / Вердикт",
       heading: "Вопрос остаётся",
       spoilerLevel: "FULL",
-      moduleId: "truman-mod-final",
+      moduleIds: ["truman-mod-final"],
       blocks: [
         {
           kind: "paragraph",

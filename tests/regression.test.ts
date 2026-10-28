@@ -4638,35 +4638,64 @@ test("Film 001 article sections link only to modules the reader can open", () =>
   const article = structuredClone(theTrumanShowArticle);
   const method = article.sections.find((section) => section.id === "truman-article-method");
   assert.ok(method);
-  assert.equal(method.moduleId, "truman-mod-sources");
+  assert.deepEqual(method.moduleIds, ["truman-mod-sources"]);
   assert.deepEqual(validateFilmArticle(article, trumanArticleContext()), []);
 
   // A section may not point at a module that sits behind a higher spoiler gate.
-  method.moduleId = "truman-mod-final";
+  method.moduleIds = ["truman-mod-final"];
   assert.match(
     validateFilmArticle(article, trumanArticleContext()).join("\n"),
     /truman-article-method: module "truman-mod-final" needs spoiler level "FULL", above the section's "NONE"/,
   );
 
   // Nor at a module that does not exist.
-  method.moduleId = "truman-mod-does-not-exist";
+  method.moduleIds = ["truman-mod-does-not-exist"];
   assert.match(
     validateFilmArticle(article, trumanArticleContext()).join("\n"),
     /unknown module id "truman-mod-does-not-exist"/,
   );
 
   // And without a module index the check fails closed instead of passing silently.
-  method.moduleId = "truman-mod-sources";
+  method.moduleIds = ["truman-mod-sources"];
   assert.match(
     validateFilmArticle(article, trumanArticleContext({ moduleLevels: undefined })).join("\n"),
     /module links require the package's module levels/,
   );
 
-  // Every shipped section that names a module names a real one.
+  // An empty list is a silent way of saying nothing: rejected rather than ignored.
+  method.moduleIds = [];
+  assert.match(
+    validateFilmArticle(article, trumanArticleContext()).join("\n"),
+    /moduleIds must name at least one module/,
+  );
+
+  // The same module twice would render as two identical links.
+  method.moduleIds = ["truman-mod-sources", "truman-mod-sources"];
+  assert.match(
+    validateFilmArticle(article, trumanArticleContext()).join("\n"),
+    /module "truman-mod-sources" is linked twice/,
+  );
+
+  // One bad id among good ones is still a broken link, not a warning.
+  method.moduleIds = ["truman-mod-sources", "truman-mod-does-not-exist"];
+  const mixed = validateFilmArticle(article, trumanArticleContext()).join("\n");
+  assert.match(mixed, /unknown module id "truman-mod-does-not-exist"/);
+  assert.doesNotMatch(mixed, /module "truman-mod-sources"/);
+
+  // A section may read alongside more than one module: the shipped comparison of
+  // marriage and friendship names both, and both open at the section's level.
+  const bonds = theTrumanShowArticle.sections.find((section) => section.id === "truman-article-bonds");
+  assert.ok(bonds);
+  assert.deepEqual(bonds.moduleIds, ["truman-mod-relationship", "truman-mod-friendship"]);
+
+  // Every shipped section that names modules names real ones, and never repeats.
   const levels = trumanArticleContext().moduleLevels as Map<string, string>;
   for (const section of theTrumanShowArticle.sections) {
-    if (!section.moduleId) continue;
-    assert.ok(levels.has(section.moduleId), `${section.id}: ${section.moduleId} is not a module of this package`);
+    const ids = section.moduleIds ?? [];
+    assert.equal(new Set(ids).size, ids.length, `${section.id}: module links must be unique`);
+    for (const moduleId of ids) {
+      assert.ok(levels.has(moduleId), `${section.id}: ${moduleId} is not a module of this package`);
+    }
   }
 });
 

@@ -78,6 +78,9 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
         spoilerLevel={spoilerLevel}
         describeMeasurement={measurements.describe}
         formatTimecode={measurements.formatTimecode}
+        moduleHeadings={Object.fromEntries(
+          filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.heading]),
+        )}
       />
     </>
   );

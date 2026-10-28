@@ -424,20 +424,33 @@ export function validateFilmArticle(
 
     checkSupport(section.support, `${sectionPath}/support`, section.spoilerLevel, context, errors, false);
 
-    // A section may point at the module it reads alongside — but only at one the
-    // reader can open without being sent to a higher spoiler level.
-    if (section.moduleId !== undefined) {
-      if (isBlank(section.moduleId)) {
-        errors.push(`${sectionPath}: moduleId must not be blank.`);
-      } else if (!context.moduleLevels) {
-        errors.push(`${sectionPath}: module links require the package's module levels to resolve against.`);
-      } else {
-        const moduleLevel = context.moduleLevels.get(section.moduleId);
+    // A section may point at the modules it reads alongside — but only at ones
+    // the reader can open without being sent to a higher spoiler level.
+    if (section.moduleIds !== undefined) {
+      if (section.moduleIds.length === 0) {
+        errors.push(`${sectionPath}: moduleIds must name at least one module when present.`);
+      }
+      const linked = new Set<string>();
+      for (const moduleId of section.moduleIds) {
+        if (isBlank(moduleId)) {
+          errors.push(`${sectionPath}: moduleIds must not contain a blank id.`);
+          continue;
+        }
+        if (linked.has(moduleId)) {
+          errors.push(`${sectionPath}: module "${moduleId}" is linked twice.`);
+          continue;
+        }
+        linked.add(moduleId);
+        if (!context.moduleLevels) {
+          errors.push(`${sectionPath}: module links require the package's module levels to resolve against.`);
+          continue;
+        }
+        const moduleLevel = context.moduleLevels.get(moduleId);
         if (moduleLevel === undefined) {
-          errors.push(`${sectionPath}: unknown module id "${section.moduleId}".`);
+          errors.push(`${sectionPath}: unknown module id "${moduleId}".`);
         } else if (!canRevealSpoiler(section.spoilerLevel, moduleLevel)) {
           errors.push(
-            `${sectionPath}: module "${section.moduleId}" needs spoiler level "${moduleLevel}", above the section's "${section.spoilerLevel}".`,
+            `${sectionPath}: module "${moduleId}" needs spoiler level "${moduleLevel}", above the section's "${section.spoilerLevel}".`,
           );
         }
       }

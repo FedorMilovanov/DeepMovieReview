@@ -307,3 +307,58 @@ the build does not have.
 | **Reader-facing evidence** | The reader can jump to a module but cannot see which evidence record backs a paragraph. Data-level traceability is enforced; the UI step is a product decision | product |
 | **Article discovery** | There is no `/articles` index; the article is reachable from the film page and the sitemap, nothing else | product |
 | **Relationship-module depth** | The article now carries the relationships in prose, but `truman-mod-relationship` still has research-era depth in places (`docs/48` §6) | editorial pass |
+
+## 11. Fourth pass: the relationships the readable layer did not have
+
+The third pass left a hole it could not see from inside the article: the package
+analyses three relationships in depth — marriage as a contract
+(`truman-mod-relationship`), friendship as a shift (`truman-mod-friendship`) and
+the one-way bond with the creator (`truman-mod-creator`) — and **none of them
+appeared in the readable layer**. A reader could learn what each of the six
+characters is like and never learn what the film says about the links between
+them, which is where its ethics actually live.
+
+### 11.1 What was added
+
+A new §4, «Три контракта вместо трёх отношений», at `MAJOR`:
+
+- the marriage reads as an employment contract: the ad break in the middle of an
+  argument, the supermarket grater raised at the husband, and the fact that
+  «Сделай же что-нибудь!» is shouted past him, at the crew;
+- the friendship reads as a shift: the beer that arrives over the honesty, and a
+  promise delivered twice with a correction, so the retake itself is the
+  evidence;
+- the third bond is deliberately handed forward to §7, because the creator is
+  an `ENDING` fact and dropping it in at `MAJOR` would have smuggled the ending
+  into the middle of the piece.
+
+Six timeline anchors (587.226 → 3464.272), all bound to canonical evidence, and
+one pullquote that states the section's thesis without quoting the film.
+
+### 11.2 The structural change it forced
+
+A section could name exactly one module. This one needed two, and naming one
+would have meant pointing at half of its own argument. `ArticleSection.moduleId`
+became `moduleIds: string[]`:
+
+- the validator resolves **every** id against the package's levels and rejects a
+  blank list, a repeated id, and one bad id among good ones;
+- the renderer lists the links under a single label, and the link text is the
+  module's own heading, passed in from the package — so the article cannot drift
+  from the module wording by paraphrasing it;
+- four regression tests cover the plural form, including the fail-closed case
+  when the package supplies no level index.
+
+### 11.3 State
+
+| | Before | After |
+| --- | --- | --- |
+| Sections | 9 | 10 |
+| Words / reading time | ≈2245 / 23 min | ≈3713 / 25 min |
+| Sections per spoiler level | 1 / 2 / 3 / 8 / 9 | 1 / 2 / 4 / 9 / 10 |
+| Modules linked from the article | 9 of 16 | 11 of 16 |
+| Tests | 100 | 100 |
+
+Visibility at `NONE` is unchanged — one section, no relationships, no ending —
+because the new section sits at `MAJOR` and the gating is a suffix, which the
+integrity rule enforces rather than trusts.

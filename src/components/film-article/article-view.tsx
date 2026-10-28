@@ -14,6 +14,12 @@ type ArticleViewProps = {
   describeMeasurement: (ref: ArticleMeasurementRef) => ArticleMeasurementView | undefined;
   /** Master timecode formatter, supplied by the edition that owns the article. */
   formatTimecode: (seconds: number) => string;
+  /**
+   * Module headings keyed by module id, so a section's analytical links read as
+   * titles rather than as ids. Supplied by the page from the package itself; the
+   * article data never repeats a module's own wording.
+   */
+  moduleHeadings?: Record<string, string>;
 };
 
 const levelLabels: Record<SpoilerLevel, string> = {
@@ -135,6 +141,7 @@ export function ArticleView({
   spoilerLevel,
   describeMeasurement,
   formatTimecode,
+  moduleHeadings,
 }: ArticleViewProps) {
   const { visibleSections, hiddenSections, nextHiddenLevel } = projection;
   const readingMinutes = articleReadingMinutes(article);
@@ -187,14 +194,27 @@ export function ArticleView({
             <div className="sectionIndex">{section.eyebrow}</div>
             <h2 id={`${section.id}-title`}>{section.heading}</h2>
             {section.standfirst ? <p className="sectionIntro">{section.standfirst}</p> : null}
-            {section.moduleId ? (
-              <Link
-                className="articleModuleLink"
-                href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#${section.moduleId}`}
-              >
-                Аналитический модуль этого раздела
-                <span aria-hidden="true">→</span>
-              </Link>
+            {section.moduleIds?.length ? (
+              <div className="articleModuleLinks">
+                <span className="microLabel">
+                  {section.moduleIds.length > 1
+                    ? "Аналитические модули этого раздела"
+                    : "Аналитический модуль этого раздела"}
+                </span>
+                <ul>
+                  {section.moduleIds.map((moduleId) => (
+                    <li key={moduleId}>
+                      <Link
+                        className="articleModuleLink"
+                        href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#${moduleId}`}
+                      >
+                        {moduleHeadings?.[moduleId] ?? moduleId}
+                        <span aria-hidden="true">→</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
           </div>
           <div className="articleBody">

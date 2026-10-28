@@ -105,6 +105,20 @@
   max-width: 26ch;
 }
 
+.articleModuleLinks {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: start;
+}
+
+.articleModuleLinks ul {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .articleModuleLink {
   justify-self: start;
   display: inline-flex;

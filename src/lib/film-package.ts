@@ -578,11 +578,16 @@ export type ArticleSection = {
   standfirst?: string;
   spoilerLevel: SpoilerLevel;
   /**
-   * Analytical module this section reads alongside. The article is the readable
-   * layer over the package, not a separate silo: the link may only point at a
+   * Analytical modules this section reads alongside. The article is the readable
+   * layer over the package, not a separate silo: every link may only point at a
    * module the reader can open at this section's spoiler level.
+   *
+   * A list, because one section regularly spans several modules: marriage and
+   * friendship are two separate analyses, and the section that compares them is
+   * neither. Naming only one of them would leave the readable layer pointing at
+   * half of its own argument.
    */
-  moduleId?: string;
+  moduleIds?: string[];
   /** Module-level claim, e.g. the section's thesis. */
   support?: ClaimSupport;
   blocks: ArticleBlock[];
