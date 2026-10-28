@@ -156,7 +156,10 @@ export function ArticleView({
   return (
     <article className="articleShell">
       <header className="sectionShell articleHeader" id="article-top">
-        <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
+        <div className="articleHeaderLinks">
+          <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
+          <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
+        </div>
         <div className="sectionIndex">{article.kicker}</div>
         <h1 className="articleTitle">{article.title}</h1>
         <p className="articleStandfirst">{article.standfirst}</p>

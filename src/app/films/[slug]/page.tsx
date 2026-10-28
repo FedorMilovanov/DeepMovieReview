@@ -9,6 +9,7 @@ import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { isPreviewContentEnabled } from "@/data/site-config";
 import { getFilmShareAsset } from "@/data/film-share-assets";
+import { getProductionDossier } from "@/data/films/production-dossiers";
 import { pluralRu } from "@/lib/plural-ru";
 import { filmPageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
 import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
@@ -91,6 +92,16 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
             <span>Читать разбор целиком</span>
             <strong>{filmPackage.article.title}</strong>
             <small>{filmPackage.article.standfirst}</small>
+          </Link>
+        ) : null}
+        {getProductionDossier(film.slug) ? (
+          <Link
+            className="articleEntryLink"
+            href={`/films/${film.slug}/making`}
+          >
+            <span>История создания</span>
+            <strong>{getProductionDossier(film.slug)!.title}</strong>
+            <small>{getProductionDossier(film.slug)!.standfirst}</small>
           </Link>
         ) : null}
         {researchDraft ? (

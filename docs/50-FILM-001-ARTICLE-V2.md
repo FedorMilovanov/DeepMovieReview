@@ -299,13 +299,14 @@ the build does not have.
 | Gap | Why it is still open | Who closes it |
 | --- | --- | --- |
 | **Editorial signature** (`reviewedAt`, `lastReviewedAt`) | Closed by delegation, and marked as such: `signatureBasis: "DELEGATED"` plus `lastReviewedAt: "2026-10-28"` (`docs/53` §1–§2). The film stays `draft`/`noindex` — signing is not publishing | done |
+| **Link liveness in the production dossier** | 65 sources were opened by hand on 2026-10-28 (`docs/54` §5); keeping them alive is a CI link checker, which the repo does not have | CI or editor |
 | **Stills in the article** | The page is text-only. Stills need an editorial decision on quotation and a provenance entry in the visual-asset manifest (`docs/38` §9) | editor |
 | **Per-film share art** | Closed: the film and its article now share their own card (`/og/truman-show-share.jpg`), declared in `src/data/film-share-assets.ts` and validated by the visual-asset registry — see §12 | done |
 | **External source liveness** | Partly closed: the three load-bearing references (Wikipedia EN, BFI film card, BFI interview) were reachability- and content-checked on 2026-10-28 — see `docs/53` §5. The remaining ~27 hrefs are still shape-only; `curl` from the sandbox cannot leave it (000) | editor's browser or a CI link checker |
 | **Production facts** (budget, gross, awards) | Cross-checked against Wikipedia/BFI on 2026-10-28 and recorded in `docs/53` §6. They stay in source locators, not in the evidence graph — by construction they are unverifiable against the master, and no conclusion in the article rests on them | editor |
 | **Manual quality passes** | ~~Contrast~~ — now measured by a test (see `docs/52` §3.4: it found `--ink-4` at 3.90:1 under six blocks of small article text). Still manual: 200 % zoom, touch targets on a real phone, Lite mode on a mid-range Android. The repo has no browser/E2E/axe tooling | editor for the rest, or a new test tier |
 | **Reader-facing evidence** | The reader can jump to a module but cannot see which evidence record backs a paragraph. Data-level traceability is enforced; the UI step is a product decision | product |
-| **Article discovery** | There is no `/articles` index; the article is reachable from the film page and the sitemap, nothing else | product |
+| **Article discovery** | There is no `/articles` index; now there are two readable layers (article + production dossier) and both are reachable only from the film page, from each other, and from the sitemap | product |
 | **Relationship-module depth** | The article now carries the relationships in prose, but `truman-mod-relationship` still has research-era depth in places (`docs/48` §6) | editorial pass |
 
 ## 11. Fourth pass: the relationships the readable layer did not have
@@ -413,3 +414,47 @@ frame instead of re-composing the picture.
 
 Alt text deliberately describes the picture, not the plot: it says "a bright
 opening at the end of the street", and does not name the ending.
+
+## 13. Fifth pass: the film had a production history, and the article could not hold it
+
+The reader asked for the making of the film — budget, directors, casting, what went
+wrong on set. That could not be a section of this article, and the reason is
+structural rather than aesthetic: the article validator requires every real-film
+section to rest on a timestamp in the locked master, and "the script sold for
+slightly over a million dollars in 1993" is not in the film. Faking an
+`evidenceId` for it would have been a lie expressed in a schema, which the
+tooling would then repeat.
+
+So Film 001 now has **two readable layers**:
+
+| | Article (`/films/the-truman-show/article`) | Production dossier (`/films/the-truman-show/making`) |
+| --- | --- | --- |
+| Proves | what happens in the film | what happened around the film |
+| Unit of proof | `evidenceId` + timecode | `sourceIds` + URL, publisher, tier, date opened |
+| Spoilers | five levels, suffix gating | none, by construction |
+| Checked by | `validateFilmArticle` | `validateProductionDossier` |
+
+The dossier covers eleven sections — the 1991 treatment and the *Twilight Zone*
+episode behind it, the seven directors, the year of waiting for Carrey (sixteen
+drafts, twelve rewrites, $12m instead of $20m, Weir's invented show-history book
+and the ten-page Christof backstory), Dennis Hopper's two days and Ed Harris
+arriving on Monday, Seaside as a town that was already a set, Biziou's surveillance
+optics and the physical sunrise, Glass's borrowed score, the money, the legacy, and
+then the part that matters most: **what did not check out**.
+
+The register is 65 sources, tiered, each with the sentence it actually supports.
+The validator enforces the uncomfortable parts: a CONFIRMED claim cannot rest on
+wikis alone, a DISPUTED or UNVERIFIED claim must be shown to the reader in the myth
+register, and no production claim may carry a timecode — the two documents are kept
+from blending by a test, not by discipline.
+
+Four stories died in verification and that is the point of the exercise: the beret
+and glasses attributed to Wendy Stites, the studio's "most expensive art film ever
+made" line, the Hugo 1999 win over Straczynski's *Babylon 5* finale, and the claim
+that Harris and Carrey never met. Each is now written down as a story rather than
+as a fact, with what evidence exists.
+
+State: article unchanged at 10 sections; the dossier adds 11 sections, 63 claims,
+65 sources, 12 myth rows. Both pages cross-link, both are preview-only and
+`noindex` while the film is a draft, and the sitemap will pick the new route up on
+the same switch as the rest.

@@ -4,7 +4,20 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
-import { articlePageMetadata, filmPageMetadata, shareImageFromAsset } from "../src/lib/page-metadata";
+import {
+  articlePageMetadata,
+  filmPageMetadata,
+  productionPageMetadata,
+  shareImageFromAsset,
+} from "../src/lib/page-metadata";
+import {
+  PRODUCTION_SOURCE_MINIMUM,
+  PRODUCTION_TERTIARY_MAX_SHARE,
+  validateProductionDossier,
+  validateProductionDossierRegistry,
+} from "../src/lib/production-dossier";
+import { productionDossiers, getProductionDossier } from "../src/data/films/production-dossiers";
+import { theTrumanShowProductionDossier } from "../src/data/films/the-truman-show-production";
 import {
   arcCredibilityLabels,
   characterPresentationLabels,
@@ -4876,4 +4889,214 @@ test("Film 001 share art is declared, validated and shaped like a card", () => {
 
   // A film without art resolves to nothing and falls back to the site card.
   assert.equal(getFilmShareAsset("no-such-film"), undefined);
+});
+
+test("Film 001 production dossier holds its own register", () => {
+  const dossier = theTrumanShowProductionDossier;
+  assert.deepEqual(validateProductionDossier(dossier), []);
+
+  // The request was 50+ links, and a register that big has to stay honest:
+  // mostly primary or secondary, with tertiary material capped.
+  assert.ok(
+    dossier.sources.length >= PRODUCTION_SOURCE_MINIMUM,
+    `register carries ${dossier.sources.length} sources, floor is ${PRODUCTION_SOURCE_MINIMUM}`,
+  );
+  const tertiary = dossier.sources.filter((source) => source.tier === "TERTIARY").length;
+  const primary = dossier.sources.filter((source) => source.tier === "PRIMARY").length;
+  assert.ok(primary >= 3, "a production history needs people who were there");
+  assert.ok(tertiary / dossier.sources.length <= PRODUCTION_TERTIARY_MAX_SHARE);
+
+  // Every URL is a real https document, and none of them is our own site or a
+  // search engine — a "source" that finds sources is not a source.
+  const hosts = new Set<string>();
+  for (const source of dossier.sources) {
+    const url = new URL(source.url);
+    assert.equal(url.protocol, "https:");
+    hosts.add(url.host);
+    assert.equal(/google|bing|duckduckgo|yandex|localhost|127\.0\.0\.1/.test(url.host), false);
+    assert.equal(source.checkedOn, "2026-10-28", `${source.id} was opened in the same sitting`);
+    assert.ok(source.supports.length > 30, `${source.id}: supports must say what it backs`);
+  }
+  assert.ok(hosts.size > 20, "a register of 60 sources should not be 20 sites");
+
+  // Sections read in order and each one carries something.
+  assert.deepEqual(
+    dossier.sections.map((section) => section.number),
+    dossier.sections.map((_, index) => index + 1),
+  );
+  assert.equal(dossier.claims.filter((claim) => claim.status === "CONFIRMED").length > 40, true);
+});
+
+test("Film 001 production dossier never borrows the film's authority", () => {
+  const dossier = theTrumanShowProductionDossier;
+  const timecode = /(?<![\d:.])(\d{3,4}\.\d{3})(?![\d])/;
+
+  // Production facts and measured film facts are different kinds of proof. The
+  // guard is mechanical: no timecode may appear anywhere in this document.
+  for (const claim of dossier.claims) {
+    assert.equal(timecode.test(claim.text), false, `${claim.id}: timecode in a production claim`);
+  }
+  for (const section of dossier.sections) {
+    const text = section.blocks
+      .map((block) => JSON.stringify(block))
+      .join(" ");
+    assert.equal(timecode.test(text), false, `${section.id}: timecode in prose`);
+  }
+
+  // Nothing here may point at the evidence graph — that is the article's job.
+  const serialized = JSON.stringify(dossier);
+  assert.equal(serialized.includes("evidenceId"), false);
+  assert.equal(serialized.includes("timestampSeconds"), false);
+
+  // And the structure has no spoiler levels at all: the piece is written at a
+  // single, spoiler-free level, which is a property of the data, not a promise.
+  assert.equal(serialized.includes("spoilerLevel"), false);
+});
+
+test("Film 001 production dossier shows every claim it could not settle", () => {
+  const dossier = theTrumanShowProductionDossier;
+  const surfaced = new Map<string, string>();
+  for (const section of dossier.sections) {
+    for (const block of section.blocks) {
+      if (block.kind !== "myths") continue;
+      for (const row of block.rows) {
+        assert.equal(surfaced.has(row.claimId), false, `${row.claimId} is surfaced twice`);
+        surfaced.set(row.claimId, row.verdict);
+      }
+    }
+  }
+
+  const unsettled = dossier.claims.filter((claim) => claim.status !== "CONFIRMED");
+  assert.ok(unsettled.length >= 5, "the dossier should admit at least a few unknowns");
+  for (const claim of unsettled) {
+    assert.ok(surfaced.has(claim.id), `${claim.id} (${claim.status}) is hidden from the reader`);
+    assert.ok((surfaced.get(claim.id) ?? "").length > 40, `${claim.id}: a verdict, not a shrug`);
+  }
+  // A settled claim may not be smuggled into the myth register.
+  for (const claimId of surfaced.keys()) {
+    const claim = dossier.claims.find((candidate) => candidate.id === claimId);
+    assert.ok(claim);
+    assert.notEqual(claim.status, "CONFIRMED");
+  }
+});
+
+test("Film 001 production dossier fails closed on the mistakes that matter", () => {
+  const dossier = theTrumanShowProductionDossier;
+  const errorsOf = (mutate: (copy: typeof dossier) => void): string => {
+    const copy = structuredClone(dossier);
+    mutate(copy);
+    return validateProductionDossier(copy).join("\n");
+  };
+
+  // A timecode is the one thing a production text may never carry.
+  assert.match(
+    errorsOf((copy) => {
+      const claim = copy.claims[0];
+      claim.text = `Сцена на 3226.152 выглядит иначе.`;
+    }),
+    /may not carry a timecode/,
+  );
+
+  // An unsourced claim is a rumour.
+  assert.match(
+    errorsOf((copy) => {
+      copy.claims[0].sourceIds = [];
+    }),
+    /a claim needs at least one source/,
+  );
+
+  // CONFIRMED cannot rest on a wiki alone.
+  assert.match(
+    errorsOf((copy) => {
+      copy.claims[0].sourceIds = ["src-simple-wiki"];
+    }),
+    /CONFIRMED needs at least one primary or secondary source/,
+  );
+
+  // A number in a table without a source.
+  assert.match(
+    errorsOf((copy) => {
+      const facts = copy.sections.flatMap((section) => section.blocks).find((block) => block.kind === "facts");
+      assert.ok(facts && facts.kind === "facts");
+      facts.rows[0].sourceIds = [];
+    }),
+    /a number without a source is a rumour/,
+  );
+
+  // A disputed claim that is not shown to the reader.
+  assert.match(
+    errorsOf((copy) => {
+      copy.sections = copy.sections.map((section) => ({
+        ...section,
+        blocks: section.blocks.filter((block) => block.kind !== "myths"),
+      }));
+    }),
+    /must be surfaced in a myths block/,
+  );
+
+  // A settled claim cannot be presented as a myth.
+  assert.match(
+    errorsOf((copy) => {
+      const myths = copy.sections.flatMap((section) => section.blocks).find((block) => block.kind === "myths");
+      assert.ok(myths && myths.kind === "myths");
+      myths.rows[0].claimId = "claim-treatment-1991";
+    }),
+    /is CONFIRMED — a settled claim does not belong in the myth register/,
+  );
+
+  // A URL that is not a document.
+  assert.match(
+    errorsOf((copy) => {
+      copy.sources[0].url = "http://example.com/truman";
+    }),
+    /url must be an absolute https URL/,
+  );
+  assert.match(
+    errorsOf((copy) => {
+      copy.sources[1].url = copy.sources[0].url;
+    }),
+    /duplicate url/,
+  );
+
+  // A register that shrinks below the floor.
+  assert.match(
+    errorsOf((copy) => {
+      copy.sources = copy.sources.slice(0, 10);
+    }),
+    new RegExp(`needs at least ${PRODUCTION_SOURCE_MINIMUM} sources`),
+  );
+
+  // And a source nobody cites is decoration, not a register.
+  assert.match(
+    errorsOf((copy) => {
+      copy.claims = copy.claims.map((claim) => ({
+        ...claim,
+        sourceIds: claim.sourceIds.filter((id) => id !== "src-bfi-niccol"),
+      }));
+    }),
+    /no claim uses this source|unknown source id/,
+  );
+});
+
+test("the production registry and its page metadata agree with the data", () => {
+  assert.deepEqual(validateProductionDossierRegistry(productionDossiers), []);
+  assert.equal(productionDossiers.length, 1);
+  assert.equal(getProductionDossier("the-truman-show")?.id, "truman-production-dossier");
+  assert.equal(getProductionDossier("no-such-film"), undefined);
+
+  const filmPackage = theTrumanShowCanonicalPackage;
+  const dossier = theTrumanShowProductionDossier;
+  const shareImage = shareImageFromAsset(getFilmShareAsset("the-truman-show")!);
+  const page = productionPageMetadata(filmPackage, dossier, shareImage);
+
+  assert.equal(page.openGraph.url, "/films/the-truman-show/making");
+  assert.equal(page.openGraph.type, "article");
+  assert.equal(page.description, dossier.standfirst, "the card carries the standfirst and nothing else");
+  assert.equal(page.openGraph.images[0].url, "/og/truman-show-share.jpg");
+  assert.equal(page.twitter.images[0], "/og/truman-show-share.jpg");
+  assert.match(page.title, /Шоу Трумана/);
+
+  // The standfirst is the share description, so it must not describe the film's
+  // plot at all: it is the one string that travels without a spoiler control.
+  assert.equal(/Труман (выходит|покидает|умирает)/.test(dossier.standfirst), false);
 });

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { filmPackages, requireFilmPackageBySlug } from "@/data/film-registry";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
+import { getProductionDossier } from "@/data/films/production-dossiers";
 import { canIndexSite, resolveSiteOrigin } from "@/lib/site-publication-policy";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -25,6 +26,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
         { url: `${origin}/films/${filmPackage.film.slug}` },
         ...(filmPackage.article
           ? [{ url: `${origin}/films/${filmPackage.film.slug}/article` }]
+          : []),
+        ...(getProductionDossier(filmPackage.film.slug)
+          ? [{ url: `${origin}/films/${filmPackage.film.slug}/making` }]
           : []),
       ]),
   ];

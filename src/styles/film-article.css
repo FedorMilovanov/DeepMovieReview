@@ -392,3 +392,219 @@
   line-height: 1.55;
   max-width: 62ch;
 }
+
+/* ---- Production dossier -------------------------------------------------- */
+
+.articleHeaderLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: baseline;
+}
+
+.productionShell .articleSectionHead {
+  max-width: var(--reading-max);
+}
+
+.productionSpoilerNote {
+  max-width: var(--reading-max);
+  margin-top: var(--space-4);
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--accent-restoration);
+  color: var(--ink-3);
+  font-size: var(--type-meta);
+  line-height: 1.6;
+}
+
+.productionFacts,
+.productionTimeline,
+.productionMyths {
+  margin: 0;
+  padding: var(--space-5);
+  border: 1px solid var(--stroke-default);
+  background: var(--surface-1);
+}
+
+.productionFacts figcaption,
+.productionTimeline figcaption,
+.productionMyths figcaption {
+  margin-bottom: var(--space-4);
+  color: var(--ink-3);
+}
+
+.productionFacts dl {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.productionFacts dl > div {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.4fr) 1fr;
+  gap: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--stroke-subtle);
+}
+
+.productionFacts dl > div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.productionFacts dt {
+  color: var(--ink-4);
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.productionFacts dd {
+  margin: 0;
+  color: var(--ink-1);
+}
+
+.productionTimeline ol {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.productionTimeline li {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: var(--space-4);
+  align-items: baseline;
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--stroke-default);
+}
+
+.productionTimeline time {
+  color: var(--ink-4);
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.productionMythList {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.productionMyth {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border-left: 2px solid var(--accent-fracture);
+  background: var(--surface-2);
+}
+
+.productionMyth h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-body);
+  line-height: 1.3;
+  color: var(--ink-1);
+}
+
+.productionMyth p {
+  margin: 0;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.productionRefs {
+  margin-left: 0.35rem;
+  font-family: var(--font-meta);
+  font-size: 0.7em;
+  letter-spacing: 0.04em;
+}
+
+.productionRefs a {
+  color: var(--ink-4);
+  text-decoration: none;
+  border-bottom: 1px solid var(--stroke-default);
+}
+
+.productionRefs a:hover,
+.productionRefs a:focus-visible {
+  color: var(--ink-1);
+  border-bottom-color: var(--accent-restoration);
+}
+
+.productionSourceGroup {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--stroke-subtle);
+}
+
+.productionSourceGroup h3 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--type-display-3);
+}
+
+.productionSourceGroup ol {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: source;
+}
+
+.productionSourceGroup li {
+  counter-increment: source;
+  border-bottom: 1px solid var(--stroke-subtle);
+}
+
+.productionSourceGroup details {
+  padding: var(--space-3) 0;
+}
+
+.productionSourceGroup summary {
+  display: grid;
+  gap: 0.2rem;
+  cursor: pointer;
+  min-height: 42px;
+  color: var(--ink-1);
+}
+
+.productionSourceGroup summary::marker {
+  color: var(--ink-4);
+}
+
+.productionSourceGroup summary small {
+  color: var(--ink-4);
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.productionSourceGroup details p {
+  margin: var(--space-3) 0 var(--space-2);
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.productionSourceGroup details a {
+  color: var(--ink-4);
+  font-size: var(--type-meta);
+  word-break: break-word;
+}
+
+.productionSourceGroup details a:hover,
+.productionSourceGroup details a:focus-visible {
+  color: var(--ink-1);
+}
+
+@media (max-width: 640px) {
+  .productionFacts dl > div,
+  .productionTimeline li {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+}

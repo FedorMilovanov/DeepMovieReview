@@ -115,6 +115,28 @@ export function filmPageMetadata(
  * metadata — a summary of section 9 under a share card would be a spoiler with
  * no spoiler control next to it.
  */
+/**
+ * Description for the production dossier.
+ *
+ * Safe by construction: the dossier's standfirst is written to be read before
+ * the film, and unlike the article there is no section above `NONE` to leak —
+ * production history does not describe what happens on screen.
+ */
+export function productionPageMetadata(
+  filmPackage: FilmPackage,
+  dossier: { title: string; standfirst: string },
+  shareImage?: ShareImage,
+): PageMetadataView {
+  const { film } = filmPackage;
+  return card(
+    `${dossier.title} — «${film.title}»`,
+    dossier.standfirst,
+    `/films/${film.slug}/making`,
+    "article",
+    shareImage,
+  );
+}
+
 export function articlePageMetadata(
   filmPackage: FilmPackage,
   shareImage?: ShareImage,
