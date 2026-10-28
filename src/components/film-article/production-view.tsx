@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type {
   ProductionBlock,
@@ -123,14 +122,25 @@ export function ProductionDossierView({
         <h1 className="articleTitle">{dossier.title}</h1>
         {cover ? (
           <figure className="productionHero">
-            <Image
-              src={cover.src}
-              alt={cover.alt}
-              width={cover.width}
-              height={cover.height}
-              sizes="(max-width: 900px) 100vw, 1100px"
-              priority
-            />
+            {/*
+              Plain `<picture>` rather than `next/image`: the asset is already
+              encoded in two formats and two sizes, and the point here is to let
+              the browser pick AVIF when it can. The `<img>` is the guaranteed
+              fallback, so nothing depends on format negotiation succeeding.
+            */}
+            <picture>
+              {cover.sources.map((source) => (
+                <source key={source.src} srcSet={source.src} type={source.type} />
+              ))}
+              <img
+                src={cover.src}
+                alt={cover.alt}
+                width={cover.width}
+                height={cover.height}
+                loading="eager"
+                decoding="async"
+              />
+            </picture>
             <figcaption className="microLabel">
               Оригинальная иллюстрация «Глубоких вод» · не кадр из фильма
             </figcaption>

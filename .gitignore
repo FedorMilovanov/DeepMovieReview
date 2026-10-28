@@ -38,3 +38,5 @@ browser-audit/
 
 # Drive connector download landing zone (never commit: film stills/subtitles)
 /google_drive/
+public/og/*.png
+!public/og-home.png

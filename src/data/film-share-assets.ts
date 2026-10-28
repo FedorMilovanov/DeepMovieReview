@@ -116,6 +116,18 @@ export const trumanMakingCoverAsset: VisualAssetManifest = {
       height: 675,
       byteSize: 140181,
     },
+    // AVIF first: the same picture at 71 KB instead of 153 KB. The JPEG stays as
+    // the unconditional fallback, because AVIF support is good but not universal,
+    // and a hero that fails to decode is worse than a heavy one.
+    {
+      id: "truman-making-display-1280-avif",
+      purpose: "display",
+      src: "/og/truman-making-wide.avif",
+      format: "avif",
+      width: 1280,
+      height: 720,
+      byteSize: 73318,
+    },
     {
       id: "truman-making-display-1280",
       purpose: "display",
@@ -124,6 +136,15 @@ export const trumanMakingCoverAsset: VisualAssetManifest = {
       width: 1280,
       height: 720,
       byteSize: 156301,
+    },
+    {
+      id: "truman-making-master-1600-avif",
+      purpose: "editorial-master",
+      src: "/og/truman-making-master.avif",
+      format: "avif",
+      width: 1600,
+      height: 900,
+      byteSize: 113918,
     },
     {
       id: "truman-making-master-1600",

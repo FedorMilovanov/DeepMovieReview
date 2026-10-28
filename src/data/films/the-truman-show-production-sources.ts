@@ -298,6 +298,112 @@ export const trumanProductionSources: ProductionSource[] = [
       "Хроника церемонии 1999 года: три номинации фильма, ни одной победы, отсутствие Керри в номинации за главную роль вызвало волну реакций; он вёл номинацию за монтаж.",
   },
 
+  {
+    id: "src-ebert",
+    label: "The Truman Show — рецензия",
+    publisher: "RogerEbert.com (Chicago Sun-Times)",
+    url: "https://www.rogerebert.com/reviews/the-truman-show-1998",
+    tier: "SECONDARY",
+    publishedAt: "1998-06-05",
+    checkedOn: "2026-10-28",
+    supports:
+      "Рецензия Эберта: четыре звезды; «основополагающие идеи сделали фильм бо́льшим, чем развлечение»; «он фокусирует новые ценности, которые технология навязывает человечеству»; сравнение Трумана с Форрестом Гампом и похвала Керри.",
+  },
+  {
+    id: "src-rosenbaum",
+    label: "The Audience is Us — рецензия",
+    publisher: "Chicago Reader (Jonathan Rosenbaum)",
+    url: "https://chicagoreader.com/film-tv/the-audience-is-us/",
+    tier: "SECONDARY",
+    publishedAt: "1998-06-04",
+    checkedOn: "2026-10-28",
+    supports:
+      "Диссидентское чтение: «концепт и умный, и глупый»; фильм сравнивается с рассказами Хайнлайна «They» и Пола «The Tunnel Under the World»; отдельно разбирается, кем фильм изображает публику — официантки, две старухи на диване, японские зрители — и что это говорит о самом фильме.",
+  },
+  {
+    id: "src-knox",
+    label: "Reading 'The Truman Show' inside out",
+    publisher: "Film Criticism, vol. 35, no. 1 (Simone Knox)",
+    url: "https://www.semanticscholar.org/paper/Reading-'The-Truman-Show'-inside-out-Knox/a7a3c34d1a9c83ec8386d12cf9a245bb48b4e015",
+    tier: "SECONDARY",
+    publishedAt: "2010-09-22",
+    checkedOn: "2026-10-28",
+    supports:
+      "Академический разбор: фильм системно проблематизирует бинарности кино/телевидение, порядок/хаос, реальность/симуляция, снаружи/внутри; камера «фильма» умеет то, чего не может прямой эфир (предугадывает падение фонаря), и это разрушает границу между фильмом и шоу.",
+  },
+  {
+    id: "src-bishop",
+    label: "Good Afternoon, Good Evening, and Good Night: The Truman Show as Media Criticism",
+    publisher: "Journal of Communication Inquiry, 24(1) (Ronald Bishop)",
+    url: "https://www.semanticscholar.org/paper/Good-Afternoon,-Good-Evening,-and-Good-Night:-The-Bishop/07262f17ae1195b85df95ffa9ce7c134c3843b29",
+    tier: "SECONDARY",
+    publishedAt: "2000-01-01",
+    checkedOn: "2026-10-28",
+    supports:
+      "Аргумент против фильма как критики медиа: развлекательные компании присваивают наше желание критиковать медиа и продают его обратно; «власть медиа скорее утверждается, чем оспаривается» (в духе гегемонии Грамши).",
+  },
+  {
+    id: "src-thomson",
+    label: "My favourite film: The Truman Show",
+    publisher: "The Guardian (David Thomson)",
+    url: "https://www.theguardian.com/film/filmblog/2011/dec/16/my-favourite-film-truman-show",
+    tier: "SECONDARY",
+    publishedAt: "2011-12-16",
+    checkedOn: "2026-10-28",
+    supports:
+      "Томсон называет фильм своим любимым: купол опускается к морю «как экран — и киноэкран, и экран, который не пускает дальше»; после выхода фильм называли религиозной аллегорией, а он увидел в нём метафору кино.",
+  },
+  {
+    id: "src-diggit",
+    label: "In Case I Don't See Ya: Truman's Escape from the Public Sphere",
+    publisher: "Diggit Magazine (Tilburg University)",
+    url: "https://www.diggitmagazine.com/case-i-dont-see-ya-trumans-escape-public-sphere-0",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Разбор финала через Хабермаса и Нэнси Фрейзер: Сихейвен как «рефеодализованная» публичная сфера, море как выход из неё и возвращение частной сферы.",
+  },
+  {
+    id: "src-goldderby",
+    label: "'The Truman Show' 25th anniversary",
+    publisher: "Gold Derby (Brian Rowe)",
+    url: "https://www.goldderby.com/feature/the-truman-show-25th-anniversary-1205449674/",
+    tier: "SECONDARY",
+    publishedAt: "2023-06-04",
+    checkedOn: "2026-10-28",
+    supports:
+      "Сводка рецензий 1998 года с цитатами: Сьюзан Старк (Detroit News) — «умный, провокационный и остроумный сплав»; Эберт — про «новые ценности, которые навязывает технология»; Джей Карр (Boston Globe) — «мощная фантазия, которая ловит дух времени».",
+  },
+  {
+    id: "src-opensiuc",
+    label: "Cue the Sun: An Analysis of Perceptual Effects Representations in The Truman Show",
+    publisher: "OpenSIUC (Southern Illinois University research paper)",
+    url: "https://opensiuc.lib.siu.edu/cgi/viewcontent.cgi?article=1111&context=gs_rp",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Академический разбор постановочных эффектов: как фильм изображает аудиторию и почему однородность зрителей на экране — часть его тезиса; цитаты Маккарти (Variety) и Эберта, касса и бюджет.",
+  },
+  {
+    id: "src-transparencynow",
+    label: "The Meaning of The Truman Show",
+    publisher: "Transparency (media-studies site)",
+    url: "https://www.transparencynow.com/trusig.htm",
+    tier: "TERTIARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Интерпретация «медиа-ландшафт как декорация»: фильм изобличает медиа, но сам является медиа, и потому манипулирует зрителем, чтобы тот увидел манипуляцию.",
+  },
+  {
+    id: "src-cbr",
+    label: "The Truman Show: Why the Jim Carrey Classic Is Still Debated",
+    publisher: "CBR",
+    url: "https://www.cbr.com/jim-carrey-the-truman-show-divisive-ending/",
+    tier: "TERTIARY",
+    checkedOn: "2026-10-28",
+    supports: "Популярный разбор споров вокруг финала: свободная воля, согласие, «Free Truman» как активистская группа.",
+  },
+
   // ---- Tertiary ------------------------------------------------------------
   {
     id: "src-alchetron",
@@ -995,6 +1101,84 @@ export const trumanProductionClaims: ProductionClaim[] = [
     text: "Материалов о производстве фильма к 2026 году накопилось столько, что они сами стали предметом каталогизации — от локальных фотоархивов до любительских вики.",
     sourceIds: ["src-checkplease-index", "src-newsherald-photos"],
     status: "CONFIRMED",
+  },
+  {
+    id: "claim-ebert-review",
+    text: "Эберт дал фильму четыре звезды и написал, что «основополагающие идеи сделали его бо́льшим, чем развлечение»: фильм «фокусирует новые ценности, которые технология навязывает человечеству».",
+    sourceIds: ["src-ebert", "src-goldderby", "src-opensiuc"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-rosenbaum",
+    text: "Розенбаум в Chicago Reader был единственным громким диссидентом: «концепт и умный, и глупый», фильм «притворяется дерзким, повторяя то, что индустрия и так думает о себе и о зрителе».",
+    sourceIds: ["src-rosenbaum", "src-imdb-criticreviews"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-rosenbaum-audience",
+    text: "Розенбаум отдельно разобрал, кем фильм показывает свою аудиторию: официантки в баре, две старухи на диване с подушкой-сувениром, японские зрители, — и увидел в этом не портрет человечества, а набор карикатур, которые должны подтвердить превосходство авторов над зрителем.",
+    sourceIds: ["src-rosenbaum"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-rosenbaum-lineage",
+    text: "Розенбаум указал на два литературных предшественника: рассказ Хайнлайна «They» (1941) и «The Tunnel Under the World» Пола (1954), где город оказывается полигоном для проверки рекламы.",
+    sourceIds: ["src-rosenbaum"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-knox",
+    text: "Симона Нокс в журнале Film Criticism доказывает, что фильм не просто строится на бинарностях кино/телевидение и снаружи/внутри, а подрывает их: камера «фильма» умеет предугадывать событие, чего прямой эфир не может, и именно это выдаёт присутствие второй, невидимой инстанции.",
+    sourceIds: ["src-knox"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-bishop",
+    text: "Рональд Бишоп в Journal of Communication Inquiry спорит с самим фильмом: развлекательная индустрия присваивает наше желание критиковать медиа и продаёт его обратно, поэтому «власть медиа скорее утверждается, чем оспаривается».",
+    sourceIds: ["src-bishop"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-thomson",
+    text: "Дэвид Томсон называет фильм своим любимым и читает купол как экран в двух смыслах: киноэкран и экран, который не пускает дальше; после выхода фильм часто называли религиозной аллегорией, а он увидел в нём метафору самого кино.",
+    sourceIds: ["src-thomson"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-habermas",
+    text: "Финальный побег разбирают и через теорию публичной сферы: Сихейвен читается как «рефеодализованная» публичная сфера по Хабермасу, а море — как выход из неё и возвращение частной жизни.",
+    sourceIds: ["src-diggit", "src-cbr"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-psychoanalytic",
+    text: "Психоаналитики Майкл Брирли и Андреа Саббадини читают состояние Трумана в начале фильма как подростковое: он заперт в мире, с которым не может ни слиться, ни расстаться, а финальный выход делает его «настоящим человеком» — True-man.",
+    sourceIds: ["src-wikipedia-truman", "src-diggit"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-reception-split",
+    text: "Критика была в основном восторженной — Metacritic 90, четыре звезды у Эберта, «gemlike» у Variety, — но не единодушной: Розенбаум поставил 70 и назвал концепт глупым, а позже это стало стандартной претензией к фильму.",
+    sourceIds: ["src-imdb-criticreviews", "src-rosenbaum", "src-ebert", "src-opensiuc"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-baudrillard",
+    text: "В академической литературе фильм читают через Бодрийяра: «Шоу Трумана» всерьёз принимает тезис о том, что симуляция предшествует реальности — эту формулу приводит Нокс со ссылкой на Дж. Макгрегора Уайза.",
+    sourceIds: ["src-knox"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-religious-allegory-reading",
+    text: "Чтение фильма как христианской аллегории (Кристоф-творец, «звезда» вместо сына, поклон вместо прощения) широко распространено в критике и проповеди, но создатели не заявляли его как замысел.",
+    sourceIds: ["src-thomson", "src-transparencynow"],
+    status: "DISPUTED",
+  },
+  {
+    id: "claim-unanimous-praise",
+    text: "Утверждение, что «все критики были в восторге», не выдерживает проверки: у фильма есть заметный диссидентский отзыв в крупном издании, и сама эта дискуссия стала частью его истории.",
+    sourceIds: ["src-rosenbaum", "src-imdb-criticreviews"],
+    status: "DISPUTED",
   },
   {
     id: "claim-cinema-prank",

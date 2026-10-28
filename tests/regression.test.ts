@@ -4923,14 +4923,14 @@ test("Film 001 production dossier holds its own register", () => {
     assert.equal(source.checkedOn, "2026-10-28", `${source.id} was opened in the same sitting`);
     assert.ok(source.supports.length > 30, `${source.id}: supports must say what it backs`);
   }
-  assert.ok(hosts.size > 20, "a register of 60 sources should not be 20 sites");
+  assert.ok(hosts.size > 25, "a register of 75 sources should not be 25 sites");
 
   // Sections read in order and each one carries something.
   assert.deepEqual(
     dossier.sections.map((section) => section.number),
     dossier.sections.map((_, index) => index + 1),
   );
-  assert.equal(dossier.claims.filter((claim) => claim.status === "CONFIRMED").length > 40, true);
+  assert.equal(dossier.claims.filter((claim) => claim.status === "CONFIRMED").length > 60, true);
 });
 
 test("Film 001 production dossier never borrows the film's authority", () => {
@@ -5134,10 +5134,27 @@ test("Film 001 production cover is a 16:9 hero that shares as the dossier", () =
 
   const hero = heroImageFromAsset(cover);
   assert.ok(hero);
+  // The `<img>` is the guaranteed fallback — never AVIF-only.
   assert.equal(hero.src, "/og/truman-making-wide.jpg");
   assert.equal(hero.width, 1280);
   assert.equal(hero.height, 720);
   assert.ok(hero.alt.length > 40);
+
+  // …and the `<picture>` offers the smaller format first, at the same pixels.
+  assert.deepEqual(
+    hero.sources.map((source) => [source.type, source.width, source.height]),
+    [["image/avif", 1280, 720]],
+  );
+  const avif = cover.variants.find((variant) => variant.format === "avif");
+  assert.ok(avif);
+  const jpegTwin = cover.variants.find(
+    (variant) => variant.format === "jpg" && variant.purpose === avif.purpose,
+  );
+  assert.ok(jpegTwin);
+  assert.ok(
+    (avif.byteSize ?? 0) > 0 && (avif.byteSize ?? 0) < (jpegTwin.byteSize ?? 0) * 0.6,
+    "AVIF must actually be substantially smaller, or it is only decoration",
+  );
 
   // The dossier's own card is 1200×675 — 16:9, not the 1.91:1 of the film card.
   const card = shareImageFromAsset(cover);
@@ -5145,6 +5162,8 @@ test("Film 001 production cover is a 16:9 hero that shares as the dossier", () =
   assert.equal(card.url, "/og/truman-making-share.jpg");
   assert.equal(card.width, 1200);
   assert.equal(card.height, 675);
+  // The share card stays JPEG on purpose: scrapers do not read AVIF reliably.
+  assert.equal(card.url.endsWith(".jpg"), true);
 
   // And the metadata for the dossier page uses it, while the analysis page keeps
   // its own artwork.
@@ -5166,4 +5185,41 @@ test("Film 001 production cover is a 16:9 hero that shares as the dossier", () =
   const noAlt = structuredClone(cover);
   noAlt.alt = "";
   assert.equal(heroImageFromAsset(noAlt), undefined);
+});
+
+test("Film 001 production dossier records the arguments about the film, not just its facts", () => {
+  const dossier = theTrumanShowProductionDossier;
+  const readings = dossier.sections.find((section) => section.id === "prod-readings");
+  assert.ok(readings, "the dossier has a section on other people's readings");
+
+  // Reception is data too: each named critic is a claim with a source, so an
+  // opinion can never enter the text as if it were the film's own voice.
+  const ids = ["claim-ebert-review", "claim-rosenbaum", "claim-knox", "claim-bishop", "claim-thomson"];
+  for (const id of ids) {
+    const claim = dossier.claims.find((candidate) => candidate.id === id);
+    assert.ok(claim, `${id} is declared`);
+    assert.equal(claim.status, "CONFIRMED", `${id} is a documented position, not a rumour`);
+    assert.ok(claim.sourceIds.length > 0);
+    const attributed = dossier.sections
+      .flatMap((section) => section.blocks)
+      .some((block) => block.kind === "paragraph" && (block.claimIds ?? []).includes(id));
+    assert.ok(attributed, `${id} is actually cited in the prose`);
+  }
+
+  // The dissenting reading must be present — a dossier that only lists praise is
+  // an advertisement. Rosenbaum is the one voice against the film.
+  const text = readings.blocks.map((block) => JSON.stringify(block)).join(" ");
+  assert.match(text, /Розенбаум/);
+  assert.match(text, /умный, и глупый|и умный, и глупый/);
+
+  // And the register must contain the actual documents behind those readings:
+  // two peer-reviewed articles and a major daily review, not summaries of them.
+  const hosts = dossier.sources.map((source) => new URL(source.url).host);
+  for (const host of ["www.semanticscholar.org", "chicagoreader.com", "www.rogerebert.com", "www.theguardian.com"]) {
+    assert.ok(hosts.includes(host), `the register cites ${host}`);
+  }
+  assert.ok(
+    dossier.sources.filter((source) => source.tier === "SECONDARY").length >= 25,
+    "a reception section needs actual criticism, not study-guide paraphrases",
+  );
 });

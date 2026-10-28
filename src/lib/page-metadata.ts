@@ -50,14 +50,56 @@ export function shareImageFromAsset(manifest: VisualAssetManifest): ShareImage |
  * refuses an asset without a declared display variant rather than guessing at
  * one — the same rule the share card follows.
  */
-export type PageHeroImage = { src: string; width: number; height: number; alt: string };
+export type PageHeroImage = {
+  /** The fallback the `<img>` always points at. */
+  src: string;
+  width: number;
+  height: number;
+  alt: string;
+  /** Format-negotiated sources for `<picture>`, best first. */
+  sources: Array<{ src: string; type: string; width: number; height: number }>;
+};
 
+const MIME: Record<string, string> = {
+  avif: "image/avif",
+  webp: "image/webp",
+  jpg: "image/jpeg",
+  png: "image/png",
+};
+
+/**
+ * Hero from the largest display variants.
+ *
+ * Preference order is by weight, not by novelty: AVIF is ~50 % smaller than JPEG
+ * for the same pixels, but the `<img>` fallback is always a format every browser
+ * can decode. The share card deliberately does **not** do this — social scrapers
+ * still do not reliably read AVIF, so `og:image` stays JPEG. A picture that looks
+ * good and cannot be embedded is not a share card.
+ */
 export function heroImageFromAsset(manifest: VisualAssetManifest): PageHeroImage | undefined {
   const display = manifest.variants
     .filter((variant) => variant.purpose === "display")
-    .sort((a, b) => b.width - a.width)[0];
-  if (!display || !manifest.alt.trim()) return undefined;
-  return { src: display.src, width: display.width, height: display.height, alt: manifest.alt };
+    .sort((a, b) => b.width - a.width);
+  const widest = display[0]?.width ?? 0;
+  const atBestWidth = display.filter((variant) => variant.width === widest);
+  const fallback =
+    atBestWidth.find((variant) => variant.format === "jpg" || variant.format === "png") ??
+    atBestWidth[0];
+  if (!fallback || !manifest.alt.trim()) return undefined;
+  return {
+    src: fallback.src,
+    width: fallback.width,
+    height: fallback.height,
+    alt: manifest.alt,
+    sources: atBestWidth
+      .filter((variant) => variant.format === "avif" || variant.format === "webp")
+      .map((variant) => ({
+        src: variant.src,
+        type: MIME[variant.format],
+        width: variant.width,
+        height: variant.height,
+      })),
+  };
 }
 
 export type PageMetadataView = {
