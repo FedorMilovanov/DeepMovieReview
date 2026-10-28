@@ -4038,3 +4038,23 @@ test("Film 001 canonical evidence retires, splits and adds exactly as declared",
     added.length;
   assert.equal(canonicalIds.size, expected, "canonical evidence count drifted");
 });
+
+test("Film 001 article metrics agree with the recorded master measurements", () => {
+  // docs/49-FILM-001-ARTICLE-V1.md quotes these numbers; the article must not
+  // drift away from the recorded scan it claims to reproduce.
+  assert.equal(TRUMAN_MASTER_ENGLISH_SUBTITLE_CUES, 695);
+  assert.equal(TRUMAN_MASTER_SCENE_CHANGE_CANDIDATES, 1036);
+  assert.equal(TRUMAN_SCENE_CHANGE_THRESHOLD, 0.32);
+
+  const metrics = deriveTrumanMasterChapterMetrics();
+  const silentWall = metrics.find((metric) => metric.chapterId === "truman-ch-21");
+  assert.ok(silentWall);
+  // The wall/stairs sequence: 28 cuts and not one line of dialogue.
+  assert.equal(silentWall.sceneChangeCandidates, 28);
+  assert.equal(silentWall.embeddedEnglishSubtitleCues, 0);
+
+  const busiest = [...metrics].sort(
+    (a, b) => b.sceneChangeCandidatesPerMinute - a.sceneChangeCandidatesPerMinute,
+  )[0];
+  assert.ok(busiest.sceneChangeCandidatesPerMinute > 0);
+});
