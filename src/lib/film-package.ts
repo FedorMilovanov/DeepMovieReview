@@ -547,6 +547,22 @@ export type ArticleBlock =
       scriptureRefs?: string[];
     }
   | {
+      /**
+       * An original illustration placed inside the argument.
+       *
+       * It may only reference a declared visual asset, and that asset must be a
+       * generated illustration — the validator rejects a still, because the site
+       * does not publish frames of a film. The caption is mandatory and must say
+       * so in words: a picture that looks like a still has to be labelled as not
+       * being one.
+       */
+      kind: "illustration";
+      id: string;
+      /** Id of a manifest in `src/data/film-illustrations.ts`. */
+      assetId: string;
+      caption: string;
+    }
+  | {
       kind: "subhead";
       id: string;
       text: string;

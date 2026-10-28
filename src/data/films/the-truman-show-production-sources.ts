@@ -299,6 +299,116 @@ export const trumanProductionSources: ProductionSource[] = [
   },
 
   {
+    id: "src-bauman",
+    label: "Moral distance, AI, and the ethics of care",
+    publisher: "AI & Society (Springer) — разбор концепции Баумана",
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10033285/",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Бауман о «моральной дистанции»: чем дальше жертва, тем легче её страдание становится зрелищем; «легко быть жестоким к тому, кого мы не видим и не слышим». Бюрократия работает как моральное снотворное: важно исполнение, а не последствия.",
+  },
+  {
+    id: "src-levinas",
+    label: "Levinas' Concept of the Face of Others and Its Ethical Responsibility Toward Strangers",
+    publisher: "SAGE Advance",
+    url: "https://advance.sagepub.com/doi/full/10.31124/advance.172381661.12067990/v1",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Левинас: ответственность возникает до выбора, из встречи с лицом другого; лицо — не внешность, а беззащитность, которая требует ответа. Этика предшествует свободе и расчёту.",
+  },
+  {
+    id: "src-milgram",
+    label: "Looking back: The making of an (in)famous experiment",
+    publisher: "The Psychologist (British Psychological Society)",
+    url: "https://www.bps.org.uk/psychologist/looking-back-making-infamous-experiment",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Опыты Милгрэма: около 65 % обычных людей доходили до максимума по шкале, подчиняясь авторитету; реконструкция истории эксперимента и его связи с «я просто выполнял приказ».",
+  },
+  {
+    id: "src-intechopen",
+    label: "Pocket-Sized Empathy and Social Activism",
+    publisher: "IntechOpen (глава, Бауман/Арендт/Батсон)",
+    url: "https://www.intechopen.com/chapters/1244307",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Эмпатия на расстоянии: экран отделяет страдание от ответственности, сочувствие становится измеримым и демонстративным, а участие — иллюзорным (адиафоризация по Бауману).",
+  },
+  {
+    id: "src-bonhoeffer",
+    label: "On Stupidity («Von der Dummheit», 1943)",
+    publisher: "Philosophy Chatter — перевод эссе Бонхёффера",
+    url: "https://philosophychatter.substack.com/p/bonhoeffer-on-stupidity-507",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Бонхёффер: глупость опаснее злобы; это не недостаток ума, а утрата внутренней самостоятельности под давлением силы; «власть одного нуждается в глупости другого»; побеждается не убеждением, а освобождением.",
+  },
+  {
+    id: "src-havel",
+    label: "The Power of the Powerless (1978), фрагменты",
+    publisher: "Hanover College, History Department",
+    url: "https://history.hanover.edu/courses/excerpts/165havel.html",
+    tier: "PRIMARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Гавел: человеку не нужно верить в официальную ложь — достаточно «жить внутри лжи»; лавочник, выставивший лозунг, поддерживает систему самим фактом участия; выход начинается с «жизни в истине».",
+  },
+  {
+    id: "src-solzhenitsyn",
+    label: "The Courage to Refuse: Solzhenitsyn's «Live Not by Lies»",
+    publisher: "Summitborn",
+    url: "https://summitborn.com/live-not-by-lies-essay-review/",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Солженицын, февраль 1974: насилию нужна ложь; достаточно личного неучастия в ней, чтобы система начала рассыпаться; не нужно становиться диссидентом — достаточно не повторять неправду.",
+  },
+  {
+    id: "src-filmdaze",
+    label: "How 'The Truman Show' Depicts the Spectrum of Abuse",
+    publisher: "Film Daze",
+    url: "https://filmdaze.net/how-the-truman-show-depicts-the-spectrum-of-abuse/",
+    tier: "TERTIARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Марлон как «серая зона»: газлайтинг с детства, единственный из актёров, кто выказывает раскаяние, и сам выросший внутри шоу ребёнком-актёром.",
+  },
+  {
+    id: "src-thinking-sociologically",
+    label: "Watching Without Seeing: The Ethics of Spectatorship in The Truman Show",
+    publisher: "Thinking Sociologically",
+    url: "https://thinkingsociologically.com/2025/08/29/watching-without-seeing-the-ethics-of-spectatorship-in-the-truman-show/",
+    tier: "TERTIARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Соучастие зрителя: эмоциональная вовлечённость аудитории не переходит в действие, а укрепляет систему; «моральная дистанция» Баумана и «перформативная эмпатия».",
+  },
+  {
+    id: "src-highonfilms",
+    label: "The Truman Show (1998): Reading the Comfort of Illusion",
+    publisher: "High On Films",
+    url: "https://www.highonfilms.com/the-truman-show-1998-movie-review/",
+    tier: "TERTIARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Кристоф не сведён к карикатурному злодею: его забота о герое не выдумана, и фильм сознательно не выносит однозначного приговора.",
+  },
+  {
+    id: "src-gradesaver-characters",
+    label: "The Truman Show — Character List",
+    publisher: "GradeSaver",
+    url: "https://www.gradesaver.com/the-truman-show/study-guide/character-list",
+    tier: "TERTIARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Мэрил/Ханна: актриса, для которой роль жены — работа с контрактом и переговорами; продукт-плейсмент встроен в быт.",
+  },
+  {
     id: "src-patheos",
     label: "Review: The Truman Show (dir. Peter Weir, 1998)",
     publisher: "Patheos / Filmchat (Peter T. Chattaway)",
@@ -734,15 +844,6 @@ export const trumanProductionSources: ProductionSource[] = [
     supports: "Версия про наушник Харриса на площадке; описание контраста «холодной» лунной комнаты и тёплого города.",
   },
   {
-    id: "src-filmdaze",
-    label: "How ‘The Truman Show’ Depicts the Spectrum of Abuse",
-    publisher: "Film Daze",
-    url: "https://filmdaze.net/how-the-truman-show-depicts-the-spectrum-of-abuse/",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Упоминание «10 909 дней» как показателя стажа шоу; разбор виньеток и «оп oppressive» операторской работы.",
-  },
-  {
     id: "src-medium-remember",
     label: "A FILM TO REMEMBER: “THE TRUMAN SHOW” (1998)",
     publisher: "Medium",
@@ -760,15 +861,6 @@ export const trumanProductionSources: ProductionSource[] = [
     tier: "TERTIARY",
     checkedOn: "2026-10-28",
     supports: "Общий разбор операторского приёма «как реалити» и опоры на практические эффекты.",
-  },
-  {
-    id: "src-highonfilms",
-    label: "The Truman Show (1998) Movie Review: Reading the Comfort of Illusion",
-    publisher: "High On Films",
-    url: "https://www.highonfilms.com/the-truman-show-1998-movie-review/",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Спор о том, что фильм не сводит Кристофа к карикатуре.",
   },
   {
     id: "src-rankers-registry",
@@ -1167,6 +1259,66 @@ export const trumanProductionClaims: ProductionClaim[] = [
     text: "Религиозная критика читает фильм не только как христианскую притчу, но и как гностический миф: демиург запер дух в поддельном мире, а спасение приходит извне — таково чтение Patheos, и оно объясняет, почему Кристоф похож на ревнивого творца, а не на евангельского Бога.",
     sourceIds: ["src-patheos", "src-wikipedia-truman"],
     status: "CONFIRMED",
+  },
+  {
+    id: "claim-bauman-distance",
+    text: "Социолог Зигмунт Бауман описал «моральную дистанцию»: чем дальше человек, тем легче его страдание превращается в зрелище, а не в требование; бюрократия работает как моральное снотворное, в котором важно исполнение, а не последствия.",
+    sourceIds: ["src-bauman", "src-intechopen"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-levinas-face",
+    text: "У Левинаса ответственность возникает раньше выбора — из встречи с лицом другого, где лицо означает беззащитность, требующую ответа. Именно этого отношения фильм своим зрителям не даёт: он показывает лица, но снимает с них требование.",
+    sourceIds: ["src-levinas"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-milgram",
+    text: "В опытах Милгрэма около двух третей обычных участников доходили до последнего деления шкалы, подчиняясь авторитету и распределяя ответственность; позже участников чаще описывали не как запуганных, а как убеждённых в важности дела.",
+    sourceIds: ["src-milgram"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-bonhoeffer-stupidity",
+    text: "Бонхёффер в 1943 году писал, что глупость опаснее злобы: это не недостаток ума, а утрата внутренней самостоятельности под давлением силы, и побеждается она не убеждением, а освобождением.",
+    sourceIds: ["src-bonhoeffer"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-havel-lie",
+    text: "Гавел описал «жизнь внутри лжи»: человеку не нужно верить официальной лжи, достаточно вести себя так, будто он в неё верит; каждый, кто так делает, поддерживает систему, а выход начинается с «жизни в истине».",
+    sourceIds: ["src-havel"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-solzhenitsyn-nonparticipation",
+    text: "Солженицын в эссе «Жить не по лжи» (февраль 1974) предлагал минималистичную этику: личное неучастие в неправде, без превращения в профессионального диссидента.",
+    sourceIds: ["src-solzhenitsyn"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-audience-complicity",
+    text: "Академические и критические разборы сходятся: аудитория «Шоу Трумана» эмоционально вовлечена и при этом остаётся соучастником — сочувствие не переходит в действие и тем самым поддерживает конструкцию.",
+    sourceIds: ["src-thinking-sociologically", "src-intechopen", "src-highonfilms"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-meryl-greyzone",
+    text: "Мэрил одновременно соучастница и жертва: для актрисы Ханны это работа с контрактом и рекламными вставками, но живёт она внутри того же чужого сценария. Критики расходятся в том, где кончается её вина.",
+    sourceIds: ["src-gradesaver-characters", "src-thinking-sociologically"],
+    status: "DISPUTED",
+  },
+  {
+    id: "claim-marlon-greyzone",
+    text: "Марлон — самая серая фигура фильма: он газлайтит героя с детства, но единственный из актёров выказывает раскаяние и сам вырос внутри шоу ребёнком-актёром, то есть не выбирал участие.",
+    sourceIds: ["src-filmdaze", "src-gradesaver-characters"],
+    status: "DISPUTED",
+  },
+  {
+    id: "claim-christof-sincerity",
+    text: "Критики спорят, искренна ли привязанность Кристофа: часть разборов видит в нём не карикатурного злодея, а человека, который действительно верит, что спасает героя, — и именно поэтому непоправим.",
+    sourceIds: ["src-highonfilms", "src-patheos"],
+    status: "DISPUTED",
   },
   {
     id: "claim-ebert-review",

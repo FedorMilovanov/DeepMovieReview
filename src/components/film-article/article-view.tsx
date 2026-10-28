@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ArticleBlock, ArticleMeasurementRef, FilmArticle } from "@/lib/film-package";
+import { illustrationView } from "@/data/film-illustrations";
 import type { ArticleMeasurementView, ArticleProjection } from "@/lib/film-article";
 import { articleReadingMinutes } from "@/lib/film-article";
 import { withSpoilerQuery, type SpoilerLevel } from "@/lib/spoilers";
@@ -34,6 +35,41 @@ const levelLabels: Record<SpoilerLevel, string> = {
 function formatSignatureDate(iso: string): string {
   const [year, month, day] = iso.split("-");
   return `${day}.${month}.${year}`;
+}
+
+/**
+ * An illustration inside the argument.
+ *
+ * A plain `<picture>` again: AVIF first, JPEG as the guaranteed fallback, no
+ * build-time image service. The caption is not decoration — it is where the
+ * picture admits it is a drawing and not a frame of the film, and the validator
+ * refuses the block if that sentence is missing.
+ */
+function ArticleIllustration({
+  block,
+}: {
+  block: Extract<ArticleBlock, { kind: "illustration" }>;
+}) {
+  const view = illustrationView(block.assetId);
+  if (!view) return null;
+  return (
+    <figure className="articleIllustration">
+      <picture>
+        {view.sources.map((source) => (
+          <source key={source.src} srcSet={source.src} type={source.type} />
+        ))}
+        <img
+          src={view.src}
+          alt={view.alt}
+          width={view.width}
+          height={view.height}
+          loading="lazy"
+          decoding="async"
+        />
+      </picture>
+      <figcaption>{block.caption}</figcaption>
+    </figure>
+  );
 }
 
 function MeasurementFigure({ view, text }: { view: ArticleMeasurementView; text: string }) {
@@ -71,6 +107,8 @@ function ArticleBlockView({
           <p>{block.text}</p>
         </aside>
       );
+    case "illustration":
+      return <ArticleIllustration block={block} />;
     case "subhead":
       return <h3 className="articleSubhead">{block.text}</h3>;
     case "pullquote":

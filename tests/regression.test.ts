@@ -21,6 +21,7 @@ import {
 } from "../src/lib/production-dossier";
 import { productionDossiers, getProductionDossier } from "../src/data/films/production-dossiers";
 import { theTrumanShowProductionDossier } from "../src/data/films/the-truman-show-production";
+import { illustrationFacts, illustrationView } from "../src/data/film-illustrations";
 import {
   arcCredibilityLabels,
   characterPresentationLabels,
@@ -5337,7 +5338,11 @@ test("Moral judgement is grounded in Scripture inside the argument, not only in 
   );
   assert.ok(refs.length >= 2, `the moral account cites Scripture: ${refs.length}`);
   for (const ref of refs) {
-    assert.match(ref, /^(Бытие|Марк|Лука|Иоанн|Исход|Деяния|Псалом|Второзаконие|Иона)\s/);
+    assert.match(
+      ref,
+      /^(Бытие|Марк|Лука|Иоанн|Исход|Деяния|Псалом|Второзаконие|Иона|Притчи|Иаков)\s/,
+      `unexpected Scripture reference format: "${ref}"`,
+    );
   }
 
   // Every citation is load-bearing: the paragraph carrying it must judge a
@@ -5355,4 +5360,106 @@ test("Moral judgement is grounded in Scripture inside the argument, not only in 
   const lastParagraph = morality.blocks.filter((block) => block.kind === "paragraph").at(-1);
   assert.ok(lastParagraph && lastParagraph.kind === "paragraph");
   assert.match(lastParagraph.text, /следующий раздел/);
+});
+
+test("An in-article illustration must be a generated drawing, captioned as not a frame", () => {
+  const context = trumanArticleContext();
+  const withRegistry = {
+    ...context,
+    resolveIllustration: (id: string) =>
+      id === "illu-ok"
+        ? { alt: "Зрительный зал: ряд пустых кресел и много рук с попкорном", sourceKind: "generated", role: "illustration" }
+        : id === "illu-still"
+          ? { alt: "Кадр из фильма", sourceKind: "frame-grab", role: "illustration" }
+          : id === "illu-card"
+            ? { alt: "Карточка", sourceKind: "generated", role: "social" }
+            : id === "illu-noalt"
+              ? { alt: "   ", sourceKind: "generated", role: "illustration" }
+              : undefined,
+  };
+
+  // Placed into the real article rather than into a two-line stub, so the check
+  // also proves the block type coexists with the rules on section count and
+  // evidence coverage.
+  const articleWith = (block: Record<string, unknown>) => ({
+    ...theTrumanShowArticle,
+    sections: [
+      {
+        ...theTrumanShowArticle.sections[0],
+        blocks: [...theTrumanShowArticle.sections[0].blocks, block as never],
+      },
+      ...theTrumanShowArticle.sections.slice(1),
+    ],
+  });
+
+  const caption = "Иллюстрация: как выглядит соучастие. Это рисунок, не кадр из фильма.";
+  const valid = validateFilmArticle(
+    articleWith({ kind: "illustration", id: "illu-valid", assetId: "illu-ok", caption }),
+    withRegistry,
+  );
+  assert.deepEqual(valid, []);
+
+  const cases: Array<[Record<string, unknown>, string]> = [
+    [{ assetId: "illu-unknown" }, 'unknown illustration "illu-unknown"'],
+    [{ assetId: "illu-still" }, "the site does not publish stills"],
+    [{ assetId: "illu-card" }, 'has role "social"'],
+    [{ assetId: "illu-noalt" }, "has no alternative text"],
+    [{ assetId: "illu-ok", caption: "" }, "an illustration needs a caption"],
+    [{ assetId: "illu-ok", caption: "Просто красивая картинка" }, "must say the picture is not a frame"],
+  ];
+  for (const [override, expected] of cases) {
+    const errors = validateFilmArticle(
+      articleWith({ kind: "illustration", id: "illu-case", assetId: "illu-ok", caption, ...override }),
+      withRegistry,
+    );
+    assert.equal(
+      errors.some((error) => error.includes(expected)),
+      true,
+      `expected an error containing "${expected}", got: ${errors.join(" | ")}`,
+    );
+  }
+
+  // Without the registry the validator refuses rather than skipping the picture.
+  const withoutRegistry = validateFilmArticle(
+    articleWith({ kind: "illustration", id: "illu-x", assetId: "illu-ok", caption }),
+    context,
+  );
+  assert.equal(withoutRegistry.some((error) => error.includes("requires the illustration registry")), true);
+
+  // And every picture actually placed in the article is declared in the registry.
+  const placed = theTrumanShowArticle.sections
+    .flatMap((section) => section.blocks)
+    .filter((block) => block.kind === "illustration");
+  for (const block of placed) {
+    assert.ok(illustrationFacts(block.assetId), `${block.assetId} resolves`);
+    assert.ok(illustrationView(block.assetId), `${block.assetId} renders`);
+  }
+});
+
+test("The moral account names the grey zones and the complicity of watching", () => {
+  const morality = theTrumanShowArticle.sections.find(
+    (section) => section.id === "truman-article-morality",
+  );
+  assert.ok(morality);
+  const subheads = morality.blocks.filter((block) => block.kind === "subhead").map((block) => block.text);
+  assert.deepEqual(subheads, ["Серые зоны", "Созерцание вместо помощи"]);
+
+  const paragraphs = morality.blocks.filter((block) => block.kind === "paragraph");
+  assert.ok(paragraphs.length >= 12, `the section grew: ${paragraphs.length} paragraphs`);
+
+  const text = paragraphs.map((block) => (block.kind === "paragraph" ? block.text : "")).join(" ");
+  // Named thinkers, so the argument is attributable rather than ventriloquised.
+  for (const name of ["Бауман", "Бонхёффер", "Гавел", "Солженицын", "Милгрэм"]) {
+    assert.ok(text.includes(name), `the section names ${name}`);
+  }
+  // And the two things the reader must not miss: feeling is not helping, and a
+  // person is judged by acts without being reduced to them.
+  assert.match(text, /сочувствие как способ не помогать|не переходит в действие|заменой/);
+  assert.match(text, /оценивай поступок, не перечёркивая человека|не перечёркивая/);
+
+  // The register behind it carries the actual documents, not paraphrases of them.
+  const dossierHosts = theTrumanShowProductionDossier.sources.map((source) => new URL(source.url).host);
+  for (const host of ["pmc.ncbi.nlm.nih.gov", "www.bps.org.uk", "history.hanover.edu"]) {
+    assert.ok(dossierHosts.includes(host), `the dossier cites ${host}`);
+  }
 });

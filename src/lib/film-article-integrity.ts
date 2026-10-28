@@ -86,6 +86,8 @@ function blockIds(section: ArticleSection): string[] {
 
 function blockText(block: ArticleBlock): string {
   switch (block.kind) {
+    case "illustration":
+      return block.caption;
     case "paragraph":
     case "aside":
     case "subhead":
@@ -120,6 +122,14 @@ export type ArticleIntegrityContext = {
    * cannot drift.
    */
   measuredValues?: string[];
+  /**
+   * Resolves an illustration by asset id. Returns what the picture is and
+   * where it came from, so the validator can refuse anything that is not an
+   * original illustration.
+   */
+  resolveIllustration?: (assetId: string) =>
+    | { alt: string; sourceKind: string; role: string }
+    | undefined;
 };
 
 function checkSupport(
@@ -272,6 +282,33 @@ function checkBlock(
   }
 
   switch (block.kind) {
+    case "illustration": {
+      if (!context.resolveIllustration) {
+        errors.push(`${path}: an illustration requires the illustration registry.`);
+        break;
+      }
+      const asset = context.resolveIllustration(block.assetId);
+      if (!asset) {
+        errors.push(`${path}: unknown illustration "${block.assetId}".`);
+        break;
+      }
+      if (asset.role !== "illustration") {
+        errors.push(
+          `${path}: "${block.assetId}" has role "${asset.role}"; only an illustration may sit in the article.`,
+        );
+      }
+      if (asset.sourceKind !== "generated") {
+        errors.push(
+          `${path}: "${block.assetId}" is not an original illustration; the site does not publish stills.`,
+        );
+      }
+      if (isBlank(asset.alt)) errors.push(`${path}: "${block.assetId}" has no alternative text.`);
+      if (isBlank(block.caption)) errors.push(`${path}: an illustration needs a caption.`);
+      else if (!/не кадр/.test(block.caption)) {
+        errors.push(`${path}: the caption must say the picture is not a frame of the film.`);
+      }
+      break;
+    }
     case "timeline": {
       if (block.items.length === 0) errors.push(`${path}: a timeline needs at least one item.`);
       for (const item of block.items) {

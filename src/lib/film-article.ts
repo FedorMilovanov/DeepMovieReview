@@ -49,6 +49,8 @@ export function projectArticleSections(
 
 function blockProse(block: ArticleBlock): string {
   switch (block.kind) {
+    case "illustration":
+      return block.caption;
     case "paragraph":
     case "aside":
     case "subhead":
