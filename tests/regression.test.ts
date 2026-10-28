@@ -4,6 +4,11 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
+import {
+  arcCredibilityLabels,
+  characterPresentationLabels,
+  identificationLabels,
+} from "../src/lib/presentation-labels";
 import { validateFilmArticle } from "../src/lib/film-article-integrity";
 import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
@@ -4529,4 +4534,89 @@ test("Film 001 post-lock evidence additions are ledgered and counted", () => {
   // The research-era ledger stays pinned to its own 39 records.
   assert.equal(trumanVisualVerificationSummary.records, 39);
   assert.equal(trumanPostLockEvidenceSummary.visualConfirmed, 0);
+});
+
+test("Film 001 characters answer every docs/03 §5 question for a locked edition", () => {
+  const charactersModule = theTrumanShowCanonicalPackage.modules.find(
+    (module): module is CharactersModule => module.kind === "characters",
+  );
+  assert.ok(charactersModule, "the canonical package has a characters module");
+
+  const presentations = Object.keys(characterPresentationLabels);
+  const identifications = Object.keys(identificationLabels);
+  const credibilities = Object.keys(arcCredibilityLabels);
+
+  for (const character of charactersModule.characters) {
+    assert.ok(character.presentation, `${character.id}: presentation`);
+    assert.ok(character.identification, `${character.id}: identification`);
+    assert.ok(character.loyalties?.trim(), `${character.id}: loyalties`);
+    assert.ok(character.unchanged?.trim(), `${character.id}: unchanged`);
+
+    const arc = character.arcCredibility;
+    if (!arc) assert.fail(`${character.id}: arcCredibility`);
+    assert.ok(arc.note.trim(), `${character.id}: arcCredibility.note`);
+
+    assert.ok(presentations.includes(character.presentation), `${character.id}: unknown presentation`);
+    assert.ok(identifications.includes(character.identification), `${character.id}: unknown identification`);
+    assert.ok(credibilities.includes(arc.level), `${character.id}: unknown credibility`);
+  }
+
+  // Every label has to render, or the card silently prints an enum value.
+  for (const value of presentations) assert.ok(characterPresentationLabels[value as never]);
+  for (const value of identifications) assert.ok(identificationLabels[value as never]);
+  for (const value of credibilities) assert.ok(arcCredibilityLabels[value as never]);
+});
+
+test("Film 001 spoiler projection keeps the profile measurements and drops the interpretation", () => {
+  const charactersModule = theTrumanShowCanonicalPackage.modules.find(
+    (module): module is CharactersModule => module.kind === "characters",
+  );
+  assert.ok(charactersModule);
+
+  const projected = projectFilmModule(charactersModule, "NONE");
+  assert.ok(projected && projected.kind === "characters");
+
+  for (const character of projected.characters) {
+    assert.ok(character.presentation, `${character.id}: presentation survives the spoiler gate`);
+    assert.ok(character.identification, `${character.id}: identification survives the spoiler gate`);
+    assert.ok(character.loyalties, `${character.id}: loyalties survive the spoiler gate`);
+    assert.equal(character.believes, undefined, `${character.id}: interpretation stays hidden`);
+    assert.equal(character.unchanged, undefined, `${character.id}: arc reading stays hidden`);
+    assert.equal(character.arcCredibility, undefined, `${character.id}: arc verdict stays hidden`);
+  }
+});
+
+test("Film 001 module order follows the analytical order of docs/03 §3", () => {
+  const order = [
+    "story",
+    "characters",
+    "relationship",
+    "family-youth",
+    "meaning",
+    "teaching-signals",
+    "craft",
+    "autopsy",
+    "decision",
+    "moral-analysis",
+    "permission",
+    "biblical-synthesis",
+    "final-synthesis",
+    "sources-method",
+  ];
+
+  // Repeats (one module per relationship) are allowed; the first appearance is what orders.
+  const actual = [...new Set(theTrumanShowCanonicalPackage.modules.map((module) => module.kind))];
+  const expected = order.filter((kind) => actual.includes(kind as never));
+  assert.deepEqual(actual, expected, "modules read in the documented order: analysis, then norms, then synthesis");
+
+  const numbers = theTrumanShowCanonicalPackage.modules.map((module) => {
+    const match = /^(\d+)\s*\//.exec(module.eyebrow ?? "");
+    assert.ok(match, `${module.id}: eyebrow carries its reading position`);
+    return Number(match[1]);
+  });
+  assert.deepEqual(
+    numbers,
+    [...numbers].sort((a, b) => a - b),
+    "eyebrow numbers never run backwards",
+  );
 });

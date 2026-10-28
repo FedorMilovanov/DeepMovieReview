@@ -587,6 +587,29 @@ export function validateFilmPackage(
             interpretiveLevel,
             realFilm && hasInterpretiveFields,
           );
+
+          if (filmPackage.ingest?.edition?.state === "LOCKED") {
+            const required = [
+              ["presentation", item.presentation],
+              ["identification", item.identification],
+              ["loyalties", item.loyalties],
+              ["unchanged", item.unchanged],
+            ] as const;
+            for (const [field, value] of required) {
+              if (isBlank(value)) {
+                errors.push(
+                  `${filmModule.id}/${item.id}: ${field} is required once the analyzed edition is LOCKED (docs/03 §5).`,
+                );
+              }
+            }
+            if (!item.arcCredibility) {
+              errors.push(
+                `${filmModule.id}/${item.id}: arcCredibility is required once the analyzed edition is LOCKED (docs/03 §5).`,
+              );
+            } else if (isBlank(item.arcCredibility.note)) {
+              errors.push(`${filmModule.id}/${item.id}: arcCredibility requires a reason in note.`);
+            }
+          }
         }
         break;
       case "relationship": {

@@ -14,10 +14,13 @@ import type {
   TeachingSignalsModule,
 } from "@/lib/film-package";
 import {
+  arcCredibilityLabels,
+  characterPresentationLabels,
   confidenceLabels,
   craftMechanismLabels,
   decisionKnowledgeLabels,
   decisionPressureLabels,
+  identificationLabels,
   moralCulpabilityLabels,
   moralNarrativeStanceLabels,
   moralSeverityLabels,
@@ -66,13 +69,40 @@ export function CharactersModuleView({ module }: { module: CharactersModule }) {
           <article className="characterCard" key={character.id}>
             <div className="portraitPlaceholder" aria-hidden="true" />
             <h3>{character.name}</h3>
+            {character.presentation || character.identification ? (
+              <p className="characterPresentation">
+                {character.presentation ? (
+                  <span className="characterTrait">
+                    <span className="microLabel">Подача</span>
+                    {characterPresentationLabels[character.presentation]}
+                  </span>
+                ) : null}
+                {character.identification ? (
+                  <span className="characterTrait">
+                    <span className="microLabel">Идентификация</span>
+                    {identificationLabels[character.identification]}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
             <dl>
               <div><dt>Хочет</dt><dd>{character.wants}</dd></div>
               <div><dt>Боится</dt><dd>{character.fears}</dd></div>
+              {character.loyalties ? <div><dt>Верен</dt><dd>{character.loyalties}</dd></div> : null}
               <div><dt>Противоречие</dt><dd>{character.contradiction}</dd></div>
               {character.believes ? <div><dt>Верит</dt><dd>{character.believes}</dd></div> : null}
               {character.selfDeception ? <div><dt>Самообман</dt><dd>{character.selfDeception}</dd></div> : null}
               {character.arcSummary ? <div><dt>Арка</dt><dd>{character.arcSummary}</dd></div> : null}
+              {character.unchanged ? <div><dt>Не меняется</dt><dd>{character.unchanged}</dd></div> : null}
+              {character.arcCredibility ? (
+                <div>
+                  <dt>Дуга</dt>
+                  <dd>
+                    <span className="microLabel inlineLabel">{arcCredibilityLabels[character.arcCredibility.level]}</span>
+                    {character.arcCredibility.note}
+                  </dd>
+                </div>
+              ) : null}
               {character.roleInArgument ? <div><dt>Роль</dt><dd>{character.roleInArgument}</dd></div> : null}
             </dl>
           </article>

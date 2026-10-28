@@ -1,8 +1,11 @@
 ﻿import type { NarrativePermissionState } from "@/lib/content";
 import type {
+  ArcCredibility,
+  CharacterPresentation,
   Confidence,
   CraftMechanism,
   DecisionKnowledgeState,
+  IdentificationStrength,
   DecisionPressureKind,
   MoralCulpability,
   MoralNarrativeStance,
@@ -139,6 +142,25 @@ export const moralNarrativeStanceLabels: Record<MoralNarrativeStance, string> = 
   AMBIVALENT: "двойственно",
   NORMALIZES: "нормализует",
   CELEBRATES: "прославляет",
+};
+
+export const characterPresentationLabels: Record<CharacterPresentation, string> = {
+  ASPIRATIONAL: "образец",
+  CAUTIONARY: "предостережение",
+  MIXED: "смешанная подача",
+  FOCAL: "фокус истории",
+};
+
+export const identificationLabels: Record<IdentificationStrength, string> = {
+  HIGH: "сильное приглашение",
+  PARTIAL: "частичное приглашение",
+  LOW: "слабое приглашение",
+};
+
+export const arcCredibilityLabels: Record<ArcCredibility, string> = {
+  HIGH: "убедительна",
+  MEDIUM: "убедительна с оговорками",
+  LOW: "не убедительна",
 };
 
 export const pressureKindLabels = {

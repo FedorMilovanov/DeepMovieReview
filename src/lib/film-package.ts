@@ -178,13 +178,34 @@ export type StoryModule = FilmModuleBase & {
   }>;
 };
 
+/**
+ * How the film presents a character (docs/03 §5): the question a whole-film
+ * analysis must answer for every central figure. Aspirational is not the same
+ * as "protagonist", and focal does not imply approval.
+ */
+export type CharacterPresentation = "ASPIRATIONAL" | "CAUTIONARY" | "MIXED" | "FOCAL";
+
+/** How strongly the film's camera/script invites the viewer to inhabit a character (docs/03 §5). */
+export type IdentificationStrength = "HIGH" | "PARTIAL" | "LOW";
+
+export type ArcCredibility = "HIGH" | "MEDIUM" | "LOW";
+
 export type CharactersModule = FilmModuleBase & {
   kind: "characters";
   characters: Array<{
     id: string;
     name: string;
+    /**
+     * Presentation mode. Required once the edition is LOCKED: the analytical
+     * order in docs/03 asks this question before any normative synthesis.
+     */
+    presentation?: CharacterPresentation;
+    /** How strongly the film invites identification with this character. */
+    identification?: IdentificationStrength;
     wants: string;
     fears: string;
+    /** Which loyalties shape the character's decisions. */
+    loyalties?: string;
     contradiction: string;
     /** Hide the whole profile when wants/fears/contradiction would themselves reveal protected story information. */
     profileSpoilerLevel?: SpoilerLevel;
@@ -193,6 +214,10 @@ export type CharactersModule = FilmModuleBase & {
     believes?: string;
     selfDeception?: string;
     arcSummary?: string;
+    /** What survives the arc unchanged. */
+    unchanged?: string;
+    /** Whether the arc reads as psychologically credible, with the reason. */
+    arcCredibility?: { level: ArcCredibility; note: string };
     roleInArgument?: string;
     /** Evidence for the spoiler-safe/base profile fields. */
     profileSupport?: ClaimSupport;

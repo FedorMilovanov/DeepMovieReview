@@ -153,3 +153,38 @@ Canonical evidence: 41 → 46. `editorialRevision` moved `canonical-lock-1` →
 
 Nothing above is re-opened: the edition stays `LOCKED`, the scenes stay
 `VERIFIED`, and the publication gate stays closed.
+
+## 8. Post-lock amendment: character dimensions and reading order
+
+Recorded 2026-10-28, from the rules-compliance audit in `docs/52`.
+
+Two implementation rules were violated by the *presentation* of the package, not
+by the master, so the lock itself is untouched:
+
+1. **`docs/03` §5** asks nine questions of every central character. The schema
+   could answer seven; `presentation` (aspirational / cautionary / mixed /
+   merely focal), `loyalties`, `unchanged` and arc credibility had no field at
+   all, and `identification` strength had none either. Without `presentation`
+   `docs/09` §2's ban on *protagonist == role model* was unenforceable: the data
+   simply could not say which one the film presents. All six characters of
+   `truman-mod-characters` now carry `presentation`, `identification`,
+   `loyalties`, `unchanged` and `arcCredibility{level,note}`; the five fields are
+   required by the validator for any character in a **LOCKED** edition, and the
+   spoiler projection keeps the profile-level ones (`presentation`,
+   `identification`, `loyalties`) while still dropping the arc reading.
+
+2. **`docs/03` §3** fixes the analytical order: form, then morally significant
+   actions and decisions, then narrative stance and permission patterns, then
+   biblical synthesis. `truman-mod-permission` was rendered *before* craft,
+   autopsy and decision. It now stands after `truman-mod-moral`, and the module
+   eyebrows run 01–14 without a gap: story, characters, relationship ×3, family,
+   meaning, teaching signals, craft, autopsy, decision, moral analysis,
+   permission, biblical synthesis, final synthesis, sources.
+
+Neither change alters a scene, an evidence record, a timestamp or the runtime:
+canonical evidence stays at 46, the 21 scenes stay `VERIFIED`, and the
+publication gate stays closed. `lastReviewedAt` was **removed** from the
+sources-method module rather than guessed: `docs/24` §4 calls that field
+optional, the validator requires it only for a published analysis, and no human
+editor has signed this one yet. The article keeps the same posture — `byline`
+carries `draftedAt` and no `reviewedAt`.
