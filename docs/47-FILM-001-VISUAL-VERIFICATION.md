@@ -90,6 +90,13 @@ This deliberately **replaces** the research-era 15 DRAFT scenes with 23
 chapter-verified units. The old registry did not merely have inaccurate numbers:
 it merged and split the film along the wrong joints.
 
+> **Amendment (same day).** The canonical package merges the last three scenes
+> into one continuous `truman-sc-final-act` (5264.092 – 5760.755), so the locked
+> edition carries **21** scenes, not the 23 listed above. The Scene Autopsy
+> contract requires a single honest range that contains all four of its anchors,
+> and the wall → creator dialogue → exit sequence never leaves one location. See
+> `docs/48-FILM-001-EDITION-LOCK.md` §4.
+
 ## 4. Visual verification ledger
 
 New file: `src/data/films/the-truman-show-visual-verification.ts`.

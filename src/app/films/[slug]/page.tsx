@@ -41,9 +41,11 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
     description:
       film.status === "published"
         ? `${film.title} (${film.year}) — ${film.premise}`
-        : filmPackage.research?.state === "SECONDARY_SOURCES"
-          ? `${film.title} — исследовательский черновик по вторичным источникам; точный просмотренный мастер ещё не заблокирован.`
-          : `${film.title} — структурная фикстура платформы «Глубокие воды».`,
+        : filmPackage.ingest?.edition.state === "LOCKED"
+          ? `${film.title} — канонический разбор, привязанный к точному просмотренному мастеру (${film.year}); публикация ещё не открыта.`
+          : filmPackage.research?.state === "SECONDARY_SOURCES"
+            ? `${film.title} — исследовательский черновик по вторичным источникам; точный просмотренный мастер ещё не заблокирован.`
+            : `${film.title} — структурная фикстура платформы «Глубокие воды».`,
     alternates: film.status === "published" ? { canonical: `/films/${film.slug}` } : undefined,
     robots: film.status === "published" ? undefined : { index: false, follow: false },
   };
