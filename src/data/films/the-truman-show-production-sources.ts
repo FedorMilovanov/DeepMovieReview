@@ -299,6 +299,48 @@ export const trumanProductionSources: ProductionSource[] = [
   },
 
   {
+    id: "src-patheos",
+    label: "Review: The Truman Show (dir. Peter Weir, 1998)",
+    publisher: "Patheos / Filmchat (Peter T. Chattaway)",
+    url: "https://www.patheos.com/blogs/filmchat/1998/06/review-the-truman-show-dir-peter-weir-1998.html",
+    tier: "SECONDARY",
+    publishedAt: "1998-06-01",
+    checkedOn: "2026-10-28",
+    supports:
+      "Религиозное чтение кинокритика: история выстроена так, что напоминает гностическое богословие — демиург запер дух в материальном мире; Кристоф ближе к ревнивому божеству гностиков, чем к христианскому творцу, а «отец» Трумана, вернувшийся на площадку, даёт слабый намёк на другую логику — спасение изнутри мира.",
+  },
+  {
+    id: "src-lozier",
+    label: "The Truman Show (1998) — обзор",
+    publisher: "Lozier Institute",
+    url: "https://lozierinstitute.org/movie-reviews/the-truman-show-1998/",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Обзор с разбором деталей: номер 139 на парусе связан с псалмом о том, что от всеведения нельзя уплыть; название лодки «Санта-Мария» — флагман Колумба; монтаж детских фотографий, включая внутриутробную, встроен в аргумент о ценности жизни.",
+  },
+  {
+    id: "src-moviefone",
+    label: "11 Things You Never Knew About Jim Carrey's 'The Truman Show'",
+    publisher: "Moviefone",
+    url: "https://www.moviefone.com/news/the-truman-show-jim-carrey-movie-trivia/",
+    tier: "TERTIARY",
+    publishedAt: "2018-05-29",
+    checkedOn: "2026-10-28",
+    supports:
+      "Список деталей к 20-летию: замысел начинался с одностраничного тритмента 1991 года «The Malcolm Show» в декорациях Нью-Йорка; упоминаются «многочисленные скрытые отсылки к Псалму 139, включая номер на парусе»; у Уира был 10-страничный бэкграунд шоу.",
+  },
+  {
+    id: "src-markpshea",
+    label: "A Catholic Look at The Truman Show",
+    publisher: "Mark P. Shea (личный сайт)",
+    url: "https://markpshea.com/archive_sheavings/a-catholic-look-at-the-truman-show/",
+    tier: "TERTIARY",
+    checkedOn: "2026-10-28",
+    supports:
+      "Католическое чтение: лодка «Санта-Мария», крестообразная поза в перевёрнутой лодке, хождение по воде на мелководье, номер 139 на парусе как псалом о том, что от Бога не уйти.",
+  },
+  {
     id: "src-ebert",
     label: "The Truman Show — рецензия",
     publisher: "RogerEbert.com (Chicago Sun-Times)",
@@ -1100,6 +1142,30 @@ export const trumanProductionClaims: ProductionClaim[] = [
     id: "claim-register-pointer",
     text: "Материалов о производстве фильма к 2026 году накопилось столько, что они сами стали предметом каталогизации — от локальных фотоархивов до любительских вики.",
     sourceIds: ["src-checkplease-index", "src-newsherald-photos"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-santa-maria",
+    text: "Лодка, на которой герой уходит в море, называется «Санта-Мария» — так назывался флагман Колумба в первом плавании.",
+    sourceIds: ["src-lozier", "src-markpshea"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-psalm-139-sail",
+    text: "На парусе «Санта-Марии» стоит номер 139, и обозреватели давно читают его как отсылку к псалму 139 (в синодальной нумерации — 138-му): о том, что от всеведения нельзя уплыть даже на край моря.",
+    sourceIds: ["src-lozier", "src-moviefone", "src-markpshea"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-psalm-139-intent",
+    text: "Кто именно придумал номер 139 на парусе и означал ли он псалом, нигде не задокументировано: об этом пишут справочники и обозреватели, но не создатели. Это читательское наблюдение с сильной опорой, а не производственный факт.",
+    sourceIds: ["src-moviefone", "src-lozier"],
+    status: "DISPUTED",
+  },
+  {
+    id: "claim-gnostic-reading",
+    text: "Религиозная критика читает фильм не только как христианскую притчу, но и как гностический миф: демиург запер дух в поддельном мире, а спасение приходит извне — таково чтение Patheos, и оно объясняет, почему Кристоф похож на ревнивого творца, а не на евангельского Бога.",
+    sourceIds: ["src-patheos", "src-wikipedia-truman"],
     status: "CONFIRMED",
   },
   {

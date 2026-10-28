@@ -337,6 +337,24 @@ export function validateFilmArticle(
   if (isBlank(article.title)) errors.push(`${path}: title is required.`);
   if (isBlank(article.standfirst)) errors.push(`${path}: standfirst is required.`);
 
+  // Metadata budgets are part of the document, not a presentation detail: a
+  // title nobody finishes reading is a title that failed.
+  if (article.seoTitle !== undefined) {
+    if (isBlank(article.seoTitle)) errors.push(`${path}: seoTitle, when present, must not be blank.`);
+    else if (article.seoTitle.length > 49) {
+      errors.push(`${path}: seoTitle exceeds 49 characters (${article.seoTitle.length}).`);
+    }
+  }
+  if (article.seoDescription !== undefined) {
+    if (isBlank(article.seoDescription)) {
+      errors.push(`${path}: seoDescription, when present, must not be blank.`);
+    } else if (article.seoDescription.length > 160) {
+      errors.push(
+        `${path}: seoDescription exceeds 160 characters (${article.seoDescription.length}).`,
+      );
+    }
+  }
+
   // 1. Edition binding. An article is a reading of one measured file.
   const edition = context.edition;
   if (!edition) {

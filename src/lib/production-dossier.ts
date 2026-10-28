@@ -107,6 +107,10 @@ export type ProductionDossier = {
   kicker: string;
   title: string;
   standfirst: string;
+  /** Tab/search headline; the layout appends the site name. */
+  seoTitle?: string;
+  /** Tab/search snippet. Never the whole standfirst, which runs long. */
+  seoDescription?: string;
   byline: {
     author: string;
     editorialRevision: string;
@@ -219,6 +223,21 @@ export function validateProductionDossier(dossier: ProductionDossier): string[] 
   if (isBlank(dossier.kicker)) errors.push(`${path}: kicker is required.`);
   if (isBlank(dossier.title)) errors.push(`${path}: title is required.`);
   if (isBlank(dossier.standfirst)) errors.push(`${path}: standfirst is required.`);
+  if (dossier.seoTitle !== undefined) {
+    if (isBlank(dossier.seoTitle)) errors.push(`${path}: seoTitle, when present, must not be blank.`);
+    else if (dossier.seoTitle.length > 49) {
+      errors.push(`${path}: seoTitle exceeds 49 characters (${dossier.seoTitle.length}).`);
+    }
+  }
+  if (dossier.seoDescription !== undefined) {
+    if (isBlank(dossier.seoDescription)) {
+      errors.push(`${path}: seoDescription, when present, must not be blank.`);
+    } else if (dossier.seoDescription.length > 160) {
+      errors.push(
+        `${path}: seoDescription exceeds 160 characters (${dossier.seoDescription.length}).`,
+      );
+    }
+  }
 
   // Byline — same rule as the article: a signature states its own authority.
   if (isBlank(dossier.byline.author)) errors.push(`${path}/byline: author is required.`);

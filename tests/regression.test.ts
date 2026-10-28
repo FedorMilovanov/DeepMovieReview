@@ -7,6 +7,8 @@ import { validateFilmPackage } from "../src/lib/film-package-integrity";
 import {
   articlePageMetadata,
   filmPageMetadata,
+  fitDescription,
+  fitTitle,
   heroImageFromAsset,
   productionPageMetadata,
   shareImageFromAsset,
@@ -4772,10 +4774,21 @@ test("Film 001 page metadata describes the page, not the site, and cannot spoil 
     "/og/truman-show-share.jpg",
     "the readable layer shares the film's own card",
   );
+  // The snippet is either the standfirst fitted to the search result, or the
+  // article's own declared snippet — never a summary written somewhere else.
   assert.equal(
     articlePage.description,
-    theTrumanShowArticle.standfirst,
-    "the share card carries the standfirst and nothing else",
+    fitDescription(theTrumanShowArticle.seoDescription ?? theTrumanShowArticle.standfirst),
+    "the share card carries the standfirst (or its declared snippet) and nothing else",
+  );
+  assert.equal(articlePage.description.length <= 160, true);
+  assert.equal(articlePage.title.length <= 49, true);
+  // The film is named once. The old title said "Шоу Трумана" twice and ran 90
+  // characters, which is two failures in one string.
+  assert.equal(
+    articlePage.title.split("Шоу Трумана").length - 1,
+    1,
+    "the film is named once in the title",
   );
 
   // A share card has no spoiler control next to it, so nothing above MINOR may
@@ -5097,7 +5110,14 @@ test("the production registry and its page metadata agree with the data", () => 
 
   assert.equal(page.openGraph.url, "/films/the-truman-show/making");
   assert.equal(page.openGraph.type, "article");
-  assert.equal(page.description, dossier.standfirst, "the card carries the standfirst and nothing else");
+  assert.equal(
+    page.description,
+    fitDescription(dossier.seoDescription ?? dossier.standfirst),
+    "the card carries the standfirst (or its declared snippet) and nothing else",
+  );
+  assert.equal(page.description.length <= 160, true);
+  assert.equal(page.title.length <= 49, true);
+  assert.equal(page.title.includes("история создания"), true, "the tab shows the short title");
   assert.equal(page.openGraph.images[0].url, "/og/truman-show-share.jpg");
   assert.equal(page.twitter.images[0], "/og/truman-show-share.jpg");
   assert.match(page.title, /Шоу Трумана/);
@@ -5221,5 +5241,46 @@ test("Film 001 production dossier records the arguments about the film, not just
   assert.ok(
     dossier.sources.filter((source) => source.tier === "SECONDARY").length >= 25,
     "a reception section needs actual criticism, not study-guide paraphrases",
+  );
+});
+
+test("Metadata fits the places it is shown: tabs truncate at 60, snippets at 160", () => {
+  // Budgets come from the medium, not from taste: a 127-character title is not
+  // a longer title, it is a title whose second half nobody sees.
+  assert.equal(fitTitle("Короткий заголовок"), "Короткий заголовок");
+  const long = fitTitle("Как снимали «Шоу Трумана»: восемь лет, семь режиссёров и один город");
+  assert.ok(long.length <= 49, `${long.length} characters`);
+  assert.equal(long.endsWith("…"), true);
+  assert.equal(long.includes("  "), false);
+  // Never cut inside a word: the character after the ellipsis must not exist,
+  // and the character before it must not be half a word.
+  assert.equal(/[а-яa-z]$/i.test(long.slice(0, -1)), true);
+
+  assert.equal(fitDescription("Коротко."), "Коротко.");
+  const twoSentences =
+    "Первое предложение целиком и полностью помещается в сниппет. " +
+    "Второе предложение длинное, оно уже не помещается в сниппет целиком, и поэтому его окончание отбрасывается при сборке карточки.";
+  assert.ok(twoSentences.length > 160);
+  const fitted = fitDescription(twoSentences);
+  assert.equal(fitted, "Первое предложение целиком и полностью помещается в сниппет.");
+  const cut = fitDescription("слово ".repeat(80));
+  assert.ok(cut.length <= 160);
+  assert.equal(cut.endsWith("…"), true);
+
+  // The declared snippet is validated where it lives, so a blank or an
+  // over-long one fails the build rather than the search result.
+  const dossier = theTrumanShowProductionDossier;
+  assert.deepEqual(validateProductionDossier(dossier), []);
+  assert.equal(
+    validateProductionDossier({ ...dossier, seoTitle: " ".repeat(5) }).some((error) =>
+      error.includes("seoTitle"),
+    ),
+    true,
+  );
+  assert.equal(
+    validateProductionDossier({ ...dossier, seoDescription: "я".repeat(161) }).some((error) =>
+      error.includes("seoDescription"),
+    ),
+    true,
   );
 });

@@ -599,6 +599,14 @@ export type FilmArticle = {
   kicker: string;
   title: string;
   standfirst: string;
+  /**
+   * Headline for the tab and the search result, when the editorial title is
+   * longer than a tab can show. The layout appends the site name, so this is
+   * budgeted at 49 characters.
+   */
+  seoTitle?: string;
+  /** Snippet for search and social, budgeted at ~160 characters. */
+  seoDescription?: string;
   byline: {
     author: string;
     /** Must match the sources-method module's editorialRevision. */

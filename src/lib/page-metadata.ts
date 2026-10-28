@@ -145,6 +145,54 @@ function card(
   };
 }
 
+/**
+ * Two budgets this file has to respect, and neither of them is ours.
+ *
+ * A tab and a search result give a page about 55–60 characters of headline; the
+ * layout then appends « · Глубокие воды» (16 more). A snippet gets about 160
+ * characters. Both are truncation points, not suggestions: a title that runs to
+ * 127 characters is not a longer title, it is a title whose second half nobody
+ * reads.
+ */
+export const TITLE_BUDGET = 49;
+export const DESCRIPTION_BUDGET = 160;
+const MIN_USEFUL_SNIPPET = 60;
+
+/** Trim a headline at a word boundary, never in the middle of a word. */
+export function fitTitle(headline: string, budget = TITLE_BUDGET): string {
+  if (headline.length <= budget) return headline;
+  const cut = headline.slice(0, budget - 1);
+  const atWord = cut.replace(/[\s,:;—–-]+[^\s,:;—–-]*$/, "").trimEnd();
+  return `${atWord || cut.trimEnd()}…`;
+}
+
+/**
+ * Trim a description at a sentence boundary when one falls inside the budget,
+ * and at a word boundary otherwise.
+ *
+ * Sentences are kept whole when they fit, because a snippet cut mid-clause reads
+ * like a broken sentence, while a snippet that ends with a full stop reads like
+ * it said what it meant.
+ */
+export function fitDescription(text: string, budget = DESCRIPTION_BUDGET): string {
+  const clean = text.trim().replace(/\s+/g, " ");
+  if (clean.length <= budget) return clean;
+
+  // Pack whole sentences while they fit. A snippet that ends on a full stop
+  // reads as if it said what it meant; one cut mid-clause reads as broken.
+  let packed = "";
+  for (const sentence of clean.match(/[^.!?]+[.!?]+/g) ?? []) {
+    const candidate = `${packed} ${sentence.trim()}`.trim();
+    if (candidate.length > budget) break;
+    packed = candidate;
+  }
+  if (packed.length >= MIN_USEFUL_SNIPPET) return packed;
+
+  // Otherwise fall back to the longest phrase that fits, and mark the cut.
+  const atWord = clean.slice(0, budget - 1).replace(/\s+\S*$/, "").trimEnd();
+  return `${atWord}…`;
+}
+
 /** Description for the film page. Draft states are described, never quoted. */
 export function describeFilmPackage(filmPackage: FilmPackage): string {
   const { film } = filmPackage;
@@ -183,14 +231,16 @@ export function filmPageMetadata(
  */
 export function productionPageMetadata(
   filmPackage: FilmPackage,
-  dossier: { title: string; standfirst: string },
+  dossier: { title: string; standfirst: string; seoTitle?: string; seoDescription?: string },
   shareImage?: ShareImage,
 ): PageMetadataView {
-  const { film } = filmPackage;
   return card(
-    `${dossier.title} — «${film.title}»`,
-    dossier.standfirst,
-    `/films/${film.slug}/making`,
+    // The dossier's own headline is an editorial sentence, not a label: at 127
+    // characters it is far past the point where a tab stops showing it. An
+    // explicit `seoTitle` wins; without one the headline is fitted to budget.
+    fitTitle(dossier.seoTitle ?? `${dossier.title} — «${filmPackage.film.title}»`),
+    fitDescription(dossier.seoDescription ?? dossier.standfirst),
+    `/films/${filmPackage.film.slug}/making`,
     "article",
     shareImage,
   );
@@ -202,9 +252,18 @@ export function articlePageMetadata(
 ): PageMetadataView | undefined {
   const { article, film } = filmPackage;
   if (!article) return undefined;
+  // The article headline already names the film ("Шоу Трумана: человек,
+  // который заметил камеру"). Appending the film again produced a 90-character
+  // title whose second half repeated its first — so the film name is only added
+  // when the headline does not carry it.
+  const headline =
+    article.seoTitle ??
+    (article.title.includes(film.title)
+      ? `${article.title} — разбор`
+      : `${article.title} — разбор фильма «${film.title}»`);
   return card(
-    `${article.title} — разбор фильма «${film.title}»`,
-    article.standfirst,
+    fitTitle(headline),
+    fitDescription(article.seoDescription ?? article.standfirst),
     `/films/${film.slug}/article`,
     "article",
     shareImage,
