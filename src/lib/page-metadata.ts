@@ -43,6 +43,23 @@ export function shareImageFromAsset(manifest: VisualAssetManifest): ShareImage |
   return { url: variant.src, width: variant.width, height: variant.height, alt: manifest.alt };
 }
 
+/**
+ * The image a page shows at the top of itself: a hero, not a card.
+ *
+ * Prefers the widest `display` variant so the browser has room to choose, and
+ * refuses an asset without a declared display variant rather than guessing at
+ * one — the same rule the share card follows.
+ */
+export type PageHeroImage = { src: string; width: number; height: number; alt: string };
+
+export function heroImageFromAsset(manifest: VisualAssetManifest): PageHeroImage | undefined {
+  const display = manifest.variants
+    .filter((variant) => variant.purpose === "display")
+    .sort((a, b) => b.width - a.width)[0];
+  if (!display || !manifest.alt.trim()) return undefined;
+  return { src: display.src, width: display.width, height: display.height, alt: manifest.alt };
+}
+
 export type PageMetadataView = {
   title: string;
   description: string;

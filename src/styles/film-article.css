@@ -395,6 +395,25 @@
 
 /* ---- Production dossier -------------------------------------------------- */
 
+.productionHero {
+  margin: var(--space-6) 0 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.productionHero img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--stroke-default);
+  background: var(--surface-1);
+}
+
+.productionHero figcaption {
+  color: var(--ink-4);
+}
+
 .articleHeaderLinks {
   display: flex;
   flex-wrap: wrap;

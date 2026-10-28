@@ -7,6 +7,7 @@ import { validateFilmPackage } from "../src/lib/film-package-integrity";
 import {
   articlePageMetadata,
   filmPageMetadata,
+  heroImageFromAsset,
   productionPageMetadata,
   shareImageFromAsset,
 } from "../src/lib/page-metadata";
@@ -60,7 +61,11 @@ import {
 } from "../src/data/films/the-truman-show-canonical-evidence";
 import { theTrumanShowCanonicalPackage } from "../src/data/films/the-truman-show-canonical";
 import { theTrumanShowArticle } from "../src/data/films/the-truman-show-article";
-import { filmShareAssets, getFilmShareAsset } from "../src/data/film-share-assets";
+import {
+  filmShareAssets,
+  getFilmShareAsset,
+  getProductionCoverAsset,
+} from "../src/data/film-share-assets";
 import {
   describeTrumanMeasurement,
   formatMasterTimecode,
@@ -4856,8 +4861,9 @@ test("Film 001 share art is declared, validated and shaped like a card", () => {
   // One declaration feeds two readers: the visual-asset registry (validation)
   // and the page metadata (og:image). The suite reads the same module, so a
   // broken manifest fails here rather than at share time.
-  assert.equal(filmShareAssets.length, 1);
-  const [asset] = filmShareAssets;
+  assert.equal(filmShareAssets.length, 2, "the film has a card and the dossier has a cover");
+  const asset = getFilmShareAsset("the-truman-show");
+  assert.ok(asset);
   assert.deepEqual(validateVisualAssetManifest(asset), []);
   assert.equal(asset.role, "social");
   assert.equal(asset.filmSlug, "the-truman-show");
@@ -5099,4 +5105,65 @@ test("the production registry and its page metadata agree with the data", () => 
   // The standfirst is the share description, so it must not describe the film's
   // plot at all: it is the one string that travels without a spoiler control.
   assert.equal(/Труман (выходит|покидает|умирает)/.test(dossier.standfirst), false);
+});
+
+test("Film 001 production cover is a 16:9 hero that shares as the dossier", () => {
+  const cover = getProductionCoverAsset("the-truman-show");
+  assert.ok(cover, "the production dossier has its own cover");
+  assert.equal(cover.role, "hero");
+  assert.equal(cover.id, "truman-making-cover-01");
+  assert.deepEqual(validateVisualAssetManifest(cover), []);
+  assert.equal(cover.aspectRatio, 16 / 9);
+  for (const variant of cover.variants) {
+    assert.equal(
+      Math.abs(variant.width / variant.height - 16 / 9) < 0.001,
+      true,
+      `${variant.id} must be exactly 16:9: ${variant.width}×${variant.height}`,
+    );
+  }
+
+  // The film card and the dossier cover are different pictures for different
+  // documents: one query returning the other would be the quiet kind of mistake.
+  const filmCard = getFilmShareAsset("the-truman-show");
+  assert.ok(filmCard);
+  assert.notEqual(filmCard.id, cover.id);
+  assert.notEqual(
+    shareImageFromAsset(filmCard)?.url,
+    shareImageFromAsset(cover)?.url,
+  );
+
+  const hero = heroImageFromAsset(cover);
+  assert.ok(hero);
+  assert.equal(hero.src, "/og/truman-making-wide.jpg");
+  assert.equal(hero.width, 1280);
+  assert.equal(hero.height, 720);
+  assert.ok(hero.alt.length > 40);
+
+  // The dossier's own card is 1200×675 — 16:9, not the 1.91:1 of the film card.
+  const card = shareImageFromAsset(cover);
+  assert.ok(card);
+  assert.equal(card.url, "/og/truman-making-share.jpg");
+  assert.equal(card.width, 1200);
+  assert.equal(card.height, 675);
+
+  // And the metadata for the dossier page uses it, while the analysis page keeps
+  // its own artwork.
+  const filmPackage = theTrumanShowCanonicalPackage;
+  const dossier = theTrumanShowProductionDossier;
+  const makingPage = productionPageMetadata(filmPackage, dossier, card);
+  assert.equal(makingPage.openGraph.images[0].url, "/og/truman-making-share.jpg");
+  assert.equal(makingPage.twitter.images[0], "/og/truman-making-share.jpg");
+  assert.equal(
+    filmPageMetadata(filmPackage, shareImageFromAsset(filmCard)).openGraph.images[0].url,
+    "/og/truman-show-share.jpg",
+  );
+
+  // A hero without a display variant is not a hero — refuse rather than guess.
+  const noDisplay = structuredClone(cover);
+  noDisplay.variants = noDisplay.variants.filter((variant) => variant.purpose !== "display");
+  assert.equal(heroImageFromAsset(noDisplay), undefined);
+  // As is an image with no alternative text: it cannot be informative.
+  const noAlt = structuredClone(cover);
+  noAlt.alt = "";
+  assert.equal(heroImageFromAsset(noAlt), undefined);
 });

@@ -1,9 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import type {
   ProductionBlock,
   ProductionDossier,
   ProductionSourceTier,
 } from "@/lib/production-dossier";
+import type { PageHeroImage } from "@/lib/page-metadata";
 
 const tierLabels: Record<ProductionSourceTier, string> = {
   PRIMARY: "первичный",
@@ -101,9 +103,12 @@ function ProductionBlockView({ block }: { block: ProductionBlock }) {
 export function ProductionDossierView({
   dossier,
   filmSlug,
+  cover,
 }: {
   dossier: ProductionDossier;
   filmSlug: string;
+  /** The page's own cover. Absent only if the edition has no art at all. */
+  cover?: PageHeroImage;
 }) {
   const byTier = (tier: ProductionSourceTier) =>
     dossier.sources.filter((source) => source.tier === tier);
@@ -116,6 +121,21 @@ export function ProductionDossierView({
         </Link>
         <div className="sectionIndex">{dossier.kicker}</div>
         <h1 className="articleTitle">{dossier.title}</h1>
+        {cover ? (
+          <figure className="productionHero">
+            <Image
+              src={cover.src}
+              alt={cover.alt}
+              width={cover.width}
+              height={cover.height}
+              sizes="(max-width: 900px) 100vw, 1100px"
+              priority
+            />
+            <figcaption className="microLabel">
+              Оригинальная иллюстрация «Глубоких вод» · не кадр из фильма
+            </figcaption>
+          </figure>
+        ) : null}
         <p className="articleStandfirst">{dossier.standfirst}</p>
         <div className="articleByline">
           <span>{dossier.byline.author}</span>

@@ -3,9 +3,13 @@ import { notFound } from "next/navigation";
 import { ProductionDossierView } from "@/components/film-article/production-view";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { getProductionDossier } from "@/data/films/production-dossiers";
-import { getFilmShareAsset } from "@/data/film-share-assets";
+import { getProductionCoverAsset } from "@/data/film-share-assets";
 import { isPreviewContentEnabled } from "@/data/site-config";
-import { productionPageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
+import {
+  heroImageFromAsset,
+  productionPageMetadata,
+  shareImageFromAsset,
+} from "@/lib/page-metadata";
 
 /**
  * The production history of a film — the second readable layer.
@@ -36,11 +40,11 @@ export async function generateMetadata({ params }: MakingPageProps): Promise<Met
   const dossier = getProductionDossier(filmPackage.film.slug);
   if (!dossier) return {};
   const { film } = filmPackage;
-  const shareAsset = getFilmShareAsset(film.slug);
+  const cover = getProductionCoverAsset(film.slug);
   const page = productionPageMetadata(
     filmPackage,
     dossier,
-    shareAsset ? shareImageFromAsset(shareAsset) : undefined,
+    cover ? shareImageFromAsset(cover) : undefined,
   );
   return {
     title: page.title,
@@ -60,5 +64,12 @@ export default async function FilmMakingPage({ params }: MakingPageProps) {
   const dossier = getProductionDossier(filmPackage.film.slug);
   if (!dossier) notFound();
 
-  return <ProductionDossierView dossier={dossier} filmSlug={filmPackage.film.slug} />;
+  const coverAsset = getProductionCoverAsset(filmPackage.film.slug);
+  return (
+    <ProductionDossierView
+      dossier={dossier}
+      filmSlug={filmPackage.film.slug}
+      cover={coverAsset ? heroImageFromAsset(coverAsset) : undefined}
+    />
+  );
 }
