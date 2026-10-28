@@ -40,9 +40,10 @@
 | `docs/09` §17 | Приватность | Издание не публикует файл и не отдаёт ссылок на него; `docs/38` §9 |
 | `docs/09` §18 | Спойлер — состояние данных, а не блюр | `projectFilmModule` вырезает скрытое до рендера, по каждому `kind`; скрытое не попадает в дерево |
 | `docs/09` §19 | Высокоуровневое утверждение трассируется до записи | `checkScopedSupport` в `film-package-integrity.ts`: для реального фильма поддержка обязательна и не может быть ниже уровня утверждения |
-| `docs/09` §13 | Lite-режим и reduced motion | `experienceMode: "lite"` в `experience-controls.tsx`; `prefers-reduced-motion` в `experience.css`, `film-verdict.css`, `homepage-optics.css`, `route-states.css` |
+| `docs/09` §13 | Lite-режим и reduced motion | `experienceMode: "lite"` — не подпись, а принудительный тир: `allowedTier = "LITE"` и отключение тяжёлого цикла в `experience-quality-provider.tsx`; `prefers-reduced-motion` в `experience.css`, `film-verdict.css`, `homepage-optics.css`, `route-states.css` |
 | `docs/09` §14 | WCAG 2.2 AA как база | `:focus-visible` в 6 файлах стилей; `forced-colors` в 5; `prefers-contrast` в `tokens.css` и `homepage-optics.css`; целевые размеры ≥ 42 px в `spoilers.css` |
 | `docs/19` | Мера строки | `--reading-max: 68ch` (`tokens.css:74`) |
+| `docs/09` §22 | Читаемость при 200 % zoom | В стилях нет ни одного `font-size` в пикселях: только `rem`/`em`/`clamp()`, поэтому масштабирование браузера не ломает типографику |
 | `docs/20` §2–§6 | Пять уровней, URL-состояние, серверная фильтрация, защита deep links | `src/lib/spoilers.ts`, `parseSpoilerLevel`, `SpoilerDeepLinkGuard`, `aria-current` в контроле уровня |
 | `docs/20` §5 | Метаданные без спойлеров | `generateMetadata` статьи отдаёт `standfirst` (уровень `NONE`) и `robots: noindex` для черновика |
 | `docs/20` §11 | Критерии выхода до публикации | Все шесть пунктов закрыты; последний — «добавление аккаунт-настройки не требует менять аналитические записи» — выполняется тем, что уровень живёт в URL, а не в данных |
