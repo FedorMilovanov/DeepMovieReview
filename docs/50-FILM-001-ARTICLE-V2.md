@@ -300,7 +300,7 @@ the build does not have.
 | --- | --- | --- |
 | **Editorial signature** (`reviewedAt`, `lastReviewedAt`) | A human has to read the text and own it; the build cannot sign — an agent-issued date would turn a verifiable claim about an editorial act into a false one. Protocol ready: `docs/53` §1–§4 | editor |
 | **Stills in the article** | The page is text-only. Stills need an editorial decision on quotation and a provenance entry in the visual-asset manifest (`docs/38` §9) | editor |
-| **Per-film share art** | `og:image` is the site card; a proper per-film image is a design task, not a code default | design |
+| **Per-film share art** | Closed: the film and its article now share their own card (`/og/truman-show-share.jpg`), declared in `src/data/film-share-assets.ts` and validated by the visual-asset registry — see §12 | done |
 | **External source liveness** | Partly closed: the three load-bearing references (Wikipedia EN, BFI film card, BFI interview) were reachability- and content-checked on 2026-10-28 — see `docs/53` §5. The remaining ~27 hrefs are still shape-only; `curl` from the sandbox cannot leave it (000) | editor's browser or a CI link checker |
 | **Production facts** (budget, gross, awards) | Cross-checked against Wikipedia/BFI on 2026-10-28 and recorded in `docs/53` §6. They stay in source locators, not in the evidence graph — by construction they are unverifiable against the master, and no conclusion in the article rests on them | editor |
 | **Manual quality passes** | ~~Contrast~~ — now measured by a test (see `docs/52` §3.4: it found `--ink-4` at 3.90:1 under six blocks of small article text). Still manual: 200 % zoom, touch targets on a real phone, Lite mode on a mid-range Android. The repo has no browser/E2E/axe tooling | editor for the rest, or a new test tier |
@@ -362,3 +362,54 @@ became `moduleIds: string[]`:
 Visibility at `NONE` is unchanged — one section, no relationships, no ending —
 because the new section sits at `MAJOR` and the gating is a suffix, which the
 integrity rule enforces rather than trusts.
+
+## 12. The share card belongs to the film, not to the site
+
+The gap register said per-film art was a design task. It was, and the design
+task is done: two candidates were generated in one battle round, the editor
+picked the first, and the winner was cropped to the share shape.
+
+The image is an **original illustration, not a still**: a dome of painted sky
+over an impeccable suburb, a man seen from behind with a suitcase, camera lenses
+glinting in the architecture, a bright opening at the end of the street. No
+frame of the film is reproduced and no performer's likeness is used, which is
+what makes it publishable on the site's own account.
+
+### 12.1 How it is declared
+
+`src/data/film-share-assets.ts` holds the manifest — one declaration with two
+readers:
+
+- the **visual-asset registry** validates it like any other asset: id, alt text,
+  aspect ratio, a `display` variant open to LITE, and generated provenance
+  (`generator`, `promptVersion`, `createdAt`);
+- **page metadata** takes only the `share-card` variant, so `og:image` is
+  `1200×630` and cannot drift from the manifest.
+
+The module uses relative imports because the regression build has no path
+aliases; the app-side registry still imports it by alias. This is the same
+split the test suite already forced on the measurement dataset.
+
+### 12.2 Files
+
+| Variant | Purpose | Size |
+| --- | --- | --- |
+| `/og/truman-show-share.jpg` | `share-card` (used by `og:image`) | 1200×630, 121 KB |
+| `/og/truman-show-wide.jpg` | `display`, available to LITE | 1280×672, 138 KB |
+| `/og/truman-show-master.jpg` | `editorial-master` | 2048×1075, 486 KB |
+
+All three keep the declared 40:21 ratio, so any future crop starts from the same
+frame instead of re-composing the picture.
+
+### 12.3 What the tests now hold
+
+- the manifest passes `validateVisualAssetManifest` — a broken card fails the
+  suite, not the share;
+- the film page **and** the article page emit the film's own `og:image`, and both
+  agree with `twitter:image`;
+- a film without art still gets the site card rather than no picture at all;
+- the asset declares itself informative (not decorative), so empty alt text is a
+  validation error.
+
+Alt text deliberately describes the picture, not the plot: it says "a bright
+opening at the end of the street", and does not name the ending.

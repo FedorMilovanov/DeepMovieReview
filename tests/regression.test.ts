@@ -4,7 +4,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
-import { articlePageMetadata, filmPageMetadata } from "../src/lib/page-metadata";
+import { articlePageMetadata, filmPageMetadata, shareImageFromAsset } from "../src/lib/page-metadata";
 import {
   arcCredibilityLabels,
   characterPresentationLabels,
@@ -47,6 +47,7 @@ import {
 } from "../src/data/films/the-truman-show-canonical-evidence";
 import { theTrumanShowCanonicalPackage } from "../src/data/films/the-truman-show-canonical";
 import { theTrumanShowArticle } from "../src/data/films/the-truman-show-article";
+import { filmShareAssets, getFilmShareAsset } from "../src/data/film-share-assets";
 import {
   describeTrumanMeasurement,
   formatMasterTimecode,
@@ -4700,7 +4701,16 @@ test("Film 001 article sections link only to modules the reader can open", () =>
 });
 
 test("Film 001 page metadata describes the page, not the site, and cannot spoil the ending", () => {
-  const filmPage = filmPageMetadata(theTrumanShowCanonicalPackage);
+  const shareAsset = getFilmShareAsset("the-truman-show");
+  assert.ok(shareAsset, "Film 001 has its own share art");
+  const shareImage = shareImageFromAsset(shareAsset);
+  assert.ok(shareImage);
+  assert.equal(shareImage.url, "/og/truman-show-share.jpg");
+  assert.equal(shareImage.width, 1200);
+  assert.equal(shareImage.height, 630);
+  assert.ok(shareImage.alt.length > 40, "share art carries a real alternative text");
+
+  const filmPage = filmPageMetadata(theTrumanShowCanonicalPackage, shareImage);
   assert.equal(filmPage.title, "Шоу Трумана");
   assert.equal(filmPage.openGraph.url, "/films/the-truman-show");
   assert.equal(filmPage.openGraph.type, "article");
@@ -4709,13 +4719,23 @@ test("Film 001 page metadata describes the page, not the site, and cannot spoil 
   // A page-level openGraph replaces the layout's object, images included: the
   // card must still carry artwork, or shares go out with no picture at all.
   assert.equal(filmPage.openGraph.images.length, 1);
-  assert.equal(filmPage.openGraph.images[0].url, "/og-home.png");
-  assert.equal(filmPage.twitter.images[0], "/og-home.png");
+  assert.equal(filmPage.openGraph.images[0].url, "/og/truman-show-share.jpg");
+  assert.equal(filmPage.twitter.images[0], "/og/truman-show-share.jpg");
   assert.equal(filmPage.openGraph.siteName, "Глубокие воды");
 
-  const articlePage = articlePageMetadata(theTrumanShowCanonicalPackage);
+  // A film without its own art still gets a card: the site image, never nothing.
+  const siteFallback = filmPageMetadata(theTrumanShowCanonicalPackage);
+  assert.equal(siteFallback.openGraph.images[0].url, "/og-home.png");
+  assert.equal(siteFallback.twitter.images[0], "/og-home.png");
+
+  const articlePage = articlePageMetadata(theTrumanShowCanonicalPackage, shareImage);
   assert.ok(articlePage);
   assert.equal(articlePage.openGraph.url, "/films/the-truman-show/article");
+  assert.equal(
+    articlePage.openGraph.images[0].url,
+    "/og/truman-show-share.jpg",
+    "the readable layer shares the film's own card",
+  );
   assert.equal(
     articlePage.description,
     theTrumanShowArticle.standfirst,
@@ -4799,4 +4819,43 @@ test("dark palette keeps every text token above WCAG AA contrast", () => {
     [],
     "--accent-fracture must not be used as a text colour: it fails contrast on the dark palette",
   );
+});
+
+test("Film 001 share art is declared, validated and shaped like a card", () => {
+  // One declaration feeds two readers: the visual-asset registry (validation)
+  // and the page metadata (og:image). The suite reads the same module, so a
+  // broken manifest fails here rather than at share time.
+  assert.equal(filmShareAssets.length, 1);
+  const [asset] = filmShareAssets;
+  assert.deepEqual(validateVisualAssetManifest(asset), []);
+  assert.equal(asset.role, "social");
+  assert.equal(asset.filmSlug, "the-truman-show");
+  assert.equal(asset.decorative, undefined, "share art is informative, so it carries alt text");
+  assert.ok(asset.alt.length > 40);
+
+  const shareCard = asset.variants.find((variant) => variant.purpose === "share-card");
+  assert.ok(shareCard, "a share card variant is what og:image may point at");
+  assert.equal(shareCard.width, 1200);
+  assert.equal(shareCard.height, 630);
+  assert.equal(shareCard.format, "jpg");
+
+  // Every variant shares one aspect ratio, and the declared one is the card's.
+  for (const variant of asset.variants) {
+    assert.ok(
+      Math.abs(variant.width / variant.height - asset.aspectRatio) / asset.aspectRatio <= 0.015,
+      `${variant.id} must keep the manifest aspect ratio`,
+    );
+  }
+  assert.ok(
+    asset.variants.some((variant) => variant.purpose === "display" && !variant.minTier),
+    "the static fallback needs a display variant open to LITE",
+  );
+
+  // Generated art must be able to say where it came from.
+  assert.equal(asset.provenance.sourceKind, "generated");
+  assert.ok(asset.provenance.promptVersion);
+  assert.ok(asset.provenance.createdAt);
+
+  // A film without art resolves to nothing and falls back to the site card.
+  assert.equal(getFilmShareAsset("no-such-film"), undefined);
 });

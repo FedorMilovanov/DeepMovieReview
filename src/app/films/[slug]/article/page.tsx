@@ -6,8 +6,9 @@ import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { getArticleMeasurementBundle } from "@/data/article-measurements";
 import { isPreviewContentEnabled } from "@/data/site-config";
+import { getFilmShareAsset } from "@/data/film-share-assets";
 import { projectArticleSections } from "@/lib/film-article";
-import { articlePageMetadata } from "@/lib/page-metadata";
+import { articlePageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
 import { parseSpoilerLevel } from "@/lib/spoilers";
 
 /**
@@ -41,7 +42,11 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   if (!filmPackage?.article) return {};
   if (filmPackage.film.status !== "published" && !isPreviewContentEnabled()) return {};
   const { film } = filmPackage;
-  const page = articlePageMetadata(filmPackage);
+  const shareAsset = getFilmShareAsset(film.slug);
+  const page = articlePageMetadata(
+    filmPackage,
+    shareAsset ? shareImageFromAsset(shareAsset) : undefined,
+  );
   if (!page) return {};
   return {
     title: page.title,

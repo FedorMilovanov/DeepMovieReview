@@ -8,8 +8,9 @@ import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { isPreviewContentEnabled } from "@/data/site-config";
+import { getFilmShareAsset } from "@/data/film-share-assets";
 import { pluralRu } from "@/lib/plural-ru";
-import { filmPageMetadata } from "@/lib/page-metadata";
+import { filmPageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
 import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
 type FilmPageProps = {
@@ -37,7 +38,11 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
   const filmPackage = getFilmPackageBySlug(slug);
   if (!filmPackage || (filmPackage.film.status !== "published" && !isPreviewContentEnabled())) return {};
   const { film } = filmPackage;
-  const page = filmPageMetadata(filmPackage);
+  const shareAsset = getFilmShareAsset(film.slug);
+  const page = filmPageMetadata(
+    filmPackage,
+    shareAsset ? shareImageFromAsset(shareAsset) : undefined,
+  );
   return {
     title: page.title,
     description: page.description,

@@ -1,4 +1,5 @@
 import type { FilmPackage } from "./film-package";
+import type { VisualAssetManifest } from "./visual-assets";
 
 /**
  * Machine-readable page identity.
@@ -31,6 +32,17 @@ export const SITE_SHARE_IMAGE: ShareImage = {
   alt: "Deep Waters / Глубокие воды — исследование кино через библейскую картину мира",
 };
 
+/**
+ * A film's own card, taken from its visual-asset manifest rather than typed in
+ * twice. Only a declared `share-card` variant can become `og:image`; an asset
+ * without one leaves the page on the site card instead of shipping a guess.
+ */
+export function shareImageFromAsset(manifest: VisualAssetManifest): ShareImage | undefined {
+  const variant = manifest.variants.find((candidate) => candidate.purpose === "share-card");
+  if (!variant || !manifest.alt.trim()) return undefined;
+  return { url: variant.src, width: variant.width, height: variant.height, alt: manifest.alt };
+}
+
 export type PageMetadataView = {
   title: string;
   description: string;
@@ -51,7 +63,13 @@ export type PageMetadataView = {
   };
 };
 
-function card(title: string, description: string, url: string, type: PageMetadataView["openGraph"]["type"]): PageMetadataView {
+function card(
+  title: string,
+  description: string,
+  url: string,
+  type: PageMetadataView["openGraph"]["type"],
+  shareImage: ShareImage = SITE_SHARE_IMAGE,
+): PageMetadataView {
   return {
     title,
     description,
@@ -62,9 +80,9 @@ function card(title: string, description: string, url: string, type: PageMetadat
       url,
       title,
       description,
-      images: [SITE_SHARE_IMAGE],
+      images: [shareImage],
     },
-    twitter: { card: "summary_large_image", title, description, images: [SITE_SHARE_IMAGE.url] },
+    twitter: { card: "summary_large_image", title, description, images: [shareImage.url] },
   };
 }
 
@@ -81,9 +99,12 @@ export function describeFilmPackage(filmPackage: FilmPackage): string {
   return `${film.title} — структурная фикстура платформы «Глубокие воды».`;
 }
 
-export function filmPageMetadata(filmPackage: FilmPackage): PageMetadataView {
+export function filmPageMetadata(
+  filmPackage: FilmPackage,
+  shareImage?: ShareImage,
+): PageMetadataView {
   const { film } = filmPackage;
-  return card(film.title, describeFilmPackage(filmPackage), `/films/${film.slug}`, "article");
+  return card(film.title, describeFilmPackage(filmPackage), `/films/${film.slug}`, "article", shareImage);
 }
 
 /**
@@ -94,7 +115,10 @@ export function filmPageMetadata(filmPackage: FilmPackage): PageMetadataView {
  * metadata — a summary of section 9 under a share card would be a spoiler with
  * no spoiler control next to it.
  */
-export function articlePageMetadata(filmPackage: FilmPackage): PageMetadataView | undefined {
+export function articlePageMetadata(
+  filmPackage: FilmPackage,
+  shareImage?: ShareImage,
+): PageMetadataView | undefined {
   const { article, film } = filmPackage;
   if (!article) return undefined;
   return card(
@@ -102,5 +126,6 @@ export function articlePageMetadata(filmPackage: FilmPackage): PageMetadataView 
     article.standfirst,
     `/films/${film.slug}/article`,
     "article",
+    shareImage,
   );
 }
