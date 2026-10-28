@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
+import { articlePageMetadata, filmPageMetadata } from "../src/lib/page-metadata";
 import {
   arcCredibilityLabels,
   characterPresentationLabels,
@@ -4667,4 +4668,48 @@ test("Film 001 article sections link only to modules the reader can open", () =>
     if (!section.moduleId) continue;
     assert.ok(levels.has(section.moduleId), `${section.id}: ${section.moduleId} is not a module of this package`);
   }
+});
+
+test("Film 001 page metadata describes the page, not the site, and cannot spoil the ending", () => {
+  const filmPage = filmPageMetadata(theTrumanShowCanonicalPackage);
+  assert.equal(filmPage.title, "Шоу Трумана");
+  assert.equal(filmPage.openGraph.url, "/films/the-truman-show");
+  assert.equal(filmPage.openGraph.type, "article");
+  assert.match(filmPage.description, /публикация ещё не открыта/);
+  assert.equal(filmPage.twitter.title, filmPage.openGraph.title);
+  // A page-level openGraph replaces the layout's object, images included: the
+  // card must still carry artwork, or shares go out with no picture at all.
+  assert.equal(filmPage.openGraph.images.length, 1);
+  assert.equal(filmPage.openGraph.images[0].url, "/og-home.png");
+  assert.equal(filmPage.twitter.images[0], "/og-home.png");
+  assert.equal(filmPage.openGraph.siteName, "Глубокие воды");
+
+  const articlePage = articlePageMetadata(theTrumanShowCanonicalPackage);
+  assert.ok(articlePage);
+  assert.equal(articlePage.openGraph.url, "/films/the-truman-show/article");
+  assert.equal(
+    articlePage.description,
+    theTrumanShowArticle.standfirst,
+    "the share card carries the standfirst and nothing else",
+  );
+
+  // A share card has no spoiler control next to it, so nothing above MINOR may
+  // reach it: not a heading, not a section standfirst, not a block.
+  const readableAtMinor = theTrumanShowArticle.sections
+    .filter((section) => canRevealSpoiler("MINOR", section.spoilerLevel))
+    .map((section) => section.id);
+  const hiddenText = theTrumanShowArticle.sections
+    .filter((section) => !readableAtMinor.includes(section.id))
+    .flatMap((section) => [section.heading, section.standfirst ?? ""])
+    .filter((value) => value.length > 24);
+  for (const value of hiddenText) {
+    assert.equal(
+      articlePage.description.includes(value),
+      false,
+      `share card must not quote the hidden section "${value.slice(0, 40)}…"`,
+    );
+  }
+
+  // A package without an article has no article card at all.
+  assert.equal(articlePageMetadata(theTrumanShowDraftPackage), undefined);
 });

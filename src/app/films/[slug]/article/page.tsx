@@ -7,6 +7,7 @@ import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { getArticleMeasurementBundle } from "@/data/article-measurements";
 import { isPreviewContentEnabled } from "@/data/site-config";
 import { projectArticleSections } from "@/lib/film-article";
+import { articlePageMetadata } from "@/lib/page-metadata";
 import { parseSpoilerLevel } from "@/lib/spoilers";
 
 /**
@@ -40,9 +41,13 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   if (!filmPackage?.article) return {};
   if (filmPackage.film.status !== "published" && !isPreviewContentEnabled()) return {};
   const { film } = filmPackage;
+  const page = articlePageMetadata(filmPackage);
+  if (!page) return {};
   return {
-    title: `${filmPackage.article.title} — разбор фильма «${film.title}»`,
-    description: filmPackage.article.standfirst,
+    title: page.title,
+    description: page.description,
+    openGraph: page.openGraph,
+    twitter: page.twitter,
     alternates: film.status === "published" ? { canonical: `/films/${film.slug}/article` } : undefined,
     robots: film.status === "published" ? undefined : { index: false, follow: false },
   };

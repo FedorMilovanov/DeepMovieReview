@@ -25,6 +25,7 @@
     "src/lib/experience-quality.ts",
     "src/lib/visual-assets.ts",
     "src/lib/plural-ru.ts",
-    "src/lib/film-index.ts"
+    "src/lib/film-index.ts",
+    "src/lib/page-metadata.ts"
   ]
 }

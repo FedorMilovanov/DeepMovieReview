@@ -9,6 +9,7 @@ import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { isPreviewContentEnabled } from "@/data/site-config";
 import { pluralRu } from "@/lib/plural-ru";
+import { filmPageMetadata } from "@/lib/page-metadata";
 import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
 type FilmPageProps = {
@@ -36,16 +37,12 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
   const filmPackage = getFilmPackageBySlug(slug);
   if (!filmPackage || (filmPackage.film.status !== "published" && !isPreviewContentEnabled())) return {};
   const { film } = filmPackage;
+  const page = filmPageMetadata(filmPackage);
   return {
-    title: film.title,
-    description:
-      film.status === "published"
-        ? `${film.title} (${film.year}) — ${film.premise}`
-        : filmPackage.ingest?.edition.state === "LOCKED"
-          ? `${film.title} — канонический разбор, привязанный к точному просмотренному мастеру (${film.year}); публикация ещё не открыта.`
-          : filmPackage.research?.state === "SECONDARY_SOURCES"
-            ? `${film.title} — исследовательский черновик по вторичным источникам; точный просмотренный мастер ещё не заблокирован.`
-            : `${film.title} — структурная фикстура платформы «Глубокие воды».`,
+    title: page.title,
+    description: page.description,
+    openGraph: page.openGraph,
+    twitter: page.twitter,
     alternates: film.status === "published" ? { canonical: `/films/${film.slug}` } : undefined,
     robots: film.status === "published" ? undefined : { index: false, follow: false },
   };

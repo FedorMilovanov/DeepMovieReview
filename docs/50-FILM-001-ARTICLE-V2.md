@@ -240,3 +240,70 @@ that the reader can click.
   needs a test edit but a level regression still fails).
 - Unchanged: edition `LOCKED`, 46 canonical records, no `reviewedAt`, film still
   `draft` and unindexed.
+
+## 8. Third pass: the decision the article had been avoiding
+
+Recorded 2026-10-28. Reading the eight sections back to back showed a hole in
+the middle of the argument: the article discussed the world, the people, the
+props, the craft and the guilt — and skipped the one action the film is built
+around. `docs/03` §3 puts morally significant decisions (step 7) between form
+and moral analysis (step 8), and the package has a full `decision` module. The
+prose had no section for it.
+
+`06 / Решение` («Дверь, море и поклон») now sits between craft and morality and
+does what the module does, in prose: the knowledge fog (what he actually knows
+at the door — and that Christof's «снаружи правды не больше» cannot be checked
+by anyone in the story), the four pressures at once (threat, the voice that
+sounds like a parent, the crowd, and his own fear of water), the goods genuinely
+at stake (safety, home, the only family he has), the boat named «Санта-Мария»,
+and the bow — the last thing he does inside the show is a performer's gesture,
+which is how he leaves: using the show's own grammar against the show.
+
+The section carries the editorial judgement with its qualification: the exit is
+justified not because happiness waits outside — the film never promises that —
+but because a person who is not trusted with his own life stops being a person
+before he reaches the door.
+
+Sections renumber to nine: `NONE → MINOR → MAJOR → ENDING ×5 → FULL`. Verified
+on the built server: `NONE` 1 section, `MINOR` 2, `MAJOR` 3, `ENDING` 8, `FULL` 9.
+
+## 9. Share cards described the site, not the page
+
+Found while re-reading the head of the rendered document: `og:title` on both
+the film page and the article was the site title, and `og:description` was the
+site tagline. `<title>` was page-specific, so the defect was invisible in a
+browser tab and very visible in a messenger.
+
+Two things were wrong and both are now tested:
+
+1. **No page-level `openGraph`.** The layout's card was inherited by every
+   route. `src/lib/page-metadata.ts` now builds page identity — title,
+   description, `og:type`, `og:url`, `og:site_name`, `og:locale`, image — and
+   `generateMetadata` only adds routing concerns (canonical, robots).
+2. **A trap under the fix.** Next replaces the page-level `openGraph` object
+   wholesale instead of deep-merging it, so setting a title silently dropped
+   `og:image`. The first attempt served a card with no picture at all. The
+   builder now carries the image explicitly, and the regression test pins it.
+
+Spoiler safety is part of the rule and part of the test: the article's share
+description is the standfirst and nothing else, and the test fails if any
+heading or standfirst from a section above `MINOR` appears in it. A share card
+has no spoiler control next to it.
+
+## 10. What is still missing
+
+Written down so it is not rediscovered as a surprise. None of these is a
+shortcut we took; each is work that needs an editor, a designer or a network
+the build does not have.
+
+| Gap | Why it is still open | Who closes it |
+| --- | --- | --- |
+| **Editorial signature** (`reviewedAt`, `lastReviewedAt`) | A human has to read the text and own it; the build cannot sign | editor |
+| **Stills in the article** | The page is text-only. Stills need an editorial decision on quotation and a provenance entry in the visual-asset manifest (`docs/38` §9) | editor |
+| **Per-film share art** | `og:image` is the site card; a proper per-film image is a design task, not a code default | design |
+| **External source liveness** | ~30 `sources-method` hrefs are validated for shape, never for reachability: this environment has no outbound network (verified: `curl` to an external host returns 000) | editor's browser or a CI link checker |
+| **Production facts** (budget, gross, awards) | They live in source *locators*, not in the evidence graph: unverifiable against the master by construction | editor |
+| **Manual quality passes** | Contrast in the dark palette, 200 % zoom, touch targets on a real phone, Lite mode on a mid-range Android. The repo has no browser/E2E/axe tooling; `npm test` is data and contract only | editor, or a new test tier |
+| **Reader-facing evidence** | The reader can jump to a module but cannot see which evidence record backs a paragraph. Data-level traceability is enforced; the UI step is a product decision | product |
+| **Article discovery** | There is no `/articles` index; the article is reachable from the film page and the sitemap, nothing else | product |
+| **Relationship-module depth** | The article now carries the relationships in prose, but `truman-mod-relationship` still has research-era depth in places (`docs/48` §6) | editorial pass |
