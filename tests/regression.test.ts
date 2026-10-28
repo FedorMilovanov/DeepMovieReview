@@ -19,6 +19,17 @@ import {
 } from "../src/data/films/the-truman-show-master-reanchor";
 import { trumanMasterSegmentation } from "../src/data/films/the-truman-show-master-segmentation";
 import {
+  TRUMAN_CREDITS_START_SECONDS,
+  TRUMAN_INVENTORY_RUNTIME_SECONDS,
+  trumanCanonicalSceneSummary,
+  trumanCanonicalScenes,
+  trumanNonSceneChapters,
+} from "../src/data/films/the-truman-show-scene-inventory";
+import {
+  trumanVisualVerificationSummary,
+  trumanVisualVerifications,
+} from "../src/data/films/the-truman-show-visual-verification";
+import {
   trumanEvidenceMigrationWave1,
   trumanEvidenceMigrationWave2,
   trumanEvidenceMigrationWave3,
@@ -3798,5 +3809,126 @@ test("Film 001 promotion readiness visual blockers derive from source contracts"
     const readiness = readinessById.get(evidenceId);
     assert.ok(readiness);
     assert.equal(readiness.blockers.includes("VISUAL_REVIEW"), false);
+  }
+});
+
+test("Film 001 canonical scene inventory is contiguous and master-bounded", () => {
+  assert.ok(trumanCanonicalScenes.length > 0);
+
+  const ids = trumanCanonicalScenes.map((scene) => scene.id);
+  assert.equal(new Set(ids).size, ids.length, "scene ids must be unique");
+
+  const chapterIds = new Set(trumanMasterChapters.map((chapter) => chapter.id));
+  const epsilon = 1e-6;
+
+  trumanCanonicalScenes.forEach((scene, index) => {
+    assert.equal(scene.sequenceIndex, index + 1, `${scene.id}: sequenceIndex must match array order`);
+    assert.ok(scene.startTimestampSeconds >= 0, `${scene.id}: negative start`);
+    assert.ok(
+      scene.endTimestampSeconds > scene.startTimestampSeconds,
+      `${scene.id}: end must exceed start`,
+    );
+    assert.ok(
+      scene.endTimestampSeconds <= TRUMAN_INVENTORY_RUNTIME_SECONDS + epsilon,
+      `${scene.id}: exceeds measured runtime`,
+    );
+    assert.ok(scene.chapterIds.length > 0, `${scene.id}: must be chapter-anchored`);
+    for (const chapterId of scene.chapterIds) {
+      assert.ok(chapterIds.has(chapterId), `${scene.id}: unknown chapter ${chapterId}`);
+    }
+
+    const previous = trumanCanonicalScenes[index - 1];
+    if (!previous) {
+      assert.ok(Math.abs(scene.startTimestampSeconds) <= epsilon, "inventory must start at 0");
+      return;
+    }
+    assert.ok(
+      Math.abs(previous.endTimestampSeconds - scene.startTimestampSeconds) <= epsilon,
+      `${scene.id}: inventory must be gapless with ${previous.id}`,
+    );
+  });
+
+  const finalScene = trumanCanonicalScenes[trumanCanonicalScenes.length - 1];
+  assert.equal(finalScene.endTimestampSeconds, TRUMAN_CREDITS_START_SECONDS);
+  assert.equal(trumanCanonicalSceneSummary.coveredUntilSeconds, TRUMAN_CREDITS_START_SECONDS);
+  assert.equal(
+    trumanCanonicalSceneSummary.verified + trumanCanonicalSceneSummary.pending,
+    trumanCanonicalScenes.length,
+  );
+
+  assert.deepEqual(
+    trumanNonSceneChapters.map((entry) => entry.chapterId),
+    ["truman-ch-24"],
+    "only the credits chapter is excluded from the editorial inventory",
+  );
+});
+
+test("Film 001 visual verification covers the live evidence graph exactly once", () => {
+  const liveEvidenceIds = (theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id);
+  const verifiedIds = trumanVisualVerifications.map((record) => record.evidenceId);
+
+  assert.equal(verifiedIds.length, liveEvidenceIds.length);
+  assert.equal(new Set(verifiedIds).size, verifiedIds.length, "duplicate verification record");
+  assert.deepEqual([...verifiedIds].sort(), [...liveEvidenceIds].sort());
+
+  assert.equal(trumanVisualVerificationSummary.records, liveEvidenceIds.length);
+  assert.equal(
+    trumanVisualVerificationSummary.visualConfirmed +
+      trumanVisualVerificationSummary.transcriptConfirmed +
+      trumanVisualVerificationSummary.pendingLocalReview +
+      trumanVisualVerificationSummary.contradicted,
+    liveEvidenceIds.length,
+  );
+});
+
+test("Film 001 visual verification frames sit inside their scene and the master", () => {
+  const scenesById = new Map(trumanCanonicalScenes.map((scene) => [scene.id, scene]));
+
+  for (const record of trumanVisualVerifications) {
+    const scene = scenesById.get(record.sceneId);
+    assert.ok(scene, `${record.evidenceId}: unknown scene ${record.sceneId}`);
+    assert.ok(record.frames.length > 0, `${record.evidenceId}: no observed frame`);
+
+    for (const observed of record.frames) {
+      assert.ok(
+        Number.isFinite(observed.frameTimeSeconds) && observed.frameTimeSeconds >= 0,
+        `${record.evidenceId}: invalid frame time`,
+      );
+      assert.ok(
+        observed.frameTimeSeconds <= TRUMAN_INVENTORY_RUNTIME_SECONDS,
+        `${record.evidenceId}: frame time beyond measured runtime`,
+      );
+      assert.ok(
+        observed.frameTimeSeconds >= scene.startTimestampSeconds &&
+          observed.frameTimeSeconds <= scene.endTimestampSeconds,
+        `${record.evidenceId}: frame at ${observed.frameTimeSeconds}s is outside ${scene.id}`,
+      );
+      assert.ok(
+        observed.observation.trim().length > 0,
+        `${record.evidenceId}: empty observation`,
+      );
+    }
+  }
+});
+
+test("Film 001 contradicted research records stay fail-closed", () => {
+  const contradicted = trumanVisualVerifications.filter(
+    (record) => record.status === "CONTRADICTED",
+  );
+
+  // The research ledger places a localized-rain beat in chapter 08. Picture review
+  // and the embedded English subtitle track both fail to find it, so the record may
+  // not be promoted as written.
+  assert.deepEqual(
+    contradicted.map((record) => record.evidenceId),
+    ["truman-ev-raincloud"],
+  );
+  assert.equal(trumanVisualVerificationSummary.contradicted, 1);
+
+  for (const record of contradicted) {
+    assert.ok(
+      record.note.toLowerCase().includes("may not be promoted"),
+      `${record.evidenceId}: contradicted record must state its promotion block`,
+    );
   }
 });
