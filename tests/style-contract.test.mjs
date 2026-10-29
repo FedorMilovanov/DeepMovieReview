@@ -223,3 +223,29 @@ test("host Simulator diagnostics do not get displaced by runtime daemon paths", 
   const guests = Array(500).fill("3 /Library/Developer/CoreSimulator/Volumes/iOS/RuntimeRoot/usr/libexec/guestd");
   assert.equal(nativeSimulatorProcessLines([host, safari, ...guests].join("\n")), `${host}\n${safari}`);
 });
+
+test("evidence transport verifies provenance and rejects corruption without hiding audit failures", async () => {
+  const { decodeEvidence } = await import("../scripts/lib/evidence-transfer.mjs");
+  const { gzipSync } = await import("node:zlib");
+  const { createHash } = await import("node:crypto");
+  const revision = "a".repeat(40), otherHead = "b".repeat(40);
+  const data = { summary: { revision, failures: ["real native AT failure"] }, scans: [] };
+  const bytes = gzipSync(Buffer.from(JSON.stringify(data)));
+  const encoded = bytes.toString("base64");
+  const half = Math.floor(encoded.length / 2);
+  const rows = [{ title: "chunk-0001", message: encoded.slice(0, half) }, { title: "chunk-0002", message: encoded.slice(half) }];
+  const manifest = { revision, encoding: "gzip+base64", chunks: 2, bytes: bytes.length,
+    sha256: createHash("sha256").update(bytes).digest("hex") };
+  const check = { app: { slug: "github-actions" }, name: "Accessibility evidence (current)", head_sha: revision, status: "completed", conclusion: "success", output: { summary: JSON.stringify(manifest) } };
+  assert.deepEqual(decodeEvidence(check, rows.toReversed(), revision).payload, data);
+  assert.throws(() => decodeEvidence({ ...check, app: { slug: "other" } }, rows, revision), /Unexpected publisher/);
+  assert.throws(() => decodeEvidence(check, rows, otherHead), /Unexpected check head/);
+  assert.throws(() => decodeEvidence({ ...check, status: "in_progress" }, rows, revision), /not complete/);
+  assert.throws(() => decodeEvidence(check, [rows[0], rows[0]], revision), /Duplicate or missing/);
+  assert.throws(() => decodeEvidence(check, rows.slice(1), revision), /Missing or extra/);
+  assert.throws(() => decodeEvidence(check, [{ ...rows[0], message: "!" + rows[0].message.slice(1) }, rows[1]], revision), /base64/);
+  assert.throws(() => decodeEvidence({ ...check, output: { summary: JSON.stringify({ ...manifest, sha256: "0".repeat(64) }) } }, rows, revision), /SHA256/);
+  assert.throws(() => decodeEvidence({ ...check, output: { summary: JSON.stringify({ ...manifest, bytes: bytes.length + 1 }) } }, rows, revision), /size mismatch/);
+  assert.throws(() => decodeEvidence({ ...check, head_sha: otherHead }, rows, revision), /Unexpected check head/);
+  assert.deepEqual(decodeEvidence({ ...check, head_sha: otherHead }, rows, revision, otherHead).payload, data);
+});
