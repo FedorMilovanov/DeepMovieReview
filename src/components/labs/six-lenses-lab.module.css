@@ -1,16 +1,16 @@
 .labShell {
   min-height: 100svh;
-  padding: clamp(4rem, 9vw, 8rem) var(--pad) clamp(6rem, 12vw, 10rem);
+  padding: clamp(4rem, 9vw, 8rem) var(--gutter) clamp(6rem, 12vw, 10rem);
   background:
     radial-gradient(circle at 80% 10%, rgba(127, 23, 29, 0.06), transparent 30rem),
-    var(--bg);
-  color: var(--text);
+    var(--surface-canvas);
+  color: var(--ink-1);
 }
 
 .intro,
 .experience,
 .rules {
-  width: min(100%, var(--max));
+  width: min(100%, var(--container-max));
   margin-inline: auto;
 }
 
@@ -26,7 +26,7 @@
 .annotation strong,
 .annotationList span,
 .ruleGrid article > span {
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 0.68rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -36,7 +36,7 @@
 .lensReading h2,
 .rules h2 {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--font-display);
   font-weight: 500;
   letter-spacing: -0.045em;
 }
@@ -55,15 +55,15 @@
 }
 
 .experience {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
   padding-top: clamp(2rem, 5vw, 4rem);
 }
 
 .lensRail {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
+  border-left: 1px solid var(--stroke-default);
 }
 
 .lensButton {
@@ -75,10 +75,10 @@
   gap: 1rem;
   padding: 0.9rem;
   border: 0;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--stroke-default);
+  border-bottom: 1px solid var(--stroke-default);
   background: transparent;
-  color: var(--text);
+  color: var(--ink-1);
   text-align: left;
   font: inherit;
   cursor: pointer;
@@ -86,7 +86,7 @@
 }
 
 .lensButton > span {
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 0.62rem;
   letter-spacing: 0.1em;
 }
@@ -104,11 +104,11 @@
 }
 
 .lensButton[aria-selected="true"] {
-  box-shadow: inset 0 -2px var(--text);
+  box-shadow: inset 0 -2px var(--ink-1);
 }
 
 .lensButton:focus-visible {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--ink-1);
   outline-offset: -4px;
 }
 
@@ -117,13 +117,13 @@
   grid-template-columns: minmax(0, 1.35fr) minmax(350px, 0.65fr);
   gap: 1px;
   margin-top: 1px;
-  border: 1px solid var(--line);
-  background: var(--line);
+  border: 1px solid var(--stroke-default);
+  background: var(--stroke-default);
 }
 
 .frame,
 .lensReading {
-  background: var(--bg);
+  background: var(--surface-canvas);
 }
 
 .frame {
@@ -308,17 +308,17 @@
 
 .lensReading > p {
   max-width: 36rem;
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 .annotationList {
   margin-top: auto;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
 }
 
 .annotationList > div {
   padding: 1rem 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--stroke-default);
 }
 
 .annotationList p {
@@ -329,7 +329,7 @@
 .rules {
   margin-top: clamp(6rem, 12vw, 11rem);
   padding-top: clamp(4rem, 8vw, 7rem);
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
 }
 
 .rules h2 {
@@ -343,8 +343,8 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: clamp(2rem, 5vw, 4rem);
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
+  border-left: 1px solid var(--stroke-default);
 }
 
 .ruleGrid article {
@@ -353,12 +353,12 @@
   flex-direction: column;
   gap: 0.8rem;
   padding: 1.3rem;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--stroke-default);
+  border-bottom: 1px solid var(--stroke-default);
 }
 
 .ruleGrid strong {
-  font-family: var(--display);
+  font-family: var(--font-display);
   font-size: clamp(1.25rem, 2vw, 1.8rem);
   font-weight: 500;
   line-height: 1;
@@ -366,7 +366,7 @@
 
 .ruleGrid p {
   margin: auto 0 0;
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 @media (max-width: 1080px) {
@@ -389,7 +389,7 @@
   .lensButton {
     flex: 0 0 min(48vw, 190px);
     scroll-snap-align: start;
-    border-left: 1px solid var(--line);
+    border-left: 1px solid var(--stroke-default);
   }
   .frame { min-height: 470px; }
   .annotation {

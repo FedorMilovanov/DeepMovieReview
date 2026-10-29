@@ -10,7 +10,7 @@ DeepMovieReview uses a hybrid presentation stack rather than forcing every surfa
 
 ### Core application
 
-- Next.js `16.3.4` — current stable Active LTS;
+- Next.js `16.4.3` — pinned application version;
 - React / React DOM `19.2.8`;
 - TypeScript `7.0.2` — current stable native compiler;
 - Node.js `24.x` LTS for local development, CI and deployment;
@@ -29,7 +29,7 @@ Tailwind Preflight is intentionally disabled because the application already own
 
 ### Motion
 
-- Motion `13.1.1` for DOM animation, gesture orchestration, layout motion and View Transition integration;
+- Motion `13.2.0` for DOM animation, gesture orchestration, layout motion and View Transition integration;
 - native CSS scroll-driven animation where it is expressive enough;
 - native View Transition API / Motion transition helpers before inventing custom route-transition runtimes.
 
@@ -48,7 +48,7 @@ Alpha/canary versions are not used on the production path merely because they ar
 
 ### Lint compatibility boundary
 
-ESLint is pinned to `9.39.5` while `eslint-config-next@16.3.4` still depends on ecosystem plugins whose ESLint 10 compatibility is incomplete. ESLint 10 is newer, but adopting it by suppressing peer/API incompatibilities would reduce reliability rather than improve the toolchain. Revisit this pin when the stable Next.js lint dependency graph is fully ESLint-10-compatible.
+ESLint is pinned to `9.39.5` while `eslint-config-next@16.4.3` still depends on ecosystem plugins whose ESLint 10 compatibility is incomplete. ESLint 10 is newer, but adopting it by suppressing peer/API incompatibilities would reduce reliability rather than improve the toolchain. Revisit this pin when the stable Next.js lint dependency graph is fully ESLint-10-compatible.
 
 ## 2. Rendering tiers
 
@@ -201,3 +201,11 @@ The platform is ready for the first real film only when:
 - no master moral score is introduced;
 - all meaning remains available without canvas;
 - performance downgrade remains owned by one Experience Quality runtime.
+
+### Shared-style migration note (2026-10-29)
+
+Runtime tokens are owned by tokens.css. The platform bridge now references the
+canonical surface/ink/accent names. Font utilities keep the existing font-body and
+font-display classes through explicit @utility definitions, not self-referencing
+@theme properties. The authoring and machine-check contract is in
+`55-SHARED-STYLES-AND-AUTHORING.md`. Laboratory screens remain R&D, not articles.

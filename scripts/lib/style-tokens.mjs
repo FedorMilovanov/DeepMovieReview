@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import postcss from "postcss";
 
-// Existing aliases remain a compatibility bridge for unmigrated components.
-// New shared module/verdict code uses the canonical right-hand side directly.
+// Retain the existing compatibility definitions, but all source CSS now uses
+// canonical tokens directly. Governance forbids new alias uses or overrides.
 export const legacyAliases = {
   "--bg": "--surface-canvas",
   "--bg-elevated": "--surface-1",
@@ -36,8 +36,10 @@ export function assertAliasBridge(css) {
   }
 }
 
-export function assertCanonicalUsage(css, path) {
+export function assertCanonicalUsage(css, path, { allowLegacyDefinitions = false } = {}) {
   postcss.parse(css).walkDecls((declaration) => {
+    assert.ok(allowLegacyDefinitions || !legacyAliases[declaration.prop],
+      `${path}: do not redefine legacy alias ${declaration.prop} outside the compatibility bridge`);
     for (const match of declaration.value.matchAll(/var\(\s*(--[\w-]+)/g)) {
       const canonical = legacyAliases[match[1]];
       assert.ok(!canonical, `${path}: use ${canonical} instead of ${match[1]}`);

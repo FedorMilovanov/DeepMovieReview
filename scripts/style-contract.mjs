@@ -26,7 +26,6 @@ for (const path of [
 for (const path of cssFiles.filter((path) => /\/(article|home|modules|verdict|optics|shell)\//.test(path))) {
   const source = readFileSync(path, "utf8");
   assert.ok(source.split("\n").length <= 450, `${path}: split by responsibility before growing beyond 450 lines`);
-  assertCanonicalUsage(source, path);
   const code = source.replace(/\/\*[\s\S]*?\*\//g, "");
   // Existing reduced-motion overrides only; no new force-priority rules.
   const importantBudget = path.endsWith("verdict/accessibility.css") ? 3 : 0;
@@ -34,8 +33,13 @@ for (const path of cssFiles.filter((path) => /\/(article|home|modules|verdict|op
     `${path}: do not resolve cascade conflicts by force`);
   assert.doesNotMatch(source, /the-truman-show|the-fast-and-the-furious|film[-_]?001/i, `${path}: shared CSS cannot know film identity`);
 }
-for (const path of ["src/styles/methodology.css", "src/components/experience/verdict-core.module.css"]) {
-  assertCanonicalUsage(readFileSync(path, "utf8"), path);
+// Auto-discover every CSS Module as well as global sheets. A new component
+// must not be an ungoverned escape hatch for legacy tokens or alias overrides.
+const allCssFiles = listStyles("src");
+for (const path of allCssFiles) {
+  assertCanonicalUsage(readFileSync(path, "utf8"), path, {
+    allowLegacyDefinitions: path === "src/styles/tokens.css",
+  });
 }
 for (const path of files("src/data/films")) {
   assert.ok(!/\.css$/.test(path), `${path}: article data cannot own styles`);
@@ -45,4 +49,4 @@ for (const path of files("src/data/films")) {
     assert.doesNotMatch(source, /\b(?:className|cssText|style)\s*:/, `${path}: content cannot select presentation classes`);
   }
 }
-console.log(`Style contract passed: ${cssFiles.length} CSS files; composition, size, identity, data boundary and imports checked.`);
+console.log(`Style contract passed: ${allCssFiles.length} CSS files; composition, size, identity, data boundary and imports checked.`);
