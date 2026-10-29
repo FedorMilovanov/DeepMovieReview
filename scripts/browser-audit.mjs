@@ -1,3 +1,4 @@
+import { failureMessage, workflowError } from "./lib/audit-report.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -1421,6 +1422,10 @@ try {
   const failed = checks.filter((check) => !check.passed);
   for (const check of checks) {
     console.log((check.passed ? "PASS " : "FAIL ") + check.name);
+  }
+  for (const check of failed) {
+    const message = failureMessage(check);
+    console.error(process.env.GITHUB_ACTIONS === "true" ? workflowError(message) : message);
   }
   if (failed.length > 0) {
     console.error("Browser audit failed with " + failed.length + " check(s).");

@@ -5689,3 +5689,20 @@ test("article tables share an escaped caption with their native table and keyboa
     assert.ok(!html.includes("<script>"));
   }
 });
+
+
+test("browser failures retain measured details in escaped workflow annotations", () => {
+  const { failureMessage, workflowError } = createRequire(`${process.cwd()}/package.json`)(
+    "./scripts/lib/audit-report.mjs",
+  ) as {
+    failureMessage: (check: { name: string; details?: unknown }) => string;
+    workflowError: (message: string) => string;
+  };
+  const message = failureMessage({ name: "table focus", details: { focused: false, width: 390 } });
+  assert.equal(message, 'table focus\n{"focused":false,"width":390}');
+  assert.equal(failureMessage({ name: "missing table" }), "missing table");
+  assert.equal(workflowError("100%\r\n::error::injected"),
+    "::error title=Browser audit::100%25%0D%0A::error::injected");
+  assert.ok(!workflowError(message).includes("\n"));
+  assert.ok(workflowError(message).includes('"focused":false'));
+});
