@@ -1095,6 +1095,7 @@ try {
   await navigate("/labs/six-lenses", 1280, 900);
   const six = await inspectBasic("six lenses");
   await inspectNoindex("six lenses");
+  await inspectNoHorizontalOverflow("six lenses");
   const tabState = JSON.parse(await evaluate(
     "JSON.stringify({" +
       "tablists: document.querySelectorAll('[role=tablist]').length," +
@@ -1120,6 +1121,31 @@ try {
   );
   assertCheck("six lenses: ArrowRight activates and focuses next tab", keyboardAdvanced);
   await capture("six-lenses", true);
+
+  for (const [label, width, height, scale] of [
+    ["six lenses mobile", 390, 844, 1],
+    ["six lenses zoom 200", 640, 450, 2],
+  ]) {
+    await navigate("/labs/six-lenses", width, height, false, false, scale);
+    await inspectBasic(label);
+    await inspectNoHorizontalOverflow(label);
+    await inspectMinimumTargetSize(label, "[role=tab]");
+    await evaluate("document.querySelector('[role=tab]')?.focus()");
+    await send("Input.dispatchKeyEvent", { type: "keyDown", key: "End", code: "End" });
+    await send("Input.dispatchKeyEvent", { type: "keyUp", key: "End", code: "End" });
+    await sleep(250);
+    const lastTab = JSON.parse(await evaluate(`JSON.stringify((() => {
+      const tabs = [...document.querySelectorAll('[role=tab]')];
+      const last = tabs.at(-1), rail = document.querySelector('[role=tablist]');
+      if (!last || !rail) return {visible:false};
+      const tabBox = last.getBoundingClientRect(), railBox = rail.getBoundingClientRect();
+      return {selected:last.getAttribute('aria-selected') === 'true', focused:document.activeElement === last,
+        visible:tabBox.left >= railBox.left - 0.5 && tabBox.right <= railBox.right + 0.5,
+        labelled:document.querySelector('[role=tabpanel]')?.getAttribute('aria-labelledby') === last.id};
+    })())`));
+    assertCheck(label + ": End exposes and activates the last lens", lastTab.selected && lastTab.focused && lastTab.visible && lastTab.labelled, lastTab);
+    await capture(label.replaceAll(" ", "-"), true);
+  }
 
   await navigate("/labs/scene-autopsy", 1280, 900);
   await inspectBasic("scene autopsy");

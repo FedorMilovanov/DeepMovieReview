@@ -47,6 +47,12 @@ const ROUTES = [
   "/films/the-truman-show/article?spoilers=full",
   "/films/the-truman-show/making",
   "/methodology",
+  "/labs/living-frame",
+  "/labs/moral-lens",
+  "/labs/narrative-permission",
+  "/labs/relationship-observatory",
+  "/labs/scene-autopsy",
+  "/labs/six-lenses",
 ];
 
 const VIEWPORTS = [
@@ -315,10 +321,10 @@ async function capture(binary, viewport, route) {
     features: [{ name: "prefers-reduced-motion", value: "no-preference" }],
   });
   await socket.send("Page.navigate", { url: BASE_URL + route });
-  // Full module pages contain a JS-driven ambient verdict loop. Their
+  // Full module pages and labs contain JS-driven ambient loops. Their
   // snapshots explicitly cover the reader's static/reduced-motion mode;
   // the browser audit, not this fingerprint, verifies live motion behavior.
-  if (/^\/films\/[^/?]+\?spoilers=full$/.test(route)) {
+  if (route.startsWith("/labs/") || /^\/films\/[^/?]+\?spoilers=full$/.test(route)) {
     await socket.send("Emulation.setEmulatedMedia", {
       features: [{ name: "prefers-reduced-motion", value: "reduce" }],
     });
