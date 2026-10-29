@@ -68,7 +68,8 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       const listeners = execFileSync("lsof", ["-nP", "-a", `-iTCP:${port}`, "-sTCP:LISTEN", "-Fp"], { encoding: "utf8", timeout: 5000 });
       diagnostics += `\nListener ownership on port ${port}: ${listeners}`;
       const processes = execFileSync("ps", ["-axww", "-o", "pid=,ppid=,comm="], { encoding: "utf8", timeout: 5000 });
-      diagnostics += `\nDriver process rows:\n${processes.split("\n").filter(line => /safaridriver/.test(line)).join("\n").slice(-5000)}`;
+      const listenerIds = new Set([...listeners.matchAll(/^p(\d+)$/gm)].map(([, pid]) => Number(pid)));
+      diagnostics += `\nDriver/listener process rows:\n${processes.split("\n").filter(line => /safaridriver/.test(line) || listenerIds.has(Number(line.trim().split(/\s+/)[0]))).join("\n").slice(-5000)}`;
       diagnosticPids = safariDriverPids(processes, driver.pid);
       diagnosticPids = [...new Set([...diagnosticPids, ...safariListenerPids(listeners, processes)])];
     } catch (error) { diagnostics += `\nDriver process snapshot unavailable: ${error.message}`; }

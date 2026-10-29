@@ -365,3 +365,18 @@ test("rendered contrast bounds use every background pixel, not averages or round
   assert.ok(contrast([255, 255, 255, 0.5], [0, 0, 0]) < 6);
   assert.throws(() => rectangleContrast(image, { x: 0, y: 0, width: 2, height: 1 }, [255, 255, 255, 0]));
 });
+
+test("contrast background isolation preserves color/currentColor paint and restores inline style", async () => {
+  const { maskTextPaint, restoreTextPaint } = await import("../scripts/lib/rendered-contrast.mjs");
+  const values = new Map([["color", "rgb(200, 200, 200)"], ["background-color", "currentColor"], ["-webkit-text-fill-color", "rgb(200, 200, 200)"]]);
+  const style = { getPropertyValue: name => values.get(name) ?? "", getPropertyPriority: () => "",
+    setProperty: (name, value) => values.set(name, value), removeProperty: name => values.delete(name) };
+  const state = { records: [{ id: 0, element: { style, namespaceURI: "http://www.w3.org/1999/xhtml" } }], visibleIds: new Set([0]) };
+  const before = [...values];
+  maskTextPaint(state);
+  assert.equal(values.get("color"), "rgb(200, 200, 200)");
+  assert.equal(values.get("background-color"), "currentColor");
+  assert.equal(values.get("-webkit-text-fill-color"), "transparent");
+  restoreTextPaint(state);
+  assert.deepEqual([...values], before);
+});

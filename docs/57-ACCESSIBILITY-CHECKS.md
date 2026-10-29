@@ -343,3 +343,12 @@ through the existing verified Checks bridge. Existing app-shell/native/security
 gates are unchanged. New pinned pure-JS pngjs7 has no dependency install lifecycle
 hooks; audit0. Local math tests reject averaging, rounded4.5 passes and transparent
 foreground. Full rendered results are explicitly pending the first matrix run.
+
+Pixel instrumentation correction before relying on any matrix outcome: do not
+change CSS color during masking, since currentColor backgrounds/borders/icons could
+change with it. Mask only glyph text-fill (SVG text fill where applicable); preserve
+CSS color and test restoration/currentColor explicitly. Unsupported masks still
+require review. The earlier description's "color" removal is superseded by this rule.
+3f224ec iOS123754625261 still failed RWI; system Xcode restoration succeeded this
+time. Listener5221 was absent from name-filtered ps diagnostics, so retain its actual
+process row regardless of executable spelling, without assuming a log writer's name.
