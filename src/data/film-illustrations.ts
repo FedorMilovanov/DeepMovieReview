@@ -886,7 +886,7 @@ export const articleIllustrations: VisualAssetManifest[] = [
     filmSlug: "the-truman-show",
     role: "illustration",
     title: "«Трофей»: создатель и его коллекция",
-    alt: "Тёмная комната: пожилой человек в круглых очках и кепке смотрит сверху вниз с холодной довольной улыбкой; рядом на деревянном постаменте стоит стеклянная колба-витрина, снизу подсвеченная тёплым светом, и внутри неё — сувенирная фигурка молодого человека в светлом пиджаке и жёлтом жилете, который приветственно машет рукой.",
+    alt: "Тёмная комната: пожилой человек в круглых очках и кепке смотрит сверху вниз с холодной довольной улыбкой; рядом на деревянном постаменте стоит стеклянная колба-витрина, снизу подсвеченная тёплым светом, и внутри неё — сувенирная фигурка улыбающегося мужчины с тёмной чёлкой, в клетчатом пиджаке и жёлтом жилете, который приветственно машет рукой.",
     aspectRatio: 3 / 2,
     focalPoint: { x: 0.55, y: 0.4 },
     mobileFocalPoint: { x: 0.5, y: 0.35 },
@@ -904,7 +904,7 @@ export const articleIllustrations: VisualAssetManifest[] = [
         format: "jpg",
         width: 800,
         height: 533,
-        byteSize: 49966,
+        byteSize: 47361,
       },
       {
         id: "illu-truman-caric-trophy-800-avif",
@@ -913,7 +913,7 @@ export const articleIllustrations: VisualAssetManifest[] = [
         format: "avif",
         width: 800,
         height: 533,
-        byteSize: 22034,
+        byteSize: 20542,
       },
       {
         id: "illu-truman-caric-trophy-1200",
@@ -922,7 +922,7 @@ export const articleIllustrations: VisualAssetManifest[] = [
         format: "jpg",
         width: 1200,
         height: 800,
-        byteSize: 102237,
+        byteSize: 92019,
       },
       {
         id: "illu-truman-caric-trophy-1200-avif",
@@ -931,7 +931,7 @@ export const articleIllustrations: VisualAssetManifest[] = [
         format: "avif",
         width: 1200,
         height: 800,
-        byteSize: 44659,
+        byteSize: 38885,
       },
       {
         id: "illu-truman-caric-trophy-master",
@@ -940,7 +940,7 @@ export const articleIllustrations: VisualAssetManifest[] = [
         format: "jpg",
         width: 1536,
         height: 1024,
-        byteSize: 210413,
+        byteSize: 182343,
       },
     ],
     provenance: {
@@ -950,7 +950,7 @@ export const articleIllustrations: VisualAssetManifest[] = [
       promptVersion: "truman-caric-trophy-v1",
       createdAt: "2026-10-29",
       editorialNotes:
-        "Original cartoon of the creator as a collector: the man who built the town keeps its inhabitant as a statuette under glass, lit like an exhibit, and looks down at it with the calm satisfaction of an owner checking the shelf. Two figures, one light source, no words — the whole argument of the section is in the angle of his head.",
+        "Original cartoon of the creator as a collector: the man who built the town keeps its inhabitant as a statuette under glass, lit like an exhibit, and looks down at it with the calm satisfaction of an owner checking the shelf. Two figures, one light source, no words — the whole argument of the section is in the angle of his head. The statuette went through two rounds of likeness work: the first version was a generic waving man, and only after the reference photographs were replaced with frontal film frames did the face read as the performer — fringe, square jaw, broad flat grin.",
     },
   },
 ];
