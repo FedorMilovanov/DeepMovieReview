@@ -398,3 +398,15 @@ reserved TCP port. Look-alike names/paths and non-listeners are rejected by test
 This expands read-only log provenance, not cleanup ownership: launchd's shared XPC
 service is never added to the processes killed by the harness. No session success
 or resolution of the RWI failure is inferred from this diagnostic change.
+
+A subsequent desktop-width check found a second hit-test ambiguity: Range font
+ascent/descent rectangles extend outside tight line-height boxes, and an ordinary
+neighbouring paragraph can own a corner without painting over heading glyphs.
+Only independently identified fixed/sticky foreign overlays defer those lines;
+normal-flow hits are not treated as occlusion evidence. The full conservative
+pixel bound still applies. A seventh synthetic fixture reproduces tight heading /
+paragraph line boxes. Local films1440 now covers all32 owners/67 ranges with no
+missing/below-bound ranges. A prematurely launched local full audit used preview
+at build time but not server runtime; its dynamic article404/failure results are
+not article coverage. The local server was restarted with the actual preview flag;
+production CI already supplies this flag in both phases and was unaffected.
