@@ -373,10 +373,44 @@ test("contrast background isolation preserves color/currentColor paint and resto
     setProperty: (name, value) => values.set(name, value), removeProperty: name => values.delete(name) };
   const state = { records: [{ id: 0, element: { style, namespaceURI: "http://www.w3.org/1999/xhtml" } }], visibleIds: new Set([0]) };
   const before = [...values];
-  maskTextPaint(state);
+  const { runInNewContext } = await import("node:vm");
+  runInNewContext(`(${maskTextPaint.toString()})(state)`, { state, getComputedStyle: () => ({ textDecorationLine: "none" }) });
   assert.equal(values.get("color"), "rgb(200, 200, 200)");
   assert.equal(values.get("background-color"), "currentColor");
   assert.equal(values.get("-webkit-text-fill-color"), "transparent");
   restoreTextPaint(state);
   assert.deepEqual([...values], before);
+});
+
+
+test("contrast coverage rejects a disappearing target even after prior measurements", async () => {
+  const { missingRangeIds } = await import("../scripts/lib/rendered-contrast.mjs");
+  const measurements = new Map([["0:0", {}], ["1:0", {}], ["2:0", {}], ["3:0", {}]]);
+  assert.deepEqual([...missingRangeIds([
+    { id: 0, connected: true, lines: 1 },
+    { id: 1, connected: false, lines: 1 },
+    { id: 2, connected: true, lines: 0 },
+    { id: 3, connected: true, lines: 2 },
+  ], measurements)], [1, 2, 3]);
+});
+
+test("text decoration paint is isolated at its ancestor without changing background paint", async () => {
+  const { maskTextPaint, restoreTextPaint } = await import("../scripts/lib/rendered-contrast.mjs");
+  const { runInNewContext } = await import("node:vm");
+  const makeElement = (values, parentElement = null) => ({ parentElement, namespaceURI: "http://www.w3.org/1999/xhtml",
+    style: { getPropertyValue: name => values.get(name) ?? "", getPropertyPriority: () => "",
+      setProperty: (name, value) => values.set(name, value), removeProperty: name => values.delete(name) } });
+  const ancestorValues = new Map([["text-decoration-color", "red"], ["color", "white"], ["background-color", "currentColor"]]);
+  const ancestor = makeElement(ancestorValues), childValues = new Map(), child = makeElement(childValues, ancestor);
+  const state = { records: [{ id: 0, element: child }], visibleIds: new Set([0]) };
+  const original = [...ancestorValues];
+  runInNewContext(`(${maskTextPaint.toString()})(state)`, { state,
+    getComputedStyle: element => ({ textDecorationLine: element === ancestor ? "line-through" : "none" }) });
+  assert.equal(ancestorValues.get("text-decoration-color"), "transparent");
+  assert.equal(ancestorValues.get("color"), "white");
+  assert.equal(ancestorValues.get("background-color"), "currentColor");
+  assert.equal(ancestorValues.has("-webkit-text-fill-color"), false);
+  restoreTextPaint(state);
+  assert.deepEqual([...ancestorValues], original);
+  assert.deepEqual([...childValues], []);
 });

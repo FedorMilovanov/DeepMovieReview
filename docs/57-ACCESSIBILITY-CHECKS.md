@@ -322,7 +322,7 @@ A dedicated Chromium/Firefox/WebKit matrix now runs the same42 route/width/state
 scans with an additional finite pixel-bound assessment. Raw axe incomplete nodes
 remain intact. For each target, real text Range rectangles are visited by natural
 scroll/reveal. Save original viewport PNG, then temporarily remove only text paint
-(color/text-fill/shadow/SVG fill), save its real background PNG, and restore the exact
+(text-fill/shadow/SVG glyph fill and text decorations; never CSS color), save its real background PNG, and restore the exact
 inline properties/priorities. This is background-isolation instrumentation, not a
 forced production foreground/layout or a screenshot presented as the original.
 No new important rules, forced opacity, synthetic backgrounds or CSS/DPR zoom.
@@ -352,3 +352,42 @@ require review. The earlier description's "color" removal is superseded by this 
 3f224ec iOS123754625261 still failed RWI; system Xcode restoration succeeded this
 time. Listener5221 was absent from name-filtered ps diagnostics, so retain its actual
 process row regardless of executable spelling, without assuming a log writer's name.
+
+
+### First matrix read-back and measurement hardening
+
+Exact `9c77af7` has verified Checks read-back for all three rendered matrix results
+(Chromium123761687015, Firefox123761103490, WebKit123762602570). Their gates failed;
+transport success is not assessment success. Local Chromium153.0.8010.0 was also
+obtained through the npm-distributed browser binary, with its bundled NSS libraries,
+without the blocked Playwright CDN. Product dependencies remain unchanged.
+
+Original/masked PNG review exposed sticky-header paint sampled over partially
+occluded content and foreground strike-through paint mistaken for background.
+The assessor now samples fully exposed lines on overlapping tiles, isolates actual
+ancestor decoration paint as well as glyph paint, preserves CSS color/currentColor,
+and restores inline properties. Decoration/non-text contrast is not certified by
+this glyph contrast bound. Existing pointer-events:none annotations use their
+nearest hit-testable container without changing any production style; this hit-test
+guard is not a complete paint-occlusion certificate.
+
+Only settled opaque observations contribute coverage. Deferred animation observations
+remain in the report; every expected line must still have an assessed observation.
+Missing lines get one additional ordinary centered-scroll visit, never a replacement
+for a recorded low bound. Disconnected/zero-final-range targets fail even if previously
+measured. Reports now map every range ID back to its original axe target.
+Six independent synthetic positive/negative fixtures run before each engine's real
+product scans: black/white, currentColor, ancestor decoration, sticky overlap,
+permanent opacity and removal after measurement. They are labelled synthetic, not
+counted as product coverage. All six passed locally. Updated local home390 measurement:
+330 owners,523 lines,41 frames,28 deferred observations subsequently covered,0 missing,
+0 below-bound lines. Three-engine results for these changes are pending, not zero.
+
+Separately, exact9c native receipts123761784170 and123760464509 verified Safari26.6.1 /
+VoiceOver and Chrome156.0.8078.48 / NVDA respectively: heading, both tables, headers /
+row value, actual200% zoom and actual300% /320CSSpx reflow on all four routes passed.
+The Safari outer width stayed960 while inner width changed960→480→320 and DPR1→2→3.
+These are real OS AT automation, not human manual assessment. iOS receipt123763574753
+still failed RWI discovery; original system Xcode16.4 restoration passed. Its actual
+listener is Apple's com.apple.WebDriver.HTTPService XPC executable, not safaridriver;
+its log must remain unread until listener plus exact executable identity is verified.
