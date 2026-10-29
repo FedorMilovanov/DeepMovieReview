@@ -1268,6 +1268,67 @@ try {
     await evaluate("document.querySelector('.articleTableFigure').scrollIntoView({block:'center',behavior:'instant'})");
     await sleep(300);
     await capture(`article-tables-${label}`);
+    const outlineValid = await evaluate(`(() => {
+      const links = [...document.querySelectorAll('.articleOutline a')];
+      return links.length > 0 && links.every(link => {
+        const section = document.getElementById(link.hash.slice(1));
+        return section?.matches('.articleSection')
+          && document.getElementById(section.getAttribute('aria-labelledby'))?.tagName === 'H2';
+      });
+    })()`);
+    assertCheck(`article navigation ${label}: every outline link names a rendered section`, outlineValid);
+    await evaluate("document.querySelector('.articleOutline a').focus()");
+    await pressEnter();
+    let anchorState;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      anchorState = JSON.parse(await evaluate(`JSON.stringify((() => {
+        const link = document.querySelector('.articleOutline a');
+        const section = document.getElementById(link.hash.slice(1));
+        const heading = document.getElementById(section.getAttribute('aria-labelledby'));
+        return { hashMatches: location.hash === link.hash,
+          headingTop: heading.getBoundingClientRect().top,
+          headerBottom: document.querySelector('.siteHeader').getBoundingClientRect().bottom,
+          viewportHeight: innerHeight };
+      })())`));
+      if (anchorState.hashMatches && anchorState.headingTop >= anchorState.headerBottom - 1
+        && anchorState.headingTop < anchorState.viewportHeight) break;
+      await sleep(100); // Wait for native smooth scrolling, do not disable motion.
+    }
+    assertCheck(`article navigation ${label}: Enter reaches heading below sticky header`,
+      anchorState.hashMatches && anchorState.headingTop >= anchorState.headerBottom - 1
+        && anchorState.headingTop < anchorState.viewportHeight, anchorState);
+
+    // Synthetic authoring stress: mutate only text, never styles or sizes.
+    // Measure the element AND its reading container; the shell can clip overflow
+    // without increasing document.scrollWidth. Restore each node afterwards.
+    for (const selector of [
+      '.articleOutline strong', '.articleModuleLink', '.articleAside p:last-child',
+      '.articleIllustration figcaption', '.articleSectionHead h2', '.articleParagraph',
+    ]) {
+      await evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'center',behavior:'instant'})`);
+      await sleep(100);
+      const textState = JSON.parse(await evaluate(`JSON.stringify((() => {
+        const element = document.querySelector(${JSON.stringify(selector)});
+        const node = [...element.childNodes].find(child => child.nodeType === Node.TEXT_NODE);
+        const original = node.textContent;
+        node.textContent = 'LongReference'.repeat(40);
+        const rect = element.getBoundingClientRect();
+        const container = element.closest('.sectionShell').getBoundingClientRect();
+        return { original, width: rect.width, left: rect.left, right: rect.right,
+          containerLeft: container.left, containerRight: container.right,
+          overflow: element.scrollWidth - element.clientWidth };
+      })())`));
+      assertCheck(`article long text ${label}: ${selector} stays readable inside its column`,
+        textState.width > 0 && textState.left >= textState.containerLeft - 1
+          && textState.right <= textState.containerRight + 1 && textState.overflow <= 1,
+        textState);
+      if (label === "mobile") await capture(`article-text-stress-${selector.replaceAll(/[^a-zA-Z]/g, '')}`);
+      await evaluate(`(() => {
+        const element = document.querySelector(${JSON.stringify(selector)});
+        [...element.childNodes].find(child => child.nodeType === Node.TEXT_NODE).textContent = ${JSON.stringify(textState.original)};
+      })()`);
+    }
+
   }
 
   // Start in pointer modality: programmatic focus alone must not be mistaken
