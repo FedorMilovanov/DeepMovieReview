@@ -48,12 +48,11 @@ try {
       }).slice(-12000);
       console.log(report.bootLog);
       report.device.state = "Booted";
-      // Prime MobileSafari once, then let WebDriver create its automation tab.
-      report.phase = "priming native MobileSafari";
+      // Keep the native browser running so WebDriver can discover its RWI app.
+      report.phase = "starting native MobileSafari";
       report.safariLaunchLog = execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], {
         encoding: "utf8", timeout: 60000, maxBuffer: 16 * 1024 * 1024,
       }).slice(-12000);
-      execFileSync("xcrun", ["simctl", "terminate", device.udid, "com.apple.mobilesafari"], { stdio: "inherit", timeout: 30000 });
       report.phase = "creating native iOS Safari session";
     },
   });

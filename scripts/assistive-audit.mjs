@@ -79,6 +79,10 @@ try {
     await delay(250);
   }
   assert.ok(ready, "Production server did not start");
+  if (mac) {
+    checkpoint("activating installed Safari before reader/WebDriver startup", true);
+    await macOSActivate(MacOSApplications.Safari, speechOptions);
+  }
   checkpoint("starting real screen reader", true);
   await reader.start(speechOptions);
   checkpoint("screen reader started", true);

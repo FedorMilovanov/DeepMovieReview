@@ -2,10 +2,14 @@
 import assert from "node:assert/strict";
 import { inspect } from "node:util";
 import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { safariDriverLog } from "./apple-toolchain.mjs";
 import { setTimeout as delay } from "node:timers/promises";
 
 export async function nativeSafari(capabilities = {}, { beforeSession = async () => {} } = {}) {
-  const driver = spawn("/usr/bin/safaridriver", ["-p", "4444"], { stdio: ["ignore", "pipe", "pipe"] });
+  const driver = spawn("/usr/bin/safaridriver", ["--diagnose", "-p", "4444"], { stdio: ["ignore", "pipe", "pipe"] });
   let diagnostics = "", lastError;
   for (const stream of [driver.stdout, driver.stderr]) stream.on("data", chunk => {
     diagnostics = `${diagnostics}${chunk}`.slice(-8000);
@@ -64,5 +68,11 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       resize: (width, height) => request(`${path}/window/rect`, { width, height }),
       async close() { try { await request(path, undefined, "DELETE"); } finally { driver.kill(); } },
     };
-  } catch (error) { driver.kill(); throw error; }
+  } catch (error) {
+    const exited = driver.exitCode !== null || driver.signalCode !== null ? Promise.resolve() : once(driver, "exit").catch(() => {});
+    driver.kill();
+    await Promise.race([exited, delay(2000)]);
+    const log = safariDriverLog(join(homedir(), "Library/Logs/com.apple.WebDriver"), driver.pid);
+    throw new Error(`${error.message}\nSafariDriver diagnostics:\n${log}`, { cause: error });
+  }
 }
