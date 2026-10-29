@@ -1,3 +1,5 @@
+import type { FilmPackage } from "./film-package";
+
 /**
  * Pure film-index search logic. The query matches against the localized
  * title, optional original title, year and human-readable status label; an
@@ -27,4 +29,14 @@ export function filterFilmIndex<T extends FilmIndexSearchEntry>(
       `${film.title} ${film.originalTitle ?? ""} ${film.year} ${film.status}`,
     ).includes(normalized),
   );
+}
+
+/** Editorial availability is independent of the requested spoiler level. */
+export function filmIndexStatusLabel(filmPackage: FilmPackage): string {
+  if (filmPackage.research?.state === "SECONDARY_SOURCES") {
+    return "исследовательский черновик · статьи нет · мастер не заблокирован";
+  }
+  if (filmPackage.film.status === "fixture") return "фикстура";
+  if (filmPackage.film.status === "published") return "опубликовано";
+  return filmPackage.article ? "статья · предпросмотр" : "черновик · статьи нет";
 }
