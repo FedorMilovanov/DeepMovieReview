@@ -12,7 +12,8 @@ assert.match(label, /^[a-z-]+$/);
 const summary = JSON.parse(readFileSync(`${directory}/summary.json`, "utf8"));
 const scans = summary.results.map(scan => {
   const result = JSON.parse(readFileSync(`${directory}/${scan.file}`, "utf8"));
-  return { scan, violations: result.violations, incomplete: result.incomplete };
+  return { scan, violations: result.violations, incomplete: result.incomplete,
+    ...(result.actions ? { assistiveEvidence: result } : {}) };
 });
 // Include original mobile article PNGs, not regenerated images or a text-only substitute.
 const screenshots = summary.results.filter(scan => scan.state === "page" && scan.width === 390 && scan.route.includes("/article?")).map(scan => {
