@@ -95,3 +95,17 @@ OS/browser/AT versions, действия, spoken transcript и найденны�
   Двойная запись и финальный replay28pages прошли. Обнаруженный отдельный race
   измерителя устранён ожиданием настоящего hydrated graphics backend: SSR
   `MEDIUM / unknown` менял ширину footer; состояние не форсируется.
+
+Следующий exact-head контроль `2f25482` намеренно отверг page-title speech как
+доказательство h1: VoiceOver оставался на `web content group` и предлагал войти
+в web area. Подготовка курсора теперь полностью дожидается Item Chooser,
+выбора/Enter/interact, записывает каждый шаг и переходит к первому web item;
+строгий heading-role guard не убран. Подтверждение исправления требует нового CI.
+В том же run iOS уже дошёл до настоящего session handshake (device Booted), но
+получил timeout поиска remote Safari/RWI application. Добавлены Simulator.app и
+первый launch/terminate MobileSafari перед automation session, не подмена движка.
+Метод: `SENAI4LIFE/RemoteIFES/e2e/harness/safari-smoke.js`; особенности настоящих
+W3C touch actions/release описаны в `garrytan/gstack#3058`. Mobile taps теперь идут
+через touch actions, не JS click. Итог этих исправлений ещё не подтверждён.
+Отдельно проверены все6линз на1440/390:62text ranges, minimum bound6.369:1,
+без перекрытия метаданных. Это дополняет, но не заменяет cross-engine review.

@@ -43,6 +43,19 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       capabilities: result.capabilities,
       async click(selector) {
         const element = await request(`${path}/element`, { using: "css selector", value: selector });
+        if (capabilities.platformName?.toLowerCase() === "ios") {
+          // Mobile Safari element/click can deliver a move without a tap.
+          // Use a real W3C touch gesture; release is required to dispatch up.
+          const point = await request(`${path}/execute/sync`, {
+            script: "arguments[0].scrollIntoView({block:'center',behavior:'instant'});const r=arguments[0].getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)}", args: [element],
+          });
+          try {
+            return await request(`${path}/actions`, { actions: [{ type: "pointer", id: "finger", parameters: { pointerType: "touch" }, actions: [
+              { type: "pointerMove", duration: 0, ...point }, { type: "pointerDown", button: 0 },
+              { type: "pause", duration: 80 }, { type: "pointerUp", button: 0 },
+            ] }] });
+          } finally { await request(`${path}/actions`, undefined, "DELETE"); }
+        }
         return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
       },
       execute: script => request(`${path}/execute/sync`, { script, args: [] }),

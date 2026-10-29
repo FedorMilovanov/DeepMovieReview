@@ -1,5 +1,6 @@
 // Safari inside Apple's iOS Simulator; never claim physical iPhone or iOS VoiceOver.
 import assert from "node:assert/strict";
+import { inspect } from "node:util";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
@@ -25,6 +26,11 @@ try {
       if (device.state !== "Booted") execFileSync("xcrun", ["simctl", "boot", device.udid], { stdio: "inherit" });
       execFileSync("xcrun", ["simctl", "bootstatus", device.udid, "-b"], { stdio: "inherit", timeout: 240000 });
       report.device.state = "Booted";
+      // SafariDriver reaches the device through Simulator.app. Booting the
+      // runtime alone leaves the remote Safari/RWI application undiscoverable.
+      execFileSync("open", ["-a", "Simulator", "--args", "-CurrentDeviceUDID", device.udid], { stdio: "inherit", timeout: 30000 });
+      execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], { stdio: "inherit", timeout: 60000 });
+      execFileSync("xcrun", ["simctl", "terminate", device.udid, "com.apple.mobilesafari"], { stdio: "inherit", timeout: 30000 });
       report.phase = "creating native iOS Safari session";
     },
   });
@@ -53,7 +59,7 @@ try {
     }
   }
 } catch (error) {
-  report.failures.push(error.stack ?? String(error));
+  report.failures.push(inspect(error, { depth: 8, maxStringLength: 16000 }));
   console.error(workflowError(`iOS Safari Simulator: ${error.stack ?? error}`));
 } finally {
   report.results.push({ browser: "ios-safari-simulator", version: safari?.version ?? "not-started", width: 0,
