@@ -287,6 +287,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/recover-a11y-evidence.py
 
+      - name: Recover retained native evidence from a completed prior head
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        timeout-minutes: 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/recover-native-evidence.py
+
       - name: Publish lossless accessibility diagnostics to checks API
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         env:

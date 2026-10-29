@@ -39,8 +39,9 @@ if (process.env.GITHUB_ACTIONS !== "true") {
       Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: "application/vnd.github+json",
       "Content-Type": "application/json", "X-GitHub-Api-Version": "2022-11-28",
     }, ...(body ? { body: JSON.stringify(body) } : {}) });
-    assert.ok(response.ok, `Checks API ${method}: HTTP ${response.status}`);
-    return response.json();
+    const text = await response.text();
+    assert.ok(response.ok, `Checks API ${method}: HTTP ${response.status}; response excerpt (${text.length} chars): ${text.slice(0, 4000)}`);
+    return JSON.parse(text);
   }
   const title = `Accessibility evidence (${label})`;
   const check = await api(root, "POST", { name: title, head_sha: head, status: "in_progress" });
@@ -67,7 +68,15 @@ if (process.env.GITHUB_ACTIONS !== "true") {
     await api(`${root}/${check.id}`, "PATCH", { status: "completed", conclusion: "success" });
     console.log(`${label}: verified ${chunks.length} chunks, ${bytes.length} bytes, SHA ${summary.revision}`);
   } catch (error) {
-    await api(`${root}/${check.id}`, "PATCH", { status: "completed", conclusion: "failure" });
-    throw error;
+    const failure = { transportError: String(error), sourceRevision: summary.revision,
+      sourcePhase: summary.phase, sourceFailures: summary.failures };
+    const full = JSON.stringify(failure, null, 2);
+    const text = full.length <= 60000 ? full : JSON.stringify({ transportError: String(error),
+      sourceRevision: summary.revision, sourcePhase: summary.phase,
+      sourceFailureCount: summary.failures.length, note: "Full source diagnostics exceed check text limit; original artifact retained." });
+    try {
+      await api(`${root}/${check.id}`, "PATCH", { status: "completed", conclusion: "failure",
+        output: { title, summary: JSON.stringify(manifest), text } });
+    } finally { throw error; }
   }
 }
