@@ -233,6 +233,12 @@ const READY = `(() => {
   return Boolean(gutter && container && main && main.children.length) && document.fonts.status === "loaded";
 })()`;
 
+// Generated CSS Module names can change with the bundler while the rendered
+// styles stay identical. Keep cls for diagnostics, not visual identity.
+function visualDigest(elements) {
+  return hash(elements.map(({ path, tag, box, at, style }) => JSON.stringify({ path, tag, box, at, style })).join("\n"));
+}
+
 function hash(value) {
   return createHash("sha256").update(value).digest("hex").slice(0, 16);
 }
@@ -349,7 +355,7 @@ async function capture(binary, viewport, route) {
   socket.close();
   await stopChrome(child, profile);
 
-  const digest = hash(elements.map((entry) => JSON.stringify(entry)).join("\n"));
+  const digest = visualDigest(elements);
   return { route, width: viewport.width, digest, elements };
 }
 
@@ -364,7 +370,7 @@ function compare(baseline, current) {
       problems.push(`${label}: страница исчезла из отпечатка`);
       continue;
     }
-    if (fresh.digest === page.digest) continue;
+    if (visualDigest(fresh.elements) === visualDigest(page.elements)) continue;
     if (fresh.elements.length !== page.elements.length) {
       problems.push(`${label}: element count ${page.elements.length} → ${fresh.elements.length}`);
     }
@@ -387,6 +393,10 @@ function compare(baseline, current) {
         entry.box[1] !== next.box[1] ||
         entry.at[0] !== next.at[0] ||
         entry.at[1] !== next.at[1];
+      if (entry.tag !== next.tag) {
+        problems.push(`${label}: ${path} tag ${entry.tag} → ${next.tag}`);
+        reported += 1;
+      }
       if (changed.length || resized) {
         problems.push(
           `${label}: ${entry.tag}.${entry.cls} — ${changed

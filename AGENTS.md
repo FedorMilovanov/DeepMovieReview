@@ -20,7 +20,7 @@ The semantic shell, bounded visual R&D, adaptive experience layer and reusable F
 
 ## Non-negotiable implementation boundaries
 
-- Next.js 16.3.x App Router + strict TypeScript. Prefer Server Components unless browser state or interaction requires a client boundary.
+- Next.js 16.4.x App Router + strict TypeScript. Prefer Server Components unless browser state or interaction requires a client boundary.
 - Meaningful content, navigation, evidence and conclusions stay in semantic DOM. GPU is progressive enhancement.
 - Application routes and projections read film data only through `src/data/film-registry.ts`.
 - `src/data/film-fixtures.ts` is the raw construction source for structural fixtures. Real film packages live separately under `src/data/films/`. Do not import either raw source from routes or presentation components; application reads go through `src/data/film-registry.ts`.

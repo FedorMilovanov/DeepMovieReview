@@ -23,7 +23,7 @@ The architecture must preserve:
 
 Current baseline candidate:
 
-- **Next.js 16.3.x** / App Router;
+- **Next.js 16.4.x** / App Router;
 - **React 19**;
 - **TypeScript**;
 - server-rendered editorial content;
@@ -34,7 +34,7 @@ Current baseline candidate:
 - **Three.js WebGPURenderer + TSL** for new signature GPU systems, with WebGL2 fallback;
 - GSAP only where timeline/path/infinite-gallery tooling is genuinely superior, not as an automatic dependency for every animation.
 
-Current Next.js 16.3 emphasizes improved memory/build behavior and Instant Navigations. This makes it a plausible foundation for a route-heavy editorial experience.
+Next.js 16 emphasizes improved memory/build behavior and Instant Navigations. This makes it a plausible foundation for a route-heavy editorial experience.
 
 ## 3. DOM vs GPU responsibility
 
