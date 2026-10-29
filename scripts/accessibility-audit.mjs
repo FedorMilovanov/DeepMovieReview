@@ -61,6 +61,18 @@ for (const name of selected) {
           await scan("page");
           await page.screenshot({ path: `${out}/${id}.png` });
 
+          if (width === 390 && route === "/") {
+            for (const lens of ["story", "people", "relationships", "ideas", "moral-world", "craft"]) {
+              await page.locator(`label[for="lens-radio-${lens}"]`).click();
+              const meta = await page.locator(".lensFrame .frameMeta").boundingBox();
+              for (const mark of await page.locator(`.lensMarkGroup[data-lens="${lens}"] .lensMark:visible`).all()) {
+                const box = await mark.boundingBox();
+                assert.ok(box && meta && box.y >= meta.y + meta.height, `${lens}: chips must not overlap frame metadata`);
+              }
+            }
+            await page.locator('label[for="lens-radio-story"]').click();
+          }
+
           if (width === 390) {
             const menu = page.locator(".menuButton");
             await menu.focus();
