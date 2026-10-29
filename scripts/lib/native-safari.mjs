@@ -2,16 +2,34 @@
 import assert from "node:assert/strict";
 import { inspect } from "node:util";
 import { spawn, execFileSync } from "node:child_process";
+import { createServer } from "node:net";
 import { once } from "node:events";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { safariDriverLog, safariDriverPids } from "./apple-toolchain.mjs";
+import { safariDriverLog, safariDriverPids, safariListenerPids } from "./apple-toolchain.mjs";
 import { setTimeout as delay } from "node:timers/promises";
 
+export function safariRequestTimeout(path) {
+  return path === "/session" || path.endsWith("/url") ? 90000 : path === "/status" ? 1500 : 30000;
+}
+
 export async function nativeSafari(capabilities = {}, { beforeSession = async () => {} } = {}) {
-  const driver = spawn("/usr/bin/safaridriver", ["--diagnose", "-p", "4444"], { stdio: ["ignore", "pipe", "pipe"] });
+  // Never attach iOS to a desktop driver's leftover fixed-port listener.
+  const reservation = createServer().listen(0, "127.0.0.1");
+  await once(reservation, "listening");
+  const port = reservation.address().port;
+  await new Promise((resolve, reject) => reservation.close(error => error ? reject(error) : resolve()));
+  const driver = spawn("/usr/bin/safaridriver", ["--diagnose", "-p", String(port)], { stdio: ["ignore", "pipe", "pipe"] });
   let diagnostics = "", lastError;
   let diagnosticPids = [driver.pid];
+  function stopDriver() {
+    driver.kill();
+    for (const pid of diagnosticPids) if (pid !== driver.pid) {
+      try { process.kill(pid); } catch (error) {
+        if (error.code !== "ESRCH") diagnostics += `\nDriver ${pid} cleanup: ${error.message}`;
+      }
+    }
+  }
   for (const stream of [driver.stdout, driver.stderr]) stream.on("data", chunk => {
     diagnostics = `${diagnostics}${chunk}`.slice(-8000);
     process.stderr.write(chunk);
@@ -19,14 +37,18 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
   driver.on("error", error => { lastError = error; });
   let session;
   async function request(path, body, method = body === undefined ? "GET" : "POST") {
-    const response = await fetch(`http://127.0.0.1:4444${path}`, {
-      signal: AbortSignal.timeout(path === "/session" ? 90000 : path === "/status" ? 1500 : 30000),
-      method, headers: { "Content-Type": "application/json" },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
-    const result = await response.json();
-    assert.ok(response.ok && !result.value?.error, JSON.stringify(result));
-    return result.value;
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+        signal: AbortSignal.timeout(safariRequestTimeout(path)),
+        method, headers: { "Content-Type": "application/json" },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+      const result = await response.json();
+      assert.ok(response.ok && !result.value?.error, JSON.stringify(result));
+      return result.value;
+    } catch (error) {
+      throw new Error(`SafariDriver ${method} ${path}: ${error.message}`, { cause: error });
+    }
   }
   try {
     let ready = false;
@@ -42,7 +64,11 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
     // Observe the launcher's real driver before expensive Simulator boot. This
     // is optional diagnostics: failure must not prevent the W3C session attempt.
     try {
-      diagnosticPids = safariDriverPids(execFileSync("ps", ["-axo", "pid=,ppid=,comm="], { encoding: "utf8", timeout: 5000 }), driver.pid);
+      const processes = execFileSync("ps", ["-axo", "pid=,ppid=,comm="], { encoding: "utf8", timeout: 5000 });
+      diagnosticPids = safariDriverPids(processes, driver.pid);
+      // A launchd-hosted driver need not remain the launcher's descendant.
+      const listeners = execFileSync("lsof", ["-nP", "-a", `-iTCP:${port}`, "-sTCP:LISTEN", "-Fp"], { encoding: "utf8", timeout: 5000 });
+      diagnosticPids = [...new Set([...diagnosticPids, ...safariListenerPids(listeners, processes)])];
     } catch (error) { diagnostics += `\nDriver process snapshot unavailable: ${error.message}`; }
     await beforeSession();
     const result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari", ...capabilities } } });
@@ -72,11 +98,11 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       goto: url => request(`${path}/url`, { url }),
       screenshot: () => request(`${path}/screenshot`),
       resize: (width, height) => request(`${path}/window/rect`, { width, height }),
-      async close() { try { await request(path, undefined, "DELETE"); } finally { driver.kill(); } },
+      async close() { try { await request(path, undefined, "DELETE"); } finally { stopDriver(); } },
     };
   } catch (error) {
     const exited = driver.exitCode !== null || driver.signalCode !== null ? Promise.resolve() : once(driver, "exit").catch(() => {});
-    driver.kill();
+    stopDriver();
     await Promise.race([exited, delay(2000)]);
     const log = diagnosticPids.map(pid => safariDriverLog(join(homedir(), "Library/Logs/com.apple.WebDriver"), pid)).join("\n").slice(-12000);
     throw new Error(`${error.message}\nSafariDriver diagnostics (observed PIDs ${diagnosticPids.join(", ")}):\n${diagnostics}\n${log}`, { cause: error });

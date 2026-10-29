@@ -256,3 +256,19 @@ test("SafariDriver log PIDs come from the observed launcher tree, not arithmetic
   assert.deepEqual(safariDriverPids(processes, 40), [40, 997]);
   assert.deepEqual(safariDriverPids("", 40), [40]);
 });
+
+test("launchd SafariDriver listener ownership is checked independently of parent PID", async () => {
+  const { safariListenerPids } = await import("../scripts/lib/apple-toolchain.mjs");
+  const processes = "901 1 /installed/safaridriver\n902 1 /other/server\n903 1 /unrelated/safaridriver";
+  assert.deepEqual(safariListenerPids("p901\np902\n", processes), [901]);
+  assert.deepEqual(safariListenerPids("p904\n", processes), []);
+});
+
+test("native navigation has its own bounded deadline, not a generic 30s command timeout", async () => {
+  const { safariRequestTimeout } = await import("../scripts/lib/native-safari.mjs");
+  assert.equal(safariRequestTimeout("/session"), 90000);
+  assert.equal(safariRequestTimeout("/session/id/url"), 90000);
+  assert.equal(safariRequestTimeout("/status"), 1500);
+  assert.equal(safariRequestTimeout("/session/id/execute/sync"), 30000);
+  assert.equal(safariRequestTimeout("/session/id/screenshot"), 30000);
+});
