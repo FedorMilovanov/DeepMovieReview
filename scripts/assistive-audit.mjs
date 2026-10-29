@@ -8,7 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
 import { macKeyboardShortcut } from "./lib/assistive-commands.mjs";
-import { nativeSafari } from "./lib/native-safari.mjs";
+import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
 assert.ok(["darwin", "win32"].includes(platform()), "Real AT requires macOS or Windows");
@@ -49,8 +49,9 @@ const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "star
 const base = "http://127.0.0.1:3213";
 const execute = async expression => mac ? safari.execute(`return (${expression})`) : page.evaluate(expression);
 const go = async route => {
-  if (mac) await safari.goto(base + route);
-  else { await page.goto(base + route); await page.waitForLoadState("networkidle"); }
+  if (mac) return safari.goto(base + route);
+  await page.goto(base + route);
+  await page.waitForLoadState("networkidle");
   await execute("document.fonts.ready.then(() => true)");
 };
 const perform = (command, options) => mac
@@ -89,20 +90,17 @@ try {
   }
   assert.ok(ready, "Production server did not start");
   if (mac) {
-    checkpoint("activating installed Safari before reader/WebDriver startup", true);
+    checkpoint("opening native Safari Apple Events window", true);
+    safari = await safariDesktop();
+    await safari.resize(960, 1000);
+    report.browser = { name: "Safari", version: safari.version, control: safari.control };
     await macOSActivate(MacOSApplications.Safari, speechOptions);
   }
   checkpoint("starting real screen reader", true);
   await reader.start(speechOptions);
   checkpoint("screen reader started", true);
   report.screenReader = { name: reader.name, version: reader.version };
-  if (mac) {
-    checkpoint("starting installed Safari WebDriver", true);
-    safari = await nativeSafari();
-    checkpoint("Safari session started", true);
-    await safari.resize(960, 1000);
-    report.browser = { name: "Safari", version: safari.version };
-  } else {
+  if (!mac) {
     browser = await chromium.launch({ channel: "chrome", headless: false, args: ["--window-size=1280,1000"] });
     const context = await browser.newContext({ viewport: null });
     page = await context.newPage();
@@ -221,11 +219,11 @@ try {
     route: "/films/the-truman-show/article?spoilers=full", state: "failure", scope: "desktop OS", file: "actual-at.json" });
 } finally {
   clearTimeout(deadline);
-  writeFileSync(`${directory}/actual-at.json`, JSON.stringify(evidence, null, 2));
-  writeFileSync(`${directory}/summary.json`, JSON.stringify(report, null, 2));
   await reader.stop().catch(() => {});
-  await safari?.close().catch(() => {});
+  await safari?.close().catch(error => report.failures.push(`Native Safari cleanup failed: ${error.message}`));
   await browser?.close();
   server.kill();
+  writeFileSync(`${directory}/actual-at.json`, JSON.stringify(evidence, null, 2));
+  writeFileSync(`${directory}/summary.json`, JSON.stringify(report, null, 2));
 }
 process.exitCode = report.failures.length ? 1 : 0;

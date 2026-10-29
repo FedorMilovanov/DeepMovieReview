@@ -64,12 +64,12 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
     // Observe the launcher's real driver before expensive Simulator boot. This
     // is optional diagnostics: failure must not prevent the W3C session attempt.
     try {
-      const processes = execFileSync("ps", ["-axo", "pid=,ppid=,comm="], { encoding: "utf8", timeout: 5000 });
-      diagnostics += `\nDriver process rows:\n${processes.split("\n").filter(line => /safaridriver/.test(line)).join("\n").slice(-5000)}`;
-      diagnosticPids = safariDriverPids(processes, driver.pid);
-      // A launchd-hosted driver need not remain the launcher's descendant.
+      // Read the listener first: the shim may start its helper after /status.
       const listeners = execFileSync("lsof", ["-nP", "-a", `-iTCP:${port}`, "-sTCP:LISTEN", "-Fp"], { encoding: "utf8", timeout: 5000 });
       diagnostics += `\nListener ownership on port ${port}: ${listeners}`;
+      const processes = execFileSync("ps", ["-axww", "-o", "pid=,ppid=,comm="], { encoding: "utf8", timeout: 5000 });
+      diagnostics += `\nDriver process rows:\n${processes.split("\n").filter(line => /safaridriver/.test(line)).join("\n").slice(-5000)}`;
+      diagnosticPids = safariDriverPids(processes, driver.pid);
       diagnosticPids = [...new Set([...diagnosticPids, ...safariListenerPids(listeners, processes)])];
     } catch (error) { diagnostics += `\nDriver process snapshot unavailable: ${error.message}`; }
     await beforeSession();

@@ -272,3 +272,61 @@ test("native navigation has its own bounded deadline, not a generic 30s command 
   assert.equal(safariRequestTimeout("/session/id/execute/sync"), 30000);
   assert.equal(safariRequestTimeout("/session/id/screenshot"), 30000);
 });
+
+test("native Safari read-only probes preserve values without injected focus or CSS", async () => {
+  const { safariProbe } = await import("../scripts/lib/safari-desktop.mjs");
+  const { runInNewContext } = await import("node:vm");
+  const value = runInNewContext(safariProbe("return {width:innerWidth,scroll:document.documentElement.scrollWidth}"), {
+    innerWidth: 480, document: { documentElement: { scrollWidth: 480 } },
+  });
+  assert.deepEqual(JSON.parse(value), { width: 480, scroll: 480 });
+});
+
+test("native Safari restores CI-only JavaScript preference on close and setup failure", async () => {
+  const { safariDesktop } = await import("../scripts/lib/safari-desktop.mjs");
+  const calls = [];
+  const run = async (file, args) => {
+    calls.push([file, ...args]);
+    if (file === "defaults" && args[0] === "read") throw Object.assign(new Error("absent"), { code: 1 });
+    if (file === "/usr/bin/osascript" && args[1].includes("make new document")) return "99";
+    if (file === "/usr/bin/osascript" && args[1].includes("get version")) return "26.6.1";
+    return "";
+  };
+  const browser = await safariDesktop({ run, ci: true });
+  assert.equal(browser.version, "26.6.1");
+  await browser.close();
+  assert.ok(calls.some(row => row[0] === "defaults" && row[1] === "delete"));
+  calls.length = 0;
+  await assert.rejects(safariDesktop({ run, ci: false }), /local preferences are not changed/);
+  assert.ok(!calls.some(row => row[0] === "defaults" && row[1] === "write"));
+  calls.length = 0;
+  await assert.rejects(safariDesktop({ ci: true, run: async (file, args) => {
+    if (file === "/usr/bin/osascript" && args[1].includes("make new document")) throw new Error("window failed");
+    return run(file, args);
+  } }), /window failed/);
+  assert.ok(calls.some(row => row[0] === "defaults" && row[1] === "delete"));
+});
+
+test("native Safari Apple Events adapter waits for real DOM/fonts and reads geometry", async () => {
+  const { safariDesktop } = await import("../scripts/lib/safari-desktop.mjs");
+  const { runInNewContext } = await import("node:vm");
+  let url = "about:blank", checks = 0;
+  const browser = await safariDesktop({ ci: false, run: async (file, args) => {
+    if (file === "defaults") return "1";
+    const script = args[1];
+    if (script.includes("make new document")) return "321";
+    if (script.includes("get version")) return "26.6.1";
+    if (script.includes("set URL")) { url = args.at(-1); return ""; }
+    if (script.includes("do JavaScript")) {
+      assert.equal(args[2], "321", "Probe must target the owned native window");
+      checks++;
+      return runInNewContext(args[3], { location: { href: url }, innerWidth: 320,
+        outerWidth: 960, document: { readyState: "complete", fonts: { status: "loaded" }, documentElement: { scrollWidth: 320 } } });
+    }
+    return "";
+  } });
+  await browser.goto("http://127.0.0.1:3213/films");
+  assert.ok(checks > 0, "Navigation must actually verify page/font readiness");
+  assert.deepEqual(await browser.execute("return {width:innerWidth,outer:outerWidth,scroll:document.documentElement.scrollWidth}"), { width: 320, outer: 960, scroll: 320 });
+  await browser.close();
+});

@@ -285,3 +285,24 @@ On disposable GitHub-hosted runners only, also select the matching system Xcode,
 verify it with DEVELOPER_DIR removed, and restore the original selection in finally.
 Restoration failure is a real failure; local machines are not changed system-wide.
 This is a pending native experiment, not an iOS pass or established root cause.
+
+`788fe59` native receipts123732580424/123734486579 verified with the repository
+reader. Desktop Commander chooser, VO-F3 heading and both tables passed again;
+failedPhase now identifies plain geometry execute/sync after native interaction.
+iOS system selection26.3 was verified but RWI discovery still failed; restoration
+itself hit sudo30s timeout, recorded as a failure, not hidden. No native iOS pass.
+Listener15542 appeared after the process snapshot15541: collect listener before
+wide ps output to avoid losing the real worker's identity.
+
+Next desktop experiment uses actual Safari Apple Events, not a WebDriver remote
+window: native document/window, read-only JSON DOM probes, native keyboard/rotor,
+physical window bounds and system PNG screencapture. Readiness requires the real
+URL, complete document and loaded fonts. Same speech/role/native zoom/reflow assertions;
+no injected focus markers, CSS zoom, forced layout or synthetic speech. JavaScript
+from Apple Events is enabled/restored only on disposable CI; local preferences are
+not changed automatically. Cleanup failure remains a failure. Helper tests cover
+probe values, owned-window targeting, readiness and preference restoration/error paths.
+This alternative is pending native CI, not a declaration that WebDriver was the root
+cause. Research: github.com/upyesp/trains/blob/main/scripts/vo-audit-safari.mjs and
+crmitchelmore/todo acceptance/src/harness/safari.ts; their application-specific
+focus/fixture injections were not copied. iOS stays on native W3C, not WebKit emulation.
