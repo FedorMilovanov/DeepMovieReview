@@ -139,6 +139,10 @@
 }
 
 .filmMediaFrameIndex {
+  /* A 58px minimum height plus the preferred ratio otherwise derives a ~139px
+     width, wider than the mobile 96px grid track, and paints over the text. */
+  inline-size: 100%;
+  min-inline-size: 0;
   aspect-ratio: 2.39 / 1;
   min-height: 58px;
 }
