@@ -3,9 +3,8 @@
  *
  * A CSS refactor — moving rules between files, introducing cascade layers,
  * splitting a 1800-line stylesheet — is supposed to change nothing a reader can
- * see. Screenshots are the usual answer, and they are a poor one: binary blobs
- * in git, platform-dependent rasterisation, and a diff that says "some pixels
- * moved" without saying which rule broke.
+ * see. Computed-style fingerprints complement screenshots: a failed comparison
+ * names the element and property, while screenshots cover visual composition.
  *
  * This script records the computed style of every rendered element on the key
  * routes at two viewport widths, in DOM order, and reduces it to a per-element
@@ -319,10 +318,7 @@ async function capture(binary, viewport, route) {
   }
   await sleep(400);
 
-  // `readyState === "complete"` is not the same as "styled". Under a loaded
-  // sandbox a run occasionally measured a page whose custom properties were
-  // still empty — the shell then reads as full-width with a zero auto margin.
-  // Wait for the token layer and the document fonts before measuring anything.
+  // Wait for the token layer and document fonts before measuring anything.
   for (let attempt = 0; attempt < 60; attempt += 1) {
     const ready = await socket.send("Runtime.evaluate", {
       expression: READY,
@@ -353,7 +349,7 @@ async function capture(binary, viewport, route) {
   socket.close();
   await stopChrome(child, profile);
 
-  const digest = hash(elements.map((entry) => `${entry.path}|${entry.tag}|${entry.style.join(",")}`).join("\n"));
+  const digest = hash(elements.map((entry) => JSON.stringify(entry)).join("\n"));
   return { route, width: viewport.width, digest, elements };
 }
 
@@ -369,6 +365,9 @@ function compare(baseline, current) {
       continue;
     }
     if (fresh.digest === page.digest) continue;
+    if (fresh.elements.length !== page.elements.length) {
+      problems.push(`${label}: element count ${page.elements.length} → ${fresh.elements.length}`);
+    }
     const before = new Map(page.elements.map((entry) => [entry.path, entry]));
     const after = new Map(fresh.elements.map((entry) => [entry.path, entry]));
     let reported = 0;
@@ -415,7 +414,6 @@ if (DIFF_INDEX !== -1) {
 }
 
 const binary = findChrome();
-const chromeEnv = { ...process.env };
 const pages = [];
 for (const route of ROUTES) {
   for (const viewport of VIEWPORTS) {
