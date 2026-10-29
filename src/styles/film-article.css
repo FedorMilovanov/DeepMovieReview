@@ -1,5 +1,6 @@
 /* Shared by every FilmArticle and ProductionDossier. Order is intentional. */
 @import "./article/body.css";
+@import "./article/tables.css";
 @import "./article/entry.css";
 @import "./article/production.css";
 @import "./article/reading.css";

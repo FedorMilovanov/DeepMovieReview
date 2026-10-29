@@ -1,3 +1,6 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { ArticleTable } from "../src/components/film-article/article-table";
 import { theFastAndTheFuriousDraftPackage } from "../src/data/films/the-fast-and-the-furious";
 import { createRequire } from "node:module";
 import test from "node:test";
@@ -5664,4 +5667,25 @@ test("film index distinguishes an existing article from secondary-source researc
   assert.equal(research.ingest?.edition?.state, "TARGET_ONLY");
   assert.match(filmIndexStatusLabel(research), /исследовательский черновик · статьи нет/);
   assert.notEqual(research.film.status, "published");
+});
+
+test("article tables share an escaped caption with their native table and keyboard viewport", () => {
+  for (const corrections of [false, true]) {
+    const html = renderToStaticMarkup(createElement(ArticleTable, {
+      blockId: corrections ? "corrections" : "measurements",
+      caption: "Long caption <script> & evidence",
+      corrections,
+    }, createElement("tbody", null, createElement("tr", null,
+        createElement("th", { scope: "row" }, "Evidence"),
+        createElement("td", null, "123"),
+      ))));
+    const captionId = `article-table-${corrections ? "corrections" : "measurements"}-caption`;
+    assert.ok(html.includes(`<figcaption id="${captionId}">Long caption &lt;script&gt; &amp; evidence</figcaption>`));
+    assert.ok(html.includes(`role="region" aria-labelledby="${captionId}" tabindex="0"`));
+    assert.ok(html.includes(`<table class="articleTable" aria-labelledby="${captionId}">`));
+    assert.equal((html.match(/<figcaption/g) ?? []).length, 1);
+    assert.ok(html.includes('<th scope="row">Evidence</th>'));
+    assert.equal(html.includes("articleCorrections"), corrections);
+    assert.ok(!html.includes("<script>"));
+  }
 });

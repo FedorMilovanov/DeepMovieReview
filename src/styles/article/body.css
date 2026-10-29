@@ -142,6 +142,7 @@
 }
 
 .articleBody {
+  min-inline-size: 0;
   display: grid;
   gap: var(--space-5);
   max-width: var(--reading-max);
@@ -313,66 +314,6 @@
   color: var(--ink-2);
   line-height: 1.62;
   max-width: 62ch;
-}
-
-.articleTableFigure {
-  margin: 0;
-  display: grid;
-  gap: var(--space-3);
-  overflow-x: auto;
-}
-
-.articleTableFigure figcaption {
-  color: var(--ink-3);
-  font-size: var(--type-body);
-  line-height: 1.5;
-  max-width: 62ch;
-}
-
-.articleTable {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--type-body);
-}
-
-.articleTable th,
-.articleTable td {
-  text-align: left;
-  vertical-align: top;
-  padding: var(--space-3) var(--space-3) var(--space-3) 0;
-  border-bottom: 1px solid var(--stroke-subtle);
-}
-
-.articleTable thead th {
-  font-family: var(--font-meta);
-  font-size: var(--type-meta);
-  letter-spacing: var(--tracking-meta);
-  text-transform: uppercase;
-  color: var(--ink-4);
-  font-weight: 400;
-}
-
-.articleTable tbody th {
-  font-weight: 500;
-  color: var(--ink-1);
-}
-
-.articleTable td {
-  color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
-}
-
-.articleTable td:not(:last-child) {
-  white-space: nowrap;
-}
-
-.articleCorrections {
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--stroke-warm);
-}
-
-.articleCorrections .articleTable td {
-  white-space: normal;
 }
 
 .articleClosing {

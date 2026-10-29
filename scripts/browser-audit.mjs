@@ -1232,6 +1232,71 @@ try {
   await inspectNotFound("/films/not-a-film", 640, 450, "not found zoom 200", 2);
   await capture("not-found-zoom-200", true);
 
+  // Shared article tables: real content first; synthetic long input is isolated
+  // below and never written into the film package or used as a visual baseline.
+  for (const [width, height, reduced, scale, label] of [
+    [1440, 1000, false, 1, "desktop"],
+    [390, 844, false, 1, "mobile"],
+    [640, 450, false, 2, "zoom-200"],
+    [390, 844, true, 1, "reduced-motion"],
+  ]) {
+    await navigate("/films/the-truman-show/article?spoilers=full", width, height, reduced, false, scale);
+    await inspectBasic(`article tables ${label}`);
+    await inspectNoHorizontalOverflow(`article tables ${label}`);
+    const tables = await evaluate(`(() => {
+      const tables = [...document.querySelectorAll('.articleTable')];
+      return tables.length >= 2 && tables.every(table => {
+        const viewport = table.parentElement;
+        const caption = document.getElementById(table.getAttribute('aria-labelledby'));
+        return caption?.tagName === 'FIGCAPTION' && caption.textContent.trim()
+          && viewport.getAttribute('aria-labelledby') === caption.id
+          && viewport.getAttribute('role') === 'region' && viewport.tabIndex === 0
+          && table.querySelector('th[scope="col"]') && table.querySelector('th[scope="row"]')
+          && caption.parentElement === viewport.parentElement
+          && !viewport.contains(caption);
+      });
+    })()`);
+    assertCheck(`article tables ${label}: native headers, one external caption and named keyboard viewport`, tables);
+    assertCheck(`article aside ${label}: labelled inline note, not a nested landmark`, await evaluate("Boolean(document.querySelector('.articleAside[role=note][aria-label]'))"));
+    await evaluate("document.querySelector('.articleTableFigure').scrollIntoView({block:'center',behavior:'instant'})");
+    await sleep(300);
+    await capture(`article-tables-${label}`);
+  }
+
+  // Input stress, not CSS manipulation: a future caption with an unbroken token
+  // and a long numeric cell must stay inside the article's reading column.
+  await evaluate(`(() => {
+    document.querySelector('.articleTableFigure figcaption').textContent = 'Caption-' + 'Long'.repeat(100);
+    document.querySelector('.articleTable td:not(:last-child)').textContent = '1234567890'.repeat(30);
+    document.querySelector('.articleTableViewport').focus();
+  })()`);
+  const stressed = JSON.parse(await evaluate(`JSON.stringify((() => {
+    const viewport = document.querySelector('.articleTableViewport');
+    const caption = viewport.previousElementSibling;
+    return { scrollable: viewport.scrollWidth > viewport.clientWidth,
+      captionFits: caption.scrollWidth <= caption.clientWidth + 1,
+      focused: document.activeElement === viewport,
+      outline: getComputedStyle(viewport).outlineStyle };
+  })())`));
+  assertCheck("article tables stress: long caption wraps and numeric cell scrolls locally", stressed.scrollable && stressed.captionFits, stressed);
+  assertCheck("article tables stress: keyboard focus is visible", stressed.focused && stressed.outline !== "none", stressed);
+  await inspectNoHorizontalOverflow("article tables synthetic long input");
+  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowRight", code: "ArrowRight", windowsVirtualKeyCode: 39 });
+  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "ArrowRight", code: "ArrowRight", windowsVirtualKeyCode: 39 });
+  await sleep(300);
+  assertCheck("article tables stress: native ArrowRight scrolls focused viewport", await evaluate("document.querySelector('.articleTableViewport').scrollLeft > 0"));
+  await capture("article-tables-synthetic-stress");
+  await send("Emulation.setEmulatedMedia", { media: "print", features: [] });
+  const printable = await evaluate(`(() => {
+    const viewport = document.querySelector('.articleTableViewport');
+    const cell = viewport.querySelector('td:not(:last-child)');
+    return getComputedStyle(viewport).overflowX === 'visible'
+      && getComputedStyle(cell).whiteSpace === 'normal'
+      && getComputedStyle(cell).overflowWrap === 'anywhere';
+  })()`);
+  assertCheck("article tables print: viewport unclipped and long cells wrap", printable);
+  await send("Emulation.setEmulatedMedia", { media: "", features: [] });
+
   /* ── Layout guarantees that a screenshot alone will not state ─────────── */
 
   // Print: the homepage reveals its sections with a view() timeline, which does
