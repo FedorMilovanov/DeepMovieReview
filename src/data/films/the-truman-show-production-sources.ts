@@ -949,7 +949,7 @@ export const trumanProductionSources: ProductionSource[] = [
     id: "src-mentalfloss-truths",
     label: "15 Truths About 'The Truman Show'",
     publisher: "Mental Floss",
-    url: "https://www.mentalfloss.com/article/64649/15-truths-about-truman-show",
+    url: "https://www.mentalfloss.com/entertainment/movies/15-truths-about-truman-show",
     tier: "SECONDARY",
     publishedAt: "2022-04-08",
     checkedOn: "2026-10-29",
@@ -1153,8 +1153,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-linney-sears",
-    text: "Лора Линни, играя актрису, играющую жену, изучала каталоги Sears 1950-х годов, чтобы найти позы своей героини.",
-    sourceIds: ["src-wikipedia-truman"],
+    text: "Лора Линни, играя актрису, играющую жену, изучала каталоги Sears середины века (источники называют 1940-е и 1950-е), чтобы найти позы своей героини. Образ она частично взяла с собственной матери — медсестры онкологического отделения, — но играла не её, а актрису, которая играет медсестру.",
+    sourceIds: ["src-wikipedia-truman", "src-mentalfloss-truths"],
     status: "CONFIRMED",
   },
   {
@@ -1189,8 +1189,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-design-rockwell",
-    text: "Вдохновением для художника служили картины Нормана Рокуэлла и открытки 1960-х: город должен был выглядеть не будущим, а идеализированным прошлым.",
-    sourceIds: ["src-wikipedia-truman"],
+    text: "Вдохновением служили картины Нормана Рокуэлла и обложки Saturday Evening Post: город должен был выглядеть не будущим, а идеализированным прошлым, которого, возможно, никогда не было.",
+    sourceIds: ["src-wikipedia-truman", "src-mentalfloss-truths", "src-cinephilia-weir"],
     status: "CONFIRMED",
   },
   {
@@ -1231,8 +1231,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-glass-borrowed",
-    text: "Часть партитуры — четыре пьесы Филипа Гласса из «Поваккатси», «Анима Мунди» и «Мисимы»; первая часть «Мисимы» звучит на финальных титрах.",
-    sourceIds: ["src-wikipedia-soundtrack", "src-tunefind"],
+    text: "Часть партитуры — пьесы Филипа Гласса из «Поваккатси», «Анима Мунди» и «Мисимы»; первая часть «Мисимы» звучит на финальных титрах. Считать их спорят: в альбоме четыре трека Гласса, а в фильме, по некоторым подсчётам, звучит семь его сочинений.",
+    sourceIds: ["src-wikipedia-soundtrack", "src-tunefind", "src-mentalfloss-truths"],
     status: "CONFIRMED",
   },
   {
@@ -1543,7 +1543,7 @@ export const trumanProductionClaims: ProductionClaim[] = [
   {
     id: "claim-harris-carrey-never-met",
     text: "Широко повторяется, что Харрис и Керри ни разу не встретились на площадке, потому что сцены Кристофа снимали позже и отдельно; в сводных источниках подтверждения нет.",
-    sourceIds: ["src-imdb-trivia", "src-joblo"],
+    sourceIds: ["src-imdb-trivia", "src-mentalfloss-truths"],
     status: "UNVERIFIED",
   },
   {
@@ -1673,12 +1673,6 @@ export const trumanProductionClaims: ProductionClaim[] = [
     status: "CONFIRMED",
   },
   {
-    id: "claim-sep-covers",
-    text: "Внешний вид Сихейвена сверяли с обложками Saturday Evening Post: американский городок, которого, возможно, не было, но который был мифологизирован в кино и рекламе.",
-    sourceIds: ["src-cinephilia-weir"],
-    status: "CONFIRMED",
-  },
-  {
     id: "claim-biziou-mockups",
     text: "Скрытые камеры шоу делали макетами прямо перед объективом: аппаратов, которые могли бы так снимать, тогда не существовало, и их придумывали на площадке.",
     sourceIds: ["src-afcinema-biziou", "src-asc-biziou"],
@@ -1694,6 +1688,24 @@ export const trumanProductionClaims: ProductionClaim[] = [
     id: "claim-weir-promote-as-if",
     text: "Уир всё время просил студию продвигать картину так, будто шоу действительно существует: отсюда и документальная группа, и выпуск Tru Talk, и реклама от имени программы.",
     sourceIds: ["src-splicedwire-weir", "src-paramount-site"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-glass-count-dispute",
+    text: "Сколько музыки Гласса в фильме — считают по-разному: четыре пьесы в альбоме Milan против «семи композиций» в популярных пересказах. Разница в том, что считать: треки на пластинке или фрагменты, звучащие в кадре.",
+    sourceIds: ["src-qobuz-soundtrack", "src-mentalfloss-truths"],
+    status: "DISPUTED",
+  },
+  {
+    id: "claim-show-working-title",
+    text: "В придуманной Уиром предыстории шоу называлось «Bringing Up Baby»: Кристофу было двадцать девять, когда он уговорил корпорацию Omnicam запустить проект о ребёнке, чей первый год жизни будет снят целиком.",
+    sourceIds: ["src-mentalfloss-truths"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-seaside-police-actors",
+    text: "Двух полицейских Сисайда, Рона и Дона Тейлоров, Уир заметил из-за их отношений с группой и нанял играть регулировщиков — то есть в городе, где всё подстроено, движение тоже регулировали настоящие служащие.",
+    sourceIds: ["src-mentalfloss-truths"],
     status: "CONFIRMED",
   },
 ];
