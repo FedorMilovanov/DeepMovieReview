@@ -73,6 +73,15 @@ for (const name of selected) {
             await page.locator('label[for="lens-radio-story"]').click();
           }
 
+          if (route === "/") {
+            const layers = await page.evaluate(() => ({
+              marks: +getComputedStyle(document.querySelector('.lensMarkGroup[data-lens="story"]')).zIndex,
+              position: getComputedStyle(document.querySelector('.lensMarkGroup[data-lens="story"]')).position,
+              trace: +getComputedStyle(document.querySelector('.lensTrace')).zIndex,
+            }));
+            assert.ok(layers.position !== "static" && layers.marks > layers.trace, "decorative trace must not paint over lens label glyphs");
+          }
+
           if (width === 390) {
             const menu = page.locator(".menuButton");
             await menu.focus();

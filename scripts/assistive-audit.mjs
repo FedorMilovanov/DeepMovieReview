@@ -41,6 +41,9 @@ const deadline = setTimeout(() => {
 // Guidepup counts total attempts here: 0 never invokes the macOS delegate.
 // One attempt avoids replaying mutating navigation while actually issuing it.
 const speechOptions = { capture: "initial", timeout: 20000, retries: 1 };
+// VoiceOver may announce a delayed group/help hint before the actual destination.
+// Semantic assertions need the complete utterance, not only its initial fragment.
+const navigationOptions = mac ? { ...speechOptions, capture: "all" } : speechOptions;
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 const base = "http://127.0.0.1:3213";
 const execute = async expression => mac ? safari.execute(`return (${expression})`) : page.evaluate(expression);
@@ -112,16 +115,16 @@ try {
     await reader.perform(reader.keyboardCommands.exitFocusMode, { capture: false });
     await reader.press("Control+Home");
   }
-  await action("structural heading navigation", () => reader.nextHeading(speechOptions), /шоу трумана/i);
-  await action("native table navigation", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, speechOptions), [/четыре окна/i, /table|таблиц/i]);
-  if (mac) await reader.interact(speechOptions);
-  await action("table column header", () => reader.perform(reader.keyboardCommands.moveToNextColumn, speechOptions), /переходы/i);
-  await action("table row header and value", () => reader.perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, speechOptions), /библиотека[\s\S]*0 переходов/i);
+  await action("structural heading navigation", () => reader.nextHeading(navigationOptions), [/шоу трумана/i, /heading|заголовок/i]);
+  await action("native table navigation", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/четыре окна/i, /table|таблиц/i]);
+  if (mac) await reader.interact(navigationOptions);
+  await action("table column header", () => reader.perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);
+  await action("table row header and value", () => reader.perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /библиотека[\s\S]*0 переходов/i);
   await screenshot("table-reading");
   if (mac) await reader.stopInteracting();
-  await action("corrections table name", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, speechOptions), /пять утверждений/i);
-  if (mac) await reader.interact(speechOptions);
-  await action("corrections column header", () => reader.perform(reader.keyboardCommands.moveToNextColumn, speechOptions), /что в кадре/i);
+  await action("corrections table name", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), /пять утверждений/i);
+  if (mac) await reader.interact(navigationOptions);
+  await action("corrections column header", () => reader.perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /что в кадре/i);
   await screenshot("corrections-table-reading");
   if (mac) await reader.stopInteracting();
 

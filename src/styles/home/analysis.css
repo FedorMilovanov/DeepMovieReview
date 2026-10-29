@@ -145,7 +145,8 @@
 .lensMarkGroup {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  /* Trace paths remain beneath text chips, including their translucent backing. */
+  z-index: 5;
   opacity: 0;
   /* Inactive groups leave the accessibility tree too: opacity alone keeps
      their marks announced. The delayed visibility flip mirrors .lensReading. */

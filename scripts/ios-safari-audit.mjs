@@ -17,9 +17,17 @@ try {
   const device = candidates.find(device => device.name.startsWith("iPhone") && device.isAvailable);
   assert.ok(device, "No installed iPhone Simulator runtime");
   report.device = { ...device, physicalDevice: false };
-  if (device.state !== "Booted") execFileSync("xcrun", ["simctl", "boot", device.udid], { stdio: "inherit" });
-  execFileSync("xcrun", ["simctl", "bootstatus", device.udid, "-b"], { stdio: "inherit", timeout: 240000 });
-  safari = await nativeSafari({ platformName: "iOS", "safari:useSimulator": true, "safari:deviceUDID": device.udid });
+  // Start the host driver before CoreSimulator's expensive first boot. Only the
+  // iOS session needs the booted device; keep driver startup and boot separate.
+  safari = await nativeSafari({ platformName: "iOS", "safari:useSimulator": true, "safari:deviceUDID": device.udid }, {
+    beforeSession: async () => {
+      report.phase = "booting iPhone Simulator after host driver readiness";
+      if (device.state !== "Booted") execFileSync("xcrun", ["simctl", "boot", device.udid], { stdio: "inherit" });
+      execFileSync("xcrun", ["simctl", "bootstatus", device.udid, "-b"], { stdio: "inherit", timeout: 240000 });
+      report.device.state = "Booted";
+      report.phase = "creating native iOS Safari session";
+    },
+  });
   report.capabilities = safari.capabilities;
   for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"]) {
     await safari.goto(`http://127.0.0.1:3213${route}`);

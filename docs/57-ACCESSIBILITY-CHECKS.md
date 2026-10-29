@@ -65,3 +65,33 @@ OS/browser/AT versions, действия, spoken transcript и найденны�
 
 Ручная AT-проверка пока не выполнена. Автоматизация браузера не заменяет её.
 Расширенный справочник методов — `56-ACCESSIBILITY-VERIFICATION-PLAYBOOK.md`.
+
+## Дополнительная проверка 2026-10-29 — не сертификат соответствия
+
+- На `ab659f4` реальный NVDA/Chrome156 прошёл обе таблицы, их названия,
+  заголовки столбцов и строку первой таблицы с её row header и значением.
+  Настоящий UI zoom изменил innerWidth960→480→320 при неизменном OS window;
+  reflow проверен на четырёх маршрутах. Evidence check123643911102 восстановлен
+  через Checks API с независимой проверкой размера, SHA256 и gzip.
+- На том же SHA настоящий VoiceOver запустился в Safari26.6, прочитал первую
+  таблицу, column header и row header/value. Сценарий второй таблицы **FAIL**:
+  initial capture поймал отложенную подсказку, не название. Это не pass;
+  полный захват семантических реплик и отдельная проверка heading role требуют CI.
+  `retries:0` у Guidepup0.38 означает ноль вызовов macOS delegate; используется
+  одна попытка, а не скрытые повторы навигации.
+- Дополнительно измерены 2582 Chromium incomplete node/state pairs на1440/390:
+  normal/background PNG при реальной opacity1, сохранении градиентов и text-range
+  crop; шесть неоднозначных box bounds пересняты по самим text nodes, без SVG и
+  псевдоэлементов. Найден trace поверх букв трёх lens marks: исправлены слой и
+  mobile positioning. После пересъёмки этих трёх ranges все2582 bounds≥WCAG
+  threshold; это ограниченный Chromium paint review, не автоматическое закрытие
+  всех Firefox/WebKit incomplete или всех состояний шести линз.
+- iPhone16Pro Simulator/iOS18.6 загрузился, но host SafariDriver readiness **FAIL**
+  (check123647264931, verified659compressed bytes). Запуск host driver перенесён
+  перед boot Simulator; status polling получил общий90s deadline и nested causes.
+  Новый результат ещё не подтверждён. Simulator не означает physical iPhone/VO.
+- Визуальная база обновлена только для двух homepage views: labels над trace,
+  mobile label container relative. Остальные26records сохранены байт-в-байт.
+  Двойная запись и финальный replay28pages прошли. Обнаруженный отдельный race
+  измерителя устранён ожиданием настоящего hydrated graphics backend: SSR
+  `MEDIUM / unknown` менял ширину footer; состояние не форсируется.
