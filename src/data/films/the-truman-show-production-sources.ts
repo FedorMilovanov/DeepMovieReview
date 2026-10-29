@@ -181,11 +181,11 @@ export const trumanProductionSources: ProductionSource[] = [
     id: "src-nytimes",
     label: "FILM REVIEW; So, What's Wrong With This Picture?",
     publisher: "The New York Times (Janet Maslin)",
-    url: "https://www.nytimes.com/1998/06/05/movies/film-review-so-what-s-wrong-with-this-picture.html",
+    url: "https://archive.nytimes.com/www.nytimes.com/library/film/060598truman-film-review.html",
     tier: "SECONDARY",
     publishedAt: "1998-06-05",
     checkedOn: "2026-10-28",
-    supports: "Рецензия дня премьеры: «delectably clever», выбор критика, оценка игры Керри как «без штиха».",
+    supports: "Рецензия дня премьеры (архивная копия): «delectably clever entertainment», но «hosannas and cartwheels are over the top» — то есть похвала с оговоркой; Керри назван «warm, affecting and refreshingly shtickless».",
   },
   {
     id: "src-sowal-locations",
@@ -206,16 +206,6 @@ export const trumanProductionSources: ProductionSource[] = [
     checkedOn: "2026-10-28",
     supports:
       "Сисайд как одна из первых общин новой урбанистики; предпродакшн открылся сразу, сотни человек приехали зимой; почта и беседка как постоянные фоны.",
-  },
-  {
-    id: "src-joblo",
-    label: "What Happened to The Truman Show?",
-    publisher: "JoBlo",
-    url: "https://www.joblo.com/what-happened-to-the-truman-show/",
-    tier: "SECONDARY",
-    checkedOn: "2026-10-28",
-    supports:
-      "Версия о запросе в $5 млн за съёмки в Сисайде и давлении студии сменить локацию; финальные сцены на воде — в циркораме-бассейне Universal; Харрис и Керри, по этой версии, не встречались.",
   },
   {
     id: "src-industriamovies",
@@ -576,15 +566,6 @@ export const trumanProductionSources: ProductionSource[] = [
     supports: "Хронология: тритмент 1991-го, Уир в 1995-м, 16 драфтов, съёмки с декабря 1996-го в Сисайде.",
   },
   {
-    id: "src-wikimirror",
-    label: "The Truman Show (зеркало статьи)",
-    publisher: "University of Minnesota wiki mirror",
-    url: "https://wiki-mirror.cla.umn.edu/wiki/The_Truman_Show",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Старая версия статьи с деталями о гонораре Керри и о сцене «Трумания» как его импровизации.",
-  },
-  {
     id: "src-gradesaver",
     label: "The Truman Show Study Guide",
     publisher: "GradeSaver",
@@ -678,43 +659,6 @@ export const trumanProductionSources: ProductionSource[] = [
     supports: "Дополнительное подтверждение состава номинаций BAFTA, включая операторскую работу и визуальные эффекты.",
   },
   {
-    id: "src-checkplease-index",
-    label: "The Truman Show (29 pages)",
-    publisher: "Couch to 4K Wiki",
-    url: "https://checkplease.neocities.org/couchto4k/truman-show/",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Указатель материалов о съёмках, музыке и наследии фильма.",
-  },
-  {
-    id: "src-checkplease-reception",
-    label: "Critical Reception and Legacy (The Truman Show)",
-    publisher: "Couch to 4K Wiki",
-    url: "https://checkplease.neocities.org/couchto4k/p/critical-reception-and-legacy-the-truman-show",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Оценки и реакция: 95 % на Rotten Tomatoes, отсутствие номинации Керри, рост репутации вместе с реальностью.",
-  },
-  {
-    id: "src-checkplease-harris",
-    label: "Ed Harris (The Truman Show)",
-    publisher: "Couch to 4K Wiki",
-    url: "https://checkplease.neocities.org/couchto4k/p/ed-harris-the-truman-show",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports:
-      "Пересказ интервью Харриса The Hollywood Reporter (2023): «поговорили в пятницу, начал в понедельник»; берет и очки как идея Венди Стайтс; экранное время Кристофа — меньше двадцати минут.",
-  },
-  {
-    id: "src-checkplease-themes",
-    label: "Themes and Analysis (The Truman Show)",
-    publisher: "Couch to 4K Wiki",
-    url: "https://checkplease.neocities.org/couchto4k/p/themes-and-analysis-the-truman-show",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Пещера Платона и экономика наблюдения как рамки разбора.",
-  },
-  {
     id: "src-awakeinthedark",
     label: "Higher Ed: The Truman Show",
     publisher: "Awake in the Dark",
@@ -770,15 +714,6 @@ export const trumanProductionSources: ProductionSource[] = [
     tier: "TERTIARY",
     checkedOn: "2026-10-28",
     supports: "Психиатрическая генеалогия: «труманов признак» Фузар-Поли в British Journal of Psychiatry, серия Голдов 2012, случай «мистера A».",
-  },
-  {
-    id: "src-futurehealth",
-    label: "Psychosis in the spotlight: Truman show delusion and social media vulnerability",
-    publisher: "Future Health (journal case report)",
-    url: "https://futurehealthjournal.com/psychosis-in-the-spotlight-truman-show-delusion-and-social-media-vulnerability-a-case-report/",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Свежий клинический случай: вера в трансляцию собственной жизни как культурно оформленный бред.",
   },
   {
     id: "src-dailyillini",
@@ -861,33 +796,6 @@ export const trumanProductionSources: ProductionSource[] = [
     tier: "TERTIARY",
     checkedOn: "2026-10-28",
     supports: "Общий разбор операторского приёма «как реалити» и опоры на практические эффекты.",
-  },
-  {
-    id: "src-rankers-registry",
-    label: "Library of Congress Names 25 Films to the National Film Registry for 2025",
-    publisher: "Ranker",
-    url: "https://www.ranker.com/list/2025-national-film-registry-inductees/sophia-wang",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Публичная реакция на включение фильма в реестр 2025 года.",
-  },
-  {
-    id: "src-kureansiklopedi",
-    label: "The Truman Show (Film)",
-    publisher: "Kür Ansiklopedi",
-    url: "https://kureansiklopedi.com/en/detay/the-truman-show-film-2d7dd",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Статус фильма как учебного примера в социологии и исследованиях медиа.",
-  },
-  {
-    id: "src-goldrushcam",
-    label: "Library of Congress Names 25 Films to the National Film Registry for Preservation",
-    publisher: "GoldRushCam / Sierra Sun Times",
-    url: "https://goldrushcam.com/sierrasuntimes/index.php/news/local-news/75123-library-of-congress-names-25-films-to-the-national-film-registry-for-preservation-including-clueless-inception-glory-and-white-christmas",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Перепечатка пресс-релиза Библиотеки Конгресса с описанием «Шоу Трумана».",
   },
   // ---- Second research run (2026-10-29) ------------------------------------
   // Behind the scenes, the authors' own framing, and the film's clinical life.
@@ -1021,6 +929,78 @@ export const trumanProductionSources: ProductionSource[] = [
     supports:
       "Альбом Milan: 21 трек; у треков Гласса указано происхождение — «Anthem, Part 2» из «Поваккатси», «The Beginning» и «Living Waters» из «Анима Мунди»; Далльвиц указан продюсером.",
   },
+  {
+    id: "src-loc-registry",
+    label: "Complete National Film Registry Listing",
+    publisher: "Library of Congress",
+    url: "https://www.loc.gov/programs/national-film-preservation-board/film-registry/complete-national-film-registry-listing/",
+    tier: "PRIMARY",
+    checkedOn: "2026-10-29",
+    supports:
+      "Официальный реестр: у «The Truman Show» (1998) год включения — 2025; в партии 2025 года ровно 25 названий, от «Before Sunrise» до «White Christmas».",
+  },
+  {
+    id: "src-cnu-seaside",
+    label: "The Town of Seaside, Florida, received tremendous visibility",
+    publisher: "Congress for the New Urbanism",
+    url: "https://www.cnu.org/publicsquare/town-seaside-florida-received-tremendous-visibility",
+    tier: "SECONDARY",
+    publishedAt: "2016-01-22",
+    checkedOn: "2026-10-29",
+    supports:
+      "Платёж в версии Конгресса за новую урбанистику: застройщик Роберт Дэвис получил 400 тысяч долларов локационного платежа, деньги пошли на уставную школу Seaside Neighborhood School.",
+  },
+  {
+    id: "src-wikipedia-bafta",
+    label: "52nd British Academy Film Awards",
+    publisher: "Wikipedia",
+    url: "https://en.wikipedia.org/wiki/52nd_British_Academy_Film_Awards",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-29",
+    supports:
+      "52-я церемония BAFTA (11 апреля 1999): у «Шоу Трумана» семь номинаций и три победы — режиссура (Уир), оригинальный сценарий (Никкол), работа художника (Деннис Гэсснер); также номинации за «Лучший фильм», второй план (Харрис), операторскую работу (Бизу) и спецэффекты.",
+  },
+  {
+    id: "src-hugo-1999",
+    label: "1999 Hugo Awards",
+    publisher: "The Hugo Awards (официальный сайт)",
+    url: "https://www.thehugoawards.org/hugo-history/1999-hugo-awards/",
+    tier: "PRIMARY",
+    publishedAt: "1999-09-04",
+    checkedOn: "2026-10-29",
+    supports:
+      "Официальный протокол 1999 года: в категории Best Dramatic Presentation победило «The Truman Show» (1998), среди финалистов — «Dark City», «Pleasantville», «Star Trek: Insurrection» и эпизод «Вавилона-5» «Sleeping in Light» Дж. Майкла Стражински.",
+  },
+  {
+    id: "src-wikipedia-globes",
+    label: "56th Golden Globe Awards",
+    publisher: "Wikipedia",
+    url: "https://en.wikipedia.org/wiki/56th_Golden_Globe_Awards",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-29",
+    supports:
+      "56-я церемония «Золотого глобуса» (24 января 1999): у «Шоу Трумана» шесть номинаций и три победы — столько же наград, сколько у «Влюблённого Шекспира»; победы: Керри (драматическая главная роль), Харрис (второй план), музыка.",
+  },
+  {
+    id: "src-wikipedia-bigbrother",
+    label: "Big Brother (franchise)",
+    publisher: "Wikipedia",
+    url: "https://en.wikipedia.org/wiki/Big_Brother_(franchise)",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-29",
+    supports:
+      "Хронология франшизы: первый Big Brother вышел в Нидерландах в 1999 году, международные версии пошли с 2000-го; отдельная статья о первом сезоне называет датой премьеры 16 сентября 1999 года.",
+  },
+  {
+    id: "src-locus-topten",
+    label: "Media Refractions: January 1999",
+    publisher: "Locus Online",
+    url: "https://www.locusmag.com/1999/News/MediaRefractions01.html",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-29",
+    supports:
+      "Обзор годовых списков 1998 года: «Шоу Трумана» попало в 11 из 18 опрошенных списков, четыре из них — включая Кеннета Турана (Los Angeles Times) и Питера Трэверса (Rolling Stone) — ставят фильм на первое место. Там же: первым фильмом года Эберт назвал «Dark City», а худшим фильмом 1998-го — «Армагеддон».",
+  },
 ];
 
 
@@ -1057,8 +1037,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-sixteen-drafts",
-    text: "К началу съёмок Никкол написал не меньше шестнадцати драфтов; сам он называет процесс «допросом материала на правду».",
-    sourceIds: ["src-bfi-niccol", "src-wikipedia-truman", "src-baike"],
+    text: "К началу съёмок Никкол написал не меньше шестнадцати драфтов, хотя часть источников говорит о четырнадцати; сам он называет процесс «допросом материала на правду».",
+    sourceIds: ["src-bfi-niccol", "src-wikipedia-truman", "src-baike", "src-mentalfloss-truths"],
     status: "CONFIRMED",
   },
   {
@@ -1087,20 +1067,20 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-carrey-wait",
-    text: "Уир не стал менять актёра и год ждал, пока Керри освободится от «Кабельщика» и «Лжеца, лжеца».",
-    sourceIds: ["src-wikipedia-truman", "src-industriamovies"],
+    text: "Уир не стал менять актёра и год ждал, пока Керри освободится от других проектов; сам он объяснял это тем, что роль требует звезду — «иначе почему ты будешь смотреть на этого человека каждый день?».",
+    sourceIds: ["src-wikipedia-truman", "src-industriamovies", "src-cinephilia-weir"],
     status: "CONFIRMED",
   },
   {
     id: "claim-carrey-rewrite-clout",
     text: "Контракт Керри давал ему право требовать правок, и первые дни на площадке были трудными; Уир при этом ценил его импровизацию и втягивал её в сцену.",
-    sourceIds: ["src-wikipedia-truman", "src-wikimirror"],
+    sourceIds: ["src-wikipedia-truman", "src-mentalfloss-truths"],
     status: "CONFIRMED",
   },
   {
     id: "claim-trumania-improvised",
     text: "Сцена перед зеркалом, где Труман объявляет себя «планетой Труманией в галактике Бербанк», — идея Керри.",
-    sourceIds: ["src-wikipedia-truman", "src-wikimirror"],
+    sourceIds: ["src-wikipedia-truman", "src-mentalfloss-truths"],
     status: "CONFIRMED",
   },
   {
@@ -1129,8 +1109,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-harris-monday",
-    text: "Харрис жил в Малибу рядом с площадкой: с Уиром он поговорил в пятницу и, по его словам, начал работать в понедельник.",
-    sourceIds: ["src-wikipedia-truman", "src-checkplease-harris"],
+    text: "Харрис жил в Малибу рядом с площадкой: с Уиром он поговорил в конце недели и вышел на съёмки через несколько дней; пересказы расходятся в том, сколько именно дней прошло (пятница и понедельник или четверг и вторник), но сходятся в главном — готовиться ему не дали.",
+    sourceIds: ["src-wikipedia-truman", "src-mentalfloss-truths"],
     status: "CONFIRMED",
   },
   {
@@ -1142,7 +1122,7 @@ export const trumanProductionClaims: ProductionClaim[] = [
   {
     id: "claim-christof-wardrobe",
     text: "Берет задом наперёд и круглые очки в проволочной оправе — идея дизайнера Венди Стайтс, жены режиссёра.",
-    sourceIds: ["src-checkplease-harris", "src-awakeinthedark"],
+    sourceIds: ["src-awakeinthedark"],
     status: "UNVERIFIED",
   },
   {
@@ -1202,7 +1182,7 @@ export const trumanProductionClaims: ProductionClaim[] = [
   {
     id: "claim-wide-lenses",
     text: "Широкоугольная оптика имитировала и рекламный глянец, и объективы камер наблюдения; иногда к ней добавляли асферические элементы, чтобы искажение стало сильнее.",
-    sourceIds: ["src-asc-biziou", "src-checkplease-themes"],
+    sourceIds: ["src-asc-biziou"],
     status: "CONFIRMED",
   },
   {
@@ -1268,31 +1248,31 @@ export const trumanProductionClaims: ProductionClaim[] = [
   {
     id: "claim-carrey-snub",
     text: "Керри получил «Золотой глобус» за главную драматическую роль, но не был номинирован на «Оскара» — прокатный повод для разговоров о снобизме академии.",
-    sourceIds: ["src-goldenglobes", "src-jimcarreyonline", "src-checkplease-reception"],
+    sourceIds: ["src-goldenglobes", "src-jimcarreyonline", "src-wikipedia-truman"],
     status: "CONFIRMED",
   },
   {
     id: "claim-bafta-wins",
-    text: "В BAFTA фильм взял три статуэтки — за режиссуру, оригинальный сценарий и работу художника; в номинациях были также «Лучший фильм», Харрис, операторская работа и визуальные эффекты.",
-    sourceIds: ["src-the-take", "src-filmbooster", "src-paramount-site"],
+    text: "В BAFTA фильм взял три статуэтки из семи номинаций — за режиссуру (Уир), оригинальный сценарий (Никкол) и работу художника (Деннис Гэсснер); в остальных четырёх номинациях стояли «Лучший фильм», Харрис, операторская работа Бизу и спецэффекты.",
+    sourceIds: ["src-wikipedia-bafta", "src-the-take", "src-filmbooster", "src-paramount-site"],
     status: "CONFIRMED",
   },
   {
     id: "claim-hugo",
-    text: "Hugo 1999 года за лучшую драматическую постановку достался фильму — по сводным таблицам премий.",
-    sourceIds: ["src-the-take"],
-    status: "UNVERIFIED",
+    text: "Hugo 1999 года в категории Best Dramatic Presentation достался «Шоу Трумана»; в финале вместе с ним стояли «Dark City», «Pleasantville», «Star Trek: Insurrection» и эпизод «Вавилона-5».",
+    sourceIds: ["src-hugo-1999", "src-the-take"],
+    status: "CONFIRMED",
   },
   {
     id: "claim-hugo-irony",
-    text: "Фильм, по одной из версий, выиграл Hugo у финала «Вавилона-5» «Sleeping in Light», написанного Стражински — тем же автором, чей эпизод «Сумеречной зоны» считают предшественником замысла.",
-    sourceIds: ["src-the-take", "src-wikipedia-special-service"],
-    status: "UNVERIFIED",
+    text: "Ирония подтвердилась официальным протоколом: в финале Hugo 1999 года вместе с фильмом стоял «Sleeping in Light» — финал «Вавилона-5», написанный Дж. Майклом Стражински, тем же автором, чей эпизод «Сумеречной зоны» считают ближайшим предшественником замысла.",
+    sourceIds: ["src-hugo-1999", "src-wikipedia-special-service"],
+    status: "CONFIRMED",
   },
   {
     id: "claim-reviews",
-    text: "Критика приняла фильм почти единодушно: Metacritic 90 при 30 рецензиях, Rotten Tomatoes 95 %, четыре звезды у Эберта и «delectably clever» у Мэслин.",
-    sourceIds: ["src-simple-wiki", "src-nytimes", "src-imdb-criticreviews", "src-checkplease-reception"],
+    text: "Критика приняла фильм почти единодушно: Metacritic 90 при 30 рецензиях, Rotten Tomatoes 94 % при 160 рецензиях (выгрузка 2026 года), четыре звезды у Эберта. Ближе всех к несогласию подошла Джане́т Мэслин в The New York Times: её «delectably clever» сопровождалось оговоркой, что «восторги и кульбиты чрезмерны».",
+    sourceIds: ["src-wikipedia-truman", "src-simple-wiki", "src-nytimes", "src-imdb-criticreviews"],
     status: "CONFIRMED",
   },
   {
@@ -1303,25 +1283,20 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-registry-2025",
-    text: "В 2025 году Библиотека Конгресса включила фильм в Национальный реестр фильмов — в партию из 25 названий, доведшую реестр до 925.",
-    sourceIds: ["src-ilovelibraries", "src-thecitylife", "src-wikipedia-truman", "src-goldrushcam", "src-rankers-registry"],
+    text: "Фильм включён в Национальный реестр с датой 2025 года: партию из 25 названий, доведшую реестр до 925, объявили 29 января 2026-го, а в официальном списке у «Шоу Трумана» стоит год включения 2025.",
+    sourceIds: ["src-loc-registry", "src-ilovelibraries", "src-thecitylife", "src-wikipedia-truman", "src-indiewire-nfr"],
     status: "CONFIRMED",
   },
   {
     id: "claim-delusion",
     text: "Братья Джоэл и Иан Голд описали «иллюзию Шоу Трумана»: пациенты убеждены, что их жизнь транслируют; из пяти описанных случаев трое прямо ссылались на фильм.",
-    sourceIds: [
-      "src-guardian-delusion",
-      "src-psychtoday-delusion",
-      "src-rationalpsychiatry",
-      "src-futurehealth",
-    ],
+    sourceIds: ["src-guardian-delusion", "src-psychtoday-delusion", "src-rationalpsychiatry"],
     status: "CONFIRMED",
   },
   {
     id: "claim-reality-tv-timing",
-    text: "Фильм вышел за год до британского дебюта Big Brother и за два до американского запуска Survivor — это и есть основание говорить, что он предсказал реалити-ТВ.",
-    sourceIds: ["src-tcm", "src-awakeinthedark", "src-fandom-sound"],
+    text: "Фильм вышел за пятнадцать месяцев до нидерландского Big Brother (16 сентября 1999 года), а международные версии — включая британскую — пошли с 2000 года; американский Survivor стартовал 31 мая 2000-го. На этом календаре и держится разговор о «предсказании» — при том, что реалити существовало и до фильма.",
+    sourceIds: ["src-wikipedia-bigbrother", "src-tcm", "src-awakeinthedark", "src-fandom-sound"],
     status: "CONFIRMED",
   },
   {
@@ -1332,8 +1307,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-jury-duty",
-    text: "Продюсеры современных реалити прямо ссылаются на фильм как на схему: контрольная комната, скрытые камеры, актёры вместо людей — и как на этическую противоположность своей практике.",
-    sourceIds: ["src-yahoo-experts", "src-kureansiklopedi"],
+    text: "Исполнительный продюсер сериала Jury Duty Тодд Шульман говорит, что весь этот жанр стоит на реплике Кристофа «мы принимаем реальность мира, который нам предложили», и что его собственная контрольная комната была «как у Кристофа», — но прямо отрицает, что фильм был их образцом.",
+    sourceIds: ["src-yahoo-experts"],
     status: "CONFIRMED",
   },
   {
@@ -1352,12 +1327,6 @@ export const trumanProductionClaims: ProductionClaim[] = [
     id: "claim-practical-effects",
     text: "Фильм держится на практических эффектах и декорациях, а не на цифре: искусственность города была художественной задачей, а не производственным ограничением.",
     sourceIds: ["src-movieburner", "src-asc-biziou", "src-wikipedia-truman"],
-    status: "CONFIRMED",
-  },
-  {
-    id: "claim-register-pointer",
-    text: "Материалов о производстве фильма к 2026 году накопилось столько, что они сами стали предметом каталогизации — от локальных фотоархивов до любительских вики.",
-    sourceIds: ["src-checkplease-index", "src-newsherald-photos"],
     status: "CONFIRMED",
   },
   {
@@ -1446,14 +1415,14 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-ebert-review",
-    text: "Эберт дал фильму четыре звезды и написал, что «основополагающие идеи сделали его бо́льшим, чем развлечение»: фильм «фокусирует новые ценности, которые технология навязывает человечеству».",
-    sourceIds: ["src-ebert", "src-goldderby", "src-opensiuc"],
+    text: "Эберт дал фильму четыре звезды и написал: «идеи, лежащие в основе, сделали фильм бо́льшим, чем просто развлечение», а сам фильм «фокусирует новые ценности, которые технология навязывает человечеству».",
+    sourceIds: ["src-ebert", "src-goldderby", "src-opensiuc", "src-wikipedia-truman"],
     status: "CONFIRMED",
   },
   {
     id: "claim-rosenbaum",
-    text: "Розенбаум в Chicago Reader был единственным громким диссидентом: «концепт и умный, и глупый», фильм «притворяется дерзким, повторяя то, что индустрия и так думает о себе и о зрителе».",
-    sourceIds: ["src-rosenbaum", "src-imdb-criticreviews"],
+    text: "Розенбаум в Chicago Reader был самым громким диссидентом: «концепт и умный, и глупый», фильм «притворяется дерзким, повторяя то, что индустрия и так думает о себе и о зрителе». Рядом с ним стоит не враждебная, но сдержанная рецензия Мэслин в The New York Times: «delectably clever», однако «восторги и кульбиты чрезмерны».",
+    sourceIds: ["src-rosenbaum", "src-imdb-criticreviews", "src-nytimes"],
     status: "CONFIRMED",
   },
   {
@@ -1500,8 +1469,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-reception-split",
-    text: "Критика была в основном восторженной — Metacritic 90, четыре звезды у Эберта, «gemlike» у Variety, — но не единодушной: Розенбаум поставил 70 и назвал концепт глупым, а позже это стало стандартной претензией к фильму.",
-    sourceIds: ["src-imdb-criticreviews", "src-rosenbaum", "src-ebert", "src-opensiuc"],
+    text: "Критика была в основном восторженной — Metacritic 90, четыре звезды у Эберта, «gemlike» у Variety, — но не единодушной: Розенбаум в Chicago Reader назвал концепт «и умным, и глупым», и эта формула стала стандартной претензией к фильму.",
+    sourceIds: ["src-imdb-criticreviews", "src-rosenbaum", "src-ebert", "src-opensiuc", "src-wikipedia-truman"],
     status: "CONFIRMED",
   },
   {
@@ -1535,21 +1504,15 @@ export const trumanProductionClaims: ProductionClaim[] = [
     status: "DISPUTED",
   },
   {
-    id: "claim-seaside-five-million",
-    text: "По одной из версий, основатель Сисайда просил $5 млн за разрешение снимать, и студия давила на Уира, чтобы он сменил локацию.",
-    sourceIds: ["src-joblo"],
-    status: "UNVERIFIED",
-  },
-  {
     id: "claim-harris-carrey-never-met",
     text: "Широко повторяется, что Харрис и Керри ни разу не встретились на площадке, потому что сцены Кристофа снимали позже и отдельно; в сводных источниках подтверждения нет.",
     sourceIds: ["src-imdb-trivia", "src-mentalfloss-truths"],
     status: "UNVERIFIED",
   },
   {
-    id: "claim-ebart-best-of-year",
-    text: "Утверждение, что Эберт назвал фильм лучшим фильмом 1998 года, встречается в сводках, но противоречит другим перечням, где фильм стоит ниже первого места.",
-    sourceIds: ["src-simple-wiki", "src-dailyillini"],
+    id: "claim-ebert-best-of-year",
+    text: "Утверждение, что Эберт назвал «Шоу Трумана» лучшим фильмом 1998 года, встречается в сводках, но первое место в годовом списке принадлежит не ему: по опросу Locus Online, первым фильмом 1998 года Эберт назвал «Dark City», а «Шоу Трумана» на первое место ставили Кеннет Туран (Los Angeles Times), Питер Трэверс (Rolling Stone) и ещё двое. У Эберта — четыре звезды и высокая оценка, но не первая строка.",
+    sourceIds: ["src-locus-topten", "src-simple-wiki", "src-dailyillini", "src-wikipedia-truman"],
     status: "DISPUTED",
   },
   {
@@ -1567,7 +1530,7 @@ export const trumanProductionClaims: ProductionClaim[] = [
   {
     id: "claim-lucifer-reading",
     text: "Чтение Кристофа как Люцифера или как аллюзии на Христа — интерпретация, а не производственный факт; сами создатели её не заявляли как замысел.",
-    sourceIds: ["src-joblo", "src-unspooled-weir", "src-highonfilms"],
+    sourceIds: ["src-unspooled-weir", "src-highonfilms", "src-wikipedia-truman"],
     status: "DISPUTED",
   },
   {
@@ -1602,8 +1565,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-seaside-location-fee",
-    text: "Paramount заплатила городу 500 тысяч долларов в счёт локационного платежа, и эти деньги пошли на строительство Seaside Neighborhood School; продюсер Эд Фельдман оценивал вклад съёмок в местную экономику примерно в 15 миллионов.",
-    sourceIds: ["src-gainesville-seaside"],
+    text: "Деньги, полученные городом от студии, пошли на уставную школу Сисайда; продюсер Эд Фельдман оценивал вклад съёмок в местную экономику примерно в 15 миллионов долларов.",
+    sourceIds: ["src-gainesville-seaside", "src-cnu-seaside"],
     status: "CONFIRMED",
   },
   {
@@ -1706,6 +1669,18 @@ export const trumanProductionClaims: ProductionClaim[] = [
     id: "claim-seaside-police-actors",
     text: "Двух полицейских Сисайда, Рона и Дона Тейлоров, Уир заметил из-за их отношений с группой и нанял играть регулировщиков — то есть в городе, где всё подстроено, движение тоже регулировали настоящие служащие.",
     sourceIds: ["src-mentalfloss-truths"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-seaside-fee-amount",
+    text: "Сумма, которую Paramount заплатила городу, известна в двух версиях: Associated Press — 500 тысяч долларов «в счёт локационного платежа», Конгресс за новую урбанистику — 400 тысяч, полученные застройщиком Робертом Дэвисом. В назначении денег источники согласны (школа), в цифре — нет.",
+    sourceIds: ["src-gainesville-seaside", "src-cnu-seaside"],
+    status: "DISPUTED",
+  },
+  {
+    id: "claim-globe-tally",
+    text: "На «Золотом глобусе» 1999 года у фильма было шесть номинаций и три победы — столько же наград, сколько у «Влюблённого Шекспира», и больше, чем у кого-либо ещё в тот вечер.",
+    sourceIds: ["src-wikipedia-globes", "src-goldenglobes"],
     status: "CONFIRMED",
   },
 ];
