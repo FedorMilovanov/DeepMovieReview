@@ -435,7 +435,26 @@ if (base) {
     failures += 1;
   }
 
-  const strip = (html) => html.replace(/<script[\s\S]*?<\/script>/g, "");
+  // Scripts are removed with a scanner rather than a pattern: the payload
+  // contains its own closing tokens, and a regex here is both slower and easier
+  // to get subtly wrong on edge cases such as an unclosed tag.
+  const strip = (html) => {
+    const lower = html.toLowerCase();
+    let output = "";
+    let cursor = 0;
+    for (;;) {
+      const open = lower.indexOf("<script", cursor);
+      if (open === -1) return output + html.slice(cursor);
+      output += html.slice(cursor, open);
+      const tagEnd = lower.indexOf(">", open);
+      if (tagEnd === -1) return output;
+      const close = lower.indexOf("</script", tagEnd);
+      if (close === -1) return output;
+      const closeEnd = lower.indexOf(">", close);
+      if (closeEnd === -1) return output;
+      cursor = closeEnd + 1;
+    }
+  };
   const doc = strip(articleHtml);
 
   check("SE", "SE01", "на странице ровно один h1", () => {
