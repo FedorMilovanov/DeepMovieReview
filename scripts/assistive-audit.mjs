@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { inspect } from "node:util";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { platform, release } from "node:os";
+import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
@@ -17,7 +17,7 @@ const name = mac ? "safari-voiceover" : "chrome-nvda";
 const directory = `at-report/${name}`;
 mkdirSync(directory, { recursive: true });
 const report = { revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
-  os: { platform: platform(), release: release() }, results: [], failures: [] };
+  os: { platform: platform(), release: release(), arch: arch() }, results: [], failures: [] };
 const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] };
 let browser, safari, page;
 let phase = "initializing";
@@ -111,8 +111,9 @@ try {
     await action("VoiceOver Item Chooser", () => reader.perform(reader.keyboardCommands.openItemChooser, navigationOptions), /item chooser|VoiceOver Menu/i);
     await action("VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
     await action("VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
-    await action("VoiceOver enter web area", () => reader.interact(navigationOptions));
-    await action("VoiceOver first web item", () => reader.next(navigationOptions));
+    // With the real page (no injected marker), interact already reaches its
+    // skip link. An extra next moves into the banner instead of finding h1.
+    await action("VoiceOver enter web area", () => reader.interact(navigationOptions), /перейти к содержимому/i);
   } else {
     await page.bringToFront();
     await reader.perform(reader.keyboardCommands.exitFocusMode, { capture: false });
