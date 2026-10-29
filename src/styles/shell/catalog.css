@@ -1,0 +1,79 @@
+.filmIndexHero,
+.filmPageHero {
+  padding-top: clamp(6rem, 10vw, 10rem);
+}
+
+.filmFilter {
+  margin-top: 2rem;
+  display: grid;
+  gap: 0.5rem;
+  max-width: 28rem;
+}
+
+.filmFilter label {
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.62rem;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.filmFilter input {
+  min-height: 48px;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--stroke-default);
+  background: var(--surface-1);
+  color: var(--ink-1);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.filmFilter input::placeholder {
+  color: var(--ink-4);
+}
+
+.filmFilter input:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.filmFilterCount {
+  margin-top: 1rem;
+  color: var(--ink-3);
+  font-size: 0.74rem;
+}
+
+.filmList {
+  margin-top: 3rem;
+  border-top: 1px solid var(--stroke-default);
+}
+
+.filmRow {
+  display: grid;
+  grid-template-columns: 64px minmax(140px, 220px) minmax(0, 1fr) 140px;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--stroke-default);
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.filmRow:hover,
+.filmRow:focus-visible {
+  background: var(--surface-1);
+}
+
+.filmRowIndex,
+.filmRowMeta {
+  color: var(--ink-3);
+  font-size: 0.72rem;
+}
+
+.fixtureNotice {
+  max-width: 50rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid var(--stroke-default);
+  color: var(--ink-3);
+}
+

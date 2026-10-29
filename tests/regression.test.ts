@@ -5593,7 +5593,7 @@ test("the page survives paper, anchors and the sticky header", () => {
     "print must turn the scroll-reveal off: a view() timeline never advances on paper",
   );
 
-  const globals = readFileSync("src/app/globals.css", "utf8");
+  const globals = readStylesheet("src/app/globals.css");
   assert.match(
     globals,
     /main :is\(\[id\]\)[\s\S]{0,80}scroll-margin-block-start/,

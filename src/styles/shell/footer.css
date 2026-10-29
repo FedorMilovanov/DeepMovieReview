@@ -1,0 +1,41 @@
+.siteFooter {
+  width: min(calc(100% - 2 * var(--gutter)), var(--container-max));
+  margin-inline: auto;
+  padding-block: 2.2rem;
+  display: grid;
+  grid-template-columns: 1.3fr 0.6fr 0.9fr auto;
+  gap: 2rem;
+  align-items: start;
+  border-top: 1px solid var(--stroke-subtle);
+  color: var(--ink-3);
+  font-size: 0.72rem;
+}
+
+.siteFooter p {
+  margin: 0 0 0.5rem;
+  line-height: 1.6;
+}
+
+.siteFooter strong {
+  color: var(--ink-1);
+  font-weight: 600;
+}
+
+.footerNav {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+}
+
+.footerNav a {
+  padding-block: 0.35rem;
+  color: var(--ink-2);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.footerMeta p:last-child {
+  margin-bottom: 0;
+}
+

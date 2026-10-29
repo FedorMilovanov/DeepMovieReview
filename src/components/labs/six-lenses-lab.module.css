@@ -412,7 +412,7 @@
 }
 
 @media (forced-colors: active) {
-  .annotation > div { backdrop-filter: none; }
+  .annotation > div { -webkit-backdrop-filter: none; backdrop-filter: none; }
   .scene,
   .annotation,
   .lensButton { forced-color-adjust: auto; }

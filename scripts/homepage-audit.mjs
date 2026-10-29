@@ -1,3 +1,4 @@
+import { hasUnprefixedDeclaration } from "./lib/style-compat.mjs";
 import { readStylesheet, listStyles } from "./lib/style-sources.mjs";
 /**
  * Homepage audit: the front door, both of its states.
@@ -212,23 +213,14 @@ const cssFiles = [
   ...readdirSync("src/components/labs").filter((name) => name.endsWith(".css")).map((name) => `src/components/labs/${name}`),
 ];
 
-function unprefixed(fileText, property) {
-  const lines = fileText.split("\n");
-  return lines.some((line, index) => {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith(`${property}:`)) return false;
-    const before = lines.slice(Math.max(0, index - 2), index).join("\n");
-    return !before.includes(`-webkit-${property}:`);
-  });
-}
 
 check("COMPAT", "C01", "mask-image продублирован с -webkit- везде", () => {
-  const bad = cssFiles.filter((path) => unprefixed(read(path), "mask-image"));
+  const bad = cssFiles.filter((path) => hasUnprefixedDeclaration(read(path), "mask-image"));
   return bad.length === 0 || bad.join(",");
 });
 
 check("COMPAT", "C02", "backdrop-filter продублирован с -webkit- везде", () => {
-  const bad = cssFiles.filter((path) => unprefixed(read(path), "backdrop-filter"));
+  const bad = cssFiles.filter((path) => hasUnprefixedDeclaration(read(path), "backdrop-filter"));
   return bad.length === 0 || bad.join(",");
 });
 
@@ -253,7 +245,7 @@ check("COMPAT", "C05", "нет неподдержанного inset без фо�
 });
 
 check("COMPAT", "C06", "smooth scroll отключается при reduced motion", () => {
-  const globals = read("src/app/globals.css");
+  const globals = readStylesheet("src/app/globals.css");
   const experience = read("src/styles/experience.css");
   return /scroll-behavior:\s*auto !important/.test(experience) || /prefers-reduced-motion/.test(globals);
 });
@@ -372,7 +364,7 @@ check("SRC", "S11", "печать отключает анимацию секци
 });
 
 check("SSR", "R21", "якоря не прячутся под липкой шапкой", () => {
-  const globals = read("src/app/globals.css");
+  const globals = readStylesheet("src/app/globals.css");
   return (
     /main :is\(\[id\]\)[\s\S]{0,80}scroll-margin-block-start/.test(globals) ||
     "нет scroll-margin для main [id]"

@@ -11,14 +11,17 @@ function files(dir) {
   });
 }
 const cssFiles = listStyles();
-for (const entry of ["film-article", "homepage", "film-modules", "film-verdict", "homepage-optics"]) {
-  const path = `src/styles/${entry}.css`;
+for (const path of [
+  ...["film-article", "homepage", "film-modules", "film-verdict", "homepage-optics"]
+    .map((entry) => `src/styles/${entry}.css`),
+  "src/app/globals.css",
+]) {
   const source = readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
   assert.match(source, /@import/, `${path}: composition entry must import its owners`);
   assert.equal(source.replace(/@import\s+["'][^"']+["']\s*;/g, "").trim(), "", `${path}: put rules in the responsible file, not the entry`);
   readStylesheet(path); // Broken imports and cycles fail closed.
 }
-for (const path of cssFiles.filter((path) => /\/(article|home|modules|verdict|optics)\//.test(path))) {
+for (const path of cssFiles.filter((path) => /\/(article|home|modules|verdict|optics|shell)\//.test(path))) {
   const source = readFileSync(path, "utf8");
   assert.ok(source.split("\n").length <= 450, `${path}: split by responsibility before growing beyond 450 lines`);
   const code = source.replace(/\/\*[\s\S]*?\*\//g, "");

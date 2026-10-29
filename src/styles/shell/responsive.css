@@ -1,0 +1,79 @@
+@media (max-width: 900px) {
+  .brandText {
+    display: none;
+  }
+
+  .siteFooter {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  /* 16px keeps iOS Safari from auto-zooming on input focus. */
+  .filmFilter input {
+    font-size: 16px;
+  }
+
+  .siteNav {
+    display: none;
+  }
+
+  .menuButton {
+    display: block;
+  }
+
+  .siteMenu[data-open] {
+    display: grid;
+    position: absolute;
+    inset: 100% 0 auto;
+    border-bottom: 1px solid var(--stroke-default);
+    background: var(--surface-canvas);
+    background: color-mix(in srgb, var(--surface-canvas) 94%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .siteMenu a {
+    display: flex;
+    align-items: center;
+    min-height: 52px;
+    padding: 0.9rem var(--gutter);
+    border-top: 1px solid var(--stroke-subtle);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+}
+
+@media (max-width: 640px) {
+  .siteFooter {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .filmRow {
+    grid-template-columns: 36px 96px minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .filmRowIndex {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+    padding-top: 0.2rem;
+  }
+
+  .filmMediaFrameIndex {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .filmRowTitle {
+    grid-column: 3;
+  }
+
+  .filmRowMeta {
+    grid-column: 3;
+    grid-row: 2;
+  }
+}

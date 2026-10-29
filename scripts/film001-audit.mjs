@@ -506,7 +506,7 @@ check("T11", "соц-карточка остаётся JPEG", () => {
 });
 
 check("T12", "в globals нет ссылок на внешние шрифты по сети", () => {
-  const globals = readFileSync("src/app/globals.css", "utf8");
+  const globals = readStylesheet("src/app/globals.css");
   return !/fonts\.googleapis|@import url\(http/.test(globals) || "remote font";
 });
 

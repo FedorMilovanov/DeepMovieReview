@@ -1,3 +1,4 @@
+import { hasUnprefixedDeclaration } from "../scripts/lib/style-compat.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -13,6 +14,8 @@ function fixture(run) {
   try {
     cpSync("src/styles", join(root, "src/styles"), { recursive: true });
     mkdirSync(join(root, "src/data/films"), { recursive: true });
+    mkdirSync(join(root, "src/app"), { recursive: true });
+    cpSync("src/app/globals.css", join(root, "src/app/globals.css"));
     const write = (path, text) => writeFileSync(join(root, path), text);
     const check = () => spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" });
     run({ root, write, check });
@@ -83,3 +86,22 @@ test("import reader preserves declarations in cascade order", () => fixture(({ r
   const rules = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s/g, "");
   assert.equal(rules(surface), rules(expected));
 }));
+
+rejects("shell entry cannot become a new catch-all stylesheet", ({ write }) => {
+  write("src/app/globals.css", '@import "../styles/shell/base.css";\n.customArticle { color: red; }');
+}, /put rules in the responsible file/);
+
+test("vendor twins are accepted before or after the standard declaration", () => {
+  for (const declarations of [
+    "-webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);",
+    "backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);",
+  ]) assert.equal(hasUnprefixedDeclaration(`.header { ${declarations} }`, "backdrop-filter"), false);
+});
+
+test("vendor twins cannot come from a neighbouring selector or a comment", () => {
+  for (const css of [
+    ".other {-webkit-backdrop-filter: blur(10px)} .header {backdrop-filter: blur(10px)}",
+    ".header {/* -webkit-backdrop-filter: blur(10px); */ backdrop-filter: blur(10px)}",
+    ".header {-webkit-backdrop-filter: blur(5px); backdrop-filter: blur(10px)}",
+  ]) assert.equal(hasUnprefixedDeclaration(css, "backdrop-filter"), true);
+});
