@@ -59,11 +59,14 @@ const perform = (command, options) => mac
 async function action(label, run, expected) {
   checkpoint(label);
   await reader.clearSpokenPhraseLog();
-  await run();
-  const speech = [...await reader.spokenPhraseLog()];
-  evidence.actions.push({ label, speech });
-  checkpoint(`${label}: recorded`);
-  console.log(label, JSON.stringify(speech));
+  let speech;
+  try { await run(); }
+  finally {
+    speech = [...await reader.spokenPhraseLog().catch(error => [`Speech log unavailable: ${error.message}`])];
+    evidence.actions.push({ label, speech });
+    checkpoint(`${label}: recorded`);
+    console.log(label, JSON.stringify(speech));
+  }
   if (expected) for (const pattern of Array.isArray(expected) ? expected : [expected]) {
     assert.match(speech.join(" "), pattern, `${label}: actual spoken output`);
   }
@@ -133,12 +136,19 @@ try {
     // group announcement from VO-Command-H as proof of a heading.
     await perform(reader.keyboardCommands.openWebItemRotor, navigationOptions);
     for (let category = 0; category < 12; category++) {
-      const spoken = await reader.lastSpokenPhrase();
-      if (/headings|заголовки/i.test(spoken)) break;
+      // Capture includes category, selected item and help as separate phrases;
+      // the last phrase alone can be the item/help, not the category name.
+      const speech = [...await reader.spokenPhraseLog()];
+      evidence.actions.push({ label: "VoiceOver rotor category", category, speech });
+      checkpoint(`VoiceOver rotor category ${category}`);
+      if (/headings|заголовки/i.test(speech.join(" "))) break;
       assert.ok(category < 11, "VoiceOver web rotor must expose Headings");
       await reader.press("ArrowRight", navigationOptions);
     }
     await reader.press("Home", navigationOptions);
+    // The assertion below must come from the selected heading itself, not the
+    // earlier web-area title or the rotor's category/help announcement.
+    await reader.clearSpokenPhraseLog();
     await reader.press("Enter", navigationOptions);
   }, [/шоу трумана/i, /heading|заголовок/i]);
   await action("native table navigation", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/четыре окна/i, /table|таблиц/i]);

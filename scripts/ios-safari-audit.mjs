@@ -14,6 +14,10 @@ const report = { revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding
 const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] };
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 let safari;
+function hostSimulatorProcesses() {
+  return execFileSync("ps", ["-axo", "pid=,state=,pcpu=,comm="], { encoding: "utf8", timeout: 10000 })
+    .split("\n").filter(line => /Simulator\.app|CoreSimulator|safaridriver/.test(line)).join("\n").slice(-12000);
+}
 try {
   report.initialDeveloperDirectory = execFileSync("xcode-select", ["-p"], { encoding: "utf8", timeout: 30000 }).trim();
   const xcode = newestStableXcode(readdirSync("/Applications"));
@@ -48,6 +52,7 @@ try {
       }).slice(-12000);
       console.log(report.bootLog);
       report.device.state = "Booted";
+      report.hostSimulatorProcesses = hostSimulatorProcesses();
       // SafariDriver owns native browser launch. A separate simctl launch can
       // hang after a successful boot and prevent the W3C session from trying.
       report.phase = "creating native iOS Safari session";
@@ -78,6 +83,8 @@ try {
     }
   }
 } catch (error) {
+  try { report.failedHostSimulatorProcesses = hostSimulatorProcesses(); }
+  catch (diagnosticError) { report.failedHostSimulatorProcesses = diagnosticError.message; }
   report.failures.push(inspect(error, { depth: 8, maxStringLength: 16000 }));
   console.error(workflowError(`iOS Safari Simulator: ${error.stack ?? error}`));
 } finally {
