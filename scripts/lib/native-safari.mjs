@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
-export async function nativeSafari() {
+export async function nativeSafari(capabilities = {}) {
   const driver = spawn("/usr/bin/safaridriver", ["-p", "4444"], { stdio: "inherit" });
   let session;
   async function request(path, body, method = body === undefined ? "GET" : "POST") {
@@ -21,11 +21,16 @@ export async function nativeSafari() {
       try { await request("/status"); ready = true; break; } catch { await delay(250); }
     }
     assert.ok(ready, "SafariDriver did not start");
-    const result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari" } } });
+    const result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari", ...capabilities } } });
     session = result.sessionId;
     const path = `/session/${session}`;
     return {
       version: result.capabilities.browserVersion,
+      capabilities: result.capabilities,
+      async click(selector) {
+        const element = await request(`${path}/element`, { using: "css selector", value: selector });
+        return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
+      },
       execute: script => request(`${path}/execute/sync`, { script, args: [] }),
       goto: url => request(`${path}/url`, { url }),
       screenshot: () => request(`${path}/screenshot`),
