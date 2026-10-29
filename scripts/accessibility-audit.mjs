@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { chromium, firefox, webkit } from "playwright-core";
 import axe from "axe-core";
+import { renderedContrast } from "./lib/rendered-contrast.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
 const require = createRequire(import.meta.url);
@@ -57,6 +58,16 @@ for (const name of selected) {
             report.results.push({ browser: name, version: browser.version(), width, route, url: page.url(), state, scope,
               violations: result.violations.length, review, file: `${id}-${state}.json` });
             for (const rule of result.violations) failure(`${id}/${state}: ${rule.id}: ${JSON.stringify(rule.nodes.map(node => ({ target: node.target, summary: node.failureSummary })))}`);
+            if (process.env.A11Y_RENDERED_CONTRAST === "true") {
+              const nodes = result.incomplete.filter(rule => rule.id === "color-contrast").flatMap(rule => rule.nodes);
+              if (nodes.length) {
+                const assessment = await renderedContrast(page, nodes, `${out}/paint-pairs`, `${id}-${state}`);
+                const file = `${id}-${state}-rendered.json`;
+                writeFileSync(`${out}/${file}`, JSON.stringify({ violations: [], incomplete: [], actions: [{ label: "finite rendered contrast assessment", assessment }] }, null, 2));
+                report.results.push({ browser: name, version: browser.version(), width, route, state: `${state}-rendered-contrast`, scope: "paired native renderer text-range backgrounds", file, needsReview: !assessment.pass });
+                if (!assessment.pass) failure(`${id}/${state}: rendered contrast requires review: ${assessment.ranges.filter(range => !range.pass).length} ranges, ${assessment.missing.length} missing owners, tileLimit=${assessment.tileLimit}`);
+              }
+            }
           };
           await scan("page");
           await page.screenshot({ path: `${out}/${id}.png` });
