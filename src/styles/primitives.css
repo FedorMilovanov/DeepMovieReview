@@ -134,6 +134,8 @@ h3 {
 }
 
 .surfaceWarm {
+  /* Opaque first: a browser without `color-mix` keeps the warm surface. */
+  background: var(--surface-warm);
   background:
     radial-gradient(circle at 76% 18%, color-mix(in oklab, var(--accent-restoration) 6%, transparent), transparent 22rem),
     var(--surface-warm);
@@ -200,6 +202,7 @@ h3 {
 .siteHeader {
   min-height: 78px;
   border-bottom-color: var(--stroke-subtle);
+  background: var(--surface-canvas);
   background: color-mix(in srgb, var(--surface-canvas) 86%, transparent);
   /* Prefixed twin for Safari: the unprefixed property only shipped there
      in Safari 18, and without it the sticky header loses its scrim. */
@@ -305,6 +308,7 @@ h3 {
 
   .siteHeader {
     background: Canvas;
+    -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 }

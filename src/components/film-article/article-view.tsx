@@ -10,6 +10,12 @@ type ArticleViewProps = {
   article: FilmArticle;
   /** Route slug of the film this article belongs to. */
   filmSlug: string;
+  /**
+   * The film's own title, for the middle crumb. The article data carries a
+   * kicker ("Разбор / залоченное издание") and never the film title, so the
+   * page passes it in rather than the trail guessing from prose.
+   */
+  filmTitle: string;
   projection: ArticleProjection;
   spoilerLevel: SpoilerLevel;
   /** Renders a measurement from the committed dataset, never from prose. */
@@ -191,6 +197,7 @@ function ArticleBlockView({
 export function ArticleView({
   article,
   filmSlug,
+  filmTitle,
   projection,
   spoilerLevel,
   describeMeasurement,
@@ -207,7 +214,7 @@ export function ArticleView({
         <Breadcrumbs
           trail={[
             { label: "Фильмы", href: "/films" },
-            { label: article.kicker.split(" / ").pop() ?? "Фильм", href: `/films/${filmSlug}` },
+            { label: filmTitle, href: `/films/${filmSlug}` },
             { label: "Разбор" },
           ]}
         />

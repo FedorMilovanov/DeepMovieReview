@@ -69,6 +69,7 @@ export default async function FilmMakingPage({ params }: MakingPageProps) {
     <ProductionDossierView
       dossier={dossier}
       filmSlug={filmPackage.film.slug}
+      filmTitle={filmPackage.film.title}
       cover={coverAsset ? heroImageFromAsset(coverAsset) : undefined}
     />
   );

@@ -18,6 +18,7 @@ import "./globals.css";
 import "../styles/primitives.css";
 import "../styles/homepage.css";
 import "../styles/homepage-optics.css";
+import "../styles/tilt.css";
 import "../styles/route-states.css";
 import "../styles/methodology.css";
 import "../styles/spoilers.css";

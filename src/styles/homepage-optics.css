@@ -20,9 +20,31 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  transform: translate(var(--lf-x), var(--lf-y)) scale(var(--lf-zoom));
+  transform: translate3d(var(--lf-x), var(--lf-y), 0) scale(var(--lf-zoom));
   /* Slow settle when the pointer leaves; tight tracking while it moves. */
   transition: transform 1.1s var(--ease-quiet);
+}
+
+/* The picture is a plane inside the frame, not the frame itself: borders,
+   captions and timecodes stay flat, so no type is ever set at an angle.
+   Perspective lives on the frame only when the tilt is actually enabled, so
+   the unchanged case keeps a plain 2D transform. */
+.livingFrame[data-tilt="media"] {
+  --lf-rx: 0deg;
+  --lf-ry: 0deg;
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+}
+
+.livingFrame[data-tilt="media"] .lfMedia {
+  transform:
+    translate3d(var(--lf-x), var(--lf-y), 0)
+    scale(var(--lf-zoom))
+    rotateX(var(--lf-rx))
+    rotateY(var(--lf-ry));
+  /* Slight lift of the shadow while the plane turns: depth without a second
+     layer of decoration. */
+  backface-visibility: hidden;
 }
 
 @media (hover: hover) and (pointer: fine) {

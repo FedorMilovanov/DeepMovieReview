@@ -15,6 +15,7 @@
  *   node scripts/premium-audit.mjs --base http://127.0.0.1:3000   # + rendered HTML
  */
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { extractJsonLd, normaliseSpace, stripScripts, stripTags } from "./lib/html-scan.mjs";
 
 const args = process.argv.slice(2);
 const baseIndex = args.indexOf("--base");
@@ -260,8 +261,16 @@ check("LA", "LA08", "точечных px в статье немного — вё
   return literals.size <= 8 || `уникальных px: ${literals.size} (${[...literals].join(",")})`;
 });
 
-check("LA", "LA09", "контрольных точек не больше шести", () => {
-  const breakpoints = new Set([...allCss.matchAll(/@media \(max-width:\s*(\d+)px\)/g)].map((m) => m[1]));
+check("LA", "LA09", "контрольных точек не больше шести (кроме фолбэка контейнерных запросов)", () => {
+  // Media queries inside `@supports not (container-type)` are a translation of
+  // container thresholds, not a second breakpoint system, so they are excluded.
+  const withoutFallback = allCss.replace(
+    /@supports not \(container-type: inline-size\)\s*\{[\s\S]*?\n\}/g,
+    "",
+  );
+  const breakpoints = new Set(
+    [...withoutFallback.matchAll(/@media \(max-width:\s*(\d+)px\)/g)].map((m) => m[1]),
+  );
   return breakpoints.size <= 6 || `${breakpoints.size}: ${[...breakpoints].join(",")}`;
 });
 
@@ -438,24 +447,7 @@ if (base) {
   // Scripts are removed with a scanner rather than a pattern: the payload
   // contains its own closing tokens, and a regex here is both slower and easier
   // to get subtly wrong on edge cases such as an unclosed tag.
-  const strip = (html) => {
-    const lower = html.toLowerCase();
-    let output = "";
-    let cursor = 0;
-    for (;;) {
-      const open = lower.indexOf("<script", cursor);
-      if (open === -1) return output + html.slice(cursor);
-      output += html.slice(cursor, open);
-      const tagEnd = lower.indexOf(">", open);
-      if (tagEnd === -1) return output;
-      const close = lower.indexOf("</script", tagEnd);
-      if (close === -1) return output;
-      const closeEnd = lower.indexOf(">", close);
-      if (closeEnd === -1) return output;
-      cursor = closeEnd + 1;
-    }
-  };
-  const doc = strip(articleHtml);
+  const doc = stripScripts(articleHtml);
 
   check("SE", "SE01", "на странице ровно один h1", () => {
     const count = (doc.match(/<h1[\s>]/g) ?? []).length;
@@ -571,7 +563,7 @@ if (base) {
   check("ME", "ME09", "у статьи есть размеченные хлебные крошки в разметке схемы", () => {
     // Scripts are stripped from `doc` on purpose, so the schema is read from the
     // raw payload instead.
-    const blocks = [...articleHtml.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    const blocks = extractJsonLd(articleHtml);
     const trail = blocks
       .map((raw) => {
         try {
@@ -582,6 +574,30 @@ if (base) {
       })
       .find((value) => value && value["@type"] === "BreadcrumbList");
     return (trail && trail.itemListElement.length >= 3) || "BreadcrumbList не найдена";
+  });
+
+  check("ME", "ME10", "видимые хлебные крошки совпадают с разметкой схемы", () => {
+    // The trail is rendered from props while the schema is built from the film
+    // package, so they can drift: a crumb once read "залоченное издание" while
+    // the schema said "The Truman Show". Compare the labels, not just the count.
+    const nav = /<nav[^>]*aria-label="Хлебные крошки"[^>]*>([\s\S]*?)<\/nav>/.exec(doc)?.[1] ?? "";
+    const visible = [...nav.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) =>
+      normaliseSpace(stripTags(m[1])),
+    );
+    const blocks = extractJsonLd(articleHtml);
+    const trail = blocks
+      .map((raw) => {
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return null;
+        }
+      })
+      .find((value) => value && value["@type"] === "BreadcrumbList");
+    const names = (trail?.itemListElement ?? []).map((item) => String(item.name).trim());
+    if (visible.length !== names.length) return `${visible.length} != ${names.length}: ${visible.join(" | ")}`;
+    const mismatch = visible.findIndex((label, index) => label !== names[index]);
+    return mismatch === -1 || `позиция ${mismatch + 1}: «${visible[mismatch]}» вместо «${names[mismatch]}»`;
   });
 
   check("SE", "SE16", "хлебные крошки — это nav со списком, а не абзац ссылок", () => {
@@ -620,7 +636,7 @@ if (base) {
   });
 
   try {
-    const filmHtml = strip((await fetchPage(filmPath)) ?? "");
+    const filmHtml = stripScripts((await fetchPage(filmPath)) ?? "");
     check("SE", "SE15", "у карточки фильма есть заголовок и хлебные крошки", () => {
       const hasHeading = /<h1[\s>]/.test(filmHtml);
       const hasTrail = /aria-label="Хлебные крошки"/.test(filmHtml);

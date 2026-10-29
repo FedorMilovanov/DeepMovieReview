@@ -91,6 +91,10 @@
 
 .siteHeader[data-scrolled] {
   border-bottom-color: var(--stroke-default);
+  /* Fallback first: an engine without colour-mix drops the second declaration
+     and keeps an opaque bar, which is legible; without the fallback it would
+     drop the background entirely and the menu would sit on top of the text. */
+  background: var(--surface-canvas);
   background: color-mix(in srgb, var(--surface-canvas) 86%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -342,6 +346,7 @@ h2 {
     position: absolute;
     inset: 100% 0 auto;
     border-bottom: 1px solid var(--stroke-default);
+    background: var(--surface-canvas);
     background: color-mix(in srgb, var(--surface-canvas) 94%, transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -359,7 +364,7 @@ h2 {
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 640px) {
   .siteFooter {
     grid-template-columns: 1fr;
     gap: 1.5rem;

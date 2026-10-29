@@ -5509,3 +5509,68 @@ test("The moral account names the grey zones and the complicity of watching", ()
     assert.ok(dossierHosts.includes(host), `the dossier cites ${host}`);
   }
 });
+
+test("a breadcrumb names the film, never the edition's state", () => {
+  // The trail is what a reader who lands from search uses to understand where
+  // they are; "залоченное издание" is an editorial status, not a place in the
+  // catalogue, and the schema markup on the same page already said "Шоу Трумана".
+  const articleView = readFileSync("src/components/film-article/article-view.tsx", "utf8");
+  const productionView = readFileSync("src/components/film-article/production-view.tsx", "utf8");
+  for (const [name, source] of [
+    ["article-view", articleView],
+    ["production-view", productionView],
+  ] as const) {
+    assert.ok(
+      !/kicker\.split/.test(source),
+      `${name} must not build a crumb out of the kicker`,
+    );
+    assert.match(source, /filmTitle: string/, `${name} receives the film title explicitly`);
+    assert.ok(
+      source.includes("label: filmTitle, href: `/films/${filmSlug}`"),
+      `${name} links the film crumb by title`,
+    );
+  }
+
+  for (const page of ["src/app/films/[slug]/article/page.tsx", "src/app/films/[slug]/making/page.tsx"]) {
+    const source = readFileSync(page, "utf8");
+    assert.match(
+      source,
+      /filmTitle=\{filmPackage\.film\.title\}/,
+      `${page} passes the film title from the package rather than prose`,
+    );
+  }
+});
+
+test("tilt never keeps a position the pointer no longer holds", () => {
+  // Scrolling moves a card out from under a stationary pointer. Both surfaces
+  // must recompute (or let go) instead of holding the pre-scroll angle, and the
+  // work must stay inside a single animation frame.
+  for (const file of ["src/components/tilt-surface.tsx", "src/components/living-frame.tsx"]) {
+    const source = readFileSync(file, "utf8");
+    assert.match(
+      source,
+      /addEventListener\("scroll", onViewportShift, \{ passive: true \}\)/,
+      `${file} listens for scroll passively`,
+    );
+    assert.match(
+      source,
+      /addEventListener\("resize", onViewportShift, \{ passive: true \}\)/,
+      `${file} listens for resize`,
+    );
+    assert.match(
+      source,
+      /removeEventListener\("scroll", onViewportShift\)/,
+      `${file} removes the scroll listener on unmount`,
+    );
+    assert.match(
+      source,
+      /localX < 0 \|\| localY < 0 \|\| localX > bounds\.width \|\| localY > bounds\.height/,
+      `${file} releases the effect when the pointer is outside the surface`,
+    );
+    assert.match(
+      source,
+      /requestAnimationFrame/,
+      `${file} batches work into an animation frame`,
+    );
+  }
+});

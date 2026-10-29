@@ -78,6 +78,7 @@
   position: absolute;
   inset: -50%;
   background: conic-gradient(from 180deg at 50% 50%, transparent 0 38%, rgb(184 141 82 / 0.055) 44%, transparent 51% 100%);
+  -webkit-mask-image: radial-gradient(circle, #000 0 38%, transparent 67%);
   mask-image: radial-gradient(circle, #000 0 38%, transparent 67%);
 }
 
