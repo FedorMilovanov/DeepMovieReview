@@ -46,7 +46,8 @@
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "allowScripts": {
-    "unrs-resolver@1.12.2": true
+    "unrs-resolver@1.12.2": true,
+    "ffmpeg-static": false
   },
   "engines": {
     "node": "24.x"
