@@ -121,7 +121,7 @@ try {
     await macOSActivate(MacOSApplications.Safari);
     // Initial-only capture can return while Item Chooser is still dismissing;
     // the following interact then lands outside, not inside, the web area.
-    await action("VoiceOver Item Chooser", () => perform(reader.keyboardCommands.openItemChooser, navigationOptions), /item chooser|VoiceOver Menu/i);
+    await action("VoiceOver Item Chooser", () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), /item chooser|VoiceOver Menu/i);
     await action("VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
     await action("VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
     // With the real page (no injected marker), interact already reaches its
@@ -212,6 +212,7 @@ try {
   report.results.push({ browser: name, version: report.browser.version, width: original.width,
     route: "/films/the-truman-show/article?spoilers=full", state: "real-AT-native-zoom", scope: "desktop OS", file: "actual-at.json" });
 } catch (error) {
+  report.failedPhase = phase;
   const message = inspect(error, { depth: 8, maxStringLength: 16000 });
   report.failures.push(message);
   console.error(workflowError(`${name}: ${message}`));

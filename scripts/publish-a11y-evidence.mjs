@@ -69,10 +69,10 @@ if (process.env.GITHUB_ACTIONS !== "true") {
     console.log(`${label}: verified ${chunks.length} chunks, ${bytes.length} bytes, SHA ${summary.revision}`);
   } catch (error) {
     const failure = { transportError: String(error), sourceRevision: summary.revision,
-      sourcePhase: summary.phase, sourceFailures: summary.failures };
+      sourcePhase: summary.failedPhase ?? summary.phase, sourceFailures: summary.failures };
     const full = JSON.stringify(failure, null, 2);
     const text = full.length <= 60000 ? full : JSON.stringify({ transportError: String(error),
-      sourceRevision: summary.revision, sourcePhase: summary.phase,
+      sourceRevision: summary.revision, sourcePhase: summary.failedPhase ?? summary.phase,
       sourceFailureCount: summary.failures.length, note: "Full source diagnostics exceed check text limit; original artifact retained." });
     try {
       await api(`${root}/${check.id}`, "PATCH", { status: "completed", conclusion: "failure",

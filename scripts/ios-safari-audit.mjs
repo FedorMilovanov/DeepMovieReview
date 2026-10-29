@@ -13,17 +13,27 @@ mkdirSync(directory, { recursive: true });
 const report = { revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), results: [], failures: [] };
 const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] };
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
-let safari;
+const systemEnv = { ...process.env };
+delete systemEnv.DEVELOPER_DIR;
+let safari, restoreDeveloperDirectory;
 function hostSimulatorProcesses() {
   try {
     return nativeSimulatorProcessLines(execFileSync("ps", ["-axo", "pid=,state=,pcpu=,comm="], { encoding: "utf8", timeout: 10000 }));
   } catch (error) { return `Host process diagnostics unavailable: ${error.message}`; }
 }
 try {
-  report.initialDeveloperDirectory = execFileSync("xcode-select", ["-p"], { encoding: "utf8", timeout: 30000 }).trim();
+  report.initialDeveloperDirectory = execFileSync("xcode-select", ["-p"], { encoding: "utf8", timeout: 30000, env: systemEnv }).trim();
   const xcode = newestStableXcode(readdirSync("/Applications"));
   const developerDirectory = realpathSync(`/Applications/${xcode}/Contents/Developer`);
   process.env.DEVELOPER_DIR = developerDirectory;
+  // LaunchServices/XPC helpers do not necessarily inherit this Node process's
+  // DEVELOPER_DIR. Align the disposable hosted runner's system selection too.
+  if (process.env.GITHUB_ACTIONS === "true") {
+    restoreDeveloperDirectory = report.initialDeveloperDirectory;
+    execFileSync("sudo", ["-n", "xcode-select", "--switch", developerDirectory], { stdio: "inherit", timeout: 30000 });
+  }
+  report.systemDeveloperDirectory = execFileSync("xcode-select", ["-p"], { encoding: "utf8", timeout: 30000, env: systemEnv }).trim();
+  if (process.env.GITHUB_ACTIONS === "true") assert.equal(report.systemDeveloperDirectory, developerDirectory);
   const simulatorApp = `${developerDirectory}/Applications/Simulator.app`;
   const simulatorSdk = execFileSync("xcrun", ["--sdk", "iphonesimulator", "--show-sdk-version"], { encoding: "utf8", timeout: 30000 }).trim();
   report.toolchain = { developerDirectory, simulatorApp, simulatorSdk };
@@ -91,8 +101,15 @@ try {
 } finally {
   report.results.push({ browser: "ios-safari-simulator", version: safari?.version ?? "not-started", width: 0,
     route: "/", state: "native-ios-simulator", scope: "iPhone Simulator, not physical hardware", file: "actual-ios.json" });
+  await safari?.close().catch(() => {}); server.kill();
+  if (restoreDeveloperDirectory) {
+    try {
+      execFileSync("sudo", ["-n", "xcode-select", "--switch", restoreDeveloperDirectory], { stdio: "inherit", timeout: 30000 });
+      report.restoredSystemDeveloperDirectory = execFileSync("xcode-select", ["-p"], { encoding: "utf8", timeout: 30000, env: systemEnv }).trim();
+      assert.equal(report.restoredSystemDeveloperDirectory, restoreDeveloperDirectory);
+    } catch (error) { report.failures.push(`System Xcode restoration failed: ${error.message}`); }
+  }
   writeFileSync(`${directory}/actual-ios.json`, JSON.stringify(evidence, null, 2));
   writeFileSync(`${directory}/summary.json`, JSON.stringify(report, null, 2));
-  await safari?.close().catch(() => {}); server.kill();
 }
 process.exitCode = report.failures.length ? 1 : 0;
