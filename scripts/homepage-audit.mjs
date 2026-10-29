@@ -19,6 +19,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { normaliseSpace, stripScripts, stripTags } from "./lib/html-scan.mjs";
 
 const buildDir = ".audit-build";
 const tsc = resolve("node_modules", "@typescript", "native", "bin", "tsc");
@@ -355,7 +356,7 @@ check("COMPAT", "C11", "акцентный текст не остаётся бе
 /* ── Rendered homepage ────────────────────────────────────────────────── */
 
 function summarise(html) {
-  const body = html.replace(/<script[\s\S]*?<\/script>/g, "");
+  const body = stripScripts(html);
   const ids = [...body.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
   const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
   return {
@@ -518,11 +519,11 @@ if (base) {
     return lensTabs >= 6 || `линз: ${lensTabs}`;
   });
   check("VIS", "V04", "ни в одном текстовом узле нет двойных пробелов", () => {
-    const text = body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    const text = normaliseSpace(stripTags(body));
     return !/  /.test(text) || "двойные пробелы";
   });
   check("VIS", "V05", "в тексте главной нет прямых кавычек", () => {
-    const text = body.replace(/<[^>]+>/g, " ").replace(/"[^"]*"/g, "");
+    const text = normaliseSpace(stripTags(body)).replace(/"[^"]*"/g, "");
     return !/"/.test(text) || "прямые кавычки в тексте";
   });
 

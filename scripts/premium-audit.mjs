@@ -15,6 +15,7 @@
  *   node scripts/premium-audit.mjs --base http://127.0.0.1:3000   # + rendered HTML
  */
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { extractJsonLd, normaliseSpace, stripScripts, stripTags } from "./lib/html-scan.mjs";
 
 const args = process.argv.slice(2);
 const baseIndex = args.indexOf("--base");
@@ -446,24 +447,7 @@ if (base) {
   // Scripts are removed with a scanner rather than a pattern: the payload
   // contains its own closing tokens, and a regex here is both slower and easier
   // to get subtly wrong on edge cases such as an unclosed tag.
-  const strip = (html) => {
-    const lower = html.toLowerCase();
-    let output = "";
-    let cursor = 0;
-    for (;;) {
-      const open = lower.indexOf("<script", cursor);
-      if (open === -1) return output + html.slice(cursor);
-      output += html.slice(cursor, open);
-      const tagEnd = lower.indexOf(">", open);
-      if (tagEnd === -1) return output;
-      const close = lower.indexOf("</script", tagEnd);
-      if (close === -1) return output;
-      const closeEnd = lower.indexOf(">", close);
-      if (closeEnd === -1) return output;
-      cursor = closeEnd + 1;
-    }
-  };
-  const doc = strip(articleHtml);
+  const doc = stripScripts(articleHtml);
 
   check("SE", "SE01", "на странице ровно один h1", () => {
     const count = (doc.match(/<h1[\s>]/g) ?? []).length;
@@ -579,7 +563,7 @@ if (base) {
   check("ME", "ME09", "у статьи есть размеченные хлебные крошки в разметке схемы", () => {
     // Scripts are stripped from `doc` on purpose, so the schema is read from the
     // raw payload instead.
-    const blocks = [...articleHtml.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+    const blocks = extractJsonLd(articleHtml);
     const trail = blocks
       .map((raw) => {
         try {
@@ -598,11 +582,9 @@ if (base) {
     // the schema said "The Truman Show". Compare the labels, not just the count.
     const nav = /<nav[^>]*aria-label="Хлебные крошки"[^>]*>([\s\S]*?)<\/nav>/.exec(doc)?.[1] ?? "";
     const visible = [...nav.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) =>
-      m[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(),
+      normaliseSpace(stripTags(m[1])),
     );
-    const blocks = [...articleHtml.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(
-      (m) => m[1],
-    );
+    const blocks = extractJsonLd(articleHtml);
     const trail = blocks
       .map((raw) => {
         try {
@@ -654,7 +636,7 @@ if (base) {
   });
 
   try {
-    const filmHtml = strip((await fetchPage(filmPath)) ?? "");
+    const filmHtml = stripScripts((await fetchPage(filmPath)) ?? "");
     check("SE", "SE15", "у карточки фильма есть заголовок и хлебные крошки", () => {
       const hasHeading = /<h1[\s>]/.test(filmHtml);
       const hasTrail = /aria-label="Хлебные крошки"/.test(filmHtml);
