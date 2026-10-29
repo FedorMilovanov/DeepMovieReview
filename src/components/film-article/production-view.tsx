@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import type {
   ProductionBlock,
   ProductionDossier,
@@ -102,10 +103,13 @@ function ProductionBlockView({ block }: { block: ProductionBlock }) {
 export function ProductionDossierView({
   dossier,
   filmSlug,
+  filmTitle,
   cover,
 }: {
   dossier: ProductionDossier;
   filmSlug: string;
+  /** The film's title, so the trail names the film instead of repeating the kicker. */
+  filmTitle: string;
   /** The page's own cover. Absent only if the edition has no art at all. */
   cover?: PageHeroImage;
 }) {
@@ -115,9 +119,17 @@ export function ProductionDossierView({
   return (
     <article className="articleShell productionShell">
       <header className="sectionShell articleHeader" id="production-top">
-        <Link className="microLabel" href={`/films/${filmSlug}`}>
-          ← Разбор фильма
-        </Link>
+        <Breadcrumbs
+          trail={[
+            { label: "Фильмы", href: "/films" },
+            { label: filmTitle, href: `/films/${filmSlug}` },
+            { label: "Как это снимали" },
+          ]}
+        />
+        <div className="articleHeaderLinks">
+          <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
+          <Link className="microLabel" href={`/films/${filmSlug}/article`}>Читать разбор →</Link>
+        </div>
         <div className="sectionIndex">{dossier.kicker}</div>
         <h1 className="articleTitle">{dossier.title}</h1>
         {cover ? (

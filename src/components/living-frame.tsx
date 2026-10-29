@@ -30,6 +30,14 @@ export type LivingFrameProps = {
   label?: string;
   className?: string;
   parallax?: boolean;
+  /**
+   * Give the image plane a small 3D rotation under the pointer.
+   *
+   * The frame itself never tilts: captions, timecodes and the border stay flat,
+   * so type is never rendered at an angle. Only the picture moves in depth,
+   * which reads as a lens rather than as a card trick.
+   */
+  tilt?: boolean;
   objectPosition?: string;
   zoomed?: boolean;
   /** Moral Lens cursor state over this frame (default: examine). */
@@ -60,6 +68,7 @@ export function LivingFrame({
   label,
   className,
   parallax = true,
+  tilt = false,
   objectPosition,
   zoomed = false,
   lensCursor = "examine",
@@ -72,6 +81,7 @@ export function LivingFrame({
   const { reducedMotion, tier } = useExperienceQuality();
 
   const interactive = parallax && !reducedMotion && tier !== "LITE";
+  const tilts = interactive && tilt;
 
   const resetFrame = useCallback(() => {
     const frame = frameRef.current;
@@ -80,6 +90,8 @@ export function LivingFrame({
     frame.style.setProperty("--lf-y", "0px");
     frame.style.setProperty("--lf-light-x", "50%");
     frame.style.setProperty("--lf-light-y", "42%");
+    frame.style.setProperty("--lf-rx", "0deg");
+    frame.style.setProperty("--lf-ry", "0deg");
   }, []);
 
   const cancelPendingFrame = useCallback(() => {
@@ -104,6 +116,7 @@ export function LivingFrame({
     [cancelPendingFrame],
   );
 
+
   const flushPointer = useCallback(() => {
     frameRequestRef.current = null;
     const frame = frameRef.current;
@@ -115,6 +128,14 @@ export function LivingFrame({
 
     const localX = pointer.clientX - bounds.left;
     const localY = pointer.clientY - bounds.top;
+    // Scrolling moves the frame out from under a stationary pointer; without
+    // this check the parallax and the tilt would hold a position the pointer no
+    // longer occupies.
+    if (localX < 0 || localY < 0 || localX > bounds.width || localY > bounds.height) {
+      pointerRef.current = null;
+      resetFrame();
+      return;
+    }
     const nx = (localX / bounds.width - 0.5) * 2;
     const ny = (localY / bounds.height - 0.5) * 2;
 
@@ -122,7 +143,30 @@ export function LivingFrame({
     frame.style.setProperty("--lf-y", `${ny * -6}px`);
     frame.style.setProperty("--lf-light-x", `${localX}px`);
     frame.style.setProperty("--lf-light-y", `${localY}px`);
-  }, [interactive]);
+
+    if (tilts) {
+      // Two degrees is the whole budget: enough to read as depth on a 2.39:1
+      // plane, small enough that the image never looks like it is sliding out
+      // of its frame. The existing 1.06 scale already covers the corners, so
+      // no white gap can open at the edges.
+      frame.style.setProperty("--lf-rx", `${(ny * -2.2).toFixed(2)}deg`);
+      frame.style.setProperty("--lf-ry", `${(nx * 2.6).toFixed(2)}deg`);
+    }
+  }, [interactive, tilts, resetFrame]);
+
+  useEffect(() => {
+    if (!interactive) return;
+    const onViewportShift = () => {
+      if (!pointerRef.current || frameRequestRef.current !== null) return;
+      frameRequestRef.current = window.requestAnimationFrame(flushPointer);
+    };
+    window.addEventListener("scroll", onViewportShift, { passive: true });
+    window.addEventListener("resize", onViewportShift, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onViewportShift);
+      window.removeEventListener("resize", onViewportShift);
+    };
+  }, [flushPointer, interactive]);
 
   function handlePointerMove(event: ReactPointerEvent<HTMLElement>) {
     if (event.pointerType === "touch" || !interactive) return;
@@ -154,6 +198,7 @@ export function LivingFrame({
       data-lens-cursor={lensCursor}
       data-film-transition-media={transitionSlug}
       data-zoomed={zoomed || undefined}
+      data-tilt={tilts ? "media" : undefined}
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
     >

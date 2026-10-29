@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AnalysisWorkbench } from "@/components/analysis-workbench";
 import { LivingFrame } from "@/components/living-frame";
+import { TiltSurface } from "@/components/tilt-surface";
 import { AutopsyExamine } from "@/components/home/autopsy-examine";
 import { PipelineSpy } from "@/components/home/pipeline-spy";
 import { SpoilerLadder } from "@/components/home/spoiler-ladder";
 import type { NarrativePermissionState } from "@/lib/content";
-import { requireFilmPackageBySlug } from "@/data/film-registry";
+import { getFilmPackageBySlug, requireFilmPackageBySlug } from "@/data/film-registry";
+import { pluralRu } from "@/lib/plural-ru";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { projectHomepage, type HomepageViewModel } from "@/lib/homepage-projection";
 import type { Confidence } from "@/lib/film-package";
@@ -20,6 +22,33 @@ export const metadata: Metadata = {
 };
 
 const featuredFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
+
+/**
+ * A one-line, honest description of where a film actually stands.
+ *
+ * The numbers are read from the package, never typed into prose: a counter that
+ * is maintained by hand drifts the moment a scene is added, and a homepage that
+ * contradicts the film page is worse than one that says nothing.
+ */
+function packageStateLine(slug: string): { status: string; body: string } | undefined {
+  const filmPackage = getFilmPackageBySlug(slug);
+  if (!filmPackage) return undefined;
+  const scenes = filmPackage.scenes?.length ?? 0;
+  const evidence = filmPackage.evidence?.length ?? 0;
+  const scenesLabel = `${scenes} ${pluralRu(scenes, "сцена", "сцены", "сцен")}`;
+  const evidenceLabel = `${evidence} ${pluralRu(evidence, "опора", "опоры", "опор")}`;
+  const locked = filmPackage.ingest?.edition?.state === "LOCKED";
+  if (locked) {
+    return {
+      status: "мастер заблокирован · в превью",
+      body: `${scenesLabel} и ${evidenceLabel} сверены с точным просмотренным мастером. Публикация откроется отдельным решением редакции: карточка пока черновик, закрытый от индексации.`,
+    };
+  }
+  return {
+    status: "исследовательский черновик",
+    body: `${scenesLabel} и ${evidenceLabel} собраны по вторичным источникам; точный просмотренный мастер ещё не заблокирован, поэтому это не канонический разбор.`,
+  };
+}
 
 const permissionStateLabels: Record<NarrativePermissionState, string> = {
   CONDEMNED: "Осуждается",
@@ -332,6 +361,7 @@ function PlatformLanding({ preview }: { preview: boolean }) {
             captionNote="Публичная страница показывает метод. Незавершённые разборы остаются в редакции."
             label="Живой кадр «Глубокие воды»"
             sizes="(max-width: 900px) 100vw, 52vw"
+            tilt
           />
         </div>
         <div className="heroScrollCue" aria-hidden="true">
@@ -477,10 +507,15 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           </LivingFrame>
           <div className="craftPressureGrid">
             {craftPressures.map((pressure) => (
-              <article className="craftPressureCard" data-pressure={pressure.pressure} key={pressure.pressure}>
+              <TiltSurface
+                className="craftPressureCard"
+                key={pressure.pressure}
+                maxTilt={4}
+                dataAttributes={{ "data-pressure": pressure.pressure }}
+              >
                 <span className="microLabel">{pressure.label}</span>
                 <p>{pressure.copy}</p>
-              </article>
+              </TiltSurface>
             ))}
           </div>
         </div>
@@ -540,23 +575,22 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           />
           {preview ? (
             <>
-              <article className="discoveryCard">
-                <span className="microLabel">FILM 001 · исследовательский черновик</span>
-                <strong>«Шоу Трумана» · 1998</strong>
-                <p>
-                  Целевое издание выбрано, но точный просмотренный мастер ещё не заблокирован. По вторичным источникам
-                  собраны пятнадцать черновых сцен и тридцать восемь исследовательских опор. До публикации каждая сцена,
-                  таймкод и опора должны быть заново воспроизведены по точному мастеру.
-                </p>
-              </article>
-              <article className="discoveryCard">
-                <span className="microLabel">FILM 002 · исследовательский черновик</span>
-                <strong>«Форсаж» · 2001</strong>
-                <p>
-                  Предварительные гипотезы собраны по вторичным источникам: четырнадцать черновых сцен и тридцать две
-                  исследовательские опоры. Это не канонический разбор; кадровая сверка с точным мастером ещё впереди.
-                </p>
-              </article>
+              {(["the-truman-show", "the-fast-and-the-furious"] as const).map((slug) => {
+                const filmPackage = getFilmPackageBySlug(slug);
+                const state = packageStateLine(slug);
+                if (!filmPackage || !state) return null;
+                return (
+                  <TiltSurface className="discoveryCard" key={slug} maxTilt={3}>
+                    <span className="microLabel">
+                      {slug === "the-truman-show" ? "FILM 001" : "FILM 002"} · {state.status}
+                    </span>
+                    <strong>
+                      «{filmPackage.film.title}» · {filmPackage.film.year}
+                    </strong>
+                    <p>{state.body}</p>
+                  </TiltSurface>
+                );
+              })}
             </>
           ) : (
             <article className="discoveryCard">
@@ -602,6 +636,7 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
           captionNote={featuredFilm.premise}
           label={`Кадр фильма ${featuredFilm.title}`}
           sizes="(max-width: 900px) 100vw, 52vw"
+          tilt
         />
       </div>
     </section>

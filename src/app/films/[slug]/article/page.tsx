@@ -108,6 +108,7 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
       <ArticleView
         article={filmPackage.article}
         filmSlug={filmPackage.film.slug}
+        filmTitle={filmPackage.film.title}
         projection={projection}
         spoilerLevel={spoilerLevel}
         describeMeasurement={measurements.describe}

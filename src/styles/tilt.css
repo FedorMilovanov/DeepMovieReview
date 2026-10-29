@@ -1,0 +1,98 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   Tilt surfaces: cards that acknowledge the pointer.
+
+   The effect is deliberately small — five degrees is roughly the point where a
+   card reads as a physical object and stops reading as a slideshow transition.
+   Everything here is additive: a browser that ignores the custom properties
+   renders the card exactly as it was before.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+.tiltSurface {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --tilt-gx: 50%;
+  --tilt-gy: 50%;
+  --tilt-lift: 1.012;
+  /* Scaling is part of the hover, not of the resting state: a card that is
+     always 1.2% larger changes the composition before anyone has pointed at
+     it. The scale only arrives while the card is actually tilted. */
+  --tilt-scale: 1;
+  position: relative;
+  transform-style: preserve-3d;
+  /* The settle is slow and the tracking is fast; both are tokenised. */
+  transition: transform var(--duration-standard) var(--ease-quiet);
+  will-change: auto;
+}
+
+/* Nothing to do for touch, keyboard focus, or a reader who asked for stillness:
+   the component already stops writing values, and this keeps the browser from
+   claiming a compositing layer for nothing. */
+.tiltSurface[data-tilt-surface="off"] {
+  transform: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tiltSurface[data-tilt-surface="on"] {
+    transform:
+      perspective(900px)
+      rotateX(var(--tilt-x))
+      rotateY(var(--tilt-y))
+      translateZ(0)
+      scale(var(--tilt-scale));
+  }
+
+  .tiltSurface[data-tilt-surface="on"][data-tilted="true"] {
+    --tilt-scale: var(--tilt-lift);
+    transition: transform 120ms linear;
+    will-change: transform;
+  }
+
+  /* Once the pointer leaves, the card settles back on the slower curve. */
+  .tiltSurface[data-tilt-surface="on"]:not([data-tilted="true"]) {
+    transition: transform var(--duration-slow) var(--ease-quiet);
+  }
+}
+
+/* Specular highlight. A radial gradient positioned from the same pointer
+   coordinates as the rotation: the light and the tilt agree, which is the only
+   reason a fake sheen ever looks real. */
+.tiltSurfaceGlare::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    240px circle at var(--tilt-gx) var(--tilt-gy),
+    rgb(255 240 220 / 0.08),
+    transparent 70%
+  );
+  transition: opacity var(--duration-standard) var(--ease-quiet);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tiltSurfaceGlare[data-tilted="true"]::after {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tiltSurface,
+  .tiltSurface[data-tilt-surface="on"] {
+    transform: none;
+    transition: none;
+  }
+
+  .tiltSurfaceGlare::after {
+    display: none;
+  }
+}
+
+/* Forced colours: the sheen is decoration, and decoration is the first thing
+   that should go when the palette is not ours. */
+@media (forced-colors: active) {
+  .tiltSurfaceGlare::after {
+    display: none;
+  }
+}

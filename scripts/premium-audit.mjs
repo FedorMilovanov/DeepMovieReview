@@ -260,8 +260,16 @@ check("LA", "LA08", "точечных px в статье немного — вё
   return literals.size <= 8 || `уникальных px: ${literals.size} (${[...literals].join(",")})`;
 });
 
-check("LA", "LA09", "контрольных точек не больше шести", () => {
-  const breakpoints = new Set([...allCss.matchAll(/@media \(max-width:\s*(\d+)px\)/g)].map((m) => m[1]));
+check("LA", "LA09", "контрольных точек не больше шести (кроме фолбэка контейнерных запросов)", () => {
+  // Media queries inside `@supports not (container-type)` are a translation of
+  // container thresholds, not a second breakpoint system, so they are excluded.
+  const withoutFallback = allCss.replace(
+    /@supports not \(container-type: inline-size\)\s*\{[\s\S]*?\n\}/g,
+    "",
+  );
+  const breakpoints = new Set(
+    [...withoutFallback.matchAll(/@media \(max-width:\s*(\d+)px\)/g)].map((m) => m[1]),
+  );
   return breakpoints.size <= 6 || `${breakpoints.size}: ${[...breakpoints].join(",")}`;
 });
 
@@ -582,6 +590,32 @@ if (base) {
       })
       .find((value) => value && value["@type"] === "BreadcrumbList");
     return (trail && trail.itemListElement.length >= 3) || "BreadcrumbList не найдена";
+  });
+
+  check("ME", "ME10", "видимые хлебные крошки совпадают с разметкой схемы", () => {
+    // The trail is rendered from props while the schema is built from the film
+    // package, so they can drift: a crumb once read "залоченное издание" while
+    // the schema said "The Truman Show". Compare the labels, not just the count.
+    const nav = /<nav[^>]*aria-label="Хлебные крошки"[^>]*>([\s\S]*?)<\/nav>/.exec(doc)?.[1] ?? "";
+    const visible = [...nav.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) =>
+      m[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(),
+    );
+    const blocks = [...articleHtml.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(
+      (m) => m[1],
+    );
+    const trail = blocks
+      .map((raw) => {
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return null;
+        }
+      })
+      .find((value) => value && value["@type"] === "BreadcrumbList");
+    const names = (trail?.itemListElement ?? []).map((item) => String(item.name).trim());
+    if (visible.length !== names.length) return `${visible.length} != ${names.length}: ${visible.join(" | ")}`;
+    const mismatch = visible.findIndex((label, index) => label !== names[index]);
+    return mismatch === -1 || `позиция ${mismatch + 1}: «${visible[mismatch]}» вместо «${names[mismatch]}»`;
   });
 
   check("SE", "SE16", "хлебные крошки — это nav со списком, а не абзац ссылок", () => {
