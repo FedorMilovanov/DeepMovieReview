@@ -106,10 +106,13 @@ try {
   checkpoint("article loaded; positioning real AT cursor", true);
   if (mac) {
     await macOSActivate(MacOSApplications.Safari);
-    await reader.perform(reader.keyboardCommands.openItemChooser, speechOptions);
-    await reader.type("web content", speechOptions);
-    await reader.press("Enter", speechOptions);
-    await reader.interact(speechOptions);
+    // Initial-only capture can return while Item Chooser is still dismissing;
+    // the following interact then lands outside, not inside, the web area.
+    await action("VoiceOver Item Chooser", () => reader.perform(reader.keyboardCommands.openItemChooser, navigationOptions), /item chooser/i);
+    await action("VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
+    await action("VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
+    await action("VoiceOver enter web area", () => reader.interact(navigationOptions));
+    await action("VoiceOver first web item", () => reader.next(navigationOptions));
   } else {
     await page.bringToFront();
     await reader.perform(reader.keyboardCommands.exitFocusMode, { capture: false });
