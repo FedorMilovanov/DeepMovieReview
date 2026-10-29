@@ -48,3 +48,13 @@ export function safariDriverPids(processes, rootPid) {
   }
   return [...descendants].filter(pid => pid === rootPid || rows.some(row => row.pid === pid && /(?:^|\/)safaridriver$/.test(row.command)));
 }
+
+// Listener ownership and executable identity both matter when launchd reparents
+// the driver. A PID from a filename or an unrelated TCP listener is not enough.
+export function safariListenerPids(listeners, processes) {
+  const pids = [...listeners.matchAll(/^p(\d+)$/gm)].map(([, pid]) => Number(pid));
+  return pids.filter(pid => processes.split("\n").some(line => {
+    const row = /^\s*(\d+)\s+\d+\s+(.+)$/.exec(line);
+    return row && Number(row[1]) === pid && /(?:^|\/)safaridriver$/.test(row[2].trim());
+  }));
+}

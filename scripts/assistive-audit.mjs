@@ -72,9 +72,11 @@ async function action(label, run, expected) {
   }
 }
 async function screenshot(label) {
+  checkpoint(`${label}: capturing screenshot`);
   const bytes = mac ? Buffer.from(await safari.screenshot(), "base64") : await page.screenshot();
   writeFileSync(`${directory}/${label}.png`, bytes);
   evidence.screenshots.push({ label, data: bytes.toString("base64") });
+  checkpoint(`${label}: screenshot recorded`);
 }
 async function geometry() {
   return execute("({width:innerWidth,outer:outerWidth,dpr:devicePixelRatio,scroll:document.documentElement.scrollWidth})");
@@ -169,7 +171,9 @@ try {
   if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
 
   // Browser UI zoom, not CSS zoom, deviceScaleFactor or a narrower emulated viewport.
-  await go("/films/the-truman-show/article?spoilers=full");
+  // The actual article is already loaded and both native table reads completed.
+  // Do not reload it merely to measure browser geometry before UI zoom.
+  checkpoint("native zoom: reading original browser geometry", true);
   const original = await geometry();
   let zoom = original;
   for (let i = 0; i < 10 && original.width / zoom.width < 1.98; i++) {
@@ -181,7 +185,9 @@ try {
   assert.ok(Math.abs(original.outer - zoom.outer) < 4, "Zoom must not resize the physical window");
   evidence.actions.push({ label: "native browser zoom200", original, zoom });
   for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"]) {
+    checkpoint(`native zoom: navigating ${route}`);
     await go(route);
+    checkpoint(`native zoom: measuring ${route}`);
     const box = await geometry();
     assert.ok(box.scroll <= box.width + 1, `${route}: zoom200 overflow`);
     evidence.actions.push({ label: "zoom200 reflow", route, box });
@@ -194,7 +200,9 @@ try {
   }
   assert.ok(zoom.width >= 300 && zoom.width <= 321, `Native reflow320: ${JSON.stringify(zoom)}`);
   for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"]) {
+    checkpoint(`native zoom: navigating ${route}`);
     await go(route);
+    checkpoint(`native zoom: measuring ${route}`);
     const box = await geometry();
     assert.ok(box.scroll <= box.width + 1, `${route}: reflow320 overflow`);
     evidence.actions.push({ label: "native zoom reflow320", route, box });

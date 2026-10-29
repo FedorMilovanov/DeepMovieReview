@@ -242,3 +242,20 @@ Publisher HTTP failures now retain response diagnostics plus the manifest/source
 failure details in a failed check; this does not bypass chunk/hash verification.
 Historical read-back requires both explicit SHAs:
 `node scripts/read-a11y-evidence.mjs CHECK_ID OUTPUT SOURCE_SHA CHECK_HEAD_SHA`.
+
+`05d669f` recovery123720307803 successfully restored original b3afaed run40948592555,
+artifact12931626017, with checked source/current SHA separation. Raw speech proves
+native VO-F3 «heading level1 is in the VoiceOver cursor», both table captions/column
+headers and first-table row/value. Current receipt123721602864 independently repeats
+those semantic passes. Both actual table PNGs exist in both receipts: the later
+DOMException cannot be blamed on the second screenshot. Native zoom is still pending.
+Add exact screenshot/navigation/geometry phases and method/path to protocol errors;
+remove redundant same-article reload before zoom and allow bounded90s page navigation
+rather than the generic30s command timer. Six-minute scenario/semantic assertions stay.
+
+iOS123723370871 reached W3C but remote Safari/RWI discovery still timed out. Actual
+host GUI is Xcode26.3. Driver log PID14704 was not launcher's descendant14699: launchd
+can reparent it. Fixed port4444 also allowed accidental attachment to a prior driver.
+Each session now selects a fresh ephemeral loopback port, observes its listener PID
+and verifies safaridriver executable identity before log access/cleanup. Unrelated
+PIDs remain excluded. This removes a lifecycle hazard, not a claim that iOS passes.
