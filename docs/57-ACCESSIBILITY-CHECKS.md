@@ -259,3 +259,29 @@ can reparent it. Fixed port4444 also allowed accidental attachment to a prior dr
 Each session now selects a fresh ephemeral loopback port, observes its listener PID
 and verifies safaridriver executable identity before log access/cleanup. Unrelated
 PIDs remain excluded. This removes a lifecycle hazard, not a claim that iOS passes.
+
+`2e3e593` desktop123725571406 verified transport but stopped at Item Chooser:
+only «On item Перейти к содержимому» was captured, not the required menu role.
+No new heading/zoom pass is claimed. Use the SDK's native Commander ITEM_CHOOSER
+AppleScript command instead of posting VO-I; keep the same menu/selection/heading
+assertions, no replay of mutating keys. Preserve failedPhase before a diagnostic
+screenshot updates phase, including failed publisher diagnostics.
+
+05d669f current123720342158 independently restored42 complete scans: Chromium14/
+2582 color-contrast incomplete nodes; Firefox14/2034; WebKit14/2582. All had0 axe
+violations, but the7198 incomplete nodes remain a separate assessment obligation.
+Actual SHA-verified mobile article PNGs from all3 engines were opened and visually
+reviewed: no clipped heading, horizontal overflow or overlapping hero controls in
+that viewport; WebKit wraps body text differently. This finite visual check is not
+an all-background contrast measurement or human screen-reader assessment.
+
+iOS2e3e593 receipt123728361003 still failed W3C «Booting Simulator.app» although
+bootstatus said already booted. Port isolation alone did not fix it. Observed TCP
+owner PID4986 still differed from log writer4987; retain bounded raw process/listener
+metadata to understand that relationship instead of guessing ownership or reading
+an unrelated PID's contents. Host GUI uses26.3, but machine-wide Xcode selection
+remained16.4: XPC/LaunchServices helpers need not inherit Node's DEVELOPER_DIR.
+On disposable GitHub-hosted runners only, also select the matching system Xcode,
+verify it with DEVELOPER_DIR removed, and restore the original selection in finally.
+Restoration failure is a real failure; local machines are not changed system-wide.
+This is a pending native experiment, not an iOS pass or established root cause.
