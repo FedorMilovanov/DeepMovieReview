@@ -218,3 +218,15 @@ Tests reject wrong publisher/head, incomplete transport, absent/duplicate/corrup
 wrong hash/length; successful transport preserves underlying audit failures verbatim.
 Real integration read-back of123707907803 restored the8039b7f rotor receipt (88412bytes,
 SHA256 verified), including its failed role assertion, not a synthetic pass.
+
+`b3afaed` iOS receipt123716470316 restored with the checked-in reader (full SHA,
+compressed SHA256 and publisher verified). Failure was in optional host `ps`
+diagnostics after boot, not a page assertion:10s ETIMEDOUT prevented session attempt.
+That read-only snapshot now records unavailability without blocking native W3C.
+The failure snapshot did confirm the actual Xcode26.3 Simulator.app executable.
+Filename listing also exposed the real driver child14346 versus launcher14345.
+Collect observed descendant driver PIDs before cold boot, test ancestry (not pid+1),
+and read only those PID logs; other processes' log contents remain excluded.
+Desktop publisher123714171048 failed with no chunks: no fresh native speech result
+can be claimed from that receipt. Its underlying native step also failed; exact
+assertion awaits job annotations/recovery, not guessed from transport status.

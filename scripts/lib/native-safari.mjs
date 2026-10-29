@@ -1,16 +1,17 @@
 // Minimal W3C WebDriver client for Apple's installed Safari, not Playwright WebKit.
 import assert from "node:assert/strict";
 import { inspect } from "node:util";
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { once } from "node:events";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { safariDriverLog } from "./apple-toolchain.mjs";
+import { safariDriverLog, safariDriverPids } from "./apple-toolchain.mjs";
 import { setTimeout as delay } from "node:timers/promises";
 
 export async function nativeSafari(capabilities = {}, { beforeSession = async () => {} } = {}) {
   const driver = spawn("/usr/bin/safaridriver", ["--diagnose", "-p", "4444"], { stdio: ["ignore", "pipe", "pipe"] });
   let diagnostics = "", lastError;
+  let diagnosticPids = [driver.pid];
   for (const stream of [driver.stdout, driver.stderr]) stream.on("data", chunk => {
     diagnostics = `${diagnostics}${chunk}`.slice(-8000);
     process.stderr.write(chunk);
@@ -38,6 +39,11 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       }
     }
     assert.ok(ready, `SafariDriver did not start (exit=${driver.exitCode}, signal=${driver.signalCode}): ${inspect(lastError, { depth: 5 })}; ${diagnostics}`);
+    // Observe the launcher's real driver before expensive Simulator boot. This
+    // is optional diagnostics: failure must not prevent the W3C session attempt.
+    try {
+      diagnosticPids = safariDriverPids(execFileSync("ps", ["-axo", "pid=,ppid=,comm="], { encoding: "utf8", timeout: 5000 }), driver.pid);
+    } catch (error) { diagnostics += `\nDriver process snapshot unavailable: ${error.message}`; }
     await beforeSession();
     const result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari", ...capabilities } } });
     session = result.sessionId;
@@ -72,7 +78,7 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
     const exited = driver.exitCode !== null || driver.signalCode !== null ? Promise.resolve() : once(driver, "exit").catch(() => {});
     driver.kill();
     await Promise.race([exited, delay(2000)]);
-    const log = safariDriverLog(join(homedir(), "Library/Logs/com.apple.WebDriver"), driver.pid);
-    throw new Error(`${error.message}\nSafariDriver diagnostics:\n${log}`, { cause: error });
+    const log = diagnosticPids.map(pid => safariDriverLog(join(homedir(), "Library/Logs/com.apple.WebDriver"), pid)).join("\n").slice(-12000);
+    throw new Error(`${error.message}\nSafariDriver diagnostics (observed PIDs ${diagnosticPids.join(", ")}):\n${diagnostics}\n${log}`, { cause: error });
   }
 }
