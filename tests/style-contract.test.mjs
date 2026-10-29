@@ -1,3 +1,5 @@
+import postcss from "postcss";
+import tailwind from "@tailwindcss/postcss";
 import { hasUnprefixedDeclaration } from "../scripts/lib/style-compat.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -18,6 +20,7 @@ function fixture(run) {
     cpSync("src/app/globals.css", join(root, "src/app/globals.css"));
     mkdirSync(join(root, "src/components/experience"), { recursive: true });
     cpSync("src/components/experience/verdict-core.module.css", join(root, "src/components/experience/verdict-core.module.css"));
+    cpSync("src/components/labs", join(root, "src/components/labs"), { recursive: true });
     const write = (path, text) => writeFileSync(join(root, path), text);
     const check = () => spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" });
     run({ root, write, check });
@@ -136,3 +139,38 @@ for (const path of [
     write(path, ".shared { color: var(--text); }");
   }, /use --ink-1 instead of --text/);
 }
+
+rejects("new CSS Modules cannot escape canonical token governance", ({ write }) => {
+  write("src/components/experience/new-component.module.css", ".copy { color: var(--text); }");
+}, /use --ink-1 instead of --text/);
+
+rejects("components cannot redefine the legacy compatibility bridge", ({ write }) => {
+  write("src/components/labs/six-lenses-lab.module.css", ".copy { --text: red; }");
+}, /do not redefine legacy alias --text/);
+
+rejects("platform utilities cannot return to legacy tokens", ({ write }) => {
+  write("src/styles/platform.css", "@utility dmr-example { color: var(--muted); }");
+}, /use --ink-3 instead of --muted/);
+
+test("Tailwind bridge emits canonical font and colour utilities without font self-reference", async () => {
+  const result = await postcss([tailwind({ base: process.cwd() })]).process(
+    '@import "./platform.css"; @source inline("font-body font-display bg-dmr-canvas text-dmr-muted");',
+    { from: resolve("src/styles/font-contract.css") },
+  );
+  const tree = postcss.parse(result.css);
+  for (const [selector, prop, value] of [
+    [".font-body", "font-family", "var(--font-body)"],
+    [".font-display", "font-family", "var(--font-display)"],
+    [".bg-dmr-canvas", "background-color", "var(--surface-canvas)"],
+    [".text-dmr-muted", "color", "var(--ink-3)"],
+  ]) {
+    const values = [];
+    tree.walkRules(selector, (rule) => rule.walkDecls(prop, (node) => values.push(node.value)));
+    assert.deepEqual(values, [value], selector);
+  }
+  for (const name of ["--font-body", "--font-display"]) {
+    tree.walkDecls(name, (node) => {
+      assert.notEqual(node.value, `var(${name})`, `${name}: circular theme definition`);
+    });
+  }
+});

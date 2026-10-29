@@ -11,16 +11,13 @@
  * shared token API for fast composition.
  */
 @theme inline {
-  --font-body: var(--body);
-  --font-display: var(--display);
-
-  --color-dmr-canvas: var(--bg);
-  --color-dmr-elevated: var(--bg-elevated);
-  --color-dmr-soft: var(--bg-soft);
-  --color-dmr-ink: var(--text);
-  --color-dmr-muted: var(--muted);
-  --color-dmr-crimson: var(--crimson);
-  --color-dmr-amber: var(--amber);
+  --color-dmr-canvas: var(--surface-canvas);
+  --color-dmr-elevated: var(--surface-1);
+  --color-dmr-soft: var(--surface-2);
+  --color-dmr-ink: var(--ink-1);
+  --color-dmr-muted: var(--ink-3);
+  --color-dmr-crimson: var(--accent-fracture);
+  --color-dmr-amber: var(--accent-restoration);
 
   --shadow-dmr-depth: 0 34px 110px rgb(0 0 0 / 0.58);
   --shadow-dmr-float: 0 18px 60px rgb(0 0 0 / 0.38);
@@ -77,4 +74,14 @@
   text-wrap: balance;
   font-feature-settings: "kern" 1, "liga" 1;
   font-kerning: normal;
+}
+
+/* Keep the utility API without declaring --font-body:var(--font-body) in
+   @theme, which would be a self-reference. tokens.css owns the font stacks. */
+@utility font-body {
+  font-family: var(--font-body);
+}
+
+@utility font-display {
+  font-family: var(--font-display);
 }

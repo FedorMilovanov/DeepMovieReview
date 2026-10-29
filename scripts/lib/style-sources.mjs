@@ -14,6 +14,6 @@ export function readStylesheet(path, ancestors = []) {
 export function listStyles(dir = "src/styles") {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
-    return entry.isDirectory() ? listStyles(path) : entry.name.endsWith(".css") ? [relative(process.cwd(), resolve(path))] : [];
+    return entry.isDirectory() ? listStyles(path) : entry.name.endsWith(".css") ? [relative(process.cwd(), resolve(path)).replaceAll("\\", "/")] : [];
   }).sort();
 }
