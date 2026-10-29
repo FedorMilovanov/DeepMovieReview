@@ -5,6 +5,8 @@
   --surface-2: #0b0b0b;
   --surface-3: #11110f;
   --surface-warm: #0d0b08;
+  /* Keeps media labels readable even over a completely white source image. */
+  --surface-media-caption: rgba(3, 3, 3, 0.92);
 
   /* Text */
   --ink-1: #f2eee6;

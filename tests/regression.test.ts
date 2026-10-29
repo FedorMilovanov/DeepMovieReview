@@ -4838,7 +4838,7 @@ test("dark palette keeps every text token above WCAG AA contrast", () => {
   const luminance = (hex: string): number => {
     const channels = [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16) / 255);
     const linear = channels.map((channel) =>
-      channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+      channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
     );
     return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
   };
@@ -4858,6 +4858,24 @@ test("dark palette keeps every text token above WCAG AA contrast", () => {
         `--${ink} on --${surface} is ${ratio.toFixed(2)}:1, below the 4.5:1 needed for normal text`,
       );
     }
+  }
+
+  // Media is not a token-coloured canvas: bound every possible source-image pixel.
+  const scrim = /--surface-media-caption:\s*rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/.exec(tokens);
+  assert.ok(scrim, "media caption scrim must expose its actual RGBA for verification");
+  const alpha = Number(scrim[4]);
+  assert.ok(alpha > 0 && alpha <= 1);
+  const worstBackground = "#" + scrim.slice(1, 4).map(channel =>
+    Math.ceil(Number(channel) * alpha + 255 * (1 - alpha)).toString(16).padStart(2, "0"),
+  ).join("");
+  for (const ink of ["ink-1", "ink-2", "ink-3"]) {
+    assert.ok(contrast(value(ink), worstBackground) >= 4.5, `--${ink} over brightest possible media caption`);
+  }
+  const heroCss = readFileSync("src/styles/home/hero.css", "utf8");
+  const workbenchCss = readFileSync("src/components/analysis-workbench.module.css", "utf8");
+  for (const [css, selector] of [[heroCss, "frameMeta"], [heroCss, "frameCaption"], [workbenchCss, "frameMeta"]]) {
+    const block = new RegExp(`\\.${selector}\\s*\\{([^}]+)\\}`).exec(css);
+    assert.ok(block?.[1].includes("background: var(--surface-media-caption)"), `${selector} keeps image-independent text backing`);
   }
 
   // Accents: restoration is a text colour, fracture is not — it is far too dark
