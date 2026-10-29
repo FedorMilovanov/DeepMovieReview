@@ -410,3 +410,20 @@ missing/below-bound ranges. A prematurely launched local full audit used preview
 at build time but not server runtime; its dynamic article404/failure results are
 not article coverage. The local server was restarted with the actual preview flag;
 production CI already supplies this flag in both phases and was unaffected.
+
+
+Exact74a349b local Chromium153 completed all14 real axe states +14 separate rendered
+assessments +7 synthetic harness cases. Product:2582 incomplete owners retained,
+6035 assessed ranges,570 paired frames,0 missing/failed bounds; minimum normal
+4.956337426465952, large15.400209392796619. Console counts now separate actual axe
+scans from rendered assessments and calibration;29 report rows never meant29 axe
+scans. The three-engine gate must still confirm these changes on the pushed head.
+
+Exactfef5157 native desktop VoiceOver/Safari again passed (receipt123767461410).
+iOS receipt123769472732 now includes the real HTTPService log, proving an internal
+30s RWI discovery timeout rather than our90s HTTP timeout. Increasing the client
+wait would not solve it. Xcode restoration passed. The next iOS attempt is isolated
+on a clean macos-26 runner, without Guidepup/TCC/VoiceOver or previous desktop Safari
+activity; the same native Simulator scenarios remain fail-closed as a separate
+job. macos-15 VoiceOver coverage is retained, not replaced by WebKit or a fake pass.
+This is a new infrastructure experiment, not evidence of iOS success.
