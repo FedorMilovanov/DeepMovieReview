@@ -1,16 +1,16 @@
 .labShell {
   min-height: 100svh;
-  padding: clamp(4rem, 9vw, 8rem) var(--pad) clamp(6rem, 12vw, 10rem);
+  padding: clamp(4rem, 9vw, 8rem) var(--gutter) clamp(6rem, 12vw, 10rem);
   background:
     radial-gradient(circle at 12% 8%, rgba(127, 23, 29, 0.08), transparent 28rem),
-    var(--bg);
-  color: var(--text);
+    var(--surface-canvas);
+  color: var(--ink-1);
 }
 
 .intro,
 .notes,
 .stage {
-  width: min(100%, var(--max));
+  width: min(100%, var(--container-max));
   margin-inline: auto;
 }
 
@@ -28,14 +28,14 @@
   font-size: 0.68rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 .intro h1,
 .notes h2 {
   margin: 0;
   max-width: 11ch;
-  font-family: var(--display);
+  font-family: var(--font-display);
   font-weight: 500;
   letter-spacing: -0.045em;
   line-height: 0.92;
@@ -64,7 +64,7 @@
   isolation: isolate;
   overflow: hidden;
   min-height: min(760px, 78svh);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--stroke-strong);
   background:
     radial-gradient(circle 18rem at var(--lens-x) var(--lens-y), rgba(242, 238, 230, 0.055), transparent 72%),
     radial-gradient(circle at 72% 28%, rgba(127, 23, 29, 0.12), transparent 25rem),
@@ -120,9 +120,9 @@
   align-items: start;
   padding: clamp(1.3rem, 3vw, 2.6rem);
   text-align: left;
-  color: var(--text);
+  color: var(--ink-1);
   background: rgba(6, 6, 6, 0.62);
-  border: 1px solid var(--line);
+  border: 1px solid var(--stroke-default);
   appearance: none;
   font: inherit;
   transition:
@@ -139,7 +139,7 @@
 }
 
 .target:focus-visible {
-  outline: 2px solid var(--text);
+  outline: 2px solid var(--ink-1);
   outline-offset: -4px;
 }
 
@@ -156,7 +156,7 @@
   grid-column: 1 / -1;
   align-self: end;
   max-width: 13ch;
-  font-family: var(--display);
+  font-family: var(--font-display);
   font-size: clamp(1.9rem, 3.6vw, 4.2rem);
   line-height: 0.94;
   font-weight: 500;
@@ -166,7 +166,7 @@
 .targetCopy {
   grid-column: 1 / -1;
   max-width: 36rem;
-  color: var(--muted);
+  color: var(--ink-3);
   line-height: 1.55;
 }
 
@@ -237,7 +237,7 @@
   left: -2px;
   top: -2px;
   border-radius: 50%;
-  background: var(--text);
+  background: var(--ink-1);
 }
 
 .lensLabel {
@@ -245,7 +245,7 @@
   left: 52px;
   top: -0.45rem;
   padding: 0.25rem 0.38rem;
-  color: var(--text);
+  color: var(--ink-1);
   background: rgba(3, 3, 3, 0.74);
   border: 1px solid rgba(242, 238, 230, 0.18);
   font-size: 0.58rem;
@@ -271,20 +271,20 @@
   margin-top: clamp(2rem, 5vw, 4rem);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
+  border-left: 1px solid var(--stroke-default);
 }
 
 .noteGrid p {
   margin: 0;
   min-height: 150px;
   padding: 1.4rem;
-  color: var(--muted);
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  color: var(--ink-3);
+  border-right: 1px solid var(--stroke-default);
+  border-bottom: 1px solid var(--stroke-default);
 }
 
-.noteGrid strong { color: var(--text); }
+.noteGrid strong { color: var(--ink-1); }
 
 @media (pointer: fine) {
   .stage { cursor: none; }

@@ -22,7 +22,7 @@
   background:
     radial-gradient(circle at 66% 35%, rgb(127 23 29 / 0.28), transparent 22%),
     linear-gradient(150deg, #111214, #050505 68%);
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-align: center;
