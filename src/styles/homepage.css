@@ -22,6 +22,13 @@
   align-items: center;
 }
 
+/* The eyebrow is the hero's only element outside the grid, so it has no gap to
+   inherit. Once the frame moves above the copy on a narrow screen the two boxes
+   touch and the monogram line sits on the frame's border. */
+.heroSection > .eyebrow {
+  margin: 0 0 clamp(1.4rem, 2.6vw, 2.2rem);
+}
+
 .heroCopy {
   padding-top: 2rem;
 }

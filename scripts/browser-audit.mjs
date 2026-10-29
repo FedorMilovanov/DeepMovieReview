@@ -1184,6 +1184,77 @@ try {
   await inspectNotFound("/films/not-a-film", 640, 450, "not found zoom 200", 2);
   await capture("not-found-zoom-200", true);
 
+  /* ── Layout guarantees that a screenshot alone will not state ─────────── */
+
+  // Print: the homepage reveals its sections with a view() timeline, which does
+  // not advance on paper. Every section printing at the animation's start value
+  // means a blank page in "save as PDF".
+  // Order matters: navigate() resets emulated media, so print emulation has to
+  // be applied after the document is there and re-evaluated.
+  await navigate("/", 1440, 1000);
+  await send("Emulation.setEmulatedMedia", { media: "print", features: [] });
+  await evaluate("document.documentElement.offsetHeight");
+  await sleep(300);
+  const printState = JSON.parse(await evaluate(
+    "JSON.stringify([...document.querySelectorAll('main .sectionRule')].slice(0, 12).map((el) => ({ cls: el.className, opacity: getComputedStyle(el).opacity, animation: getComputedStyle(el).animationName })))"
+  ));
+  assertCheck(
+    "print: every section renders at full opacity",
+    printState.length > 0 && printState.every((entry) => Number(entry.opacity) >= 0.99),
+    printState.filter((entry) => Number(entry.opacity) < 0.99).slice(0, 4),
+  );
+  await send("Emulation.setEmulatedMedia", { media: "", features: [] });
+
+  // Clipping: the shell is `overflow: clip`, so content wider than its column is
+  // removed silently — no scrollbar, no console error, no broken screenshot.
+  for (const [pathname, width, height, label] of [
+    ["/", 390, 844, "home mobile"],
+    ["/films/the-truman-show", 390, 844, "film mobile"],
+    ["/films/the-truman-show", 768, 900, "film tablet"],
+  ]) {
+    await navigate(pathname, width, height);
+    await sleep(400);
+    const clipped = JSON.parse(await evaluate(
+      "JSON.stringify((() => {" +
+        "const clientW = document.documentElement.clientWidth;" +
+        "const skip = /lfGrain|livingFrame|visuallyHidden|autopsyFrame|moral-lens-cursor/;" +
+        "return [...document.querySelectorAll('main *')]" +
+        "  .filter((el) => {" +
+        "    const cs = getComputedStyle(el);" +
+        "    if (skip.test(String(el.className))) return false;" +
+        "    if (cs.position === 'fixed' || cs.display === 'none') return false;" +
+        "    if (!['hidden', 'clip', 'auto', 'scroll'].includes(cs.overflowX)) return false;" +
+        "    if (el.tagName === 'LEGEND') return false;" +
+        "    if (cs.clipPath && cs.clipPath.includes('inset(50%')) return false;" +
+        "    if (el.getBoundingClientRect().width <= 1) return false;" +
+        "    return el.scrollWidth - el.clientWidth > 2;" +
+        "  })" +
+        "  .slice(0, 5)" +
+        "  .map((el) => ({ tag: el.tagName, cls: String(el.className), over: el.scrollWidth - el.clientWidth, text: (el.textContent || '').slice(0, 40) }));" +
+      "})())"
+    ));
+    assertCheck(`${label}: nothing is clipped inside its own box`, clipped.length === 0, clipped);
+  }
+
+  // A jump link must not park its target under the sticky header.
+  await navigate("/", 1440, 1000);
+  await send("Page.navigate", { url: baseUrl + "/#lenses" });
+  await waitForDocumentReady();
+  await sleep(1200);
+  const anchorState = JSON.parse(await evaluate(
+    "JSON.stringify((() => {" +
+      "const target = document.querySelector('#lenses');" +
+      "const header = document.querySelector('.siteHeader');" +
+      "if (!target || !header) return { missing: true };" +
+      "return { top: Math.round(target.getBoundingClientRect().top), headerHeight: Math.round(header.getBoundingClientRect().height) };" +
+    "})())"
+  ));
+  assertCheck(
+    "anchor: #lenses lands below the sticky header",
+    !anchorState.missing && anchorState.top >= anchorState.headerHeight,
+    anchorState,
+  );
+
   assertCheck("browser network: no unexpected failed HTTP resources", networkErrors.length === 0, networkErrors);
   assertCheck("browser console/runtime: no errors", browserErrors.length === 0, browserErrors);
 } catch (error) {

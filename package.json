@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/run-regression-tests.mjs",
     "audit:film001": "node scripts/film001-audit.mjs",
+    "audit:homepage": "node scripts/homepage-audit.mjs",
     "audit:premium": "node scripts/premium-audit.mjs"
   },
   "dependencies": {

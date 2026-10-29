@@ -355,6 +355,28 @@ check("COMPAT", "C11", "акцентный текст не остаётся бе
 
 /* ── Rendered homepage ────────────────────────────────────────────────── */
 
+check("SRC", "S11", "печать отключает анимацию секций (иначе PDF пустой)", () => {
+  const print = /@media print \{[\s\S]*?\.sectionRule[\s\S]*?animation: none/.test(optics);
+  return print || "нет print-фолбэка для view-timeline";
+});
+
+check("SSR", "R21", "якоря не прячутся под липкой шапкой", () => {
+  const globals = read("src/app/globals.css");
+  return (
+    /main :is\(\[id\]\)[\s\S]{0,80}scroll-margin-block-start/.test(globals) ||
+    "нет scroll-margin для main [id]"
+  );
+});
+
+check("VIS", "V07", "имя ссылки-логотипа содержит её видимый текст", () => {
+  const header = read("src/components/site-header.tsx");
+  const label = /className="brand"[^>]*aria-label="([^"]+)"/.exec(header)?.[1] ?? "";
+  const visible = /className="brandText">([^<]+)</.exec(header)?.[1]?.trim() ?? "";
+  if (!label || !visible) return "не найдены имя или видимый текст бренда";
+  // WCAG 2.5.3: the accessible name must contain the visible label, verbatim.
+  return label.includes(visible) || `«${label}» не содержит «${visible}»`;
+});
+
 function summarise(html) {
   const body = stripScripts(html);
   const ids = [...body.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
