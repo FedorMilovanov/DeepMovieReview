@@ -1,0 +1,86 @@
+/* ── Craft + permission hover wiring (pointer enhancement only) ────────────── */
+
+@supports selector(:has(*)) {
+  @media (hover: hover) and (pointer: fine) {
+    .craftStage:has(.craftPressureCard[data-pressure="empathy"]:hover) .craftGlow[data-pressure="empathy"],
+    .craftStage:has(.craftPressureCard[data-pressure="imitation"]:hover) .craftGlow[data-pressure="imitation"] {
+      opacity: 1;
+    }
+
+    .craftStage:has(.craftPressureCard[data-pressure="empathy"]:hover) .craftChip[data-pressure="empathy"],
+    .craftStage:has(.craftPressureCard[data-pressure="imitation"]:hover) .craftChip[data-pressure="imitation"] {
+      opacity: 1;
+      transform: none;
+    }
+
+    .craftStage:has(.craftPressureCard[data-pressure="empathy"]:hover) .craftPressureCard[data-pressure="empathy"],
+    .craftStage:has(.craftPressureCard[data-pressure="imitation"]:hover) .craftPressureCard[data-pressure="imitation"] {
+      border-color: var(--stroke-strong);
+    }
+
+    .permissionExamples:has(.permissionExample:hover) .permissionExample:not(:hover) {
+      opacity: 0.42;
+    }
+
+    .permissionExample {
+      transition:
+        background var(--duration-standard) var(--ease-quiet),
+        opacity var(--duration-standard) var(--ease-quiet);
+    }
+
+    .permissionExamples:has(.permissionExample:hover) .permissionExample:hover .permissionTrace i {
+      box-shadow: 0 0 12px rgb(185 146 91 / 0.8);
+    }
+  }
+}
+
+/* ── Examine (analytical light swap) ───────────────────────────────────────── */
+
+.examineWrap .lfGrade {
+  transition:
+    opacity var(--duration-slow) var(--ease-quiet),
+    background var(--duration-slow) var(--ease-quiet);
+}
+
+.examineWrap[data-examined] .lfGrade {
+  background:
+    linear-gradient(180deg, rgb(120 150 190 / 0.1), transparent 40%),
+    linear-gradient(0deg, rgb(0 0 0 / 0.42), transparent 55%);
+}
+
+.examineWrap[data-examined] .lfImage {
+  filter: saturate(0.62) contrast(1.12) brightness(0.94);
+}
+
+.examineWrap .lfImage {
+  transition: filter var(--duration-slow) var(--ease-quiet);
+}
+
+.examineAnchor {
+  animation: dmrAnchorIn var(--duration-standard) var(--ease-quiet) backwards;
+}
+
+.examineWrap .examineAnchor:nth-of-type(2) {
+  animation-delay: 80ms;
+}
+
+.examineWrap .examineAnchor:nth-of-type(3) {
+  animation-delay: 160ms;
+}
+
+@keyframes dmrAnchorIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes dmrScanSweep {
+  0% { background-position: 50% -40%; }
+  100% { background-position: 50% 140%; }
+}
+

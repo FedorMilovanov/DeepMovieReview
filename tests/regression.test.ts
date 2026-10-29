@@ -1,4 +1,10 @@
+import { createRequire } from "node:module";
 import test from "node:test";
+// Load the same CSS import reader used by the audits from the repository root,
+// not the temporary TypeScript test output directory.
+const { readStylesheet } = createRequire(`${process.cwd()}/package.json`)(
+  "./scripts/lib/style-sources.mjs",
+) as { readStylesheet: (path: string) => string };
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
@@ -5580,7 +5586,7 @@ test("the page survives paper, anchors and the sticky header", () => {
   // Three failures that only a browser shows, and that are cheap to keep out:
   // a print render with no scroll timeline, a jump link that lands under the
   // header, and a grid that clips instead of wrapping.
-  const optics = readFileSync("src/styles/homepage-optics.css", "utf8");
+  const optics = readStylesheet("src/styles/homepage-optics.css");
   assert.match(
     optics,
     /@media print \{[\s\S]*?\.sectionRule[\s\S]*?animation: none/,
@@ -5611,7 +5617,7 @@ test("the page survives paper, anchors and the sticky header", () => {
   // A bare `1fr` track grows to its widest child's min-content; the shell clips
   // the result instead of scrolling, so the text simply disappears.
   for (const file of ["src/styles/homepage.css", "src/styles/film-modules.css"]) {
-    const css = readFileSync(file, "utf8");
+    const css = readStylesheet(file);
     const bad = css
       .split("\n")
       .map((line, index) => ({ line: line.trim(), index }))

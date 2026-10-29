@@ -1,0 +1,122 @@
+/* ── Scroll reveals (view-timeline only; static otherwise) ─────────────────── */
+
+@keyframes dmrSectionReveal {
+  from {
+    opacity: 0.001;
+    transform: translateY(34px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  .sectionRule {
+    animation: dmrSectionReveal both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 42%;
+  }
+}
+
+/* A view timeline does not advance on paper or in a paginated renderer, so
+   every section would print at the animation's start value — a blank page.
+   Print is also where "export to PDF" lands, so it is not a corner case. */
+@media print {
+  .sectionRule,
+  .heroEnter .eyebrow,
+  .heroEnter .heroCopy > *,
+  .heroEnter .heroGrid .livingFrame,
+  .heroEnter .heroScrollCue {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  /* A streamed route prints its fallback if it is still in the document. */
+  .routeLoading {
+    display: none;
+  }
+}
+
+html[data-reduced-motion="true"] .sectionRule {
+  animation: none;
+}
+
+/* ── Hero copy treatment ───────────────────────────────────────────────────── */
+
+.heroSection h1 {
+  max-width: 15ch;
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 40rem;
+  margin: 0 0 1.6rem;
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.68rem;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.kicker::before {
+  content: "";
+  width: 2.4rem;
+  height: 1px;
+  flex: none;
+  background: var(--accent-restoration);
+  opacity: 0.8;
+}
+
+/* ── Hero entrance choreography (load-only, CSS keyframes) ─────────────────── */
+
+@keyframes dmrHeroRise {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes dmrHeroFrame {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+    filter: brightness(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.heroEnter .eyebrow {
+  animation: dmrHeroRise 700ms var(--ease-quiet) backwards;
+}
+
+.heroEnter .heroCopy > * {
+  animation: dmrHeroRise 700ms var(--ease-quiet) backwards;
+}
+
+.heroEnter .heroCopy > :nth-child(1) { animation-delay: 60ms; }
+.heroEnter .heroCopy > :nth-child(2) { animation-delay: 150ms; }
+.heroEnter .heroCopy > :nth-child(3) { animation-delay: 260ms; }
+.heroEnter .heroCopy > :nth-child(4) { animation-delay: 370ms; }
+.heroEnter .heroCopy > :nth-child(5) { animation-delay: 440ms; }
+
+.heroEnter .heroGrid .livingFrame {
+  animation: dmrHeroFrame 1100ms var(--ease-quiet) 220ms backwards;
+}
+
+.heroEnter .heroScrollCue {
+  animation: dmrHeroRise 700ms var(--ease-quiet) 700ms backwards;
+}
+

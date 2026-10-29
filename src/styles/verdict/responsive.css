@@ -1,0 +1,103 @@
+@container verdict-surface (width < 70rem) {
+  .filmFinalCoreGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .filmFinalCoreThesis {
+    padding-inline-end: 0;
+  }
+
+  .filmSynthesisFacets {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filmSynthesisFacets > article:nth-child(4) {
+    border-inline-start: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .filmSynthesisFacets > article:nth-child(n + 4) {
+    border-top: 1px solid var(--line);
+  }
+
+  .filmMoralEventGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filmMoralEventGrid > div:not(:nth-child(4n + 1)) {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  .filmMoralEventGrid > div:nth-child(even) {
+    padding-inline-start: clamp(0.8rem, 2cqi, 1.4rem);
+    border-inline-start: 1px solid var(--line);
+  }
+}
+
+@container verdict-surface (width < 48rem) {
+  .filmMoralLedgerMeta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filmMoralLedgerMeta > p {
+    grid-column: 1 / -1;
+    min-height: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .filmMoralEventTopline {
+    grid-template-columns: 38px 1fr;
+  }
+
+  .filmMoralEventTopline > span:nth-child(3),
+  .filmMoralEventTopline > span:nth-child(4) {
+    grid-column: 2;
+  }
+
+  .filmSynthesisFacets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filmSynthesisFacets > article,
+  .filmSynthesisFacets > article:nth-child(4) {
+    border-inline-start: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .filmSynthesisFacets > article:nth-child(even) {
+    border-inline-start: 1px solid var(--line);
+  }
+}
+
+@container verdict-surface (width < 32rem) {
+  .filmMoralLedgerMeta,
+  .filmMoralEventGrid,
+  .filmSynthesisFacets {
+    grid-template-columns: 1fr;
+  }
+
+  .filmMoralLedgerMeta > div,
+  .filmMoralEventGrid > div,
+  .filmMoralEventGrid > div:nth-child(even),
+  .filmSynthesisFacets > article,
+  .filmSynthesisFacets > article:nth-child(even) {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+
+  .filmMoralLedgerMeta > div {
+    min-height: 7rem;
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .filmMoralLedgerMeta > p {
+    grid-column: auto;
+  }
+
+  .filmMoralEventGrid > div {
+    min-height: 0;
+  }
+}
+

@@ -318,8 +318,11 @@ check("MO", "MO05", "prefers-reduced-motion учтён минимум в трё�
 });
 
 check("MO", "MO06", "бесконечная анимация всегда имеет выход для «меньше движения»", () => {
-  const offenders = styleFiles.filter((path) => {
-    const text = read(path);
+  // Motion and its accessibility fallback may have separate owners. Check
+  // each composed surface, not an isolated imported fragment.
+  const surfaces = readdirSync(stylesDir).filter((name) => name.endsWith(".css"));
+  const offenders = surfaces.filter((name) => {
+    const text = readStylesheet(`${stylesDir}/${name}`);
     return /animation:[^;]*infinite/.test(text) && !text.includes("prefers-reduced-motion");
   });
   return offenders.length === 0 || offenders.join(",");

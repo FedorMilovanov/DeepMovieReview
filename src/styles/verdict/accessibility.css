@@ -1,0 +1,74 @@
+@media (prefers-reduced-motion: reduce) {
+  .filmMoralLedger > li,
+  .filmSynthesisFacets > article,
+  .filmFinalVerdict {
+    animation: none !important;
+    translate: none !important;
+    filter: none !important;
+  }
+
+  .filmMoralLedger > li::before {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .filmMoralLedgerMeta,
+  .filmFinalVerdict,
+  .filmSynthesisFacets > article {
+    background: Canvas;
+    box-shadow: none;
+  }
+
+  .filmMoralAnalysis::before,
+  .filmFinalSynthesis::before,
+  .filmFinalVerdict::after,
+  .filmMoralLedger > li::before {
+    display: none;
+  }
+}
+
+/* Any browser that has no container queries still has to lay this out. Without
+   the block below, the widest grid would be the only one that ever applied and
+   the ledger would overflow on a phone. The widths mirror the container
+   thresholds: 70rem, 48rem and 32rem against the 1rem root. */
+@supports not (container-type: inline-size) {
+  @media (max-width: 1120px) {
+    .filmFinalCoreGrid,
+    .filmMoralEventGrid {
+      grid-template-columns: 1fr;
+    }
+
+    .filmSynthesisFacets {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .filmFinalCoreThesis {
+      padding-inline-end: 0;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .filmMoralLedgerMeta {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filmMoralLedgerMeta > p {
+      grid-column: 1 / -1;
+      min-height: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .filmSynthesisFacets {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 512px) {
+    .filmMoralLedgerMeta,
+    .filmMoralEventGrid,
+    .filmSynthesisFacets {
+      grid-template-columns: 1fr;
+    }
+  }
+}

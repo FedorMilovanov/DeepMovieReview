@@ -1,0 +1,74 @@
+@media (max-width: 900px) {
+  .filmOutlineSection {
+    grid-template-columns: 1fr;
+  }
+
+  .filmMethodMeta,
+  .filmDecisionOptions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .filmModule {
+    scroll-margin-top: 72px;
+  }
+
+  .filmModuleQuestion {
+    font-size: clamp(1.45rem, 7vw, 2.2rem);
+  }
+
+  .filmOutline a {
+    grid-template-columns: 34px 1fr;
+  }
+
+  .filmOutline a > small {
+    grid-column: 2;
+  }
+
+  /* The edition cell carries a SHA-256 hash: one unbreakable token is enough
+     to widen an `auto` track past the viewport, where the shell clips it. */
+  .filmObservationGrid,
+  .filmCraftGrid,
+  .filmPressureGrid,
+  .filmDecisionOptions,
+  .filmKnowledgeGrid,
+  .filmDecisionContext,
+  .filmMethodMeta {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filmMethodMeta strong {
+    overflow-wrap: anywhere;
+  }
+
+  .filmObservationGrid > article,
+  .filmCraftGrid > article,
+  .filmDecisionOptions > article,
+  .filmKnowledgeGrid > article,
+  .filmDecisionContext > article,
+  .filmMethodMeta > div {
+    min-height: 0;
+  }
+
+  .filmSignalList > article {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .filmObservationMeta {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .filmSourceList li {
+    /* One column, but with a zero minimum: the edition string is a single
+       long token and would otherwise widen the track past the viewport. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.45rem;
+  }
+
+  .filmSourceList li > div {
+    overflow-wrap: anywhere;
+  }
+}
+
