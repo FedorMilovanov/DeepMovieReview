@@ -355,6 +355,16 @@ check("COMPAT", "C11", "акцентный текст не остаётся бе
 
 /* ── Rendered homepage ────────────────────────────────────────────────── */
 
+check("SRC", "S12", "в режиме LITE нет бесконечных фоновых анимаций", () => {
+  // The provider writes data-quality-tier; an infinite ambient loop (grain
+  // jitter, status pulse, scroll cue) burns a compositing thread for as long as
+  // the tab is open, which is exactly what a Lite reader opted out of.
+  const lite = /html\[data-quality-tier="lite"\][\s\S]{0,400}animation: none/.test(optics);
+  if (!lite) return "нет правил для data-quality-tier=lite";
+  const infinite = [...optics.matchAll(/html:not\(\[data-reduced-motion="true"\]\)[^{]*\{[^}]*infinite/g)];
+  return infinite.length > 0 || "ни одна фоновая анимация не привязана к предпочтению движения";
+});
+
 check("SRC", "S11", "печать отключает анимацию секций (иначе PDF пустой)", () => {
   const print = /@media print \{[\s\S]*?\.sectionRule[\s\S]*?animation: none/.test(optics);
   return print || "нет print-фолбэка для view-timeline";

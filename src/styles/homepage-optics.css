@@ -454,6 +454,20 @@ html:not([data-reduced-motion="true"]) .heroScrollLine::after {
   animation: dmrScrollSweep 3.4s var(--ease-standard) infinite;
 }
 
+/* ── Lite tier: no infinite ambient loops ──────────────────────────────────── */
+
+/* The provider already writes `data-quality-tier` for a chosen Lite mode and for
+   a device the capability probe downgraded. Those readers asked for (or were
+   given) a page that does not animate forever: the grain jitter, the status
+   pulse and the scroll cue are decoration that costs a compositing thread for
+   as long as the tab is open. State changes and transitions stay. */
+html[data-quality-tier="lite"] .lfGrain,
+html[data-quality-tier="lite"] .examineScan,
+html[data-quality-tier="lite"] .heroStatusStrip > div:first-child strong::before,
+html[data-quality-tier="lite"] .heroScrollLine::after {
+  animation: none;
+}
+
 /* ── Scroll reveals (view-timeline only; static otherwise) ─────────────────── */
 
 @keyframes dmrSectionReveal {
