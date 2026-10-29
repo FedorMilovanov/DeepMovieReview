@@ -48,11 +48,8 @@ try {
       }).slice(-12000);
       console.log(report.bootLog);
       report.device.state = "Booted";
-      // Keep the native browser running so WebDriver can discover its RWI app.
-      report.phase = "starting native MobileSafari";
-      report.safariLaunchLog = execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], {
-        encoding: "utf8", timeout: 60000, maxBuffer: 16 * 1024 * 1024,
-      }).slice(-12000);
+      // SafariDriver owns native browser launch. A separate simctl launch can
+      // hang after a successful boot and prevent the W3C session from trying.
       report.phase = "creating native iOS Safari session";
     },
   });
