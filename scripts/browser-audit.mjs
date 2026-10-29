@@ -751,9 +751,29 @@ try {
   assertCheck("living frame reduced motion: no GPU canvas remains active", reducedLivingState?.canvas === false, reducedLivingState);
   await capture("living-frame-reduced-motion", false);
 
+  async function inspectIndexMediaSeparation(label) {
+    const layout = JSON.parse(await evaluate(`JSON.stringify((() => {
+      const rows = [...document.querySelectorAll('.filmRow')];
+      const overlaps = (a, b) => a.left < b.right - 0.5 && a.right > b.left + 0.5 &&
+        a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
+      const failures = rows.flatMap(row => {
+        const media = row.querySelector('.filmMediaFrameIndex');
+        const texts = [row.querySelector('.filmRowTitle'), row.querySelector('.filmRowMeta')];
+        if (!media || texts.some(node => !node)) return ['missing media/title/status'];
+        const box = media.getBoundingClientRect();
+        return texts.filter(node => overlaps(box, node.getBoundingClientRect()))
+          .map(node => ({title: row.querySelector('.filmRowTitle').textContent, part: node.className,
+            mediaWidth: box.width, textLeft: node.getBoundingClientRect().left, mediaRight: box.right}));
+      });
+      return {rows: rows.length, failures};
+    })())`));
+    assertCheck(label + ": cover never overlaps title or status", layout.rows > 0 && layout.failures.length === 0, layout);
+  }
+
   await navigate("/films", 1280, 900);
   await inspectBasic("film index desktop");
   await inspectNoHorizontalOverflow("film index desktop");
+  await inspectIndexMediaSeparation("film index desktop");
 
   const filmIndexInitial = JSON.parse(await evaluate(
     "JSON.stringify({" +
@@ -841,11 +861,13 @@ try {
   await navigate("/films", 390, 844);
   await inspectBasic("film index mobile");
   await inspectNoHorizontalOverflow("film index mobile");
+  await inspectIndexMediaSeparation("film index mobile");
   await capture("film-index-mobile", true);
 
   await navigate("/films", 640, 450, false, false, 2);
   await inspectBasic("film index zoom 200");
   await inspectNoHorizontalOverflow("film index zoom 200");
+  await inspectIndexMediaSeparation("film index zoom 200");
   await capture("film-index-zoom-200", true);
 
   await navigate("/films", 1280, 900);
