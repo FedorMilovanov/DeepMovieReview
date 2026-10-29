@@ -139,6 +139,14 @@ export type FilmPackageValidationOptions = {
   resolveArticleMeasurement?: (ref: ArticleMeasurementRef) => boolean;
   /** Digit strings the master measured; prose may not retype them. */
   articleMeasuredValues?: string[];
+  /**
+   * Looks up a declared illustration by asset id. The registry lives with the
+   * image data, not in this schema module, so it is injected; without it an
+   * article that places a picture is rejected rather than rendered unchecked.
+   */
+  resolveIllustration?: (assetId: string) =>
+    | { alt: string; sourceKind: string; role: string }
+    | undefined;
 };
 
 export function validateFilmPackage(
@@ -862,6 +870,9 @@ export function validateFilmPackage(
       resolveMeasurement: options.resolveArticleMeasurement,
       measuredValues: options.articleMeasuredValues,
       moduleLevels: new Map(filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.spoilerLevel])),
+      // Illustrations are declared once, in their own registry: the package only
+      // points at them by id, so a picture can never be invented inline.
+      resolveIllustration: options.resolveIllustration,
     }),
   );
 

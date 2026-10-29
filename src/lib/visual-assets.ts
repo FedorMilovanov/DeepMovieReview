@@ -8,7 +8,15 @@ export type VisualAssetRole =
   | "decision"
   | "topic"
   | "background"
-  | "social";
+  | "social"
+  /**
+   * Artwork that sits inside the readable layer, next to the argument.
+   *
+   * It is a separate role rather than a `topic` picture because the rules differ:
+   * an illustration is placed by a block in the article, carries a caption in the
+   * text, and may never be a frame of the film.
+   */
+  | "illustration";
 
 export type VisualAssetPurpose =
   | "editorial-master"

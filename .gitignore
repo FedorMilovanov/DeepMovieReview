@@ -40,3 +40,7 @@ browser-audit/
 /google_drive/
 public/og/*.png
 !public/og-home.png
+
+# Illustration source renders and reference art (generated PNGs stay local;
+# what ships is the JPG/AVIF set in public/art)
+/art-source/

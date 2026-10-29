@@ -4020,6 +4020,7 @@ test("Film 001 canonical package satisfies the full integrity graph", () => {
   const errors = validateFilmPackage(theTrumanShowCanonicalPackage, {
     resolveArticleMeasurement: (ref) => Boolean(resolveTrumanMeasurement(ref)),
     articleMeasuredValues: trumanMeasuredDigitStrings,
+    resolveIllustration: illustrationFacts,
   });
   assert.deepEqual(errors, [], `canonical package errors:\n${errors.join("\n")}`);
 });
@@ -4124,6 +4125,9 @@ function trumanArticleContext(overrides: Record<string, unknown> = {}) {
     edition: filmPackage.ingest?.edition,
     realFilm: true,
     published: false,
+    // The article may only place illustrations the registry declares, and only
+    // generated ones: the resolver is what lets the integrity check ask.
+    resolveIllustration: illustrationFacts,
     editorialRevision:
       sourcesModule?.kind === "sources-method" ? sourcesModule.editorialRevision : undefined,
     resolveMeasurement: (ref: Parameters<typeof resolveTrumanMeasurement>[0]) =>
@@ -5367,7 +5371,10 @@ test("An in-article illustration must be a generated drawing, captioned as not a
   const withRegistry = {
     ...context,
     resolveIllustration: (id: string) =>
-      id === "illu-ok"
+      // The real registry stays visible, so the illustrations actually placed in
+      // the article resolve here too; the stubs below are the negatives.
+      illustrationFacts(id) ??
+      (id === "illu-ok"
         ? { alt: "Зрительный зал: ряд пустых кресел и много рук с попкорном", sourceKind: "generated", role: "illustration" }
         : id === "illu-still"
           ? { alt: "Кадр из фильма", sourceKind: "frame-grab", role: "illustration" }
@@ -5375,7 +5382,7 @@ test("An in-article illustration must be a generated drawing, captioned as not a
             ? { alt: "Карточка", sourceKind: "generated", role: "social" }
             : id === "illu-noalt"
               ? { alt: "   ", sourceKind: "generated", role: "illustration" }
-              : undefined,
+              : undefined),
   };
 
   // Placed into the real article rather than into a two-line stub, so the check
@@ -5422,7 +5429,7 @@ test("An in-article illustration must be a generated drawing, captioned as not a
   // Without the registry the validator refuses rather than skipping the picture.
   const withoutRegistry = validateFilmArticle(
     articleWith({ kind: "illustration", id: "illu-x", assetId: "illu-ok", caption }),
-    context,
+    { ...context, resolveIllustration: undefined },
   );
   assert.equal(withoutRegistry.some((error) => error.includes("requires the illustration registry")), true);
 
