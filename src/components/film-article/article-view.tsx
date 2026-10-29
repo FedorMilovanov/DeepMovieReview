@@ -56,10 +56,12 @@ function ArticleIllustration({
     <figure className="articleIllustration">
       <picture>
         {view.sources.map((source) => (
-          <source key={source.src} srcSet={source.src} type={source.type} />
+          <source key={source.type} srcSet={source.srcSet} sizes={view.sizes} type={source.type} />
         ))}
         <img
           src={view.src}
+          srcSet={view.srcSet}
+          sizes={view.sizes}
           alt={view.alt}
           width={view.width}
           height={view.height}

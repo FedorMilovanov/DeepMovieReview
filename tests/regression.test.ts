@@ -5439,7 +5439,14 @@ test("An in-article illustration must be a generated drawing, captioned as not a
     .filter((block) => block.kind === "illustration");
   for (const block of placed) {
     assert.ok(illustrationFacts(block.assetId), `${block.assetId} resolves`);
-    assert.ok(illustrationView(block.assetId), `${block.assetId} renders`);
+    const view = illustrationView(block.assetId);
+    assert.ok(view, `${block.assetId} renders`);
+    // A wide screen must actually reach the larger file: one source per format,
+    // each carrying every width. Two sources would keep only the first.
+    assert.equal(view.sources.length, 1, `${block.assetId}: one AVIF source`);
+    assert.ok(view.sources.every((source) => source.srcSet.includes("800w") && source.srcSet.includes("1200w")));
+    assert.ok(view.srcSet.includes("800w") && view.srcSet.includes("1200w"), `${block.assetId}: JPEG srcset`);
+    assert.ok(view.sizes.includes("vw"), `${block.assetId}: sizes are declared`);
   }
 });
 

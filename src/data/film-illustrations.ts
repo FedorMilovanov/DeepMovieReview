@@ -168,11 +168,17 @@ export function getArticleIllustration(assetId: string): VisualAssetManifest | u
 /** What the article renderer and the validator both need to know about a picture. */
 export type IllustrationView = {
   src: string;
+  /** Width descriptors, so a wide screen gets the 1200 file instead of the 800 one. */
+  srcSet: string;
+  sizes: string;
   width: number;
   height: number;
   alt: string;
-  sources: Array<{ src: string; type: string; width: number; height: number }>;
+  sources: Array<{ srcSet: string; type: string }>;
 };
+
+/** The article column tops out near 760px; below that the picture is full-bleed. */
+const SIZES = "(max-width: 820px) 100vw, 760px";
 
 const MIME: Record<string, string> = {
   avif: "image/avif",
@@ -194,22 +200,25 @@ export function illustrationView(assetId: string): IllustrationView | undefined 
   const display = asset.variants
     .filter((variant) => variant.purpose === "display")
     .sort((a, b) => a.width - b.width);
-  const fallback =
-    display.find((variant) => variant.format === "jpg" || variant.format === "png") ?? display[0];
+  const raster = display.filter((variant) => variant.format === "jpg" || variant.format === "png");
+  const fallback = raster[0] ?? display[0];
   if (!fallback) return undefined;
+  const srcSetOf = (variants: typeof display) =>
+    variants.map((variant) => `${variant.src} ${variant.width}w`).join(", ");
+  // One <source> per format, each carrying every width: two separate AVIF
+  // entries would make the browser take the first and ignore the large file.
+  const sources = ["avif", "webp"].map((format) => {
+    const variants = display.filter((variant) => variant.format === format);
+    return variants.length ? { srcSet: srcSetOf(variants), type: MIME[format] } : undefined;
+  });
   return {
     src: fallback.src,
+    srcSet: srcSetOf(raster.length ? raster : display),
+    sizes: SIZES,
     width: fallback.width,
     height: fallback.height,
     alt: asset.alt,
-    sources: display
-      .filter((variant) => variant.format === "avif" || variant.format === "webp")
-      .map((variant) => ({
-        src: variant.src,
-        type: MIME[variant.format],
-        width: variant.width,
-        height: variant.height,
-      })),
+    sources: sources.filter((source) => source !== undefined),
   };
 }
 
