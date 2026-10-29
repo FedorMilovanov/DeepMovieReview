@@ -414,3 +414,12 @@ test("text decoration paint is isolated at its ancestor without changing backgro
   assert.deepEqual([...ancestorValues], original);
   assert.deepEqual([...childValues], []);
 });
+
+
+test("Safari XPC diagnostic log requires exact system executable and actual TCP ownership", async () => {
+  const { safariHttpServicePids } = await import("../scripts/lib/apple-toolchain.mjs");
+  const executable = "/System/Volumes/Preboot/Cryptexes/App/System/Library/StagedFrameworks/Safari/WebDriver.framework/Versions/A/XPCServices/com.apple.WebDriver.HTTPService.xpc/Contents/MacOS/com.apple.WebDriver.HTTPService";
+  const processes = `8798 1 ${executable}\n8799 1 ${executable}\n8800 1 /tmp/com.apple.WebDriver.HTTPService\n8801 1 ${executable}.fake`;
+  assert.deepEqual(safariHttpServicePids("p8798\np8800\np8801\n", processes), [8798]);
+  assert.deepEqual(safariHttpServicePids("p8797\n", processes), []);
+});

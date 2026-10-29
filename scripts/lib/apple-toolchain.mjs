@@ -58,3 +58,15 @@ export function safariListenerPids(listeners, processes) {
     return row && Number(row[1]) === pid && /(?:^|\/)safaridriver$/.test(row[2].trim());
   }));
 }
+
+
+// Observed on Safari26: the random-port listener is a system XPC service.
+// Permit its diagnostic log only with BOTH lsof ownership and the exact Apple
+// executable inside the sealed system WebDriver bundle. Never use this list to
+// kill launchd's shared service or accept filenames/look-alike process names.
+export function safariHttpServicePids(listeners, processes) {
+  const pids = new Set([...listeners.matchAll(/^p(\d+)$/gm)].map(([, pid]) => Number(pid)));
+  const executable = /^\/System\/(?:Volumes\/Preboot\/Cryptexes\/App\/System\/)?Library\/StagedFrameworks\/Safari\/WebDriver\.framework\/Versions\/A\/XPCServices\/com\.apple\.WebDriver\.HTTPService\.xpc\/Contents\/MacOS\/com\.apple\.WebDriver\.HTTPService$/;
+  return [...processes.matchAll(/^\s*(\d+)\s+\d+\s+(.+)$/gm)]
+    .filter(([, pid, command]) => pids.has(Number(pid)) && executable.test(command.trim())).map(([, pid]) => Number(pid));
+}
