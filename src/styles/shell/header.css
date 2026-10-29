@@ -1,0 +1,103 @@
+.skipLink {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 1000;
+  transform: translateY(-180%);
+  padding: 0.7rem 1rem;
+  background: var(--ink-1);
+  color: var(--ink-inverse);
+}
+
+.skipLink:focus {
+  transform: none;
+}
+
+.appShell {
+  /* vh fallback for browsers without svh units (pre-2022 engines). */
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow: clip;
+}
+
+.siteHeader {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: min(calc(100% - 2 * var(--gutter)), var(--container-max));
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--stroke-subtle);
+  transition:
+    background-color var(--duration-standard) var(--ease-quiet),
+    border-color var(--duration-standard) var(--ease-quiet);
+}
+
+.siteHeader[data-scrolled] {
+  border-bottom-color: var(--stroke-default);
+  /* Fallback first: an engine without colour-mix drops the second declaration
+     and keeps an opaque bar, which is legible; without the fallback it would
+     drop the background entirely and the menu would sit on top of the text. */
+  background: var(--surface-canvas);
+  background: color-mix(in srgb, var(--surface-canvas) 86%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.brand {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brandMark {
+  border: 1px solid var(--stroke-strong);
+  padding: 0.35rem 0.4rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+
+/* Drawn rather than typed: the letters are a monogram, not a word, and a text
+   node here would either join the link's accessible name or contradict it. */
+.brandMark::before {
+  content: "DW";
+}
+
+.brandText {
+  font-size: 0.92rem;
+}
+
+.siteNav {
+  display: flex;
+  gap: clamp(0.9rem, 2vw, 2rem);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.menuButton {
+  display: none;
+  min-height: 44px;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--stroke-default);
+  background: transparent;
+  color: var(--ink-1);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.menuButton:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.siteMenu {
+  display: none;
+}
+
