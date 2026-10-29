@@ -42,6 +42,8 @@ const ROUTES = [
   "/",
   "/films",
   "/films/the-truman-show",
+  "/films/the-truman-show?spoilers=full",
+  "/films/the-fast-and-the-furious?spoilers=full",
   "/films/the-truman-show/article?spoilers=full",
   "/films/the-truman-show/making",
   "/methodology",
@@ -313,6 +315,14 @@ async function capture(binary, viewport, route) {
     features: [{ name: "prefers-reduced-motion", value: "no-preference" }],
   });
   await socket.send("Page.navigate", { url: BASE_URL + route });
+  // Full module pages contain a JS-driven ambient verdict loop. Their
+  // snapshots explicitly cover the reader's static/reduced-motion mode;
+  // the browser audit, not this fingerprint, verifies live motion behavior.
+  if (/^\/films\/[^/?]+\?spoilers=full$/.test(route)) {
+    await socket.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+    });
+  }
 
   for (let attempt = 0; attempt < 80; attempt += 1) {
     const state = await socket.send("Runtime.evaluate", {
@@ -325,13 +335,20 @@ async function capture(binary, viewport, route) {
   await sleep(400);
 
   // Wait for the token layer and document fonts before measuring anything.
+  let styled = false;
   for (let attempt = 0; attempt < 60; attempt += 1) {
     const ready = await socket.send("Runtime.evaluate", {
       expression: READY,
       returnByValue: true,
     });
-    if (ready.result?.value === true) break;
+    if (ready.result?.value === true) { styled = true; break; }
     await sleep(150);
+  }
+
+  if (!styled) {
+    socket.close();
+    await stopChrome(child, profile);
+    throw new Error(`${route}: CSS/fonts never became ready; refusing an unstyled fingerprint`);
   }
 
   // Some layout settles a beat after load (a client component measuring, an
@@ -355,6 +372,7 @@ async function capture(binary, viewport, route) {
   socket.close();
   await stopChrome(child, profile);
 
+  if (agreement < 2) throw new Error(`${route}: layout did not stabilize; refusing a racy fingerprint`);
   const digest = visualDigest(elements);
   return { route, width: viewport.width, digest, elements };
 }
