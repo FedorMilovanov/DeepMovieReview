@@ -119,7 +119,20 @@ try {
     await reader.perform(reader.keyboardCommands.exitFocusMode, { capture: false });
     await reader.press("Control+Home");
   }
-  await action("structural heading navigation", () => reader.nextHeading(navigationOptions), [/шоу трумана/i, /heading|заголовок/i]);
+  await action("structural heading navigation", async () => {
+    if (!mac) return reader.nextHeading(navigationOptions);
+    // Use VoiceOver's actual Headings rotor rather than treating a Safari web
+    // group announcement from VO-Command-H as proof of a heading.
+    await reader.perform(reader.keyboardCommands.openWebItemRotor, navigationOptions);
+    for (let category = 0; category < 12; category++) {
+      const spoken = await reader.lastSpokenPhrase();
+      if (/headings|заголовки/i.test(spoken)) break;
+      assert.ok(category < 11, "VoiceOver web rotor must expose Headings");
+      await reader.press("ArrowRight", navigationOptions);
+    }
+    await reader.press("Home", navigationOptions);
+    await reader.press("Enter", navigationOptions);
+  }, [/шоу трумана/i, /heading|заголовок/i]);
   await action("native table navigation", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/четыре окна/i, /table|таблиц/i]);
   if (mac) await reader.interact(navigationOptions);
   await action("table column header", () => reader.perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);

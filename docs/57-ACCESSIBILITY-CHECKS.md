@@ -129,3 +129,15 @@ launch MobileSafari, выбран был oldest iOS18.5. Следующий вы
 установленные available iOS runtimes от новых к старым и сохраняет Xcode/OS/arch,
 список runtimes, стадию и stdout launch. Это проверяемая смена окружения, не pass.
 Подтверждение runner label/architecture: `actions/runner-images/README.md`.
+
+`2024fb3` проверен по API: app-shell/Windows AT/security **SUCCESS**, macOS AT
+**FAIL**. Проверенные SHA256 receipts: VoiceOver123676175582 и iOS123678226802.
+Удаление banner detour не исправило VO-Command-H: он всё ещё объявляет web group,
+не heading. Следующая проверка использует настоящий VoiceOver Headings rotor,
+сохраняя native category/title utterances, без DOM-focus или injected marker.
+В iOS receipt обнаружен конкретный mismatch: iOS26.2 выбран при Xcode16.4/SDK18.
+Теперь выбирается новейший установленный stable Xcode через process-local
+DEVELOPER_DIR; xcrun, Simulator.app и spawned SafariDriver наследуют один toolchain.
+Runtime отсекается по поддерживаемому SDK major; system xcode-select не изменяется.
+Pure selection покрыт тестом (beta/default aliases и несовместимые major versions).
+Новый pass до выполнения CI не заявляется; публичный контур и данные не менялись.

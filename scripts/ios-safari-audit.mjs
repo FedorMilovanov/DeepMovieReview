@@ -3,8 +3,9 @@ import assert from "node:assert/strict";
 import { inspect } from "node:util";
 import { arch, release } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
+import { newestStableXcode, runtimeMatchesSdk } from "./lib/apple-toolchain.mjs";
 import { nativeSafari } from "./lib/native-safari.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari";
@@ -14,6 +15,13 @@ const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] 
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 let safari;
 try {
+  report.initialDeveloperDirectory = execFileSync("xcode-select", ["-p"], { encoding: "utf8", timeout: 30000 }).trim();
+  const xcode = newestStableXcode(readdirSync("/Applications"));
+  const developerDirectory = realpathSync(`/Applications/${xcode}/Contents/Developer`);
+  process.env.DEVELOPER_DIR = developerDirectory;
+  const simulatorApp = `${developerDirectory}/Applications/Simulator.app`;
+  const simulatorSdk = execFileSync("xcrun", ["--sdk", "iphonesimulator", "--show-sdk-version"], { encoding: "utf8", timeout: 30000 }).trim();
+  report.toolchain = { developerDirectory, simulatorApp, simulatorSdk };
   report.host = { platform: process.platform, release: release(), arch: arch(),
     xcode: execFileSync("xcodebuild", ["-version"], { encoding: "utf8", timeout: 30000 }).trim() };
   const devices = JSON.parse(execFileSync("xcrun", ["simctl", "list", "devices", "available", "-j"], { encoding: "utf8" }));
@@ -21,7 +29,7 @@ try {
   // The list is oldest-first on hosted images; prefer the newest installed iOS
   // runtime rather than silently pairing Safari26 with the first iOS18 device.
   const candidates = Object.entries(devices.devices)
-    .filter(([runtime]) => runtime.includes(".iOS-"))
+    .filter(([runtime]) => runtimeMatchesSdk(runtime, simulatorSdk))
     .sort(([a], [b]) => b.localeCompare(a, undefined, { numeric: true })).flatMap(([runtime, devices]) => devices.map(device => ({ ...device, runtime })));
   const device = candidates.find(device => device.name.startsWith("iPhone") && device.isAvailable);
   assert.ok(device, "No installed iPhone Simulator runtime");
@@ -34,7 +42,7 @@ try {
       if (device.state !== "Booted") execFileSync("xcrun", ["simctl", "boot", device.udid], { stdio: "inherit" });
       // Bring up the device frontend while SpringBoard is booting, not after
       // waiting for a headless cold boot that may never finish on hosted Intel.
-      execFileSync("open", ["-a", "Simulator", "--args", "-CurrentDeviceUDID", device.udid], { stdio: "inherit", timeout: 30000 });
+      execFileSync("open", ["-a", simulatorApp, "--args", "-CurrentDeviceUDID", device.udid], { stdio: "inherit", timeout: 30000 });
       report.bootLog = execFileSync("xcrun", ["simctl", "bootstatus", device.udid, "-b"], {
         encoding: "utf8", timeout: 480000, maxBuffer: 16 * 1024 * 1024,
       }).slice(-12000);
