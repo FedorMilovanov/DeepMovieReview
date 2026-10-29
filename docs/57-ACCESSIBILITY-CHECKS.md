@@ -230,3 +230,15 @@ and read only those PID logs; other processes' log contents remain excluded.
 Desktop publisher123714171048 failed with no chunks: no fresh native speech result
 can be claimed from that receipt. Its underlying native step also failed; exact
 assertion awaits job annotations/recovery, not guessed from transport status.
+
+Completed b3afaed macOS annotations confirm native step failure was a Safari
+DOMException TimeoutError; they do not prove whether VO-F3 passed. Its publisher
+failed before persisting any chunks, while app-shell/Windows/security passed.
+A subsequent authorized runner now recovers the latest retained completed-head
+VoiceOver artifact, checks its revision against the run, and re-exports it under
+`native-historical` with run/artifact/SHA provenance. No rerun/dispatch and no older
+result relabeled current. Missing expired history is explicitly reported, not passed.
+Publisher HTTP failures now retain response diagnostics plus the manifest/source
+failure details in a failed check; this does not bypass chunk/hash verification.
+Historical read-back requires both explicit SHAs:
+`node scripts/read-a11y-evidence.mjs CHECK_ID OUTPUT SOURCE_SHA CHECK_HEAD_SHA`.
