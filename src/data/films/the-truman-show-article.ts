@@ -162,6 +162,49 @@ export const theTrumanShowArticle: FilmArticle = {
           ],
         },
         {
+          kind: "storyboard",
+          id: "truman-article-machine-strip",
+          title: "Раскадровка: как устроен обычный день",
+          panels: [
+            {
+              id: "truman-article-panel-daycount",
+              evidenceId: "truman-ev-daycount",
+              label: "Техник на крыше вручную выставляет счётчик дня; таблички пустые.",
+              assetId: "illu-truman-panel-daycount",
+            },
+            {
+              id: "truman-article-panel-greeting",
+              evidenceId: "truman-ev-greeting",
+              label: "Соседи отвечают на приветствие одинаковым жестом и с одинаковым наклоном головы.",
+              assetId: "illu-truman-panel-greeting",
+            },
+            {
+              id: "truman-article-panel-routine",
+              evidenceId: "truman-ev-routine",
+              label: "Маршрут героя размечен на земле и возвращается к своей же точке старта.",
+              assetId: "illu-truman-panel-routine",
+            },
+            {
+              id: "truman-article-panel-light",
+              evidenceId: "truman-ev-light",
+              label: "Разбитый студийный прибор на тротуаре: его кабель уходит в небо.",
+              assetId: "illu-truman-panel-light",
+            },
+            {
+              id: "truman-article-panel-kaiser",
+              evidenceId: "truman-ev-kaiser",
+              label: "Билборд с нарисованной курицей: реклама, которую никто не читает.",
+              assetId: "illu-truman-panel-kaiser",
+            },
+            {
+              id: "truman-article-panel-quota",
+              evidenceId: "truman-ev-quota",
+              label: "Страховой агент с улыбкой, а за спиной — сетка угроз.",
+              assetId: "illu-truman-panel-quota",
+            },
+          ],
+        },
+        {
           kind: "paragraph",
           id: "truman-article-machine-4",
           text:

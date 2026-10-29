@@ -678,3 +678,82 @@
     gap: var(--space-2);
   }
 }
+
+/* Storyboard: a strip of drawn panels, each pinned to a moment in the master. */
+.articleStoryboard {
+  display: grid;
+  gap: var(--space-3);
+  margin-block: var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--stroke-subtle);
+  background: var(--surface-1);
+}
+
+.articleStoryboard > .microLabel {
+  color: var(--ink-3);
+}
+
+.articleStoryboardPanels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: panel;
+}
+
+.articleStoryboardPanel {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+}
+
+.articleStoryboardFrame {
+  position: relative;
+  border: 1px solid var(--stroke-default);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.articleStoryboardFrame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.articleStoryboardNumber {
+  position: absolute;
+  left: 0;
+  top: 0;
+  min-width: 1.6rem;
+  padding: 0.1rem 0.35rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ink-5);
+  background: var(--ink-1);
+}
+
+.articleStoryboardTime {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.articleStoryboardLabel {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ink-3);
+}
+
+@media (max-width: 720px) {
+  .articleStoryboardPanels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .articleStoryboard {
+    padding: var(--space-3);
+  }
+}

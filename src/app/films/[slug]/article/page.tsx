@@ -83,6 +83,13 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
         spoilerLevel={spoilerLevel}
         describeMeasurement={measurements.describe}
         formatTimecode={measurements.formatTimecode}
+        // Storyboard panels name their evidence; the number is formatted here,
+        // never stored in the article data.
+        timecodeForEvidence={(evidenceId) => {
+          const record = filmPackage.evidence?.find((item) => item.id === evidenceId);
+          const seconds = record?.timestampSeconds;
+          return typeof seconds === "number" ? measurements.formatTimecode(seconds) : undefined;
+        }}
         moduleHeadings={Object.fromEntries(
           filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.heading]),
         )}

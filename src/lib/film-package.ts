@@ -570,6 +570,28 @@ export type ArticleBlock =
       layout?: "wide" | "inset";
     }
   | {
+      /**
+       * A strip of drawn panels — the article's storyboard.
+       *
+       * It is not a set of stills: every panel is an original drawing from the
+       * illustration registry, and every panel is pinned to canonical evidence,
+       * so its timecode is read from the evidence record and can never be typed
+       * by hand. The order of the panels is the order of the story.
+       */
+      kind: "storyboard";
+      id: string;
+      title: string;
+      panels: Array<{
+        id: string;
+        /** Evidence that fixes this moment and its timecode. */
+        evidenceId: string;
+        /** One line of what the panel shows. */
+        label: string;
+        /** Id of a manifest in `src/data/film-illustrations.ts`. */
+        assetId: string;
+      }>;
+    }
+  | {
       kind: "subhead";
       id: string;
       text: string;

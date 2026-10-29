@@ -59,6 +59,8 @@ function blockProse(block: ArticleBlock): string {
       return block.text;
     case "timeline":
       return block.items.map((item) => item.label).join(" ");
+    case "storyboard":
+      return [block.title, ...block.panels.map((panel) => panel.label)].join(" ");
     case "measurement-table":
       return block.caption;
     case "corrections":

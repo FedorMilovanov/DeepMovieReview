@@ -5451,17 +5451,18 @@ test("An in-article illustration must be a generated drawing, captioned as not a
 });
 
 test("Every registered illustration is placed, and a vignette stays a vignette", () => {
-  const placed = theTrumanShowArticle.sections
-    .flatMap((section) => section.blocks)
-    .filter((block) => block.kind === "illustration");
+  const blocks = theTrumanShowArticle.sections.flatMap((section) => section.blocks);
+  const placed = blocks.filter((block) => block.kind === "illustration");
+  // A storyboard draws the same registry, so its panels count as placed too.
+  const placedIds = new Set([
+    ...placed.map((block) => (block.kind === "illustration" ? block.assetId : "")),
+    ...blocks.flatMap((block) => (block.kind === "storyboard" ? block.panels.map((panel) => panel.assetId) : [])),
+  ]);
 
   // No orphan artwork: a picture registered here but never placed would be a
   // file the build ships and no reader sees, and a silent place to hide a draft.
   for (const asset of articleIllustrations) {
-    assert.ok(
-      placed.some((block) => block.kind === "illustration" && block.assetId === asset.id),
-      `${asset.id} is placed in the article`,
-    );
+    assert.ok(placedIds.has(asset.id), `${asset.id} is placed in the article`);
     assert.equal(asset.provenance.sourceKind, "generated");
     // Alt text is prose about the drawing, not a filename with a capital letter.
     assert.ok(asset.alt.trim().length >= 80, `${asset.id} alt text describes the picture`);
@@ -5472,6 +5473,68 @@ test("Every registered illustration is placed, and a vignette stays a vignette",
   for (const block of insets) {
     assert.ok(block.caption.includes("не кадр"), `${block.id} says it is not a frame`);
   }
+});
+
+test("A storyboard panel is a drawing pinned to evidence, not a still", () => {
+  const storyboard = theTrumanShowArticle.sections
+    .flatMap((section) => section.blocks)
+    .find((block) => block.kind === "storyboard");
+  assert.ok(storyboard && storyboard.kind === "storyboard");
+  assert.equal(storyboard.panels.length, 6);
+
+  // Every panel names a canonical moment; the timecode is never in the data.
+  for (const panel of storyboard.panels) {
+    assert.ok(
+      theTrumanShowCanonicalPackage.evidence?.some((item) => item.id === panel.evidenceId),
+      `${panel.id} has canonical evidence`,
+    );
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(panel, "timestampSeconds"),
+      false,
+      `${panel.id} must not carry its own timecode`,
+    );
+    const asset = illustrationFacts(panel.assetId);
+    assert.ok(asset, `${panel.assetId} resolves`);
+    assert.equal(asset.sourceKind, "generated");
+    assert.equal(asset.role, "illustration");
+  }
+
+  // A panel may not be a picture of the same moment twice, and may not repeat a
+  // drawing: the strip is a sequence, not a collage.
+  assert.equal(new Set(storyboard.panels.map((panel) => panel.evidenceId)).size, 6);
+  assert.equal(new Set(storyboard.panels.map((panel) => panel.assetId)).size, 6);
+
+  const context = trumanArticleContext();
+  const strip = validateFilmArticle(theTrumanShowArticle, context);
+  assert.deepEqual(strip, []);
+
+  // The validator, not the editor, keeps stills out of a panel.
+  const withStill = {
+    ...theTrumanShowArticle,
+    sections: theTrumanShowArticle.sections.map((section) =>
+      section.id !== "truman-article-machine"
+        ? section
+        : {
+            ...section,
+            blocks: section.blocks.map((block) =>
+              block.kind === "storyboard"
+                ? {
+                    ...block,
+                    panels: block.panels.map((panel, index) =>
+                      index === 0 ? { ...panel, assetId: "illu-still" } : panel,
+                    ),
+                  }
+                : block,
+            ),
+          },
+    ),
+  };
+  const errors = validateFilmArticle(withStill, {
+    ...context,
+    resolveIllustration: (id: string) =>
+      id === "illu-still" ? { alt: "Кадр", sourceKind: "frame-grab", role: "illustration" } : illustrationFacts(id),
+  });
+  assert.equal(errors.some((error) => error.includes("the site does not publish stills")), true);
 });
 
 test("The moral account names the grey zones and the complicity of watching", () => {
