@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "incremental": false,
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "target": "ES2022",
+    "outDir": ".audit-build",
+    "types": [
+      "node"
+    ],
+    "rootDir": "."
+  },
+  "include": [
+    "src/data/film-registry.ts",
+    "src/data/film-illustrations.ts",
+    "src/data/films/the-truman-show-production.ts",
+    "src/data/films/the-truman-show-production-sources.ts",
+    "src/lib/**/*.ts",
+    "src/data/**/*.ts"
+  ]
+}

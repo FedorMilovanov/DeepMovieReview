@@ -33,6 +33,9 @@ pnpm-debug.log*
 # regression test build
 /.test-build/
 
+# film audit build (scripts/film001-audit.mjs)
+/.audit-build/
+
 # Local browser-audit runtime reports (scripts/browser-audit.mjs output)
 browser-audit/
 
