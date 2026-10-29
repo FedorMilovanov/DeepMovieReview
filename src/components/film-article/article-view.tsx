@@ -53,7 +53,7 @@ function ArticleIllustration({
   const view = illustrationView(block.assetId);
   if (!view) return null;
   return (
-    <figure className="articleIllustration">
+    <figure className="articleIllustration" data-layout={block.layout ?? "wide"}>
       <picture>
         {view.sources.map((source) => (
           <source key={source.type} srcSet={source.srcSet} sizes={view.sizes} type={source.type} />

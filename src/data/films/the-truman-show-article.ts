@@ -680,6 +680,14 @@ export const theTrumanShowArticle: FilmArticle = {
       moduleIds: ["truman-mod-moral"],
       blocks: [
         {
+          kind: "illustration",
+          id: "truman-article-illu-tag",
+          assetId: "illu-truman-caric-tag",
+          layout: "inset",
+          caption:
+            "Карикатура: бирку поправляет не он. Человека оценивают по тому, что ему дали — дом, уют, безопасность, — а он стоит ровно и не возражает, потому что не знает, что попал в каталог. Рисунок, не кадр из фильма.",
+        },
+        {
           kind: "paragraph",
           id: "truman-article-morality-1",
           text:
@@ -714,6 +722,14 @@ export const theTrumanShowArticle: FilmArticle = {
           text:
             "И ещё одна вещь, которую в этом фильме произносят без всякой иронии: он родился в прямом эфире. Человек здесь не субъект, у которого есть биография, а актив, у которого есть дата запуска.",
           support: { evidenceIds: ["truman-ev-born-live"] },
+        },
+        {
+          kind: "illustration",
+          id: "truman-article-illu-born",
+          assetId: "illu-truman-caric-born",
+          layout: "inset",
+          caption:
+            "Карикатура: кювез, устроенный как телевизор, и камера, стоящая ближе родни. Рисунок, не кадр из фильма.",
         },
         {
           kind: "paragraph",
@@ -758,6 +774,14 @@ export const theTrumanShowArticle: FilmArticle = {
         },
         {
           kind: "illustration",
+          id: "truman-article-illu-friend",
+          assetId: "illu-truman-caric-friend",
+          layout: "inset",
+          caption:
+            "Карикатура: рука на плече и карточка за спиной — в одном человеке, и обе искренние. Рисунок, не кадр из фильма.",
+        },
+        {
+          kind: "illustration",
           id: "truman-article-illu-shadows",
           assetId: "illu-truman-shadows",
           caption:
@@ -778,6 +802,14 @@ export const theTrumanShowArticle: FilmArticle = {
           support: { evidenceIds: ["truman-ev-camera-count"] },
         },
         {
+          kind: "illustration",
+          id: "truman-article-illu-shift",
+          assetId: "illu-truman-caric-shift",
+          layout: "inset",
+          caption:
+            "Карикатура: смена. Человек ест бутерброд и двигает ползунок молнии — не из злобы, а потому что это его работа. Рисунок, не кадр из фильма.",
+        },
+        {
           kind: "paragraph",
           id: "truman-article-morality-character",
           text:
@@ -791,6 +823,14 @@ export const theTrumanShowArticle: FilmArticle = {
             "Но самый сильный обвинительный пункт фильма адресован не студии. Миллионы людей смотрят и — впервые за всю историю — чувствуют: плачут, болеют за героя, спорят с экраном. И ничего не делают. Чувство здесь не ступень к действию, а его замена: аудитория переживает ровно столько, чтобы ей не нужно было вмешиваться. Апостол описывает этот механизм без всякой социологии: если брат или сестра наги и не имеют дневного пропитания, а кто-то скажет им «идите с миром», но не даст нужного — что пользы? (Иаков 2:15–16). Вся конструкция шоу держится на этой подмене: сочувствие как способ не помогать.",
           scriptureRefs: ["Иаков 2:15–16"],
           support: { evidenceIds: ["truman-ev-interviews", "truman-ev-routine"] },
+        },
+        {
+          kind: "illustration",
+          id: "truman-article-illu-row",
+          assetId: "illu-truman-caric-row",
+          layout: "inset",
+          caption:
+            "Карикатура: на экране рука над водой, в зале попкорн, и никто не встаёт. Рисунок, не кадр из фильма.",
         },
         {
           kind: "illustration",

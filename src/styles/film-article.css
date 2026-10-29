@@ -180,6 +180,25 @@
   max-width: 70ch;
 }
 
+/* A vignette, not a spread: the text keeps the column, the picture steps aside. */
+.articleIllustration[data-layout="inset"] {
+  justify-self: end;
+  width: min(100%, 430px);
+  margin-block: var(--space-3);
+}
+
+.articleIllustration[data-layout="inset"] figcaption {
+  font-size: 0.94em;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .articleIllustration[data-layout="inset"] {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
 .articleAside {
   margin: var(--space-6) 0;
   padding: var(--space-4) var(--space-5);

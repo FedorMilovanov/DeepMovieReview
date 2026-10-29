@@ -21,7 +21,7 @@ import {
 } from "../src/lib/production-dossier";
 import { productionDossiers, getProductionDossier } from "../src/data/films/production-dossiers";
 import { theTrumanShowProductionDossier } from "../src/data/films/the-truman-show-production";
-import { illustrationFacts, illustrationView } from "../src/data/film-illustrations";
+import { articleIllustrations, illustrationFacts, illustrationView } from "../src/data/film-illustrations";
 import {
   arcCredibilityLabels,
   characterPresentationLabels,
@@ -5447,6 +5447,30 @@ test("An in-article illustration must be a generated drawing, captioned as not a
     assert.ok(view.sources.every((source) => source.srcSet.includes("800w") && source.srcSet.includes("1200w")));
     assert.ok(view.srcSet.includes("800w") && view.srcSet.includes("1200w"), `${block.assetId}: JPEG srcset`);
     assert.ok(view.sizes.includes("vw"), `${block.assetId}: sizes are declared`);
+  }
+});
+
+test("Every registered illustration is placed, and a vignette stays a vignette", () => {
+  const placed = theTrumanShowArticle.sections
+    .flatMap((section) => section.blocks)
+    .filter((block) => block.kind === "illustration");
+
+  // No orphan artwork: a picture registered here but never placed would be a
+  // file the build ships and no reader sees, and a silent place to hide a draft.
+  for (const asset of articleIllustrations) {
+    assert.ok(
+      placed.some((block) => block.kind === "illustration" && block.assetId === asset.id),
+      `${asset.id} is placed in the article`,
+    );
+    assert.equal(asset.provenance.sourceKind, "generated");
+    // Alt text is prose about the drawing, not a filename with a capital letter.
+    assert.ok(asset.alt.trim().length >= 80, `${asset.id} alt text describes the picture`);
+  }
+
+  const insets = placed.filter((block) => block.kind === "illustration" && block.layout === "inset");
+  assert.ok(insets.length >= 5, `caricatures sit inside the text: ${insets.length}`);
+  for (const block of insets) {
+    assert.ok(block.caption.includes("не кадр"), `${block.id} says it is not a frame`);
   }
 });
 

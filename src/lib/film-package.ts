@@ -561,6 +561,13 @@ export type ArticleBlock =
       /** Id of a manifest in `src/data/film-illustrations.ts`. */
       assetId: string;
       caption: string;
+      /**
+       * How much of the column the picture takes. `wide` is the default and
+       * belongs to the two large drawings; `inset` is a small vignette set to
+       * the right of the text, for the caricatures that make one point and then
+       * get out of the way.
+       */
+      layout?: "wide" | "inset";
     }
   | {
       kind: "subhead";
