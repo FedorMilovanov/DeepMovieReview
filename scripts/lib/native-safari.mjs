@@ -4,7 +4,13 @@ import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 export async function nativeSafari(capabilities = {}) {
-  const driver = spawn("/usr/bin/safaridriver", ["-p", "4444"], { stdio: "inherit" });
+  const driver = spawn("/usr/bin/safaridriver", ["-p", "4444"], { stdio: ["ignore", "pipe", "pipe"] });
+  let diagnostics = "", lastError;
+  for (const stream of [driver.stdout, driver.stderr]) stream.on("data", chunk => {
+    diagnostics = `${diagnostics}${chunk}`.slice(-8000);
+    process.stderr.write(chunk);
+  });
+  driver.on("error", error => { lastError = error; });
   let session;
   async function request(path, body, method = body === undefined ? "GET" : "POST") {
     const response = await fetch(`http://127.0.0.1:4444${path}`, {
@@ -19,9 +25,13 @@ export async function nativeSafari(capabilities = {}) {
   try {
     let ready = false;
     for (let i = 0; i < 60; i++) {
-      try { await request("/status"); ready = true; break; } catch { await delay(250); }
+      try { await request("/status"); ready = true; break; } catch (error) {
+        lastError = error;
+        if (driver.exitCode !== null || driver.signalCode !== null) break;
+        await delay(250);
+      }
     }
-    assert.ok(ready, "SafariDriver did not start");
+    assert.ok(ready, `SafariDriver did not start (exit=${driver.exitCode}, signal=${driver.signalCode}): ${lastError?.message}; ${diagnostics}`);
     const result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari", ...capabilities } } });
     session = result.sessionId;
     const path = `/session/${session}`;

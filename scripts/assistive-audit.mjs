@@ -38,7 +38,9 @@ const deadline = setTimeout(() => {
   server.kill();
   process.exit(1);
 }, 360000);
-const speechOptions = { capture: "initial", timeout: 20000, retries: 0 };
+// Guidepup counts total attempts here: 0 never invokes the macOS delegate.
+// One attempt avoids replaying mutating navigation while actually issuing it.
+const speechOptions = { capture: "initial", timeout: 20000, retries: 1 };
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 const base = "http://127.0.0.1:3213";
 const execute = async expression => mac ? safari.execute(`return (${expression})`) : page.evaluate(expression);
@@ -55,7 +57,9 @@ async function action(label, run, expected) {
   evidence.actions.push({ label, speech });
   checkpoint(`${label}: recorded`);
   console.log(label, JSON.stringify(speech));
-  if (expected) assert.match(speech.join(" "), expected, `${label}: actual spoken output`);
+  if (expected) for (const pattern of Array.isArray(expected) ? expected : [expected]) {
+    assert.match(speech.join(" "), pattern, `${label}: actual spoken output`);
+  }
 }
 async function screenshot(label) {
   const bytes = mac ? Buffer.from(await safari.screenshot(), "base64") : await page.screenshot();
@@ -109,10 +113,16 @@ try {
     await reader.press("Control+Home");
   }
   await action("structural heading navigation", () => reader.nextHeading(speechOptions), /шоу трумана/i);
-  await action("native table navigation", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, speechOptions), /table|таблиц/i);
+  await action("native table navigation", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, speechOptions), [/четыре окна/i, /table|таблиц/i]);
   if (mac) await reader.interact(speechOptions);
-  await action("table column movement", () => reader.perform(reader.keyboardCommands.moveToNextColumn, speechOptions), /\S/);
+  await action("table column header", () => reader.perform(reader.keyboardCommands.moveToNextColumn, speechOptions), /переходы/i);
+  await action("table row header and value", () => reader.perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, speechOptions), /библиотека[\s\S]*0 переходов/i);
   await screenshot("table-reading");
+  if (mac) await reader.stopInteracting();
+  await action("corrections table name", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, speechOptions), /пять утверждений/i);
+  if (mac) await reader.interact(speechOptions);
+  await action("corrections column header", () => reader.perform(reader.keyboardCommands.moveToNextColumn, speechOptions), /что в кадре/i);
+  await screenshot("corrections-table-reading");
   if (mac) await reader.stopInteracting();
 
   // Browser UI zoom, not CSS zoom, deviceScaleFactor or a narrower emulated viewport.
