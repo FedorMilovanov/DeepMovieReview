@@ -24,11 +24,15 @@ try {
     beforeSession: async () => {
       report.phase = "booting iPhone Simulator after host driver readiness";
       if (device.state !== "Booted") execFileSync("xcrun", ["simctl", "boot", device.udid], { stdio: "inherit" });
-      execFileSync("xcrun", ["simctl", "bootstatus", device.udid, "-b"], { stdio: "inherit", timeout: 240000 });
-      report.device.state = "Booted";
-      // SafariDriver reaches the device through Simulator.app. Booting the
-      // runtime alone leaves the remote Safari/RWI application undiscoverable.
+      // Bring up the device frontend while SpringBoard is booting, not after
+      // waiting for a headless cold boot that may never finish on hosted Intel.
       execFileSync("open", ["-a", "Simulator", "--args", "-CurrentDeviceUDID", device.udid], { stdio: "inherit", timeout: 30000 });
+      report.bootLog = execFileSync("xcrun", ["simctl", "bootstatus", device.udid, "-b"], {
+        encoding: "utf8", timeout: 480000, maxBuffer: 16 * 1024 * 1024,
+      }).slice(-12000);
+      console.log(report.bootLog);
+      report.device.state = "Booted";
+      // Prime MobileSafari once, then let WebDriver create its automation tab.
       execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], { stdio: "inherit", timeout: 60000 });
       execFileSync("xcrun", ["simctl", "terminate", device.udid, "com.apple.mobilesafari"], { stdio: "inherit", timeout: 30000 });
       report.phase = "creating native iOS Safari session";
