@@ -78,7 +78,6 @@ function blockIds(section: ArticleSection): string[] {
   for (const block of section.blocks) {
     ids.push(block.id);
     if (block.kind === "timeline") ids.push(...block.items.map((item) => item.id));
-    if (block.kind === "storyboard") ids.push(...block.panels.map((panel) => panel.id));
     if (block.kind === "measurement-table") ids.push(...block.rows.map((row) => row.id));
     if (block.kind === "corrections") ids.push(...block.rows.map((row) => row.id));
   }
@@ -97,8 +96,6 @@ function blockText(block: ArticleBlock): string {
       return block.text;
     case "timeline":
       return block.items.map((item) => item.label).join(" ");
-    case "storyboard":
-      return [block.title, ...block.panels.map((panel) => panel.label)].join(" ");
     case "measurement-table":
       return block.caption;
     case "corrections":
@@ -341,60 +338,6 @@ function checkBlock(
       }
       if (duplicates(block.items.map((item) => item.evidenceId)).length > 0) {
         errors.push(`${path}: duplicate timeline evidence reference.`);
-      }
-      return;
-    }
-    case "storyboard": {
-      if (isBlank(block.title)) errors.push(`${path}: a storyboard needs a title.`);
-      if (block.panels.length < 4 || block.panels.length > 8) {
-        errors.push(`${path}: a storyboard takes 4 to 8 panels, got ${block.panels.length}.`);
-      }
-      if (!context.resolveIllustration) {
-        errors.push(`${path}: a storyboard requires the illustration registry.`);
-        return;
-      }
-      for (const panel of block.panels) {
-        const panelPath = `${path}/${panel.id}`;
-        if (isBlank(panel.label)) errors.push(`${panelPath}: label is required.`);
-        const evidence = context.evidenceById.get(panel.evidenceId);
-        if (!evidence) {
-          errors.push(`${panelPath}: unknown evidence id "${panel.evidenceId}".`);
-        } else {
-          // The timecode is printed from the evidence record, so a panel cannot
-          // drift away from the moment it claims to show.
-          if (typeof evidence.timestampSeconds !== "number") {
-            errors.push(`${panelPath}: evidence "${panel.evidenceId}" has no timestamp.`);
-          }
-          const scene = evidence.sceneId ? context.sceneById.get(evidence.sceneId) : undefined;
-          if (!scene) {
-            errors.push(`${panelPath}: evidence "${panel.evidenceId}" has no verified scene.`);
-          } else if (scene.verificationState !== "VERIFIED") {
-            errors.push(`${panelPath}: evidence "${panel.evidenceId}" belongs to unverified scene "${scene.id}".`);
-          }
-          if (context.realFilm && !canRevealSpoiler(sectionLevel, evidence.spoilerLevel)) {
-            errors.push(
-              `${panelPath}: evidence "${panel.evidenceId}" spoiler level "${evidence.spoilerLevel}" exceeds section level "${sectionLevel}".`,
-            );
-          }
-        }
-        const asset = context.resolveIllustration(panel.assetId);
-        if (!asset) {
-          errors.push(`${panelPath}: unknown illustration "${panel.assetId}".`);
-          continue;
-        }
-        if (asset.role !== "illustration") {
-          errors.push(`${panelPath}: "${panel.assetId}" has role "${asset.role}"; a panel must be an illustration.`);
-        }
-        if (asset.sourceKind !== "generated") {
-          errors.push(`${panelPath}: "${panel.assetId}" is not an original drawing; the site does not publish stills.`);
-        }
-        if (isBlank(asset.alt)) errors.push(`${panelPath}: "${panel.assetId}" has no alternative text.`);
-      }
-      if (duplicates(block.panels.map((panel) => panel.assetId)).length > 0) {
-        errors.push(`${path}: a storyboard cannot repeat the same drawing.`);
-      }
-      if (duplicates(block.panels.map((panel) => panel.evidenceId)).length > 0) {
-        errors.push(`${path}: duplicate storyboard evidence reference.`);
       }
       return;
     }

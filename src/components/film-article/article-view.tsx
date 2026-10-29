@@ -16,13 +16,6 @@ type ArticleViewProps = {
   /** Master timecode formatter, supplied by the edition that owns the article. */
   formatTimecode: (seconds: number) => string;
   /**
-   * Timecode of a canonical evidence record, already formatted.
-   *
-   * A storyboard panel names its evidence and nothing else: the number under the
-   * drawing is read from the record, so it cannot disagree with the moment.
-   */
-  timecodeForEvidence: (evidenceId: string) => string | undefined;
-  /**
    * Module headings keyed by module id, so a section's analytical links read as
    * titles rather than as ids. Supplied by the page from the package itself; the
    * article data never repeats a module's own wording.
@@ -81,50 +74,6 @@ function ArticleIllustration({
   );
 }
 
-function Storyboard({
-  block,
-  timecodeForEvidence,
-}: {
-  block: Extract<ArticleBlock, { kind: "storyboard" }>;
-  timecodeForEvidence: ArticleViewProps["timecodeForEvidence"];
-}) {
-  return (
-    <section className="articleStoryboard" aria-label={block.title}>
-      <p className="microLabel">{block.title}</p>
-      <ol className="articleStoryboardPanels">
-        {block.panels.map((panel, index) => {
-          const view = illustrationView(panel.assetId);
-          if (!view) return null;
-          return (
-            <li key={panel.id} className="articleStoryboardPanel">
-              <div className="articleStoryboardFrame">
-                <picture>
-                  {view.sources.map((source) => (
-                    <source key={source.type} srcSet={source.srcSet} sizes="(max-width: 720px) 50vw, 240px" type={source.type} />
-                  ))}
-                  <img
-                    src={view.src}
-                    srcSet={view.srcSet}
-                    sizes="(max-width: 720px) 50vw, 240px"
-                    alt={view.alt}
-                    width={view.width}
-                    height={view.height}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
-                <span className="articleStoryboardNumber">{index + 1}</span>
-              </div>
-              <p className="articleStoryboardTime">{timecodeForEvidence(panel.evidenceId) ?? "—"}</p>
-              <p className="articleStoryboardLabel">{panel.label}</p>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
-  );
-}
-
 function MeasurementFigure({ view, text }: { view: ArticleMeasurementView; text: string }) {
   return (
     <figure className="articleMeasurement" aria-label={view.title}>
@@ -145,12 +94,10 @@ function ArticleBlockView({
   block,
   describeMeasurement,
   formatTimecode,
-  timecodeForEvidence,
 }: {
   block: ArticleBlock;
   describeMeasurement: ArticleViewProps["describeMeasurement"];
   formatTimecode: (seconds: number) => string;
-  timecodeForEvidence: ArticleViewProps["timecodeForEvidence"];
 }) {
   switch (block.kind) {
     case "paragraph":
@@ -173,8 +120,6 @@ function ArticleBlockView({
           {block.attribution ? <cite>{block.attribution}</cite> : null}
         </blockquote>
       );
-    case "storyboard":
-      return <Storyboard block={block} timecodeForEvidence={timecodeForEvidence} />;
     case "timeline":
       return (
         <ol className="articleTimeline" aria-label="Опорные точки разбора">
@@ -249,7 +194,6 @@ export function ArticleView({
   spoilerLevel,
   describeMeasurement,
   formatTimecode,
-  timecodeForEvidence,
   moduleHeadings,
 }: ArticleViewProps) {
   const { visibleSections, hiddenSections, nextHiddenLevel } = projection;
@@ -336,7 +280,6 @@ export function ArticleView({
                 block={block}
                 describeMeasurement={describeMeasurement}
                 formatTimecode={formatTimecode}
-                timecodeForEvidence={timecodeForEvidence}
               />
             ))}
           </div>
