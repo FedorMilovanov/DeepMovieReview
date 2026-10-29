@@ -4,6 +4,24 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { rectangleContrast } from "./contrast-pixels.mjs";
 
+// Mask only glyph paint. Changing CSS color would also change currentColor
+// backgrounds/borders/icons and could manufacture an apparently better bound.
+export function maskTextPaint(s) {
+  const elements = new Set(s.records.filter(record => s.visibleIds.has(record.id)).map(record => record.element));
+  s.saved = [...elements].map(element => ({ element, properties: ["-webkit-text-fill-color", "text-shadow", "fill"].map(name => ({ name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
+  for (const { element } of s.saved) {
+    element.style.setProperty("-webkit-text-fill-color", "transparent");
+    element.style.setProperty("text-shadow", "none");
+    if (element.namespaceURI === "http://www.w3.org/2000/svg") element.style.setProperty("fill", "transparent");
+  }
+}
+export function restoreTextPaint(s) {
+  for (const { element, properties } of s.saved) for (const { name, value, priority } of properties) {
+    if (value) element.style.setProperty(name, value, priority); else element.style.removeProperty(name);
+  }
+  s.saved = [];
+}
+
 export async function renderedContrast(page, nodes, directory, id) {
   mkdirSync(directory, { recursive: true });
   const state = await page.evaluateHandle(targets => {
@@ -81,16 +99,7 @@ export async function renderedContrast(page, nodes, directory, id) {
       const original = await page.screenshot();
       let background;
       try {
-        await page.evaluate(s => {
-          const elements = new Set(s.records.filter(record => s.visibleIds.has(record.id)).map(record => record.element));
-          s.saved = [...elements].map(element => ({ element, properties: ["color", "-webkit-text-fill-color", "text-shadow", "fill"].map(name => ({ name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
-          for (const { element } of s.saved) {
-            element.style.setProperty("color", "transparent");
-            element.style.setProperty("-webkit-text-fill-color", "transparent");
-            element.style.setProperty("text-shadow", "none");
-            if (element.namespaceURI === "http://www.w3.org/2000/svg") element.style.setProperty("fill", "transparent");
-          }
-        }, state);
+        await page.evaluate(maskTextPaint, state);
         const invalidMask = await page.evaluate(s => {
           const moved = s.currentBoxes.filter(box => {
             const current = s.records[box.id].range.getClientRects()[box.line];
@@ -106,12 +115,7 @@ export async function renderedContrast(page, nodes, directory, id) {
         for (const box of snapshot.boxes) if (invalidMask.includes(box.id)) box.issue = "Text mask did not remove foreground";
         background = await page.screenshot();
       } finally {
-        await page.evaluate(s => {
-          for (const { element, properties } of s.saved) for (const { name, value, priority } of properties) {
-            if (value) element.style.setProperty(name, value, priority); else element.style.removeProperty(name);
-          }
-          s.saved = [];
-        }, state);
+        await page.evaluate(restoreTextPaint, state);
       }
       const image = PNG.sync.read(background);
       if (image.width !== snapshot.width || image.height !== snapshot.height) throw new Error("Pixel/viewport scale mismatch; do not emulate DPR as contrast evidence");
