@@ -476,9 +476,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Configure actual OS screen reader on disposable hosted runner
-        run: npx --no-install guidepup setup --ci
-      - name: Install version-matched real screen-reader assets
-        run: npx --no-install guidepup install
+        run: node scripts/assistive-setup.mjs
       - name: Enable installed Safari WebDriver
         if: runner.os == 'macOS'
         run: sudo /usr/bin/safaridriver --enable
