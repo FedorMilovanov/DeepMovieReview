@@ -1236,6 +1236,29 @@ try {
     assertCheck(`${label}: nothing is clipped inside its own box`, clipped.length === 0, clipped);
   }
 
+  // No scripting. A statically prerendered page has to arrive complete: the
+  // document, not the client, is what a reader on a locked-down browser gets.
+  await send("Emulation.setScriptExecutionDisabled", { value: true });
+  await send("Page.navigate", { url: baseUrl + "/" });
+  await waitForDocumentReady();
+  await sleep(600);
+  const noScript = JSON.parse(await evaluate(
+    "JSON.stringify((() => {" +
+      "const main = document.querySelector('main');" +
+      "const h1 = document.querySelector('h1');" +
+      "const sections = main ? [...main.querySelectorAll('section')] : [];" +
+      "return {" +
+      "  mainHeight: main ? Math.round(main.getBoundingClientRect().height) : 0," +
+      "  h1Opacity: h1 ? Number(getComputedStyle(h1).opacity) : 0," +
+      "  skeletons: document.querySelectorAll('.routeLoading').length," +
+      "  hiddenSections: sections.filter((el) => Number(getComputedStyle(el).opacity) < 0.99).length" +
+      "};" +
+    "})())"
+  ));
+  await send("Emulation.setScriptExecutionDisabled", { value: false });
+  assertCheck("no javascript: the page is served complete", noScript.mainHeight > 2000 && noScript.h1Opacity >= 0.99, noScript);
+  assertCheck("no javascript: no loading placeholder is left behind", noScript.skeletons === 0, noScript);
+
   // A jump link must not park its target under the sticky header.
   await navigate("/", 1440, 1000);
   await send("Page.navigate", { url: baseUrl + "/#lenses" });

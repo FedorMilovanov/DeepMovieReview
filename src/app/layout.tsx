@@ -97,6 +97,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="ru">
       <body>
+        {/* Without scripting the streamed route never swaps its fallback, and
+            the entrance choreography never runs — both leave the reader on a
+            skeleton or on invisible text. `noscript` is the only place a page
+            can say "if scripting is off, undo the effects that need it". */}
+        <noscript>
+          <style>{`
+            .heroEnter .eyebrow,
+            .heroEnter .heroCopy > *,
+            .heroEnter .heroGrid .livingFrame,
+            .heroEnter .heroScrollCue { animation: none !important; }
+            .tiltSurface[data-tilt-surface] { transform: none !important; }
+          `}</style>
+        </noscript>
         <a className="skipLink" href="#main">Перейти к содержимому</a>
         <ExperienceQualityProvider>
           <div className="appShell">

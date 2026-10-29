@@ -5622,3 +5622,27 @@ test("the page survives paper, anchors and the sticky header", () => {
     assert.deepEqual(bad, [], `${file}: these grids need minmax(0, 1fr), not 1fr`);
   }
 });
+
+test("the homepage is complete without scripting", () => {
+  // A root `loading.tsx` makes every route stream, including the statically
+  // prerendered homepage: its HTML then carries a skeleton instead of content,
+  // so a reader without JavaScript gets "Готовим следующий кадр…" and nothing
+  // else. Loading states belong to the segments that really stream.
+  assert.equal(
+    existsSync("src/app/loading.tsx"),
+    false,
+    "a root loading.tsx turns the static homepage into a streamed skeleton",
+  );
+  assert.ok(existsSync("src/app/films/loading.tsx"), "the film index still declares its loading state");
+  assert.ok(existsSync("src/app/films/[slug]/loading.tsx"), "a film page still declares its loading state");
+
+  // And the entrance choreography starts from opacity 0, so without scripting
+  // the hero has to be released explicitly.
+  const layout = readFileSync("src/app/layout.tsx", "utf8");
+  assert.match(layout, /<noscript>/, "the layout declares a no-script fallback");
+  assert.match(
+    layout,
+    /\.heroEnter \.heroCopy > \*,[\s\S]{0,160}animation: none !important/,
+    "the no-script fallback releases the hero entrance",
+  );
+});
