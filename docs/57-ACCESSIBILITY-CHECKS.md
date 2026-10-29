@@ -200,3 +200,21 @@ session опять отказала на remote Safari/RWI discovery. Bounded ps
 с500 guest paths, сохраняющий host GUI. Версия реального GUI пока не подтверждена.
 При отсутствии PID diagnostic log теперь экспортируется только bounded список имён
 файлов, не содержимое чужого PID: нужно проверить фактический filename format.
+
+### Reproducible Checks API read-back (no artifact-storage access)
+
+```sh
+node scripts/read-a11y-evidence.mjs CHECK_ID at-report/receipt.json EXPECTED_REVISION
+```
+
+Node24 + authenticated `gh`; read-only, no rerun/dispatch, no credentials in files.
+Requires the GitHub Actions publisher, its evidence check name, completed transport,
+explicit full revision, matching check head, exactly ordered unique chunks, canonical
+base64, compressed length/SHA256, bounded gzip expansion and payload revision.
+Writes a new output only after validation; never overwrites an existing receipt.
+For deliberately historical evidence published on another head, a fourth argument
+must explicitly supply EXPECTED_CHECK_HEAD; historical data is never promoted to fresh.
+Tests reject wrong publisher/head, incomplete transport, absent/duplicate/corrupt chunks,
+wrong hash/length; successful transport preserves underlying audit failures verbatim.
+Real integration read-back of123707907803 restored the8039b7f rotor receipt (88412bytes,
+SHA256 verified), including its failed role assertion, not a synthetic pass.
