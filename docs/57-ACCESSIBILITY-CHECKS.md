@@ -391,3 +391,10 @@ These are real OS AT automation, not human manual assessment. iOS receipt1237635
 still failed RWI discovery; original system Xcode16.4 restoration passed. Its actual
 listener is Apple's com.apple.WebDriver.HTTPService XPC executable, not safaridriver;
 its log must remain unread until listener plus exact executable identity is verified.
+
+The next native diagnostic attempt now accepts the exact sealed-system WebDriver
+HTTPService executable only when lsof independently identifies it on this run's
+reserved TCP port. Look-alike names/paths and non-listeners are rejected by tests.
+This expands read-only log provenance, not cleanup ownership: launchd's shared XPC
+service is never added to the processes killed by the harness. No session success
+or resolution of the RWI failure is inferred from this diagnostic change.

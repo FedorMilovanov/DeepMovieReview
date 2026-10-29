@@ -6,7 +6,7 @@ import { createServer } from "node:net";
 import { once } from "node:events";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { safariDriverLog, safariDriverPids, safariListenerPids } from "./apple-toolchain.mjs";
+import { safariDriverLog, safariDriverPids, safariListenerPids, safariHttpServicePids } from "./apple-toolchain.mjs";
 import { setTimeout as delay } from "node:timers/promises";
 
 export function safariRequestTimeout(path) {
@@ -21,10 +21,10 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
   await new Promise((resolve, reject) => reservation.close(error => error ? reject(error) : resolve()));
   const driver = spawn("/usr/bin/safaridriver", ["--diagnose", "-p", String(port)], { stdio: ["ignore", "pipe", "pipe"] });
   let diagnostics = "", lastError;
-  let diagnosticPids = [driver.pid];
+  let cleanupPids = [driver.pid], diagnosticPids = cleanupPids;
   function stopDriver() {
     driver.kill();
-    for (const pid of diagnosticPids) if (pid !== driver.pid) {
+    for (const pid of cleanupPids) if (pid !== driver.pid) {
       try { process.kill(pid); } catch (error) {
         if (error.code !== "ESRCH") diagnostics += `\nDriver ${pid} cleanup: ${error.message}`;
       }
@@ -70,8 +70,8 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       const processes = execFileSync("ps", ["-axww", "-o", "pid=,ppid=,comm="], { encoding: "utf8", timeout: 5000 });
       const listenerIds = new Set([...listeners.matchAll(/^p(\d+)$/gm)].map(([, pid]) => Number(pid)));
       diagnostics += `\nDriver/listener process rows:\n${processes.split("\n").filter(line => /safaridriver/.test(line) || listenerIds.has(Number(line.trim().split(/\s+/)[0]))).join("\n").slice(-5000)}`;
-      diagnosticPids = safariDriverPids(processes, driver.pid);
-      diagnosticPids = [...new Set([...diagnosticPids, ...safariListenerPids(listeners, processes)])];
+      cleanupPids = [...new Set([...safariDriverPids(processes, driver.pid), ...safariListenerPids(listeners, processes)])];
+      diagnosticPids = [...new Set([...cleanupPids, ...safariHttpServicePids(listeners, processes)])];
     } catch (error) { diagnostics += `\nDriver process snapshot unavailable: ${error.message}`; }
     await beforeSession();
     const result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari", ...capabilities } } });
