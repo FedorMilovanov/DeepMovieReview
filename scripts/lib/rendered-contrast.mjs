@@ -90,7 +90,12 @@ export function snapshotTextPaint(s) {
       const parent = getComputedStyle(element);
       if (+parent.opacity === 0) unpainted = true;
       if (+parent.opacity !== 1) { settling = true; issue = "Ancestor opacity is not one"; }
-      if (parent.filter !== "none" || parent.mixBlendMode !== "normal") issue = "Filter/blend requires separate assessment";
+      if (parent.filter !== "none" || parent.mixBlendMode !== "normal") {
+        issue = `Filter/blend requires separate assessment (${parent.filter}; ${parent.mixBlendMode})`;
+        // A live entrance filter is not a settled measurement. Wait for the
+        // real animation; permanent/paused filters still fail without a waiver.
+        if (element.getAnimations().some(animation => animation.playState === "running" || animation.pending)) settling = true;
+      }
     }
     if (unpainted) continue;
     const threshold = parseFloat(style.fontSize) >= 24 || (parseFloat(style.fontWeight) >= 700 && parseFloat(style.fontSize) >= 14 * 4 / 3) ? 3 : 4.5;

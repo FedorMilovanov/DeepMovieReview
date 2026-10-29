@@ -468,3 +468,38 @@ with GPU tile-memory warnings. Do not relabel that run green. An isolated truste
 content software-WebGL run is separately recorded; no production benchmark limits,
 quality tiers, styles or error checks were weakened. Application dependency audit is0;
 two bundled npm-tool advisories outside the repository remain separate from that audit.
+
+
+CodeQL on c803980 reported one new medium "Improper code sanitization" annotation
+at safari-desktop.mjs:13 despite a successful check conclusion. It is not accepted
+as a clean security result. Native navigation had embedded a JSON-stringified URL
+in a JavaScript probe. Separate trusted code from runtime data instead: pass URL as
+an argument encoded as UTF-8 JSON / base64-only literal, decode it as data inside
+the real Safari probe and use arguments[0]. No arbitrary URL text enters executable
+source. A hostile Unicode/quote/newline/script-boundary test verifies round-trip
+and non-execution. No CodeQL dismissal, suppression or rule change.
+
+The c803980 iOS attempt stopped earlier, before any setting write or W3C session:
+receipt123779107034 shows the initial simctl/defaults read reached its30s timeout
+after a2m43 cold-boot/data-migration cycle. Unknown state was not treated as an
+absent preference, and nothing was changed. Allow the disposable CI preference CLI
+up to120s for cold service startup (local reads remain30s); still require successful
+read/write/read-back/restoration, never blindly write after an unknown timeout.
+The WebDriver HTTP timeout remains unchanged: this is a different observed boundary.
+
+The c803980 VoiceOver run also exposed an intermittent interaction transition:
+after reading the first table, next-table spoke "Last table" instead of the second
+caption. Earlier exactfc/fef runs passed; those do not override this failure.
+Make leaving the first table an explicit recorded native action and await genuine
+"out of ... table" speech before searching for the next one. Do not replay keys,
+programmatically focus a table or weaken the required second caption/header checks.
+If the actual interaction level differs, the new assertion fails with its transcript.
+
+WebKit c803980 receipt123781337501 confirmed live-status coverage is now complete
+(0 missing), but six hero-frame ranges were sampled during the real CSS entrance
+brightness filter. Opacity alone did not prove animation completion. Defer a
+filter/blend observation only while its ancestor has an actually running/pending
+animation, then measure the natural settled paint. Permanent/paused unsupported
+filters remain failures, never identity/selector exceptions. Record exact filter /
+blend values. New positive entrance and negative permanent-filter fixtures extend
+the independent calibration to10 cases; transition frames are still not certified.

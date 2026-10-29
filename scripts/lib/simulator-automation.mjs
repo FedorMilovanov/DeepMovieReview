@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 export function simulatorAutomation(udid, { ci = false, run = execFileSync } = {}) {
   assert.match(udid, /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i);
   const domain = "com.apple.mobilesafari", key = "RemoteAutomationEnabled";
-  const defaults = (...args) => String(run("xcrun", ["simctl", "spawn", udid, "defaults", ...args], { encoding: "utf8", timeout: 30000 })).trim();
+  const defaults = (...args) => String(run("xcrun", ["simctl", "spawn", udid, "defaults", ...args], { encoding: "utf8", timeout: ci ? 120000 : 30000 })).trim();
   const read = () => {
     try {
       const value = defaults("read", domain, key);
