@@ -8,6 +8,7 @@ export async function nativeSafari(capabilities = {}) {
   let session;
   async function request(path, body, method = body === undefined ? "GET" : "POST") {
     const response = await fetch(`http://127.0.0.1:4444${path}`, {
+      signal: AbortSignal.timeout(path === "/session" ? 90000 : 30000),
       method, headers: { "Content-Type": "application/json" },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });

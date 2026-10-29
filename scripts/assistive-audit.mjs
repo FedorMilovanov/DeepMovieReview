@@ -19,6 +19,25 @@ const report = { revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding
   os: { platform: platform(), release: release() }, results: [], failures: [] };
 const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] };
 let browser, safari, page;
+let phase = "initializing";
+function checkpoint(next, announce = false) {
+  phase = next;
+  report.phase = phase;
+  writeFileSync(`${directory}/actual-at.json`, JSON.stringify(evidence, null, 2));
+  writeFileSync(`${directory}/summary.json`, JSON.stringify(report, null, 2));
+  if (announce) console.log(`::notice title=Actual AT phase::${name}: ${phase}`);
+}
+const deadline = setTimeout(() => {
+  const message = `${name}: six-minute scenario deadline at ${phase}`;
+  report.failures.push(message);
+  report.results = [{ browser: name, version: report.browser?.version ?? "not-started", width: 0,
+    route: "/films/the-truman-show/article?spoilers=full", state: "timeout", scope: "actual desktop OS", file: "actual-at.json" }];
+  checkpoint(phase);
+  console.error(workflowError(message));
+  server.kill();
+  process.exit(1);
+}, 360000);
+const speechOptions = { capture: "initial", timeout: 20000, retries: 0 };
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 const base = "http://127.0.0.1:3213";
 const execute = async expression => mac ? safari.execute(`return (${expression})`) : page.evaluate(expression);
@@ -28,10 +47,12 @@ const go = async route => {
   await execute("document.fonts.ready.then(() => true)");
 };
 async function action(label, run, expected) {
+  checkpoint(label);
   await reader.clearSpokenPhraseLog();
   await run();
   const speech = [...await reader.spokenPhraseLog()];
   evidence.actions.push({ label, speech });
+  checkpoint(`${label}: recorded`);
   console.log(label, JSON.stringify(speech));
   if (expected) assert.match(speech.join(" "), expected, `${label}: actual spoken output`);
 }
@@ -50,10 +71,14 @@ try {
     await delay(250);
   }
   assert.ok(ready, "Production server did not start");
-  await reader.start({ capture: true });
+  checkpoint("starting real screen reader", true);
+  await reader.start(speechOptions);
+  checkpoint("screen reader started", true);
   report.screenReader = { name: reader.name, version: reader.version };
   if (mac) {
+    checkpoint("starting installed Safari WebDriver", true);
     safari = await nativeSafari();
+    checkpoint("Safari session started", true);
     await safari.resize(960, 1000);
     report.browser = { name: "Safari", version: safari.version };
   } else {
@@ -68,22 +93,24 @@ try {
     await session.detach();
     report.browser = { name: "Chrome", version: browser.version() };
   }
+  checkpoint("opening article", true);
   await go("/films/the-truman-show/article?spoilers=full");
+  checkpoint("article loaded; positioning real AT cursor", true);
   if (mac) {
     await macOSActivate(MacOSApplications.Safari);
-    await reader.perform(reader.keyboardCommands.openItemChooser);
-    await reader.type("web content");
-    await reader.press("Enter");
-    await reader.interact();
+    await reader.perform(reader.keyboardCommands.openItemChooser, speechOptions);
+    await reader.type("web content", speechOptions);
+    await reader.press("Enter", speechOptions);
+    await reader.interact(speechOptions);
   } else {
     await page.bringToFront();
     await reader.perform(reader.keyboardCommands.exitFocusMode, { capture: false });
     await reader.press("Control+Home");
   }
-  await action("structural heading navigation", () => reader.nextHeading(), /шоу трумана/i);
-  await action("native table navigation", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable), /table|таблиц/i);
-  if (mac) await reader.interact();
-  await action("table column movement", () => reader.perform(reader.keyboardCommands.moveToNextColumn), /\S/);
+  await action("structural heading navigation", () => reader.nextHeading(speechOptions), /шоу трумана/i);
+  await action("native table navigation", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, speechOptions), /table|таблиц/i);
+  if (mac) await reader.interact(speechOptions);
+  await action("table column movement", () => reader.perform(reader.keyboardCommands.moveToNextColumn, speechOptions), /\S/);
   await screenshot("table-reading");
   if (mac) await reader.stopInteracting();
 
@@ -130,6 +157,7 @@ try {
   report.results.push({ browser: name, version: report.browser?.version ?? "not-started", width: 0,
     route: "/films/the-truman-show/article?spoilers=full", state: "failure", scope: "desktop OS", file: "actual-at.json" });
 } finally {
+  clearTimeout(deadline);
   writeFileSync(`${directory}/actual-at.json`, JSON.stringify(evidence, null, 2));
   writeFileSync(`${directory}/summary.json`, JSON.stringify(report, null, 2));
   await reader.stop().catch(() => {});
