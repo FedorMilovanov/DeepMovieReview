@@ -1,3 +1,4 @@
+import { assertAliasBridge, assertCanonicalUsage } from "./lib/style-tokens.mjs";
 /** Shared article styles are infrastructure, never a per-film content payload. */
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -11,6 +12,7 @@ function files(dir) {
   });
 }
 const cssFiles = listStyles();
+assertAliasBridge(readFileSync("src/styles/tokens.css", "utf8"));
 for (const path of [
   ...["film-article", "homepage", "film-modules", "film-verdict", "homepage-optics"]
     .map((entry) => `src/styles/${entry}.css`),
@@ -24,6 +26,7 @@ for (const path of [
 for (const path of cssFiles.filter((path) => /\/(article|home|modules|verdict|optics|shell)\//.test(path))) {
   const source = readFileSync(path, "utf8");
   assert.ok(source.split("\n").length <= 450, `${path}: split by responsibility before growing beyond 450 lines`);
+  if (/\/(modules|verdict)\//.test(path)) assertCanonicalUsage(source, path);
   const code = source.replace(/\/\*[\s\S]*?\*\//g, "");
   // Existing reduced-motion overrides only; no new force-priority rules.
   const importantBudget = path.endsWith("verdict/accessibility.css") ? 3 : 0;

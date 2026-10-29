@@ -105,3 +105,22 @@ test("vendor twins cannot come from a neighbouring selector or a comment", () =>
     ".header {-webkit-backdrop-filter: blur(5px); backdrop-filter: blur(10px)}",
   ]) assert.equal(hasUnprefixedDeclaration(css, "backdrop-filter"), true);
 });
+
+rejects("migrated components cannot return to legacy tokens", ({ write }) => {
+  write("src/styles/modules/analysis.css", ".shared { color: var(--text); }");
+}, /use --ink-1 instead of --text/);
+
+rejects("compatibility aliases cannot silently change meaning", ({ root, write }) => {
+  const tokens = readFileSync(join(root, "src/styles/tokens.css"), "utf8");
+  write("src/styles/tokens.css", tokens.replace("--text: var(--ink-1)", "--text: var(--ink-4)"));
+}, /--text: must map to --ink-1/);
+
+rejects("compatibility aliases cannot reference missing canonical tokens", ({ root, write }) => {
+  const tokens = readFileSync(join(root, "src/styles/tokens.css"), "utf8");
+  write("src/styles/tokens.css", tokens.replace(/--ink-1:[^;]+;/, ""));
+}, /missing canonical token --ink-1/);
+
+rejects("compatibility aliases cannot acquire per-component overrides", ({ root, write }) => {
+  const tokens = readFileSync(join(root, "src/styles/tokens.css"), "utf8");
+  write("src/styles/tokens.css", tokens + "\n.article { --text: red; }");
+}, /keep one compatibility definition/);
