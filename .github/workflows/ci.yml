@@ -495,14 +495,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/publish-a11y-evidence.mjs at-report/${{ matrix.reader }} ${{ matrix.reader }}
-      - name: Native iOS Safari on installed iPhone Simulator
-        if: always() && runner.os == 'macOS' && steps.at-build.outcome == 'success'
-        run: node scripts/ios-safari-audit.mjs
-      - name: Publish native iOS Safari evidence
-        if: always() && runner.os == 'macOS' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/publish-a11y-evidence.mjs at-report/ios-safari ios-safari
       - name: Upload actual AT evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -510,6 +502,47 @@ jobs:
           name: actual-at-${{ matrix.reader }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: at-report/
           if-no-files-found: warn
+          retention-days: 7
+
+  # Run Simulator on a clean current macOS image, independently of VoiceOver /
+  # accessibility permission setup and the desktop Safari process lifecycle.
+  native-ios:
+    name: Native iOS Safari
+    runs-on: macos-26
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      checks: write
+    env:
+      DMR_PREVIEW_CONTENT_ENABLED: "true"
+      DMR_SITE_INDEXING_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Enable installed Safari WebDriver
+        run: sudo /usr/bin/safaridriver --enable
+      - run: npm run build
+      - name: Native iOS Safari on installed iPhone Simulator
+        run: node scripts/ios-safari-audit.mjs
+      - name: Publish native iOS Safari evidence
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-a11y-evidence.mjs at-report/ios-safari ios-safari
+      - name: Upload native iOS evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: actual-ios-${{ github.event.pull_request.head.sha || github.sha }}
+          path: at-report/ios-safari/
+          if-no-files-found: error
           retention-days: 7
 
   rendered-contrast:
