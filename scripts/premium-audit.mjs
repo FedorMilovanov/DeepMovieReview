@@ -85,7 +85,7 @@ function over(foreground, background) {
 function luminance({ r, g, b }) {
   const channel = (value) => {
     const c = value / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   };
   return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 }
@@ -99,6 +99,14 @@ function contrast(fg, bg) {
 }
 
 const token = (name) => tokens.get(name) ?? "";
+
+check("CR", "CR-media", "media labels survive a completely white image", () => {
+  const surface = over(parseColor(tokens.get("--surface-media-caption")), parseColor("#ffffff"));
+  const background = `rgb(${surface.r},${surface.g},${surface.b})`;
+  const weakestInk = tokens.get("--ink-3");
+  const ratio = contrast(weakestInk, background);
+  return ratio >= 4.5 || `media caption worst case is ${ratio}:1`;
+});
 
 const contrastChecks = [
   ["CO01", "основной текст на фоне ≥ 7:1 (AAA)", "--ink-1", "--surface-canvas", 7],

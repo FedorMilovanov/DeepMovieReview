@@ -95,7 +95,8 @@
   display: flex;
   justify-content: space-between;
   padding: 0.65rem 0.75rem;
-  color: rgb(255 255 255 / 0.46);
+  color: var(--ink-3);
+  background: var(--surface-media-caption);
   font-family: var(--font-meta);
   font-size: 0.55rem;
   letter-spacing: 0.08em;

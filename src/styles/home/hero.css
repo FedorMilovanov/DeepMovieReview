@@ -104,7 +104,9 @@
   z-index: 4;
   display: flex;
   justify-content: space-between;
-  color: rgb(255 255 255 / 0.5);
+  color: var(--ink-3);
+  background: var(--surface-media-caption);
+  padding: var(--space-1) var(--space-2);
   font-size: 0.58rem;
   letter-spacing: 0.12em;
 }
@@ -117,6 +119,8 @@
   justify-content: space-between;
   gap: 1rem;
   align-items: end;
+  background: var(--surface-media-caption);
+  padding: var(--space-2);
 }
 
 .frameCaption strong {
@@ -126,7 +130,7 @@
 }
 
 .frameCaption span {
-  color: rgb(255 255 255 / 0.55);
+  color: var(--ink-2);
   max-width: 28rem;
   font-size: 0.7rem;
   text-align: right;
