@@ -475,6 +475,17 @@ html:not([data-reduced-motion="true"]) .heroScrollLine::after {
   }
 }
 
+/* A view timeline does not advance on paper or in a paginated renderer, so
+   every section would print at the animation's start value — a blank page.
+   Print is also where "export to PDF" lands, so it is not a corner case. */
+@media print {
+  .sectionRule {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 html[data-reduced-motion="true"] .sectionRule {
   animation: none;
 }

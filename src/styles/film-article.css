@@ -571,7 +571,7 @@
   background: var(--surface-2);
 }
 
-.productionMyth h4 {
+.productionMyth h3 {
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--type-body);

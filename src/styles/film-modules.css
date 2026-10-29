@@ -380,6 +380,8 @@ article.filmKnowledgeFog {
     grid-column: 2;
   }
 
+  /* The edition cell carries a SHA-256 hash: one unbreakable token is enough
+     to widen an `auto` track past the viewport, where the shell clips it. */
   .filmObservationGrid,
   .filmCraftGrid,
   .filmPressureGrid,
@@ -387,7 +389,11 @@ article.filmKnowledgeFog {
   .filmKnowledgeGrid,
   .filmDecisionContext,
   .filmMethodMeta {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .filmMethodMeta strong {
+    overflow-wrap: anywhere;
   }
 
   .filmObservationGrid > article,
@@ -409,8 +415,14 @@ article.filmKnowledgeFog {
   }
 
   .filmSourceList li {
-    grid-template-columns: 1fr;
+    /* One column, but with a zero minimum: the edition string is a single
+       long token and would otherwise widen the track past the viewport. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.45rem;
+  }
+
+  .filmSourceList li > div {
+    overflow-wrap: anywhere;
   }
 }
 
