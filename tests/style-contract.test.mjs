@@ -352,3 +352,16 @@ test("native speech timeout never manufactures a semantic pass", async () => {
   assert.ok(result.readErrors.length > 0);
   assert.doesNotMatch(result.speech.join(" "), /VoiceOver Menu/);
 });
+
+test("rendered contrast bounds use every background pixel, not averages or rounding", async () => {
+  const { contrast, rectangleContrast } = await import("../scripts/lib/contrast-pixels.mjs");
+  assert.equal(contrast([255, 255, 255, 1], [0, 0, 0]), 21);
+  assert.ok(contrast([119, 119, 119, 1], [255, 255, 255]) < 4.5);
+  const image = { width: 2, height: 1, data: Buffer.from([0, 0, 0, 255, 255, 255, 255, 255]) };
+  const result = rectangleContrast(image, { x: 0, y: 0, width: 2, height: 1 }, [255, 255, 255, 1]);
+  assert.equal(result.minimum, 1);
+  assert.equal(result.pixels, 2);
+  assert.deepEqual(result.worstBackground.rgb, [255, 255, 255]);
+  assert.ok(contrast([255, 255, 255, 0.5], [0, 0, 0]) < 6);
+  assert.throws(() => rectangleContrast(image, { x: 0, y: 0, width: 2, height: 1 }, [255, 255, 255, 0]));
+});

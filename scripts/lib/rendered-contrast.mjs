@@ -1,0 +1,164 @@
+// A finite rendered-background bound, not an axe-incomplete waiver or WCAG certificate.
+import { PNG } from "pngjs";
+import { createHash } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { rectangleContrast } from "./contrast-pixels.mjs";
+
+export async function renderedContrast(page, nodes, directory, id) {
+  mkdirSync(directory, { recursive: true });
+  const state = await page.evaluateHandle(targets => {
+    const records = [], owners = [], byText = new Map();
+    for (const target of targets) {
+      const owner = { target, ids: [] }; owners.push(owner);
+      if (target.length !== 1 || typeof target[0] !== "string") { owner.error = "Unsupported nested target"; continue; }
+      const root = document.querySelector(target[0]);
+      if (!root) { owner.error = "Target absent"; continue; }
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      let text;
+      while ((text = walker.nextNode())) {
+        if (!text.textContent.trim()) continue;
+        const range = document.createRange(); range.selectNodeContents(text);
+        if (!range.getClientRects().length) continue;
+        if (!byText.has(text)) {
+          const record = { id: records.length, element: text.parentElement, range };
+          byText.set(text, record.id); records.push(record);
+        }
+        owner.ids.push(byText.get(text));
+      }
+      if (!owner.ids.length) owner.error = "No rendered DOM text range";
+    }
+    const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
+    return { records, owners, saved: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
+  }, nodes.map(node => node.target));
+  const previousScroll = await page.evaluate(() => scrollY);
+  const measurements = new Map(), frames = [];
+  let tileLimit = false;
+  try {
+    let top = 0;
+    for (let tile = 0; tile < 250; tile++) {
+      await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), top);
+      await page.waitForTimeout(100);
+      // Let actual IntersectionObserver/reveal animation settle; never force opacity.
+      let snapshot;
+      for (let attempt = 0; attempt < 25; attempt++) {
+        snapshot = await page.evaluate(s => {
+          const boxes = [];
+          const rgba = color => {
+            s.ctx.clearRect(0, 0, 1, 1); s.ctx.fillStyle = color; s.ctx.fillRect(0, 0, 1, 1);
+            const value = [...s.ctx.getImageData(0, 0, 1, 1).data]; value[3] /= 255; return value;
+          };
+          for (const record of s.records) {
+            const rects = [...record.range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth);
+            if (!rects.length) continue;
+            const style = getComputedStyle(record.element);
+            const color = record.element.namespaceURI === "http://www.w3.org/2000/svg" ? style.fill : style.webkitTextFillColor || style.color;
+            const foreground = rgba(color);
+            let issue;
+            if (!foreground[3]) issue = "Transparent/gradient text foreground requires separate assessment";
+            if (style.textShadow !== "none" || parseFloat(style.webkitTextStrokeWidth || "0") > 0) issue = "Text shadow/stroke requires separate assessment";
+            let settling = false, unpainted = false;
+            for (let element = record.element; element; element = element.parentElement) {
+              const parent = getComputedStyle(element);
+              if (+parent.opacity === 0) unpainted = true;
+              if (+parent.opacity !== 1) { settling = true; issue = "Ancestor opacity is not one"; }
+              if (parent.filter !== "none" || parent.mixBlendMode !== "normal") issue = "Filter/blend requires separate assessment";
+            }
+            if (unpainted) continue;
+            const threshold = parseFloat(style.fontSize) >= 24 || (parseFloat(style.fontWeight) >= 700 && parseFloat(style.fontSize) >= 14 * 4 / 3) ? 3 : 4.5;
+            [...record.range.getClientRects()].forEach((rect, line) => {
+              if (rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth) {
+                boxes.push({ id: record.id, line, rect: rect.toJSON(), foreground, color, threshold, issue, settling });
+              }
+            });
+          }
+          s.visibleIds = new Set(boxes.map(box => box.id));
+          s.currentBoxes = boxes;
+          return { boxes, scroll: scrollY, width: innerWidth, height: innerHeight, end: scrollY + innerHeight >= document.documentElement.scrollHeight };
+        }, state);
+        if (!snapshot.boxes.some(box => box.settling)) break;
+        await page.waitForTimeout(100);
+      }
+      const original = await page.screenshot();
+      let background;
+      try {
+        await page.evaluate(s => {
+          const elements = new Set(s.records.filter(record => s.visibleIds.has(record.id)).map(record => record.element));
+          s.saved = [...elements].map(element => ({ element, properties: ["color", "-webkit-text-fill-color", "text-shadow", "fill"].map(name => ({ name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
+          for (const { element } of s.saved) {
+            element.style.setProperty("color", "transparent");
+            element.style.setProperty("-webkit-text-fill-color", "transparent");
+            element.style.setProperty("text-shadow", "none");
+            if (element.namespaceURI === "http://www.w3.org/2000/svg") element.style.setProperty("fill", "transparent");
+          }
+        }, state);
+        const invalidMask = await page.evaluate(s => {
+          const moved = s.currentBoxes.filter(box => {
+            const current = s.records[box.id].range.getClientRects()[box.line];
+            return !current || ["x", "y", "width", "height"].some(key => current[key] !== box.rect[key]);
+          }).map(box => box.id);
+          return [...moved, ...s.records.filter(record => s.visibleIds.has(record.id)).filter(record => {
+            const style = getComputedStyle(record.element);
+            const color = record.element.namespaceURI === "http://www.w3.org/2000/svg" ? style.fill : style.webkitTextFillColor || style.color;
+            s.ctx.clearRect(0, 0, 1, 1); s.ctx.fillStyle = color; s.ctx.fillRect(0, 0, 1, 1);
+            return s.ctx.getImageData(0, 0, 1, 1).data[3] !== 0;
+          }).map(record => record.id)];
+        }, state);
+        for (const box of snapshot.boxes) if (invalidMask.includes(box.id)) box.issue = "Text mask did not remove foreground";
+        background = await page.screenshot();
+      } finally {
+        await page.evaluate(s => {
+          for (const { element, properties } of s.saved) for (const { name, value, priority } of properties) {
+            if (value) element.style.setProperty(name, value, priority); else element.style.removeProperty(name);
+          }
+          s.saved = [];
+        }, state);
+      }
+      const image = PNG.sync.read(background);
+      if (image.width !== snapshot.width || image.height !== snapshot.height) throw new Error("Pixel/viewport scale mismatch; do not emulate DPR as contrast evidence");
+      const name = `${id}-${tile}`;
+      writeFileSync(`${directory}/${name}-original.png`, original);
+      writeFileSync(`${directory}/${name}-background.png`, background);
+      const hash = bytes => createHash("sha256").update(bytes).digest("hex");
+      frames.push({ tile, scroll: snapshot.scroll, original: `${name}-original.png`, originalSha256: hash(original), background: `${name}-background.png`, backgroundSha256: hash(background) });
+      for (const box of snapshot.boxes) {
+        const key = `${box.id}:${box.line}`;
+        const measurement = measurements.get(key) ?? { id: box.id, line: box.line, threshold: box.threshold, height: Math.ceil(box.rect.height), intervals: [], minimum: Infinity, issues: [] };
+        measurement.intervals.push([Math.max(0, Math.floor(-box.rect.y)), Math.min(measurement.height, Math.ceil(snapshot.height - box.rect.y))]);
+        if (box.rect.x < 0 || box.rect.right > snapshot.width) box.issue = "Text range extends outside horizontal viewport";
+        if (box.issue) {
+          if (!measurement.issues.includes(box.issue)) measurement.issues.push(box.issue);
+        } else {
+          const bound = rectangleContrast(image, box.rect, box.foreground);
+          if (bound.minimum !== null && bound.minimum < measurement.minimum) {
+            Object.assign(measurement, { minimum: bound.minimum, worstBackground: bound.worstBackground, foreground: box.foreground, color: box.color, tile });
+          }
+        }
+        measurements.set(key, measurement);
+      }
+      if (snapshot.end) break;
+      if (tile === 249) tileLimit = true;
+      top = snapshot.scroll + Math.floor(snapshot.height * 0.75);
+    }
+    const owners = await page.evaluate(s => s.owners, state);
+    const expected = await page.evaluate(s => s.records.map(record => ({ id: record.id, lines: record.range.getClientRects().length })), state);
+    const ranges = [...measurements.values()].map(record => {
+      let covered = 0;
+      for (const [start, end] of record.intervals.toSorted((a, b) => a[0] - b[0])) {
+        if (start > covered) break;
+        covered = Math.max(covered, end);
+      }
+      const result = { ...record };
+      delete result.intervals;
+      return { ...result, minimum: Number.isFinite(record.minimum) ? record.minimum : null, covered: covered >= record.height,
+        pass: !record.issues.length && covered >= record.height && record.minimum >= record.threshold && Number.isFinite(record.minimum) };
+    });
+    const absent = new Set(expected.filter(record => Array.from({ length: record.lines }, (_, line) => `${record.id}:${line}`).some(key => !measurements.has(key))).map(record => record.id));
+    const missing = owners.filter(owner => owner.error || owner.ids.some(id => absent.has(id)));
+    const failed = ranges.filter(range => !range.pass);
+    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames", owners: owners.length, ranges, frames,
+      missing, tileLimit, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
+  } finally {
+    await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);
+    await state.dispose();
+  }
+}
