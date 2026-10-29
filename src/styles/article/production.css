@@ -147,6 +147,11 @@
 }
 
 .productionRefs a {
+  display: inline-flex;
+  min-inline-size: 24px;
+  min-block-size: 24px;
+  align-items: center;
+  justify-content: center;
   color: var(--ink-4);
   text-decoration: none;
   border-bottom: 1px solid var(--stroke-default);

@@ -50,3 +50,6 @@ public/og/*.png
 
 # Reference photographs fetched for caricature work (never shipped: they are stills)
 /image-search/
+
+# Portable accessibility audit evidence
+a11y-report/

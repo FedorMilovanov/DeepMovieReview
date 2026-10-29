@@ -28,7 +28,7 @@ function formatDate(iso: string): string {
 function SourceRefs({ ids }: { ids: string[] }) {
   if (ids.length === 0) return null;
   return (
-    <sup className="productionRefs" aria-label="Источники">
+    <sup className="productionRefs" role="group" aria-label="Источники">
       {ids.map((id) => (
         <a key={id} href={`#source-${id}`}>
           {id.replace(/^src-/, "").slice(0, 2)}
