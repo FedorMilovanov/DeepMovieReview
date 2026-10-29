@@ -64,10 +64,20 @@ for (const name of selected) {
           if (width === 390 && route === "/") {
             for (const lens of ["story", "people", "relationships", "ideas", "moral-world", "craft"]) {
               await page.locator(`label[for="lens-radio-${lens}"]`).click();
-              const meta = await page.locator(".lensFrame .frameMeta").boundingBox();
-              for (const mark of await page.locator(`.lensMarkGroup[data-lens="${lens}"] .lensMark:visible`).all()) {
-                const box = await mark.boundingBox();
-                assert.ok(box && meta && box.y >= meta.y + meta.height, `${lens}: chips must not overlap frame metadata`);
+              await page.waitForFunction(lens => {
+                const group = document.querySelector(`.lensMarkGroup[data-lens="${lens}"]`);
+                const section = group.closest(".sectionRule");
+                return +getComputedStyle(group).opacity === 1 && (!section || +getComputedStyle(section).opacity === 1);
+              }, lens);
+              // One layout snapshot: separate protocol calls can straddle the
+              // section's reveal translation and invent an overlap on slow CI.
+              const geometry = await page.evaluate(lens => ({
+                meta: document.querySelector(".lensFrame .frameMeta").getBoundingClientRect().toJSON(),
+                marks: [...document.querySelectorAll(`.lensMarkGroup[data-lens="${lens}"] .lensMark`)].map(mark => mark.getBoundingClientRect().toJSON()),
+              }), lens);
+              assert.ok(geometry.marks.length > 0, `${lens}: visible label group must not be empty`);
+              for (const box of geometry.marks) {
+                assert.ok(box.y >= geometry.meta.bottom, `${lens}: chips must not overlap frame metadata: ${JSON.stringify({ box, meta: geometry.meta })}`);
               }
             }
             await page.locator('label[for="lens-radio-story"]').click();

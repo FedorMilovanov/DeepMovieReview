@@ -109,3 +109,13 @@ W3C touch actions/release описаны в `garrytan/gstack#3058`. Mobile taps 
 через touch actions, не JS click. Итог этих исправлений ещё не подтверждён.
 Отдельно проверены все6линз на1440/390:62text ranges, minimum bound6.369:1,
 без перекрытия метаданных. Это дополняет, но не заменяет cross-engine review.
+
+На `4103110` Safari26.6 назвал Item Chooser «VoiceOver Menu», а не буквальным
+«Item Chooser»; guard подготовки принимает оба названия, не ослабляя h1/table
+assertions. iOS не дошёл до нового launch: cold `bootstatus` на Intel превысил240s.
+Следующая проверка использует поддерживаемый Apple Silicon `macos-15`, открывает
+Simulator.app до bootstatus и сохраняет его stdout/ошибку с лимитом480s. Нельзя
+считать это успехом до CI. Chromium CI также выявил необходимость снимать геометрию
+в одном layout snapshot после естественного reveal, а не сравнивать bbox,
+прочитанные по разные стороны анимации. Checks сохраняет реальные координаты при
+любом следующем overlap failure; ни правило, ни текст не исключены из проверки.

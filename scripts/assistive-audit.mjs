@@ -108,7 +108,7 @@ try {
     await macOSActivate(MacOSApplications.Safari);
     // Initial-only capture can return while Item Chooser is still dismissing;
     // the following interact then lands outside, not inside, the web area.
-    await action("VoiceOver Item Chooser", () => reader.perform(reader.keyboardCommands.openItemChooser, navigationOptions), /item chooser/i);
+    await action("VoiceOver Item Chooser", () => reader.perform(reader.keyboardCommands.openItemChooser, navigationOptions), /item chooser|VoiceOver Menu/i);
     await action("VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
     await action("VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
     await action("VoiceOver enter web area", () => reader.interact(navigationOptions));
