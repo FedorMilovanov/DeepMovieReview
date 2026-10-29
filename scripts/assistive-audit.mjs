@@ -166,7 +166,7 @@ try {
   await action("table column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);
   await action("table row header and value", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /библиотека[\s\S]*0 переходов/i);
   await screenshot("table-reading");
-  if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
+  if (mac) await action("leave first table interaction", () => perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions), /out of[\s\S]*table|(?:вне|выход)[\s\S]*таблиц/i);
   await action("corrections table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), /пять утверждений/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   await action("corrections column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /что в кадре/i);

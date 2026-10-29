@@ -320,7 +320,7 @@ test("native Safari Apple Events adapter waits for real DOM/fonts and reads geom
     if (script.includes("do JavaScript")) {
       assert.equal(args[2], "321", "Probe must target the owned native window");
       checks++;
-      return runInNewContext(args[3], { location: { href: url }, innerWidth: 320,
+      return runInNewContext(args[3], { atob, TextDecoder, location: { href: url }, innerWidth: 320,
         outerWidth: 960, document: { readyState: "complete", fonts: { status: "loaded" }, documentElement: { scrollWidth: 320 } } });
     }
     return "";
@@ -429,10 +429,10 @@ test("iOS automation switch is CI-only, verified, exactly restored and idempoten
   const { simulatorAutomation } = await import("../scripts/lib/simulator-automation.mjs");
   const udid = "f0c70c77-e423-4478-b648-3d25045b311b";
   for (const original of [null, false, true]) {
-    let value = original; const writes = [];
+    let value = original, timeout = 30000; const writes = [];
     const run = (file, args, options) => {
       assert.equal(file, "xcrun"); assert.deepEqual(args.slice(0, 4), ["simctl", "spawn", udid, "defaults"]);
-      assert.equal(options.timeout, 30000);
+      assert.equal(options.timeout, timeout);
       if (args[4] === "read") {
         if (value === null) throw Object.assign(new Error("absent"), { status: 1, stderr: "domain/default pair does not exist" });
         return value ? "1" : "0";
@@ -443,6 +443,7 @@ test("iOS automation switch is CI-only, verified, exactly restored and idempoten
     };
     if (original !== true) assert.throws(() => simulatorAutomation(udid, { run }), /local preferences are not changed/);
     assert.equal(writes.length, 0);
+    timeout = 120000;
     const automation = simulatorAutomation(udid, { ci: true, run });
     assert.equal(value, true); assert.equal(automation.original, original);
     automation.restore(); assert.equal(value, original);
@@ -468,4 +469,16 @@ test("live text ranges refresh on the same node and old versions cannot cover ne
   assert.deepEqual([...missingRangeIds([{ id: 0, connected: true, version: 1, lines: 1 }], new Map([["0:0:0", {}]]))], [0]);
   assert.deepEqual([...missingRangeIds([{ id: 0, connected: true, version: 1, lines: 1 }], new Map([["0:1:0", {}]]))], []);
   text.isConnected = false; refreshTextRanges(state); assert.equal(selections, 2);
+});
+
+
+test("native Safari probe transports hostile Unicode/quote URL values as data, never code", async () => {
+  const { safariProbe } = await import("../scripts/lib/safari-desktop.mjs");
+  const { runInNewContext } = await import("node:vm");
+  const hostile = 'https://example.test/Кино?x=";globalThis.injected=true;//\\\n`</script>\u2028\u2029';
+  const context = { atob, TextDecoder };
+  const source = safariProbe("return arguments[0]", [hostile]);
+  assert.ok(!source.includes(hostile));
+  assert.equal(JSON.parse(runInNewContext(source, context)), hostile);
+  assert.equal(context.injected, undefined);
 });
