@@ -70,8 +70,37 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
   const projection = projectArticleSections(filmPackage.article, spoilerLevel);
   const pathname = `/films/${filmPackage.film.slug}/article`;
 
+  // Structured data for the trail the page already shows. It is derived from the
+  // same values the breadcrumbs render, so the two can never disagree; a draft
+  // edition stays out of the index and therefore out of search results, where
+  // this markup would otherwise be the first thing a crawler reads.
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Фильмы", item: "/films" },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: filmPackage.film.title,
+        item: `/films/${filmPackage.film.slug}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: "Разбор",
+        item: `/films/${filmPackage.film.slug}/article`,
+      },
+    ],
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        // The object is built from the film package, never from user input.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
       <SpoilerDeepLinkGuard spoilerLevel={spoilerLevel} />
       <div className="sectionShell articleSpoilerBar">
         <SpoilerLevelControl pathname={pathname} current={spoilerLevel} />

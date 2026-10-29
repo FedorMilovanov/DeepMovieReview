@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ArticleBlock, ArticleMeasurementRef, FilmArticle } from "@/lib/film-package";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { illustrationView } from "@/data/film-illustrations";
 import type { ArticleMeasurementView, ArticleProjection } from "@/lib/film-article";
 import { articleReadingMinutes } from "@/lib/film-article";
@@ -203,6 +204,13 @@ export function ArticleView({
   return (
     <article className="articleShell">
       <header className="sectionShell articleHeader" id="article-top">
+        <Breadcrumbs
+          trail={[
+            { label: "Фильмы", href: "/films" },
+            { label: article.kicker.split(" / ").pop() ?? "Фильм", href: `/films/${filmSlug}` },
+            { label: "Разбор" },
+          ]}
+        />
         <div className="articleHeaderLinks">
           <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
           <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>

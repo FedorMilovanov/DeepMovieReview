@@ -337,7 +337,7 @@
   gap: 0.5rem;
   padding: 0.32rem 0.55rem;
   border: 1px solid rgb(255 255 255 / 0.28);
-  background: color-mix(in srgb, #030303 78%, transparent);
+  background: color-mix(in srgb, var(--surface-canvas) 78%, transparent);
   color: var(--ink-1);
   font-family: var(--font-meta);
   font-size: 0.56rem;
@@ -1000,7 +1000,7 @@
   z-index: 6;
   padding: 0.32rem 0.55rem;
   border: 1px solid rgb(255 255 255 / 0.28);
-  background: color-mix(in srgb, #030303 78%, transparent);
+  background: color-mix(in srgb, var(--surface-canvas) 78%, transparent);
   color: var(--ink-1);
   font-family: var(--font-meta);
   font-size: 0.56rem;
@@ -1734,7 +1734,7 @@
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 640px) {
   .lensSelector {
     grid-template-columns: 1fr;
   }

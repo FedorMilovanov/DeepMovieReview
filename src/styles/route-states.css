@@ -115,7 +115,7 @@
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 640px) {
   .routeGridSkeleton {
     grid-template-columns: 1fr;
   }
@@ -135,7 +135,7 @@
   background:
     radial-gradient(circle at 64% 46%, rgb(143 32 39 / 0.42), transparent 19%),
     radial-gradient(circle at 44% 60%, rgb(185 146 91 / 0.14), transparent 26%),
-    linear-gradient(155deg, #121212 0%, #070707 46%, #020202 100%);
+    linear-gradient(155deg, #121212 0%, var(--surface-1) 46%, #020202 100%);
 }
 
 .filmMediaFrameIndex {
@@ -236,7 +236,7 @@ html[data-route-transition="active"]::after {
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 640px) {
   .filmMediaFrameHero {
     aspect-ratio: 16 / 10;
     min-height: 0;
