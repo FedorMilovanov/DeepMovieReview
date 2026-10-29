@@ -1,6 +1,7 @@
 // Safari inside Apple's iOS Simulator; never claim physical iPhone or iOS VoiceOver.
 import assert from "node:assert/strict";
 import { inspect } from "node:util";
+import { arch, release } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
@@ -13,8 +14,15 @@ const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] 
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 let safari;
 try {
+  report.host = { platform: process.platform, release: release(), arch: arch(),
+    xcode: execFileSync("xcodebuild", ["-version"], { encoding: "utf8", timeout: 30000 }).trim() };
   const devices = JSON.parse(execFileSync("xcrun", ["simctl", "list", "devices", "available", "-j"], { encoding: "utf8" }));
-  const candidates = Object.entries(devices.devices).flatMap(([runtime, devices]) => devices.map(device => ({ ...device, runtime })));
+  report.availableRuntimes = Object.keys(devices.devices);
+  // The list is oldest-first on hosted images; prefer the newest installed iOS
+  // runtime rather than silently pairing Safari26 with the first iOS18 device.
+  const candidates = Object.entries(devices.devices)
+    .filter(([runtime]) => runtime.includes(".iOS-"))
+    .sort(([a], [b]) => b.localeCompare(a, undefined, { numeric: true })).flatMap(([runtime, devices]) => devices.map(device => ({ ...device, runtime })));
   const device = candidates.find(device => device.name.startsWith("iPhone") && device.isAvailable);
   assert.ok(device, "No installed iPhone Simulator runtime");
   report.device = { ...device, physicalDevice: false };
@@ -33,7 +41,10 @@ try {
       console.log(report.bootLog);
       report.device.state = "Booted";
       // Prime MobileSafari once, then let WebDriver create its automation tab.
-      execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], { stdio: "inherit", timeout: 60000 });
+      report.phase = "priming native MobileSafari";
+      report.safariLaunchLog = execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], {
+        encoding: "utf8", timeout: 60000, maxBuffer: 16 * 1024 * 1024,
+      }).slice(-12000);
       execFileSync("xcrun", ["simctl", "terminate", device.udid, "com.apple.mobilesafari"], { stdio: "inherit", timeout: 30000 });
       report.phase = "creating native iOS Safari session";
     },

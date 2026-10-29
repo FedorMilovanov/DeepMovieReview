@@ -119,3 +119,13 @@ Simulator.app до bootstatus и сохраняет его stdout/ошибку �
 в одном layout snapshot после естественного reveal, а не сравнивать bbox,
 прочитанные по разные стороны анимации. Checks сохраняет реальные координаты при
 любом следующем overlap failure; ни правило, ни текст не исключены из проверки.
+
+`150d8b8`: app-shell и Windows AT **SUCCESS**; atomic geometry подтвердился CI.
+VoiceOver теперь доказанно вошёл на настоящий skip link, но лишний `next` перевёл
+его в banner перед h1 search. Этот marker-detour удалён: synthetic marker на
+странице не создаётся. Строгая роль heading по-прежнему обязательна, нового pass
+ещё нет. На Apple Silicon Simulator загрузился сразу; теперь timeout на первом
+launch MobileSafari, выбран был oldest iOS18.5. Следующий выбор сортирует только
+установленные available iOS runtimes от новых к старым и сохраняет Xcode/OS/arch,
+список runtimes, стадию и stdout launch. Это проверяемая смена окружения, не pass.
+Подтверждение runner label/architecture: `actions/runner-images/README.md`.
