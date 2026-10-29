@@ -6,6 +6,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
+import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari } from "./lib/native-safari.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari";
@@ -15,7 +16,7 @@ const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] 
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 const systemEnv = { ...process.env };
 delete systemEnv.DEVELOPER_DIR;
-let safari, restoreDeveloperDirectory;
+let safari, restoreDeveloperDirectory, automation;
 function hostSimulatorProcesses() {
   try {
     return nativeSimulatorProcessLines(execFileSync("ps", ["-axo", "pid=,state=,pcpu=,comm="], { encoding: "utf8", timeout: 10000 }));
@@ -64,8 +65,16 @@ try {
       console.log(report.bootLog);
       report.device.state = "Booted";
       report.hostSimulatorProcesses = hostSimulatorProcesses();
-      // SafariDriver owns native browser launch. A separate simctl launch can
-      // hang after a successful boot and prevent the W3C session from trying.
+      report.phase = "enabling Simulator Safari Remote Automation";
+      automation = simulatorAutomation(device.udid, { ci: process.env.GITHUB_ACTIONS === "true" });
+      report.automationPreference = { original: automation.original, enabled: automation.enabled };
+      // This is Safari's actual iOS Settings switch, not a layout/AT simulation.
+      // Warm the real app before the driver's internal 30s RWI deadline; never
+      // terminate/relaunch it or replay a failed browser scenario.
+      report.phase = "launching real Simulator Safari before RWI discovery";
+      report.safariLaunch = execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], {
+        encoding: "utf8", timeout: 60000,
+      }).trim();
       report.phase = "creating native iOS Safari session";
     },
   });
@@ -102,6 +111,10 @@ try {
   report.results.push({ browser: "ios-safari-simulator", version: safari?.version ?? "not-started", width: 0,
     route: "/", state: "native-ios-simulator", scope: "iPhone Simulator, not physical hardware", file: "actual-ios.json" });
   await safari?.close().catch(() => {}); server.kill();
+  if (automation) {
+    try { automation.restore(); report.restoredAutomationPreference = automation.original; }
+    catch (error) { report.failures.push(`Simulator Safari preference restoration failed: ${error.message}`); }
+  }
   if (restoreDeveloperDirectory) {
     try {
       execFileSync("sudo", ["-n", "xcode-select", "--switch", restoreDeveloperDirectory], { stdio: "inherit", timeout: 30000 });

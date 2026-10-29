@@ -30,9 +30,23 @@ export function restoreTextPaint(s) {
   s.saved = [];
 }
 
+// Updating Text.nodeValue collapses existing DOM Range offsets in WebKit.
+// Re-select the same connected text node, and version its actual content; never
+// transfer old geometry/coverage to replacement text or resurrect detached DOM.
+export function refreshTextRanges(s) {
+  for (const record of s.records) if (record.text.isConnected) {
+    const content = record.text.textContent;
+    if (content !== record.content) {
+      s.textChanges.push({ id: record.id, version: ++record.version, from: record.content, to: content });
+      record.content = content;
+    }
+    record.range.selectNodeContents(record.text);
+  }
+}
+
 export function missingRangeIds(expected, measurements) {
   return new Set(expected.filter(record => !record.connected || record.lines === 0 ||
-    Array.from({ length: record.lines }, (_, line) => `${record.id}:${line}`).some(key => !measurements.has(key))).map(record => record.id));
+    Array.from({ length: record.lines }, (_, line) => `${record.id}:${record.version ?? 0}:${line}`).some(key => !measurements.has(key))).map(record => record.id));
 }
 
 export function snapshotTextPaint(s) {
@@ -82,7 +96,7 @@ export function snapshotTextPaint(s) {
     const threshold = parseFloat(style.fontSize) >= 24 || (parseFloat(style.fontWeight) >= 700 && parseFloat(style.fontSize) >= 14 * 4 / 3) ? 3 : 4.5;
     [...record.range.getClientRects()].forEach((rect, line) => {
       if (rect.width > 0 && rect.height > 0 && exposed(record.element, rect, innerWidth, innerHeight, (x, y) => document.elementFromPoint(x, y))) {
-        boxes.push({ id: record.id, line, rect: rect.toJSON(), foreground, color, threshold, issue, settling });
+        boxes.push({ id: record.id, version: record.version, line, rect: rect.toJSON(), foreground, color, threshold, issue, settling });
       }
     });
   }
@@ -107,7 +121,7 @@ export async function renderedContrast(page, nodes, directory, id) {
         const range = document.createRange(); range.selectNodeContents(text);
         if (!range.getClientRects().length) continue;
         if (!byText.has(text)) {
-          const record = { id: records.length, element: text.parentElement, range };
+          const record = { id: records.length, element: text.parentElement, text, content: text.textContent, version: 0, range };
           byText.set(text, record.id); records.push(record);
         }
         owner.ids.push(byText.get(text));
@@ -115,7 +129,7 @@ export async function renderedContrast(page, nodes, directory, id) {
       if (!owner.ids.length) owner.error = "No rendered DOM text range";
     }
     const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
-    return { records, owners, saved: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
+    return { records, owners, saved: [], textChanges: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
   }, nodes.map(node => node.target));
   const previousScroll = await page.evaluate(() => scrollY);
   const measurements = new Map(), frames = [], deferred = [];
@@ -129,6 +143,7 @@ export async function renderedContrast(page, nodes, directory, id) {
       // Let actual IntersectionObserver/reveal animation settle; never force opacity.
       let snapshot;
       for (let attempt = 0; attempt < 25; attempt++) {
+        await page.evaluate(refreshTextRanges, state);
         snapshot = await page.evaluate(snapshotTextPaint, state);
         if (!snapshot.boxes.some(box => box.settling)) break;
         await page.waitForTimeout(100);
@@ -167,8 +182,10 @@ export async function renderedContrast(page, nodes, directory, id) {
       const hash = bytes => createHash("sha256").update(bytes).digest("hex");
       frames.push({ tile, scroll: snapshot.scroll, original: `${name}-original.png`, originalSha256: hash(original), background: `${name}-background.png`, backgroundSha256: hash(background) });
       for (const box of snapshot.boxes) {
-        const key = `${box.id}:${box.line}`;
-        const measurement = measurements.get(key) ?? { id: box.id, line: box.line, threshold: box.threshold, height: Math.ceil(box.rect.height), intervals: [], minimum: Infinity, issues: [] };
+        const key = `${box.id}:${box.version}:${box.line}`;
+        const measurement = measurements.get(key) ?? { id: box.id, version: box.version, line: box.line, threshold: box.threshold, height: Math.ceil(box.rect.height), intervals: [], minimum: Infinity, issues: [] };
+        measurement.threshold = Math.max(measurement.threshold, box.threshold);
+        measurement.height = Math.max(measurement.height, Math.ceil(box.rect.height));
         measurement.intervals.push([Math.max(0, Math.floor(-box.rect.y)), Math.min(measurement.height, Math.ceil(snapshot.height - box.rect.y))]);
         if (box.rect.x < 0 || box.rect.right > snapshot.width) box.issue = "Text range extends outside horizontal viewport";
         if (box.issue) {
@@ -186,11 +203,12 @@ export async function renderedContrast(page, nodes, directory, id) {
         // Revisit only missing coverage, never discard a low bound in favour of
         // a later, prettier frame. Ordinary centered scrolling lets late reveal
         // animations settle and moves missed text away from sticky overlays.
+        await page.evaluate(refreshTextRanges, state);
         const candidate = await page.evaluate(({ s, measured, revisited }) => {
           for (const record of s.records) {
             if (revisited.includes(record.id) || !record.element.isConnected) continue;
             const rects = [...record.range.getClientRects()];
-            if (!rects.some((_, line) => !measured.includes(`${record.id}:${line}`))) continue;
+            if (!rects.some((_, line) => !measured.includes(`${record.id}:${record.version ?? 0}:${line}`))) continue;
             const rect = record.range.getBoundingClientRect();
             if (rect.width > 0 && rect.height > 0) return { id: record.id, top: scrollY + rect.top - Math.max(0, (innerHeight - rect.height) / 2) };
           }
@@ -202,7 +220,9 @@ export async function renderedContrast(page, nodes, directory, id) {
       if (tile === 249) tileLimit = true;
     }
     const owners = await page.evaluate(s => s.owners, state);
-    const expected = await page.evaluate(s => s.records.map(record => ({ id: record.id, connected: record.element.isConnected && record.range.startContainer.isConnected, lines: record.range.getClientRects().length })), state);
+    await page.evaluate(refreshTextRanges, state);
+    const textChanges = await page.evaluate(s => s.textChanges, state);
+    const expected = await page.evaluate(s => s.records.map(record => ({ id: record.id, version: record.version, connected: record.element.isConnected && record.range.startContainer.isConnected, lines: record.range.getClientRects().length })), state);
     const ranges = [...measurements.values()].map(record => {
       let covered = 0;
       for (const [start, end] of record.intervals.toSorted((a, b) => a[0] - b[0])) {
@@ -217,7 +237,7 @@ export async function renderedContrast(page, nodes, directory, id) {
     const absent = missingRangeIds(expected, measurements);
     const missing = owners.filter(owner => owner.error || owner.ids.some(id => absent.has(id)));
     const failed = ranges.filter(range => !range.pass);
-    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames", owners: owners.length, targets: owners, ranges, frames, deferred,
+    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames", owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
       missing, tileLimit, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);
