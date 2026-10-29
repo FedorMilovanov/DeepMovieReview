@@ -1,0 +1,420 @@
+/* ── Mission ───────────────────────────────────────────────────────────────── */
+
+.missionGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: clamp(2.5rem, 7vw, 8rem);
+  align-items: start;
+}
+
+.missionAffirm {
+  margin-top: 2.2rem;
+  font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+  line-height: 1.4;
+  color: var(--ink-1);
+  font-weight: 500;
+  max-width: 26rem;
+}
+
+.missionDenyList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--stroke-default);
+}
+
+.missionDenyList li {
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--stroke-default);
+  color: var(--ink-3);
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+  text-decoration: line-through;
+  text-decoration-color: var(--accent-fracture-bright);
+  text-decoration-color: color-mix(in oklab, var(--accent-fracture-bright) 55%, transparent);
+  text-decoration-thickness: 1px;
+  transition: color var(--duration-standard) var(--ease-quiet);
+}
+
+.missionDenyList li:hover,
+.missionDenyList li:focus-visible {
+  color: var(--ink-2);
+}
+
+/* ── Pipeline ──────────────────────────────────────────────────────────────── */
+
+.pipelineTrack {
+  list-style: none;
+  margin: clamp(3rem, 6vw, 5.5rem) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--stroke-subtle);
+  border: 1px solid var(--stroke-subtle);
+}
+
+.pipelineStep {
+  position: relative;
+  min-height: 168px;
+  padding: 1.2rem;
+  background: var(--surface-canvas);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition:
+    background var(--duration-standard) var(--ease-quiet),
+    box-shadow var(--duration-standard) var(--ease-quiet);
+}
+
+.pipelineStep:hover,
+.pipelineStep:focus-visible {
+  background: var(--surface-1);
+}
+
+.pipelineStep[data-active="true"] {
+  background: var(--surface-1);
+  box-shadow: inset 2px 0 0 var(--accent-restoration);
+}
+
+.pipelineStepIndex {
+  font-family: var(--font-meta);
+  font-size: 0.6rem;
+  color: var(--ink-3);
+  letter-spacing: var(--tracking-meta);
+}
+
+.pipelineStep strong {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pipelineStepNote {
+  color: var(--ink-3);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+/* ── Lens stage (CSS-only interactive) ─────────────────────────────────────── */
+
+.lensStageSection .sectionIntro {
+  max-width: 44rem;
+}
+
+.lensStage {
+  margin-top: clamp(2.5rem, 5vw, 4.5rem);
+}
+
+.lensStageGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
+  gap: clamp(1.5rem, 3.5vw, 3.5rem);
+  align-items: stretch;
+}
+
+.lensFrameWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  /* Without this the nested frame's aspect-ratio + min-height transfers a
+     ~502px min-content width through this wrapper and inflates the shared
+     lens stage grid track on narrow viewports. */
+  min-width: 0;
+}
+
+.lensFrame {
+  align-self: stretch;
+  min-width: 0;
+}
+
+/* The hero frame is pure scene: it always honors the 2.39:1 letterbox.
+   The shared .livingFrame min-height floor stays for the lens stage, whose
+   frame carries text marks and needs the vertical room on narrow tracks. */
+.heroGrid .livingFrame {
+  min-height: 0;
+}
+
+.lensFrameNote {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.7rem;
+}
+
+.lensMarkGroup {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  /* Inactive groups leave the accessibility tree too: opacity alone keeps
+     their marks announced. The delayed visibility flip mirrors .lensReading. */
+  visibility: hidden;
+  transition:
+    opacity var(--duration-slow) var(--ease-quiet),
+    visibility 0s linear var(--duration-slow);
+  pointer-events: none;
+}
+
+.lensMark {
+  position: absolute;
+  transform: translate(-4px, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.32rem 0.55rem;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  background: var(--surface-canvas);
+  background: color-mix(in srgb, var(--surface-canvas) 78%, transparent);
+  color: var(--ink-1);
+  font-family: var(--font-meta);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.lensMark::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border: 1px solid rgb(255 255 255 / 0.55);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgb(255 255 255 / 0.35) 0 1.5px, transparent 2px),
+    transparent;
+}
+
+.lensPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  min-width: 0;
+}
+
+.lensSelector {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--stroke-subtle);
+  border-top: 1px solid var(--stroke-subtle);
+  border-bottom: 1px solid var(--stroke-subtle);
+}
+
+.lensSelectorLegend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.lensTab {
+  position: relative;
+  display: block;
+  padding: 0.85rem 1rem;
+  background: var(--surface-canvas);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.lensTab:hover {
+  background: var(--surface-1);
+}
+
+.lensRadio {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.lensTabLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.lensTabIndex {
+  font-family: var(--font-meta);
+  font-size: 0.58rem;
+  color: var(--ink-3);
+  letter-spacing: var(--tracking-meta);
+}
+
+.lensReadings {
+  flex: 1;
+}
+
+.lensReading {
+  display: none;
+}
+
+.lensReading h3 {
+  font-size: clamp(1.4rem, 2.2vw, 1.9rem);
+}
+
+.lensReadingPrompt {
+  margin: 0.9rem 0 0;
+  color: var(--ink-1);
+  font-size: 1.05rem;
+  line-height: 1.5;
+  max-width: 30rem;
+}
+
+.lensReading p:not(.lensReadingPrompt) {
+  margin: 0.9rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.92rem;
+  max-width: 32rem;
+}
+
+/* ── Narrative permission scale ────────────────────────────────────────────── */
+
+.permissionAxis {
+  margin-top: clamp(3rem, 6vw, 5rem);
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid var(--stroke-strong);
+  position: relative;
+}
+
+.permissionAxisStop {
+  position: relative;
+  padding: 1rem 0.4rem 0.9rem;
+  color: var(--ink-2);
+  font-family: var(--font-meta);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.permissionAxisStop::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 8px;
+  background: var(--stroke-strong);
+}
+
+.permissionAxisStop:first-child::before {
+  background: var(--accent-fracture-bright);
+}
+
+.permissionAxisStop:last-child::before {
+  background: var(--accent-restoration);
+}
+
+.permissionExamples {
+  list-style: none;
+  margin: 2rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--stroke-subtle);
+  border: 1px solid var(--stroke-subtle);
+}
+
+.permissionExample {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.1rem 1.2rem;
+  background: var(--surface-canvas);
+  transition: background var(--duration-standard) var(--ease-quiet);
+}
+
+.permissionExample:hover,
+.permissionExample:focus-visible {
+  background: var(--surface-1);
+}
+
+.permissionExample span {
+  font-size: 0.92rem;
+  color: var(--ink-2);
+}
+
+.permissionExample strong {
+  font-family: var(--font-meta);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-1);
+  border-bottom: 1px solid var(--stroke-strong);
+  padding-bottom: 0.3rem;
+  align-self: end;
+}
+
+.permissionTrace {
+  position: relative;
+  display: block;
+  height: 2px;
+  margin-top: 0.9rem;
+  background: var(--stroke-subtle);
+}
+
+.permissionTrace i {
+  position: absolute;
+  top: 50%;
+  left: var(--trace-pos, 50%);
+  width: 7px;
+  height: 7px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--accent-restoration);
+  font-style: normal;
+}
+
+.permissionTrace[data-ambiguous="true"] {
+  background-image: repeating-linear-gradient(90deg, var(--stroke-strong) 0 4px, transparent 4px 8px);
+  background-color: transparent;
+}
+
+.permissionTrace[data-ambiguous="true"] i {
+  display: none;
+}
+
+.permissionDemoNote {
+  margin: 1.2rem 0 0;
+  color: var(--ink-3);
+  font-size: 0.72rem;
+}
+
+.permissionRules {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 2.5rem;
+  margin: 2.5rem 0 0;
+  padding: 1.2rem 0 0;
+  border-top: 1px solid var(--stroke-subtle);
+}
+
+.permissionRules li {
+  font-family: var(--font-meta);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+

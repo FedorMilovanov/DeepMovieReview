@@ -1,0 +1,181 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   Deep Waters — homepage structure (Launch Cut v1, RU)
+   Motion/atmosphere lives in homepage-optics.css.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+
+.heroSection {
+  position: relative;
+  /* vh fallback for browsers without svh units (pre-2022 engines). */
+  min-height: calc(100vh - 78px);
+  min-height: calc(100svh - 78px);
+  display: grid;
+  align-content: center;
+  padding-block: clamp(4rem, 7vw, 7rem) clamp(2rem, 4vw, 4rem);
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 1.05fr);
+  gap: clamp(2.5rem, 5vw, 6rem);
+  align-items: center;
+}
+
+/* The eyebrow is the hero's only element outside the grid, so it has no gap to
+   inherit. Once the frame moves above the copy on a narrow screen the two boxes
+   touch and the monogram line sits on the frame's border. */
+.heroSection > .eyebrow {
+  margin: 0 0 clamp(1.4rem, 2.6vw, 2.2rem);
+}
+
+.heroCopy {
+  padding-top: 2rem;
+}
+
+.heroActions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 2.4rem;
+  flex-wrap: wrap;
+}
+
+.heroPreviewNote {
+  margin: 1.6rem 0 0;
+  max-width: 34rem;
+  border-left: 2px solid var(--accent-restoration);
+  padding-left: 1rem;
+  color: var(--ink-3);
+  font-size: 0.8rem;
+}
+
+.heroPreviewNote a {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding-block: 0.35em;
+}
+
+.heroScrollCue {
+  margin-top: clamp(2.5rem, 5vw, 4.5rem);
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.6rem;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.heroScrollLine {
+  width: clamp(3rem, 8vw, 7rem);
+  height: 1px;
+  background: linear-gradient(90deg, var(--stroke-strong), transparent);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Living Frame (shared cinematic scene) ────────────────────────────────── */
+
+.livingFrame {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  aspect-ratio: 2.39 / 1;
+  min-height: 250px;
+  /* Pin the used width to the containing track: aspect-ratio + a definite
+     min-height otherwise transfers into a ~598px min-content/used width that
+     overflows narrow tracks (silently clipped by .appShell). With width:100%
+     the frame fills its track and honors 2.39:1 whenever the track allows,
+     falling back to the min-height floor when it does not. */
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--stroke-strong);
+  background: var(--surface-1);
+  box-shadow:
+    0 44px 110px rgb(0 0 0 / 0.58),
+    inset 0 0 0 1px rgb(255 255 255 / 0.015);
+}
+
+.frameMeta {
+  position: absolute;
+  inset: 0.8rem 0.9rem auto;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  color: rgb(255 255 255 / 0.5);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+}
+
+.frameCaption {
+  position: absolute;
+  inset: auto 1rem 0.9rem;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+}
+
+.frameCaption strong {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.frameCaption span {
+  color: rgb(255 255 255 / 0.55);
+  max-width: 28rem;
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+/* ── Hero status strip ─────────────────────────────────────────────────────── */
+
+.heroStatusStrip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--stroke-subtle);
+  border-block: 1px solid var(--stroke-subtle);
+  padding-block: 0;
+}
+
+.heroStatusStrip > div {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1.1rem 1.2rem 1.2rem 0;
+  background: var(--surface-canvas);
+}
+
+.heroStatusStrip > div + div {
+  padding-left: 1.4rem;
+}
+
+.heroStatusIndex {
+  color: var(--accent-restoration);
+  font-family: var(--font-meta);
+  font-size: 0.58rem;
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.heroStatusStrip strong {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.heroStatusStrip span:not(.heroStatusIndex) {
+  color: var(--ink-3);
+  font-size: 0.68rem;
+}
+
+/* ── Section chrome ────────────────────────────────────────────────────────── */
+
+.sectionIndex {
+  margin-bottom: clamp(1.5rem, 4vw, 3rem);
+}
+
