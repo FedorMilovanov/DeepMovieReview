@@ -313,6 +313,14 @@ export const theTrumanShowArticle: FilmArticle = {
           support: { evidenceIds: ["truman-ev-mococoa"] },
         },
         {
+          kind: "illustration",
+          id: "truman-article-illu-grater",
+          assetId: "illu-truman-caric-grater",
+          layout: "inset",
+          caption:
+            "Карикатура: она играет для зала, которого в комнате нет, — и не оборачивается. Рисунок, не кадр из фильма.",
+        },
+        {
           kind: "paragraph",
           id: "truman-article-bonds-marriage-2",
           text:

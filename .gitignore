@@ -44,3 +44,6 @@ public/og/*.png
 # Illustration source renders and reference art (generated PNGs stay local;
 # what ships is the JPG/AVIF set in public/art)
 /art-source/
+
+# Reference photographs fetched for caricature work (never shipped: they are stills)
+/image-search/
