@@ -1,0 +1,100 @@
+/* ── Reduced motion: freeze every ambient loop ─────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .lfGrain,
+  .examineScan,
+  .heroStatusStrip > div:first-child strong::before,
+  .heroScrollLine::after,
+  .heroEnter .eyebrow,
+  .heroEnter .heroCopy > *,
+  .heroEnter .heroGrid .livingFrame,
+  .heroEnter .heroScrollCue,
+  .examineAnchor {
+    animation: none;
+  }
+
+  .sectionRule {
+    animation: none;
+  }
+
+  .lfMedia,
+  .lfLight,
+  .lfImage,
+  .lensMark,
+  .lensReading,
+  .lensGrade,
+  .lensTrace,
+  .lensTrace path,
+  .craftGlow,
+  .craftChip,
+  .craftPressureCard,
+  .permissionExample,
+  .pipelineStep,
+  .spoilerStep,
+  .examineToggle,
+  .examineRail button {
+    transition: none;
+  }
+}
+
+html[data-reduced-motion="true"] .lfGrain,
+html[data-reduced-motion="true"] .examineScan,
+html[data-reduced-motion="true"] .heroEnter .eyebrow,
+html[data-reduced-motion="true"] .heroEnter .heroCopy > *,
+html[data-reduced-motion="true"] .heroEnter .heroGrid .livingFrame,
+html[data-reduced-motion="true"] .heroEnter .heroScrollCue,
+html[data-reduced-motion="true"] .examineAnchor {
+  animation: none;
+}
+
+html[data-reduced-motion="true"] .lfMedia,
+html[data-reduced-motion="true"] .lfLight,
+html[data-reduced-motion="true"] .lfImage,
+html[data-reduced-motion="true"] .lensGrade,
+html[data-reduced-motion="true"] .lensTrace,
+html[data-reduced-motion="true"] .lensTrace path,
+html[data-reduced-motion="true"] .craftGlow,
+html[data-reduced-motion="true"] .craftChip,
+html[data-reduced-motion="true"] .craftPressureCard,
+html[data-reduced-motion="true"] .permissionExample,
+html[data-reduced-motion="true"] .pipelineStep,
+html[data-reduced-motion="true"] .spoilerStep,
+html[data-reduced-motion="true"] .examineToggle {
+  transition: none;
+}
+
+/* ── Forced colors ─────────────────────────────────────────────────────────── */
+
+@media (forced-colors: active) {
+  .lfGrain,
+  .lfVignette,
+  .lfLight,
+  .lfGrade,
+  .lensGrade,
+  .craftGlow,
+  .examineScan {
+    display: none;
+  }
+
+  .lensTrace path {
+    stroke: CanvasText;
+  }
+
+  .permissionTrace {
+    background: CanvasText;
+  }
+
+  .permissionTrace i {
+    background: CanvasText;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .lensMark {
+    border-color: var(--stroke-strong);
+  }
+
+  .lensMark::before {
+    border-color: var(--ink-1);
+  }
+}

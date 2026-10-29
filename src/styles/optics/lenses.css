@@ -1,0 +1,201 @@
+/* ── Lens stage wiring (CSS-only state machine) ────────────────────────────── */
+
+@supports selector(:has(*)) {
+  .lensReadings {
+    display: grid;
+    align-items: start;
+  }
+
+  .lensReading {
+    display: block;
+    grid-area: 1 / 1;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition:
+      opacity var(--duration-standard) var(--ease-quiet),
+      transform var(--duration-standard) var(--ease-quiet),
+      visibility 0s linear var(--duration-standard);
+  }
+
+  .lensTab:has(.lensRadio:checked) {
+    background: var(--surface-2);
+  }
+
+  .lensTab:has(.lensRadio:checked) .lensTabLabel {
+    color: var(--ink-1);
+  }
+
+  .lensTab:has(.lensRadio:checked)::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    background: var(--accent-restoration);
+  }
+
+  .lensTab:has(.lensRadio:focus-visible) {
+    outline: 1px solid var(--focus-color);
+    outline-offset: -2px;
+  }
+
+  .lensStage:has(.lensRadio[value="story"]:checked) .lensMarkGroup[data-lens="story"],
+  .lensStage:has(.lensRadio[value="people"]:checked) .lensMarkGroup[data-lens="people"],
+  .lensStage:has(.lensRadio[value="relationships"]:checked) .lensMarkGroup[data-lens="relationships"],
+  .lensStage:has(.lensRadio[value="ideas"]:checked) .lensMarkGroup[data-lens="ideas"],
+  .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensMarkGroup[data-lens="moral-world"],
+  .lensStage:has(.lensRadio[value="craft"]:checked) .lensMarkGroup[data-lens="craft"] {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 40ms, 0s;
+  }
+
+  .lensStage:has(.lensRadio[value="story"]:checked) .lensReading[data-lens="story"],
+  .lensStage:has(.lensRadio[value="people"]:checked) .lensReading[data-lens="people"],
+  .lensStage:has(.lensRadio[value="relationships"]:checked) .lensReading[data-lens="relationships"],
+  .lensStage:has(.lensRadio[value="ideas"]:checked) .lensReading[data-lens="ideas"],
+  .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensReading[data-lens="moral-world"],
+  .lensStage:has(.lensRadio[value="craft"]:checked) .lensReading[data-lens="craft"] {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition-delay: 40ms, 40ms, 0s;
+  }
+
+  /* Desktop: marks float inside the frame and settle with a small stagger. */
+  @media (min-width: 721px) {
+    .lensMark {
+      opacity: 0;
+      transform: translate(-2px, calc(-50% + 7px));
+      transition:
+        opacity var(--duration-standard) var(--ease-quiet),
+        transform var(--duration-standard) var(--ease-quiet);
+    }
+
+    .lensStage:has(.lensRadio[value="story"]:checked) .lensMarkGroup[data-lens="story"] .lensMark,
+    .lensStage:has(.lensRadio[value="people"]:checked) .lensMarkGroup[data-lens="people"] .lensMark,
+    .lensStage:has(.lensRadio[value="relationships"]:checked) .lensMarkGroup[data-lens="relationships"] .lensMark,
+    .lensStage:has(.lensRadio[value="ideas"]:checked) .lensMarkGroup[data-lens="ideas"] .lensMark,
+    .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensMarkGroup[data-lens="moral-world"] .lensMark,
+    .lensStage:has(.lensRadio[value="craft"]:checked) .lensMarkGroup[data-lens="craft"] .lensMark {
+      opacity: 1;
+      transform: translate(-4px, -50%);
+    }
+
+    .lensMarkGroup .lensMark:nth-child(2) { transition-delay: 70ms; }
+    .lensMarkGroup .lensMark:nth-child(3) { transition-delay: 140ms; }
+    .lensMarkGroup .lensMark:nth-child(4) { transition-delay: 210ms; }
+  }
+
+  /* Mobile: marks become an inline chip list under the frame; only the active
+     lens occupies layout space. */
+  @media (max-width: 720px) {
+    .lensMarkGroup {
+      display: none;
+    }
+
+    .lensStage:has(.lensRadio[value="story"]:checked) .lensMarkGroup[data-lens="story"],
+    .lensStage:has(.lensRadio[value="people"]:checked) .lensMarkGroup[data-lens="people"],
+    .lensStage:has(.lensRadio[value="relationships"]:checked) .lensMarkGroup[data-lens="relationships"],
+    .lensStage:has(.lensRadio[value="ideas"]:checked) .lensMarkGroup[data-lens="ideas"],
+    .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensMarkGroup[data-lens="moral-world"],
+    .lensStage:has(.lensRadio[value="craft"]:checked) .lensMarkGroup[data-lens="craft"] {
+      display: flex;
+    }
+  }
+}
+
+@supports not selector(:has(*)) {
+  .lensMarkGroup {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .lensReading {
+    display: block;
+  }
+}
+
+/* ── Lens grades + TRACE lines (CSS-only state machine extension) ─────────────── */
+
+.lensGrade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-quiet);
+  pointer-events: none;
+}
+
+.lensGrade[data-lens="story"] {
+  background: linear-gradient(115deg, rgb(150 170 200 / 0.1), transparent 55%);
+}
+
+.lensGrade[data-lens="people"] {
+  background: radial-gradient(ellipse 80% 90% at 42% 55%, rgb(240 220 190 / 0.12), transparent 65%);
+}
+
+.lensGrade[data-lens="relationships"] {
+  background:
+    linear-gradient(90deg, rgb(240 220 190 / 0.08), transparent 45%),
+    linear-gradient(270deg, rgb(143 32 39 / 0.1), transparent 45%);
+}
+
+.lensGrade[data-lens="ideas"] {
+  background: linear-gradient(180deg, rgb(242 238 230 / 0.07), transparent 50%);
+}
+
+.lensGrade[data-lens="moral-world"] {
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 108%, rgb(143 32 39 / 0.16), transparent 62%),
+    linear-gradient(180deg, transparent 60%, rgb(10 4 4 / 0.24));
+}
+
+.lensGrade[data-lens="craft"] {
+  background:
+    radial-gradient(ellipse 55% 65% at 62% 40%, rgb(217 195 156 / 0.14), transparent 60%),
+    linear-gradient(180deg, rgb(217 195 156 / 0.05), transparent 40%);
+}
+
+.lensTrace {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-quiet);
+  pointer-events: none;
+}
+
+.lensTrace path {
+  fill: none;
+  stroke: var(--accent-restoration);
+  stroke-width: 0.45;
+  stroke-linecap: round;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  transition: stroke-dashoffset 1.1s var(--ease-quiet) 150ms;
+}
+
+@supports selector(:has(*)) {
+  .lensStage:has(.lensRadio[value="story"]:checked) .lensGrade[data-lens="story"],
+  .lensStage:has(.lensRadio[value="people"]:checked) .lensGrade[data-lens="people"],
+  .lensStage:has(.lensRadio[value="relationships"]:checked) .lensGrade[data-lens="relationships"],
+  .lensStage:has(.lensRadio[value="ideas"]:checked) .lensGrade[data-lens="ideas"],
+  .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensGrade[data-lens="moral-world"],
+  .lensStage:has(.lensRadio[value="craft"]:checked) .lensGrade[data-lens="craft"] {
+    opacity: 1;
+  }
+
+  .lensStage:has(.lensRadio[value="story"]:checked) .lensTrace[data-lens="story"],
+  .lensStage:has(.lensRadio[value="relationships"]:checked) .lensTrace[data-lens="relationships"] {
+    opacity: 0.9;
+  }
+
+  .lensStage:has(.lensRadio[value="story"]:checked) .lensTrace[data-lens="story"] path,
+  .lensStage:has(.lensRadio[value="relationships"]:checked) .lensTrace[data-lens="relationships"] path {
+    stroke-dashoffset: 0;
+  }
+}
+

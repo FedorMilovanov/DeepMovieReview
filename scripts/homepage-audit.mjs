@@ -71,7 +71,7 @@ const page = read("src/app/page.tsx");
 const tilt = read("src/components/tilt-surface.tsx");
 const tiltCss = read("src/styles/tilt.css");
 const frame = read("src/components/living-frame.tsx");
-const optics = read("src/styles/homepage-optics.css");
+const optics = readStylesheet("src/styles/homepage-optics.css");
 
 check("SRC", "S01", "главная не содержит захардкоженных счётчиков сцен и опор", () => {
   const suspects = page.match(/(пятнадцать|тридцать восемь|тридцать две|четырнадцать)\s+(чернов|исследовательск)/gi);
@@ -233,7 +233,7 @@ check("COMPAT", "C02", "backdrop-filter продублирован с -webkit- �
 });
 
 check("COMPAT", "C03", ":has() используется только внутри @supports", () => {
-  const homepage = read("src/styles/homepage-optics.css");
+  const homepage = readStylesheet("src/styles/homepage-optics.css");
   const guarded = /@supports selector\(:has\(\*\)\)/.test(homepage);
   const usesHas = /:has\(/.test(homepage);
   return !usesHas || guarded;
@@ -332,13 +332,13 @@ check("COMPAT", "C12", "градиент с color-mix в основании не
 });
 
 check("COMPAT", "C10", "контейнерные запросы имеют фолбэк для браузеров без них", () => {
-  const verdict = read("src/styles/film-verdict.css");
+  const verdict = readStylesheet("src/styles/film-verdict.css");
   if (!/@container/.test(verdict)) return true;
   return /@supports not \(container-type: inline-size\)/.test(verdict) || "нет @supports not";
 });
 
 check("COMPAT", "C11", "акцентный текст не остаётся без цвета при отсутствии color-mix", () => {
-  const verdict = read("src/styles/film-verdict.css");
+  const verdict = readStylesheet("src/styles/film-verdict.css");
   const lines = verdict.split("\n");
   const offenders = [];
   for (let index = 0; index < lines.length; index += 1) {

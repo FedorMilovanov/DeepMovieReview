@@ -1,0 +1,68 @@
+/* ── Ambient loops (disabled under reduced motion) ─────────────────────────── */
+
+@keyframes dmrGrainJitter {
+  0% { transform: translate3d(0, 0, 0); }
+  20% { transform: translate3d(-14px, 8px, 0); }
+  40% { transform: translate3d(9px, -12px, 0); }
+  60% { transform: translate3d(-7px, -6px, 0); }
+  80% { transform: translate3d(12px, 10px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes dmrStatusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@keyframes dmrScrollSweep {
+  0% { transform: scaleX(0); transform-origin: left; }
+  45% { transform: scaleX(1); transform-origin: left; }
+  55% { transform: scaleX(1); transform-origin: right; }
+  100% { transform: scaleX(0); transform-origin: right; }
+}
+
+html:not([data-reduced-motion="true"]) .lfGrain {
+  animation: dmrGrainJitter 1.1s steps(5) infinite;
+}
+
+html:not([data-reduced-motion="true"]) .examineScan {
+  animation: dmrScanSweep 4.2s var(--ease-standard) infinite;
+}
+
+.heroStatusStrip > div:first-child strong::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent-restoration);
+  vertical-align: baseline;
+}
+
+html:not([data-reduced-motion="true"]) .heroStatusStrip > div:first-child strong::before {
+  animation: dmrStatusPulse 2.6s var(--ease-standard) infinite;
+}
+
+html:not([data-reduced-motion="true"]) .heroScrollLine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ink-3);
+  animation: dmrScrollSweep 3.4s var(--ease-standard) infinite;
+}
+
+/* ── Lite tier: no infinite ambient loops ──────────────────────────────────── */
+
+/* The provider already writes `data-quality-tier` for a chosen Lite mode and for
+   a device the capability probe downgraded. Those readers asked for (or were
+   given) a page that does not animate forever: the grain jitter, the status
+   pulse and the scroll cue are decoration that costs a compositing thread for
+   as long as the tab is open. State changes and transitions stay. */
+html[data-quality-tier="lite"] .lfGrain,
+html[data-quality-tier="lite"] .examineScan,
+html[data-quality-tier="lite"] .heroStatusStrip > div:first-child strong::before,
+html[data-quality-tier="lite"] .heroScrollLine::after {
+  animation: none;
+}
+
