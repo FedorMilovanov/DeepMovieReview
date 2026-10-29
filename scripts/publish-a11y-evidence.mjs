@@ -14,7 +14,13 @@ const scans = summary.results.map(scan => {
   const result = JSON.parse(readFileSync(`${directory}/${scan.file}`, "utf8"));
   return { scan, violations: result.violations, incomplete: result.incomplete };
 });
-const bytes = gzipSync(Buffer.from(JSON.stringify({ summary, scans })));
+// Include original mobile article PNGs, not regenerated images or a text-only substitute.
+const screenshots = summary.results.filter(scan => scan.state === "page" && scan.width === 390 && scan.route.includes("/article?")).map(scan => {
+  const file = scan.file.replace(/-page\.json$/, ".png");
+  const image = readFileSync(`${directory}/${file}`);
+  return { browser: scan.browser, file, sha256: createHash("sha256").update(image).digest("hex"), data: image.toString("base64") };
+});
+const bytes = gzipSync(Buffer.from(JSON.stringify({ summary, scans, screenshots })));
 const encoded = bytes.toString("base64");
 const chunks = encoded.match(/.{1,4000}/g);
 assert.ok(chunks.length <= 1000, "Evidence exceeds Checks API budget; never truncate diagnostics");
