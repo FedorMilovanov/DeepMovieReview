@@ -511,3 +511,47 @@ jobs:
           path: at-report/
           if-no-files-found: warn
           retention-days: 7
+
+  rendered-contrast:
+    name: Rendered contrast (${{ matrix.browser }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      checks: write
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    env:
+      DMR_PREVIEW_CONTENT_ENABLED: "true"
+      DMR_SITE_INDEXING_ENABLED: "false"
+      A11Y_BROWSERS: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install the actual engine under assessment
+        run: npx playwright-core install --with-deps ${{ matrix.browser }}
+      - run: npm run build
+      - name: Assess all current incomplete text-range backgrounds
+        run: node scripts/run-contrast-audit.mjs
+      - name: Publish measured bounds without relabeling incomplete as pass
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-a11y-evidence.mjs a11y-report contrast-${{ matrix.browser }}
+      - name: Preserve original and background-isolation PNG pairs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: contrast-${{ matrix.browser }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: a11y-report/
+          if-no-files-found: error
+          retention-days: 7

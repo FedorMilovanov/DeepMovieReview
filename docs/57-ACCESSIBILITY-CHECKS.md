@@ -315,3 +315,31 @@ menu speech. Await that live source for up to8s when an expected phrase is absen
 without replaying keyboard/Commander actions. Store actual phrases and read errors
 separately; unchanged menu/heading/table assertions still reject absence/timeout.
 Tests demonstrate delayed native speech and rejection without fabricated content.
+
+### Pending cross-engine rendered-background assessment
+
+A dedicated Chromium/Firefox/WebKit matrix now runs the same42 route/width/state
+scans with an additional finite pixel-bound assessment. Raw axe incomplete nodes
+remain intact. For each target, real text Range rectangles are visited by natural
+scroll/reveal. Save original viewport PNG, then temporarily remove only text paint
+(color/text-fill/shadow/SVG fill), save its real background PNG, and restore the exact
+inline properties/priorities. This is background-isolation instrumentation, not a
+forced production foreground/layout or a screenshot presented as the original.
+No new important rules, forced opacity, synthetic backgrounds or CSS/DPR zoom.
+
+The original computed foreground is parsed by the engine; alpha is composited over
+every background pixel within each text rectangle. Keep the conservative minimum,
+not an average. Check image scale, masking/unchanged geometry, full range/owner
+coverage and actual3:1/4.5:1 thresholds. Missing targets/ranges, partial horizontal
+visibility, unmaskable text, unsettled opacity, filters/blend/stroke/shadow, tile cap
+or a below-bound rectangle require review and fail the assessment gate. These are
+not automatically called axe/WCAG violations; a conservative failure may need finer
+actual-glyph/manual assessment. No exception list or silent skipping was added.
+
+This covers only sampled settled viewport states, not every animation frame,
+occlusion/readability issue, physical device or human AT assessment. All paired PNGs
+and hash/scroll/minimum records are retained in CI artifacts, and metadata exported
+through the existing verified Checks bridge. Existing app-shell/native/security
+gates are unchanged. New pinned pure-JS pngjs7 has no dependency install lifecycle
+hooks; audit0. Local math tests reject averaging, rounded4.5 passes and transparent
+foreground. Full rendered results are explicitly pending the first matrix run.
