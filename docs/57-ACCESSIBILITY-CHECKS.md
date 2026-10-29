@@ -167,3 +167,20 @@ Xcode26.3/SDK26.2 и boot92s, но отдельный simctl launch в этом 
 предварительная launch: создание native Safari теперь поручено самому SafariDriver
 через стандартную W3C session с useSimulator/deviceUDID. Ни одна проверка страниц,
 нативных taps или reflow не удалена; результат следующей сессии пока неизвестен.
+
+`1c8461f` desktop receipt123702681711 (SHA256 verified) подтвердил настоящее
+открытие Item Chooser, выбор web content и вход в web area с озвученным skip link.
+Замена perform→press устранила предыдущий menu failure в этом запуске. Следующая
+проверка rotor не нашла Headings через lastSpokenPhrase; промежуточные фразы раньше
+терялись при exception. Теперь сохраняется речь даже неуспешного action и каждой
+rotor category, ищется category во всей текущей последовательности (не только в
+последнем item/help). Перед Enter лог очищается: обязательные title+heading должны
+быть озвучены выбранным заголовком, не старым названием страницы/категории.
+Native heading pass пока **не подтверждён**.
+
+iOS receipt123704547813 (`1c8461f`, SHA256 verified): boot99s завершился,
+но теперь стандартная W3C session выявила timeout «Booting Simulator.app if not
+already running». Native iOS ещё не стартовал. Для следующего запуска сохраняются
+bounded read-only ps snapshots host Simulator/CoreSimulator executable paths после
+boot и при failure: это позволит проверить реальную версию GUI, не выдавая одну
+лишь переменную DEVELOPER_DIR за доказательство правильного host process.
