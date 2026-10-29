@@ -141,8 +141,11 @@ try {
       const speech = [...await reader.spokenPhraseLog()];
       evidence.actions.push({ label: "VoiceOver rotor category", category, speech });
       checkpoint(`VoiceOver rotor category ${category}`);
-      if (/headings|заголовки/i.test(speech.join(" "))) break;
-      assert.ok(category < 11, "VoiceOver web rotor must expose Headings");
+      // Some VoiceOver configurations speak only the selected rotor item,
+      // e.g. "On item 1: TITLE", not its category. Select that native entry,
+      // then independently require Describe Item to confirm the heading role.
+      if (/headings|заголовки|On item 1:\s*шоу трумана/i.test(speech.join(" "))) break;
+      assert.ok(category < 11, "VoiceOver web rotor must expose the article heading entry");
       await reader.press("ArrowRight", navigationOptions);
     }
     await reader.press("Home", navigationOptions);
@@ -150,6 +153,8 @@ try {
     // earlier web-area title or the rotor's category/help announcement.
     await reader.clearSpokenPhraseLog();
     await reader.press("Enter", navigationOptions);
+    await reader.clearSpokenPhraseLog();
+    await perform(reader.keyboardCommands.describeItem, navigationOptions);
   }, [/шоу трумана/i, /heading|заголовок/i]);
   await action("native table navigation", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/четыре окна/i, /table|таблиц/i]);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);

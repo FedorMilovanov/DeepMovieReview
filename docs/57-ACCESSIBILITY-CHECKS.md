@@ -184,3 +184,19 @@ already running». Native iOS ещё не стартовал. Для следу�
 bounded read-only ps snapshots host Simulator/CoreSimulator executable paths после
 boot и при failure: это позволит проверить реальную версию GUI, не выдавая одну
 лишь переменную DEVELOPER_DIR за доказательство правильного host process.
+
+`8039b7f` receipt123707907803 (SHA256 verified) сохранил настоящий rotor trace:
+category1/7 озвучили «On item 1: ШОУ ТРУМАНА: ЧЕЛОВЕК…», но слово Headings вообще
+не прозвучало; другие категории дали ссылки, table, landmarks и Window Spots.
+Это не доказывает роль выбранного элемента. Следующая проверка выбирает native
+entry и отдельно выполняет штатный VO-F3 Describe Item, очищая всю старую речь:
+по-прежнему обязательны название статьи **и heading/заголовок** из этого описания.
+Никакие DOM role/text в speech не подмешиваются; describeItem mapping также проверен.
+
+iOS receipt123709747324 (`8039b7f`, SHA256 verified) boot88s завершился, но native
+session опять отказала на remote Safari/RWI discovery. Bounded ps snapshot оказался
+переполнен guest-daemons: их runtime paths тоже содержат CoreSimulator. Фильтр
+исправлен на настоящие host executable paths и основной MobileSafari; есть тест
+с500 guest paths, сохраняющий host GUI. Версия реального GUI пока не подтверждена.
+При отсутствии PID diagnostic log теперь экспортируется только bounded список имён
+файлов, не содержимое чужого PID: нужно проверить фактический filename format.

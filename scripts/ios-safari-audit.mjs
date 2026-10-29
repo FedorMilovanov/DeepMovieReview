@@ -5,7 +5,7 @@ import { arch, release } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
-import { newestStableXcode, runtimeMatchesSdk } from "./lib/apple-toolchain.mjs";
+import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { nativeSafari } from "./lib/native-safari.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari";
@@ -15,8 +15,7 @@ const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] 
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 let safari;
 function hostSimulatorProcesses() {
-  return execFileSync("ps", ["-axo", "pid=,state=,pcpu=,comm="], { encoding: "utf8", timeout: 10000 })
-    .split("\n").filter(line => /Simulator\.app|CoreSimulator|safaridriver/.test(line)).join("\n").slice(-12000);
+  return nativeSimulatorProcessLines(execFileSync("ps", ["-axo", "pid=,state=,pcpu=,comm="], { encoding: "utf8", timeout: 10000 }));
 }
 try {
   report.initialDeveloperDirectory = execFileSync("xcode-select", ["-p"], { encoding: "utf8", timeout: 30000 }).trim();
