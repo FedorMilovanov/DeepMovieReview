@@ -186,3 +186,17 @@ test("Apple toolchain selection ignores beta/default aliases and rejects incompa
   assert.equal(runtimeMatchesSdk("com.apple.CoreSimulator.SimRuntime.tvOS-26-2", "26.2"), false);
   assert.equal(runtimeMatchesSdk("invalid", "invalid"), false);
 });
+
+test("Safari diagnostics are bounded and isolated to the actual driver pid", async () => {
+  const { safariDriverLog } = await import("../scripts/lib/apple-toolchain.mjs");
+  const directory = mkdtempSync(join(tmpdir(), "dmr-safari-logs-"));
+  try {
+    writeFileSync(join(directory, "safaridriver.42.session.txt"), "x".repeat(14000) + "RWI startup failed");
+    writeFileSync(join(directory, "safaridriver.43.session.txt"), "unrelated driver");
+    const log = safariDriverLog(directory, 42);
+    assert.ok(log.length <= 12000);
+    assert.ok(log.endsWith("RWI startup failed"));
+    assert.ok(!log.includes("unrelated driver"));
+    assert.match(safariDriverLog(directory, 99), /No SafariDriver diagnostic file/);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});

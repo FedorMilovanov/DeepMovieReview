@@ -141,3 +141,13 @@ DEVELOPER_DIR; xcrun, Simulator.app и spawned SafariDriver наследуют �
 Runtime отсекается по поддерживаемому SDK major; system xcode-select не изменяется.
 Pure selection покрыт тестом (beta/default aliases и несовместимые major versions).
 Новый pass до выполнения CI не заявляется; публичный контур и данные не менялись.
+
+`d1b7acc` receipts проверены: iOS123695977245 подтвердил Xcode26.3/SDK26.2,
+успешный boot iPhone17Pro/iOS26.2 и настоящий launch MobileSafari (PID9049).
+Следующий timeout был в предварительном `simctl terminate`, не в launch.
+Этот ненужный stop удалён: Safari должен остаться запущенным для RWI discovery;
+функциональные assertions не исключались. Desktop receipt123693152543 в этот раз
+отказал ещё на local Safari/RWI session startup, поэтому rotor **не проверен**.
+Перед SR/WebDriver теперь явно активируется Safari; --diagnose и ограниченные
+логи именно текущего PID экспортируются вместе с причиной startup failure.
+Изоляция PID/размер диагностики покрыты тестом; новый native pass пока pending.
