@@ -736,8 +736,9 @@ check("CR", "CR10", "интерактив не меньше 44px по корот
 
 check("CR", "CR11", "нет мёртвых стилей: каждый класс статьи используется", () => {
   const components = [
-    read("src/components/film-article/article-view.tsx"),
-    read("src/components/film-article/production-view.tsx"),
+    ...readdirSync("src/components/film-article")
+      .filter((name) => name.endsWith(".tsx"))
+      .map((name) => read(`src/components/film-article/${name}`)),
     read("src/app/films/[slug]/page.tsx"),
     read("src/app/films/[slug]/article/page.tsx"),
     read("src/app/films/[slug]/making/page.tsx"),

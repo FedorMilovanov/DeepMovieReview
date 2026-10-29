@@ -1,3 +1,4 @@
+import { ArticleTable } from "./article-table";
 import Link from "next/link";
 import type { ArticleBlock, ArticleMeasurementRef, FilmArticle } from "@/lib/film-package";
 import { Breadcrumbs } from "@/components/breadcrumbs";
@@ -111,7 +112,7 @@ function ArticleBlockView({
       return <p className="articleParagraph">{block.text}</p>;
     case "aside":
       return (
-        <aside className="articleAside" aria-label={block.label}>
+        <aside className="articleAside" role="note" aria-label={block.label}>
           <p className="microLabel">{block.label}</p>
           <p>{block.text}</p>
         </aside>
@@ -145,51 +146,45 @@ function ArticleBlockView({
     }
     case "measurement-table":
       return (
-        <figure className="articleTableFigure">
-          <figcaption>{block.caption}</figcaption>
-          <table className="articleTable">
-            <thead>
-              <tr>
-                {block.columns.map((column) => <th key={column} scope="col">{column}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {block.rows.map((row) => {
-                const view = describeMeasurement(row.measurement);
-                if (!view) return null;
-                return (
-                  <tr key={row.id}>
-                    <th scope="row">{row.label}</th>
-                    <td>{view.primary}</td>
-                    <td>{view.secondary}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </figure>
+        <ArticleTable blockId={block.id} caption={block.caption}>
+          <thead>
+            <tr>
+              {block.columns.map((column) => <th key={column} scope="col">{column}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row) => {
+              const view = describeMeasurement(row.measurement);
+              if (!view) return null;
+              return (
+                <tr key={row.id}>
+                  <th scope="row">{row.label}</th>
+                  <td>{view.primary}</td>
+                  <td>{view.secondary}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </ArticleTable>
       );
     case "corrections":
       return (
-        <figure className="articleTableFigure articleCorrections">
-          <figcaption>{block.caption}</figcaption>
-          <table className="articleTable">
-            <thead>
-              <tr>
-                <th scope="col">Ходовое утверждение</th>
-                <th scope="col">Что в кадре</th>
+        <ArticleTable blockId={block.id} caption={block.caption} corrections>
+          <thead>
+            <tr>
+              <th scope="col">Ходовое утверждение</th>
+              <th scope="col">Что в кадре</th>
+            </tr>
+          </thead>
+          <tbody>
+            {block.rows.map((row) => (
+              <tr key={row.id}>
+                <th scope="row">{row.commonClaim}</th>
+                <td>{row.onScreen}</td>
               </tr>
-            </thead>
-            <tbody>
-              {block.rows.map((row) => (
-                <tr key={row.id}>
-                  <th scope="row">{row.commonClaim}</th>
-                  <td>{row.onScreen}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </figure>
+            ))}
+          </tbody>
+        </ArticleTable>
       );
   }
 }

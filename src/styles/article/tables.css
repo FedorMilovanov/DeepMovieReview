@@ -1,0 +1,85 @@
+.articleTableFigure {
+  margin: 0;
+  display: grid;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
+.articleTableViewport {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.articleTableViewport:focus-visible {
+  outline: 1px solid var(--focus-color);
+  outline-offset: var(--focus-offset);
+}
+
+.articleTableFigure figcaption {
+  overflow-wrap: anywhere;
+  color: var(--ink-3);
+  font-size: var(--type-body);
+  line-height: 1.5;
+  max-width: 62ch;
+}
+
+.articleTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-body);
+}
+
+.articleTable th,
+.articleTable td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--space-3) var(--space-3) var(--space-3) 0;
+  border-bottom: 1px solid var(--stroke-subtle);
+}
+
+.articleTable thead th {
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--ink-4);
+  font-weight: 400;
+}
+
+.articleTable tbody th {
+  font-weight: 500;
+  color: var(--ink-1);
+}
+
+.articleTable td {
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.articleTable td:not(:last-child) {
+  white-space: nowrap;
+}
+
+.articleCorrections {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--stroke-warm);
+}
+
+.articleCorrections .articleTable td {
+  white-space: normal;
+}
+
+@media print {
+  .articleTableViewport {
+    overflow: visible;
+  }
+
+  .articleTable th,
+  .articleTable td,
+  .articleTable td:not(:last-child) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
