@@ -889,17 +889,141 @@ export const trumanProductionSources: ProductionSource[] = [
     checkedOn: "2026-10-28",
     supports: "Перепечатка пресс-релиза Библиотеки Конгресса с описанием «Шоу Трумана».",
   },
+  // ---- Second research run (2026-10-29) ------------------------------------
+  // Behind the scenes, the authors' own framing, and the film's clinical life.
+  {
+    id: "src-splicedwire-weir",
+    label: "Peter Weir interview: The Truman Show, Carrey and the invention of the show",
+    publisher: "SPLICEDwire",
+    url: "https://www.splicedwire.com/features/weir.html",
+    tier: "PRIMARY",
+    publishedAt: "1998-04-01",
+    checkedOn: "2026-10-29",
+    supports:
+      "Уир о работе: «Пленник» ему не помог, потому что там аудитория не равнодушна; шесть смен в сутки на шоу; он сам играл режиссёра дневной смены и импровизировал с актёрами; отсюда — документальная группа, снявшая материал для промо.",
+  },
+  {
+    id: "src-baltimoresun-weir-carrey",
+    label: "Director, star of ‘Truman’ talk truths: Weir and Carrey on working together",
+    publisher: "The Baltimore Sun",
+    url: "https://www.baltimoresun.com/1998/06/08/director-star-of-truman-talk-truths-facades-jim-carrey-and-peter-weir-of-the-truman-show-talk-about-working-together-and-the-films-satiric-views-of-television-risk-reality-and-conformity/",
+    tier: "PRIMARY",
+    publishedAt: "1998-06-08",
+    checkedOn: "2026-10-29",
+    supports:
+      "Совместное интервью: Уир каждое утро заходил к Керри в гримёрку с вопросом «есть что-нибудь новое за ночь?»; установка — не сковывать актёра, сохранять спонтанность.",
+  },
+  {
+    id: "src-afcinema-biziou",
+    label: "Looking back on the meeting and discussion with Peter Biziou, BSC",
+    publisher: "AFCinema (Association française des directeurs de la photographie)",
+    url: "https://www.afcinema.com/Looking-back-on-the-meeting-and-discussion-with-Peter-Biziou-BSC.html?lang=fr",
+    tier: "PRIMARY",
+    publishedAt: "2023-11-13",
+    checkedOn: "2026-10-29",
+    supports:
+      "Бизу о работе: макеты скрытых камер делали прямо перед объективом; штурмовая сцена снималась в огромном бассейне Universal с волновой машиной; восход по заказу шоу делали физически — солнце на штанге поднимали в реальном времени, потому что в постпродакшне это стоило бы слишком дорого.",
+  },
+  {
+    id: "src-cinephilia-weir",
+    label: "The Truman Show at 28: Weir and Niccol's dystopian satire (перепечатка интервью Уира Дэну Либаргеру, Pitch Weekly, июнь 1998)",
+    publisher: "Cinephilia & Beyond",
+    url: "https://cinephiliabeyond.org/truman-show-weir-niccols-uplifting-yet-prophetically-disturbing-dystopian-satire/",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-29",
+    supports:
+      "Интервью Уира 1998 года и материалы American Cinematographer: «жизнь сейчас и есть абсурд, а фильм это отражает»; неосуществлённая идея поставить камеру в каждом кинозале и на секунду переключиться на зрителей; Никкол писал мрачнее и про поддельный Манхэттен; продюсер в фильме «продаёт образ жизни», отсюда пригород; декорации сверяли с обложками Saturday Evening Post.",
+  },
+  {
+    id: "src-gainesville-seaside",
+    label: "Fla. town remembers 'The Truman Show'",
+    publisher: "The Gainesville Sun / Associated Press",
+    url: "https://www.gainesville.com/story/news/2008/06/15/fla-town-remembers-the-truman-show/31569020007/",
+    tier: "SECONDARY",
+    publishedAt: "2008-06-15",
+    checkedOn: "2026-10-29",
+    supports:
+      "Экономика съёмок в Сисайде: 500 тыс. долларов локационного платежа (деньги пошли на школу), около 150 тыс. на вырубку сада и «пластиковую» растительность, фасады центральной площади из гипса и картона простояли около полугода; около 15 млн долларов в местную экономику (продюсер Эд Фельдман); статист 64 доллара в день, роль со словами 540, сосед Трумана — около 10 тыс. за пятинедельный контракт и 8–10 съёмочных дней; Уир обещал городу, что это будет «как армия на постое».",
+  },
+  {
+    id: "src-mentalfloss-truths",
+    label: "15 Truths About 'The Truman Show'",
+    publisher: "Mental Floss",
+    url: "https://www.mentalfloss.com/article/64649/15-truths-about-truman-show",
+    tier: "SECONDARY",
+    publishedAt: "2022-04-08",
+    checkedOn: "2026-10-29",
+    supports:
+      "Из импровизаций актёров в образе Уир собрал документальную группу; часть вошла в фильм, остальное стало получасовым фильмом о шоу для Nick at Nite под названием Tru Talk с Майком Майклсоном в исполнении Гарри Ширера.",
+  },
+  {
+    id: "src-letterboxd-trutalk",
+    label: "The Truman Show: Tru-Talk (1998) — promotional featurette",
+    publisher: "Letterboxd",
+    url: "https://letterboxd.com/film/the-truman-show-tru-talk/",
+    tier: "TERTIARY",
+    checkedOn: "2026-10-29",
+    supports:
+      "Карточка выпуска: 22 минуты, промо-мокьюментари в духе «60 минут» внутри вселенной фильма, в ролях Керри, Линни, Харрис, Ширер; вышел в 1998-м.",
+  },
+  {
+    id: "src-neatorama-truths",
+    label: "15 Truths About The Truman Show",
+    publisher: "Neatorama",
+    url: "https://www.neatorama.com/2015/06/04/15-Truths-About-The-Truman-Show/",
+    tier: "TERTIARY",
+    publishedAt: "2015-06-04",
+    checkedOn: "2026-10-29",
+    supports:
+      "Пересказ сравнений с «Секретным кино» Пола Бартеля (1968) и эпизодами «Сумеречной зоны»: Никкол утверждал, что ни фильма, ни эпизодов не знал, когда писал сценарий.",
+  },
+  {
+    id: "src-cambridge-truman-signs",
+    label: "'Truman' signs and vulnerability to psychosis",
+    publisher: "The British Journal of Psychiatry (Cambridge University Press)",
+    url: "https://www.cambridge.org/core/journals/the-british-journal-of-psychiatry/article/truman-signs-and-vulnerability-to-psychosis/81472D687BD05092D3E696F5B90A6B5D",
+    tier: "SECONDARY",
+    publishedAt: "2008-08-01",
+    checkedOn: "2026-10-29",
+    supports:
+      "Фузар-Поли и соавторы описали «признаки Трумана» — подпороговые переживания наблюдения и подмены реальности у людей из группы риска психоза; это не диагноз, а описание продромального феномена.",
+  },
+  {
+    id: "src-researchgate-tsd",
+    label: "The 'Truman Show' delusion: Psychosis in the global village",
+    publisher: "Cognitive Neuropsychiatry (запись на ResearchGate)",
+    url: "https://www.researchgate.net/publication/225068181_The_Truman_Show_delusion_Psychosis_in_the_global_village",
+    tier: "SECONDARY",
+    publishedAt: "2012-11-01",
+    checkedOn: "2026-10-29",
+    supports:
+      "Джоэл Голд и Иан Голд: серия пациентов с убеждением, что их снимают и транслируют; авторы трактуют это как вариацию известных паранойяльных и мании величия тем, а не как новую нозологию.",
+  },
+  {
+    id: "src-indiewire-nfr",
+    label: "National Film Registry 2025: the 25 films added",
+    publisher: "IndieWire",
+    url: "https://www.indiewire.com/news/breaking-news/national-film-registry-2025-thing-before-sunrise-inception-1235176192/",
+    tier: "SECONDARY",
+    publishedAt: "2025-12-16",
+    checkedOn: "2026-10-29",
+    supports:
+      "Реестр 2025 года: 25 названий, всего 925; «Шоу Трумана» вошло в число фильмов с особенно сильной поддержкой публики, всего публика подала 7559 заявок.",
+  },
+  {
+    id: "src-qobuz-soundtrack",
+    label: "The Truman Show (Original Motion Picture Soundtrack) — издание Milan",
+    publisher: "Qobuz",
+    url: "https://www.qobuz.com/au-en/album/the-truman-show-original-motion-picture-soundtrack-burkhard-dallwitz-philip-glass/datoc62zqgfza",
+    tier: "SECONDARY",
+    publishedAt: "1998-06-02",
+    checkedOn: "2026-10-29",
+    supports:
+      "Альбом Milan: 21 трек; у треков Гласса указано происхождение — «Anthem, Part 2» из «Поваккатси», «The Beginning» и «Living Waters» из «Анима Мунди»; Далльвиц указан продюсером.",
+  },
 ];
 
-/**
- * Claims: one sentence each, with the sources that carry it.
- *
- * Three statuses do real work here. `CONFIRMED` means a primary or secondary
- * source says it. `DISPUTED` means sources disagree, and the disagreement is
- * printed in the article rather than resolved by picking the nicer version.
- * `UNVERIFIED` means the story is repeated widely and evidenced thinly — it is
- * allowed in the text only as a story, and it must appear in the myth register.
- */
+
 export const trumanProductionClaims: ProductionClaim[] = [
   {
     id: "claim-treatment-1991",
@@ -1400,9 +1524,9 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-cinema-prank",
-    text: "Уир рассказывал о желании поставить камеры в каждом кинозале и однажды выключить проектор, чтобы зритель на секунду оказался внутри шоу.",
-    sourceIds: ["src-medium-remember"],
-    status: "UNVERIFIED",
+    text: "Уир рассказывал, что хотел поставить видеокамеру в каждом кинозале, где шёл фильм, и в какой-то момент выключить проектор, чтобы переключиться на зрителей в зале и вернуться обратно; идею он оставил непроверенной, потому что технически она была невыполнима.",
+    sourceIds: ["src-cinephilia-weir", "src-medium-remember"],
+    status: "CONFIRMED",
   },
   {
     id: "claim-hopper-was-fired-or-left",
@@ -1445,5 +1569,131 @@ export const trumanProductionClaims: ProductionClaim[] = [
     text: "Чтение Кристофа как Люцифера или как аллюзии на Христа — интерпретация, а не производственный факт; сами создатели её не заявляли как замысел.",
     sourceIds: ["src-joblo", "src-unspooled-weir", "src-highonfilms"],
     status: "DISPUTED",
+  },
+  {
+    id: "claim-weir-show-first",
+    text: "Уир настаивал на правдоподобии: «если не веришь, что это возможно, ты не пойдёшь за фильмом», поэтому продюсер в фильме продаёт не круглосуточное наблюдение, а образ жизни, и мир собран из ностальгии по американскому городку.",
+    sourceIds: ["src-cinephilia-weir", "src-splicedwire-weir"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-weir-six-shifts",
+    text: "Внутри придуманного мира на шоу было шесть режиссёрских смен в сутки: смена с полуночи до четырёх утра считалась ученической, а выходные отдавали опытным, потому что Труман мог выкинуть что угодно. Уир играл режиссёра дневной смены, который хочет выслужиться, и говорил с актёрами из этого образа.",
+    sourceIds: ["src-splicedwire-weir"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-doc-unit-trutalk",
+    text: "Уир позвонил на Paramount и предложил собрать маленькую документальную группу, чтобы снять эти импровизации как промо: часть кадров он потом «растащил» по фильму — из них сделаны интервью с «участниками шоу» в начале картины, — а остальное стало выпуском Tru Talk, показанным на кабельном канале тем же летом.",
+    sourceIds: ["src-splicedwire-weir", "src-mentalfloss-truths", "src-cinephilia-weir", "src-letterboxd-trutalk"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-prisoner-not-help",
+    text: "Уир смотрел «Пленника» как возможный ориентир и отказался от него: там зритель внутри истории, а в «Шоу Трумана» аудитория шоу равнодушна к происходящему.",
+    sourceIds: ["src-splicedwire-weir"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-secret-cinema-denial",
+    text: "Сценарий сравнивали с «Секретным кино» Пола Бартеля и эпизодами «Сумеречной зоны»; Никкол говорил, что ни того, ни другого не знал, когда писал. Проверить это утверждение нельзя ни в одну сторону.",
+    sourceIds: ["src-neatorama-truths", "src-wikipedia-special-service"],
+    status: "DISPUTED",
+  },
+  {
+    id: "claim-seaside-location-fee",
+    text: "Paramount заплатила городу 500 тысяч долларов в счёт локационного платежа, и эти деньги пошли на строительство Seaside Neighborhood School; продюсер Эд Фельдман оценивал вклад съёмок в местную экономику примерно в 15 миллионов.",
+    sourceIds: ["src-gainesville-seaside"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-seaside-set-life",
+    text: "Фасады центральной площади Сисайда построили из гипса и картона и после съёмок оставили; под флоридской жарой они развалились примерно за полгода. На вырубку сада и «пластиковую» растительность студия потратила около 150 тысяч долларов.",
+    sourceIds: ["src-gainesville-seaside"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-weir-army-quote",
+    text: "Уир предупредил город, что съёмки будут «как армия на постое»; основатель Сисайда Роберт Дэвис добавлял, что армия оказалась просвещённой.",
+    sourceIds: ["src-gainesville-seaside"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-seaside-extras-pay",
+    text: "По словам местного владельца ресторана, статист в Сисайде получал 64 доллара в день, роль со словами — 540; сосед Трумана, местный житель Тед Рэймонд, получил около 10 тысяч за пятинедельный контракт, из которых снимался 8–10 дней.",
+    sourceIds: ["src-gainesville-seaside"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-carrey-morning-question",
+    text: "Уир каждое утро заходил к Керри в гримёрку с вопросом, не пришло ли за ночь новых идей, и сознательно не ограничивал его импровизацию.",
+    sourceIds: ["src-baltimoresun-weir-carrey"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-trumansigns-clinical",
+    text: "В 2008 году в British Journal of Psychiatry описали «признаки Трумана» — подпороговые переживания наблюдения у людей из группы риска психоза; это описание феномена, а не отдельный диагноз.",
+    sourceIds: ["src-cambridge-truman-signs"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-tsd-paper-2012",
+    text: "Джоэл и Иан Голд в 2012 году описали серию случаев «иллюзии Шоу Трумана» и прямо оговаривали, что это вариация известных паранойяльных тем, а не новая болезнь.",
+    sourceIds: ["src-researchgate-tsd", "src-psychtoday-delusion"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-nfr-public-support",
+    text: "В партию Национального реестра 2025 года фильм попал в числе названий с особенно сильной поддержкой публики: всего на включение было подано 7559 заявок.",
+    sourceIds: ["src-indiewire-nfr", "src-ilovelibraries"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-glass-track-origin",
+    text: "Происхождение треков Гласса в альбоме указано точно: «Anthem, Part 2» — из «Поваккатси», «The Beginning» и «Living Waters» — из «Анима Мунди», а не написаны для фильма.",
+    sourceIds: ["src-qobuz-soundtrack", "src-wikipedia-soundtrack"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-strangelove-tone",
+    text: "Тональным ориентиром для себя Уир называл «Доктора Стрейнджлава»: смешное и предельно серьёзное в одном фильме, где Кубрик прошёл по краю.",
+    sourceIds: ["src-splicedwire-weir"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-short-history-doc",
+    text: "Для себя Уир написал «Краткую историю „Шоу Трумана“» — текст в жанре пресс-релиза самой программы; когда актёры и группа попросили копию, он пустил её по площадке, и по ней начались импровизации в образах.",
+    sourceIds: ["src-splicedwire-weir"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-carrey-prisoner",
+    text: "Керри сразу сказал Уиру, что сможет сыграть Трумана на собственном опыте: «я пленник», — и режиссёр использовал это как ключ к роли.",
+    sourceIds: ["src-splicedwire-weir"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-sep-covers",
+    text: "Внешний вид Сихейвена сверяли с обложками Saturday Evening Post: американский городок, которого, возможно, не было, но который был мифологизирован в кино и рекламе.",
+    sourceIds: ["src-cinephilia-weir"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-biziou-mockups",
+    text: "Скрытые камеры шоу делали макетами прямо перед объективом: аппаратов, которые могли бы так снимать, тогда не существовало, и их придумывали на площадке.",
+    sourceIds: ["src-afcinema-biziou", "src-asc-biziou"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-storm-basin",
+    text: "Штормовую сцену снимали не в море, а в павильоне: в огромном бассейне Universal с волновой машиной — технически одна из самых трудных сцен фильма.",
+    sourceIds: ["src-afcinema-biziou", "src-asc-biziou"],
+    status: "CONFIRMED",
+  },
+  {
+    id: "claim-weir-promote-as-if",
+    text: "Уир всё время просил студию продвигать картину так, будто шоу действительно существует: отсюда и документальная группа, и выпуск Tru Talk, и реклама от имени программы.",
+    sourceIds: ["src-splicedwire-weir", "src-paramount-site"],
+    status: "CONFIRMED",
   },
 ];

@@ -4915,6 +4915,10 @@ test("Film 001 share art is declared, validated and shaped like a card", () => {
   assert.equal(getFilmShareAsset("no-such-film"), undefined);
 });
 
+// The days this dossier's sources were actually opened, in order. Adding a
+// source from a new session means adding its date here first.
+const RESEARCH_SITTINGS = ["2026-10-28", "2026-10-29"];
+
 test("Film 001 production dossier holds its own register", () => {
   const dossier = theTrumanShowProductionDossier;
   assert.deepEqual(validateProductionDossier(dossier), []);
@@ -4938,7 +4942,11 @@ test("Film 001 production dossier holds its own register", () => {
     assert.equal(url.protocol, "https:");
     hosts.add(url.host);
     assert.equal(/google|bing|duckduckgo|yandex|localhost|127\.0\.0\.1/.test(url.host), false);
-    assert.equal(source.checkedOn, "2026-10-28", `${source.id} was opened in the same sitting`);
+    // Two sittings so far; every entry records the day it was actually opened.
+    assert.ok(
+      RESEARCH_SITTINGS.includes(source.checkedOn),
+      `${source.id} claims a check on ${source.checkedOn}, which is not a recorded sitting`,
+    );
     assert.ok(source.supports.length > 30, `${source.id}: supports must say what it backs`);
   }
   assert.ok(hosts.size > 25, "a register of 75 sources should not be 25 sites");
