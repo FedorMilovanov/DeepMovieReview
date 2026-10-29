@@ -92,9 +92,10 @@ export function snapshotTextPaint(s) {
       if (+parent.opacity !== 1) { settling = true; issue = "Ancestor opacity is not one"; }
       if (parent.filter !== "none" || parent.mixBlendMode !== "normal") {
         issue = `Filter/blend requires separate assessment (${parent.filter}; ${parent.mixBlendMode})`;
-        // A live entrance filter is not a settled measurement. Wait for the
-        // real animation; permanent/paused filters still fail without a waiver.
-        if (element.getAnimations().some(animation => animation.playState === "running" || animation.pending)) settling = true;
+        // WebKit can report an animation finished before its computed filter
+        // commits to none. Wait for the actual style, not an identity tolerance
+        // or animation clock. A permanent/paused filter remains uncovered/fails.
+        settling = true;
       }
     }
     if (unpainted) continue;

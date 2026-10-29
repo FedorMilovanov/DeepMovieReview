@@ -503,3 +503,38 @@ animation, then measure the natural settled paint. Permanent/paused unsupported
 filters remain failures, never identity/selector exceptions. Record exact filter /
 blend values. New positive entrance and negative permanent-filter fixtures extend
 the independent calibration to10 cases; transition frames are still not certified.
+
+
+### e9bc24c read-back: no false closure
+
+WebKit123782801406 failed the new positive entrance calibration: it reported
+brightness(0.999998) after getAnimations said finished. Do not waive this as near1.
+Await actual computed filter:none within the existing bounded observation/revisit
+budget, not just animation clocks; persistent/paused non-none filters still have
+missing coverage and fail. The permanent-filter negative case remains required.
+
+CodeQL123782457881 still reported a medium annotation at the constructed data
+fragment. Remove runtime JavaScript construction entirely rather than adding another
+encoder: Safari now has only two frozen, named, read-only probe sources (ready /
+geometry). Navigation returns href/readiness/fonts as JSON and compares URL in Node.
+Arbitrary code, prototype keys and hostile URL inputs are rejected as probe names.
+No URL, JSON or base64 fragment is interpolated into JavaScript anymore.
+
+VoiceOver123783159670 failed before testing: Guidepup's private native-start subprocess
+hit its hard-coded5s bound. A disposable-CI-only public-app preflight now opens real
+VoiceOver once and awaits a real public last-phrase response up to60s. Its raw receipt
+is labelled preflight, not AT semantic evidence. Guidepup still stops/restarts its own
+complete lifecycle afterwards and every heading/table/native zoom assertion remains.
+No dependency patch, navigation replay, fake transcript or silent startup retry.
+
+
+Real iOS session established on e9bc24c (verified receipt123784917408): selected
+simulator UDID / useSimulator:true / platformName:iOS returned correctly, native
+Safari26.5 on iPhone17Pro. Remote Automation was initially absent, enabled/read-back
+succeeded, Safari launched, and exact preference/Xcode restoration passed. Home and
+films routes passed native402px reflow and both real menu taps. Article menu's second
+tap was followed by an immediate aria-expanded read oftrue, so the run failed, not
+passed. Await actual asynchronous disclosure state up to10s after each single real
+tap, never repeat the input. Persistent mismatch still fails. Record each verified
+open/close, native capabilities/UDID assertions, and actual failure DOM/window PNG.
+The native article must contain sections before testing spoiler projection.

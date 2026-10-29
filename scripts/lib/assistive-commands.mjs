@@ -43,3 +43,23 @@ export async function settleNativeSpeech(initial, expected, read = nativeVoiceOv
   }
   return { speech, readErrors };
 }
+
+// Guidepup's private native start request has a hard-coded 5s subprocess bound.
+// Warm the real public app/AppleEvents service once on disposable CI, then still
+// require Guidepup's complete fresh lifecycle and every semantic assertion.
+export async function warmVoiceOver({ ci = false,
+  start = () => execute("/usr/bin/open", ["-a", "VoiceOver"], { timeout: 30000 }),
+  read = nativeVoiceOverPhrase, now = Date.now, pause = () => delay(100), timeout = 60000,
+} = {}) {
+  assert.ok(ci, "VoiceOver preflight is disposable-CI-only");
+  await start();
+  const deadline = now() + timeout, readErrors = [];
+  while (now() < deadline) {
+    try {
+      const phrase = await read();
+      if (phrase.trim()) return { publicAppPreflight: true, lastPhrase: phrase, readErrors };
+    } catch (error) { readErrors.push(error.message); }
+    await pause();
+  }
+  throw new Error(`Native VoiceOver preflight did not become responsive: ${readErrors.join("; ")}`);
+}

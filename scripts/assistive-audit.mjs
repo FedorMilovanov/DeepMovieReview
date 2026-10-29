@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { macKeyboardShortcut, settleNativeSpeech } from "./lib/assistive-commands.mjs";
+import { macKeyboardShortcut, settleNativeSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -47,7 +47,7 @@ const speechOptions = { capture: "initial", timeout: 20000, retries: 1 };
 const navigationOptions = mac ? { ...speechOptions, capture: "all" } : speechOptions;
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 const base = "http://127.0.0.1:3213";
-const execute = async expression => mac ? safari.execute(`return (${expression})`) : page.evaluate(expression);
+const execute = async expression => page.evaluate(expression);
 const go = async route => {
   if (mac) return safari.goto(base + route);
   await page.goto(base + route);
@@ -85,7 +85,7 @@ async function screenshot(label) {
   checkpoint(`${label}: screenshot recorded`);
 }
 async function geometry() {
-  return execute("({width:innerWidth,outer:outerWidth,dpr:devicePixelRatio,scroll:document.documentElement.scrollWidth})");
+  return mac ? safari.geometry() : execute("({width:innerWidth,outer:outerWidth,dpr:devicePixelRatio,scroll:document.documentElement.scrollWidth})");
 }
 try {
   let ready = false;
@@ -100,6 +100,10 @@ try {
     await safari.resize(960, 1000);
     report.browser = { name: "Safari", version: safari.version, control: safari.control };
     await macOSActivate(MacOSApplications.Safari, speechOptions);
+  }
+  if (mac && process.env.GITHUB_ACTIONS === "true") {
+    checkpoint("warming real public VoiceOver app/service", true);
+    report.nativeWarmup = await warmVoiceOver({ ci: true });
   }
   checkpoint("starting real screen reader", true);
   await reader.start(speechOptions);

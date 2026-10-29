@@ -13,6 +13,18 @@ export function safariRequestTimeout(path) {
   return path === "/session" || path.endsWith("/url") ? 90000 : path === "/status" ? 1500 : 30000;
 }
 
+// Observe asynchronous native browser/UI completion; never replay the input.
+export async function waitForNativeValue(read, expected, { timeout = 10000, now = Date.now, pause = () => delay(100) } = {}) {
+  const deadline = now() + timeout;
+  let actual;
+  do {
+    actual = await read();
+    if (Object.is(actual, expected)) return actual;
+    await pause();
+  } while (now() < deadline);
+  assert.equal(actual, expected, "Native UI state did not reach the expected value before its deadline");
+}
+
 export async function nativeSafari(capabilities = {}, { beforeSession = async () => {} } = {}) {
   // Never attach iOS to a desktop driver's leftover fixed-port listener.
   const reservation = createServer().listen(0, "127.0.0.1");

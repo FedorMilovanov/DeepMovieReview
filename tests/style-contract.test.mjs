@@ -276,10 +276,10 @@ test("native navigation has its own bounded deadline, not a generic 30s command 
 test("native Safari read-only probes preserve values without injected focus or CSS", async () => {
   const { safariProbe } = await import("../scripts/lib/safari-desktop.mjs");
   const { runInNewContext } = await import("node:vm");
-  const value = runInNewContext(safariProbe("return {width:innerWidth,scroll:document.documentElement.scrollWidth}"), {
-    innerWidth: 480, document: { documentElement: { scrollWidth: 480 } },
+  const value = runInNewContext(safariProbe("geometry"), {
+    innerWidth: 480, outerWidth: 960, devicePixelRatio: 2, document: { documentElement: { scrollWidth: 480 } },
   });
-  assert.deepEqual(JSON.parse(value), { width: 480, scroll: 480 });
+  assert.deepEqual(JSON.parse(value), { width: 480, outer: 960, dpr: 2, scroll: 480 });
 });
 
 test("native Safari restores CI-only JavaScript preference on close and setup failure", async () => {
@@ -320,14 +320,14 @@ test("native Safari Apple Events adapter waits for real DOM/fonts and reads geom
     if (script.includes("do JavaScript")) {
       assert.equal(args[2], "321", "Probe must target the owned native window");
       checks++;
-      return runInNewContext(args[3], { atob, TextDecoder, location: { href: url }, innerWidth: 320,
+      return runInNewContext(args[3], { devicePixelRatio: 3, location: { href: url }, innerWidth: 320,
         outerWidth: 960, document: { readyState: "complete", fonts: { status: "loaded" }, documentElement: { scrollWidth: 320 } } });
     }
     return "";
   } });
   await browser.goto("http://127.0.0.1:3213/films");
   assert.ok(checks > 0, "Navigation must actually verify page/font readiness");
-  assert.deepEqual(await browser.execute("return {width:innerWidth,outer:outerWidth,scroll:document.documentElement.scrollWidth}"), { width: 320, outer: 960, scroll: 320 });
+  assert.deepEqual(await browser.geometry(), { width: 320, outer: 960, dpr: 3, scroll: 320 });
   await browser.close();
 });
 
@@ -472,13 +472,32 @@ test("live text ranges refresh on the same node and old versions cannot cover ne
 });
 
 
-test("native Safari probe transports hostile Unicode/quote URL values as data, never code", async () => {
+test("native Safari probes reject arbitrary code and hostile URL data", async () => {
   const { safariProbe } = await import("../scripts/lib/safari-desktop.mjs");
-  const { runInNewContext } = await import("node:vm");
   const hostile = 'https://example.test/Кино?x=";globalThis.injected=true;//\\\n`</script>\u2028\u2029';
-  const context = { atob, TextDecoder };
-  const source = safariProbe("return arguments[0]", [hostile]);
-  assert.ok(!source.includes(hostile));
-  assert.equal(JSON.parse(runInNewContext(source, context)), hostile);
-  assert.equal(context.injected, undefined);
+  for (const value of [hostile, "return location.href", "__proto__", "constructor"]) {
+    assert.throws(() => safariProbe(value), /Unknown native Safari read-only probe/);
+  }
+  assert.ok(!safariProbe("ready").includes(hostile));
+  assert.equal(safariProbe("ready"), "JSON.stringify({href:location.href,readyState:document.readyState,fonts:document.fonts.status})");
+});
+
+
+test("real VoiceOver CI preflight starts once and waits for actual service output", async () => {
+  const { warmVoiceOver } = await import("../scripts/lib/assistive-commands.mjs");
+  let starts = 0, clock = 0; const phrases = ["", "Real desktop speech"];
+  const start = async () => { starts++; };
+  await assert.rejects(warmVoiceOver({ start }), /CI-only/); assert.equal(starts, 0);
+  const receipt = await warmVoiceOver({ ci: true, start, now: () => clock++, pause: async () => {}, read: async () => phrases.shift(), timeout: 10 });
+  assert.equal(starts, 1); assert.equal(receipt.lastPhrase, "Real desktop speech");
+  await assert.rejects(warmVoiceOver({ ci: true, start, now: () => clock++, pause: async () => {}, read: async () => "", timeout: 3 }), /did not become responsive/);
+});
+
+
+test("native UI observation waits without replaying input and fails a persistent state", async () => {
+  const { waitForNativeValue } = await import("../scripts/lib/native-safari.mjs");
+  let clock = 0, reads = 0;
+  assert.equal(await waitForNativeValue(async () => ++reads < 3 ? "true" : "false", "false", { now: () => clock++, pause: async () => {}, timeout: 10 }), "false");
+  assert.equal(reads, 3);
+  await assert.rejects(waitForNativeValue(async () => "true", "false", { now: () => clock++, pause: async () => {}, timeout: 3 }), /Native UI state/);
 });
