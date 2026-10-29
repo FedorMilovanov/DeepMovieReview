@@ -708,11 +708,17 @@ check("CR", "CR07", "ни один литеральный цвет не дубл
   return duplicates.length === 0 || duplicates.slice(0, 6).join(",");
 });
 
-check("CR", "CR08", "у страницы есть собственные состояния загрузки и ошибки", () => {
+check("CR", "CR08", "загрузка объявлена там, где идёт стриминг, и есть состояния ошибки", () => {
+  // A `loading.tsx` at the app root wraps *every* route in Suspense — including
+  // the statically prerendered homepage, whose HTML then ships a skeleton and
+  // its real content in a hidden streamed template. Without scripting that is
+  // a blank page. Loading belongs to the segments that actually stream.
   return (
-    existsSync("src/app/loading.tsx") &&
+    existsSync("src/app/films/loading.tsx") &&
+    existsSync("src/app/films/[slug]/loading.tsx") &&
     existsSync("src/app/error.tsx") &&
-    existsSync("src/app/not-found.tsx")
+    existsSync("src/app/not-found.tsx") &&
+    !existsSync("src/app/loading.tsx")
   );
 });
 

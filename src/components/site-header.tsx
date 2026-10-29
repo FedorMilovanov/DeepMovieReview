@@ -71,8 +71,13 @@ export function SiteHeader() {
 
   return (
     <header className="siteHeader" data-scrolled={scrolled || undefined}>
-      <Link className="brand" href="/" aria-label="Глубокие воды — на главную">
-        <span className="brandMark" aria-hidden="true">DW</span>
+      {/* The monogram is decoration: it is drawn by CSS, so the link's visible
+          text is exactly "Deep Waters" and its accessible name can contain that
+          text verbatim (WCAG 2.5.3, label in name). A text node here would put
+          "DW" into the name or, worse, leave the name saying something the
+          visible label does not. */}
+      <Link className="brand" href="/" aria-label="Deep Waters — на главную">
+        <span className="brandMark" aria-hidden="true" />
         <span className="brandText">Deep Waters</span>
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">

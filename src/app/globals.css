@@ -15,6 +15,13 @@
     outline: none;
   }
 
+  /* Anchors land under a sticky header without this: the header is 78px tall,
+     so a jump link puts the target's own top edge behind it. Declared here, in
+     the layer that owns the shell, so every route inherits it. */
+  main :is([id]) {
+    scroll-margin-block-start: calc(78px + 0.75rem);
+  }
+
   /* Progressive enhancement: more even line breaks for headings in engines
      that support it. */
   h1,
@@ -113,6 +120,12 @@
   padding: 0.35rem 0.4rem;
   font-size: 0.65rem;
   letter-spacing: 0.08em;
+}
+
+/* Drawn rather than typed: the letters are a monogram, not a word, and a text
+   node here would either join the link's accessible name or contradict it. */
+.brandMark::before {
+  content: "DW";
 }
 
 .brandText {

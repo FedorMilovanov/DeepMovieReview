@@ -5574,3 +5574,75 @@ test("tilt never keeps a position the pointer no longer holds", () => {
     );
   }
 });
+
+test("the page survives paper, anchors and the sticky header", () => {
+  // Three failures that only a browser shows, and that are cheap to keep out:
+  // a print render with no scroll timeline, a jump link that lands under the
+  // header, and a grid that clips instead of wrapping.
+  const optics = readFileSync("src/styles/homepage-optics.css", "utf8");
+  assert.match(
+    optics,
+    /@media print \{[\s\S]*?\.sectionRule[\s\S]*?animation: none/,
+    "print must turn the scroll-reveal off: a view() timeline never advances on paper",
+  );
+
+  const globals = readFileSync("src/app/globals.css", "utf8");
+  assert.match(
+    globals,
+    /main :is\(\[id\]\)[\s\S]{0,80}scroll-margin-block-start/,
+    "anchored targets need a scroll margin equal to the sticky header",
+  );
+
+  const header = readFileSync("src/components/site-header.tsx", "utf8");
+  const label = /className="brand"[^>]*aria-label="([^"]+)"/.exec(header)?.[1] ?? "";
+  const visible = /className="brandText">([^<]+)</.exec(header)?.[1]?.trim() ?? "";
+  assert.ok(visible.length > 0, "the brand has visible text");
+  assert.ok(
+    label.includes(visible),
+    `the brand's accessible name («${label}») must contain its visible text («${visible}»): WCAG 2.5.3`,
+  );
+  assert.match(
+    header,
+    /className="brandMark" aria-hidden="true" \/>/,
+    "the monogram must be drawn by CSS, not typed into the link's name",
+  );
+
+  // A bare `1fr` track grows to its widest child's min-content; the shell clips
+  // the result instead of scrolling, so the text simply disappears.
+  for (const file of ["src/styles/homepage.css", "src/styles/film-modules.css"]) {
+    const css = readFileSync(file, "utf8");
+    const bad = css
+      .split("\n")
+      .map((line, index) => ({ line: line.trim(), index }))
+      .filter(({ line }) => /^\.(discoverySection|filmMethodMeta|filmSourceList li|permissionField)\b/.test(line))
+      .flatMap(({ index }) => {
+        const block = css.split("\n").slice(index, index + 8).join("\n");
+        return /grid-template-columns: 1fr;/.test(block) ? [`${file}:${index + 1}`] : [];
+      });
+    assert.deepEqual(bad, [], `${file}: these grids need minmax(0, 1fr), not 1fr`);
+  }
+});
+
+test("the homepage is complete without scripting", () => {
+  // A root `loading.tsx` makes every route stream, including the statically
+  // prerendered homepage: its HTML then carries a skeleton instead of content,
+  // so a reader without JavaScript gets "Готовим следующий кадр…" and nothing
+  // else. Loading states belong to the segments that really stream.
+  assert.equal(
+    existsSync("src/app/loading.tsx"),
+    false,
+    "a root loading.tsx turns the static homepage into a streamed skeleton",
+  );
+  assert.ok(existsSync("src/app/films/loading.tsx"), "the film index still declares its loading state");
+  assert.ok(existsSync("src/app/films/[slug]/loading.tsx"), "a film page still declares its loading state");
+
+  // And the entrance choreography starts from opacity 0, so without scripting
+  // the hero has to be released explicitly.
+  const layout = readFileSync("src/app/layout.tsx", "utf8");
+  assert.match(layout, /<noscript>/, "the layout declares a no-script fallback");
+  assert.match(
+    layout,
+    /\.heroEnter \.heroCopy > \*,[\s\S]{0,160}animation: none !important/,
+    "the no-script fallback releases the hero entrance",
+  );
+});

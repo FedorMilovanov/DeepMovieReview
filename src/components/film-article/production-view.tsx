@@ -89,7 +89,7 @@ function ProductionBlockView({ block }: { block: ProductionBlock }) {
           <div className="productionMythList">
             {block.rows.map((row) => (
               <article key={row.id} className="productionMyth">
-                <h4>{row.claim}</h4>
+                <h3>{row.claim}</h3>
                 <p>{row.verdict}</p>
                 <SourceRefs ids={row.sourceIds} />
               </article>

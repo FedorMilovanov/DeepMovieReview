@@ -22,6 +22,13 @@
   align-items: center;
 }
 
+/* The eyebrow is the hero's only element outside the grid, so it has no gap to
+   inherit. Once the frame moves above the copy on a narrow screen the two boxes
+   touch and the monogram line sits on the frame's border. */
+.heroSection > .eyebrow {
+  margin: 0 0 clamp(1.4rem, 2.6vw, 2.2rem);
+}
+
 .heroCopy {
   padding-top: 2rem;
 }
@@ -1604,13 +1611,22 @@
 }
 
 @media (max-width: 900px) {
+  /* Three equal columns of prose do not survive a narrow screen: they were the
+     only grid on the page with no collapse rule, so the third column ran past
+     the viewport and the shell clipped it. */
+  .permissionField {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* minmax(0, 1fr), not 1fr: an auto minimum lets the widest child decide the
+     track, and the shell then clips the result instead of wrapping it. */
   .heroGrid,
   .splitSection,
   .relationshipPanel,
   .autopsySection,
   .discoverySection,
   .missionGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .heroSection {
@@ -1656,8 +1672,13 @@
   .pipelineTrack,
   .permissionExamples,
   .spoilerLadder,
+  .permissionField,
   .craftPressureGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .permissionField article {
+    min-height: 0;
   }
 
   .pipelineStep {
