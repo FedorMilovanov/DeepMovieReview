@@ -20,6 +20,7 @@ jobs:
     permissions:
       contents: read
       actions: read
+      checks: write
     env:
       DMR_SITE_INDEXING_ENABLED: "true"
       DMR_PREVIEW_CONTENT_ENABLED: "true"
@@ -29,6 +30,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
       - name: Verify exact checkout
         shell: bash
@@ -278,7 +280,7 @@ jobs:
 
       # Historical recovery is informational, never a substitute for current-head tests.
       - name: Recover previous successful accessibility evidence
-        if: always() && github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         continue-on-error: true
         timeout-minutes: 2
         env:
@@ -286,7 +288,9 @@ jobs:
         run: python3 scripts/recover-a11y-evidence.py
 
       - name: Publish lossless accessibility diagnostics to checks API
-        if: always()
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/publish-a11y-evidence.mjs
 
       - name: Upload browser audit evidence
