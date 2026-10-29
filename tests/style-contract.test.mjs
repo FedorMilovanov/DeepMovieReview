@@ -174,3 +174,15 @@ test("Tailwind bridge emits canonical font and colour utilities without font sel
     });
   }
 });
+
+// Native audit environment selection must not depend on the runner's old default.
+test("Apple toolchain selection ignores beta/default aliases and rejects incompatible iOS majors", async () => {
+  const { newestStableXcode, runtimeMatchesSdk } = await import("../scripts/lib/apple-toolchain.mjs");
+  assert.equal(newestStableXcode(["Xcode.app", "Xcode_16.4.app", "Xcode_26.2.app", "Xcode_26.3.app", "Xcode_27_beta.app"]), "Xcode_26.3.app");
+  assert.throws(() => newestStableXcode(["Xcode.app", "Xcode_27_beta.app"]), /No versioned stable/);
+  assert.equal(runtimeMatchesSdk("com.apple.CoreSimulator.SimRuntime.iOS-26-2", "18.5"), false);
+  assert.equal(runtimeMatchesSdk("com.apple.CoreSimulator.SimRuntime.iOS-18-6", "18.5"), true);
+  assert.equal(runtimeMatchesSdk("com.apple.CoreSimulator.SimRuntime.iOS-26-2", "26.2"), true);
+  assert.equal(runtimeMatchesSdk("com.apple.CoreSimulator.SimRuntime.tvOS-26-2", "26.2"), false);
+  assert.equal(runtimeMatchesSdk("invalid", "invalid"), false);
+});
