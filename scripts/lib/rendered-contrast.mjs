@@ -38,6 +38,8 @@ export function missingRangeIds(expected, measurements) {
 export function snapshotTextPaint(s) {
   // A fully visible line can be sampled on an overlapping scroll tile. Do not use
   // a fixed header's paint as if it were the background behind an occluded line.
+  // Range ascent/descent boxes can extend into ordinary neighbouring line boxes;
+  // a different normal-flow hit is not proof that it paints over the glyphs.
   function exposed(element, rect, width, height, hitTest) {
     // Existing pointer-events:none paint (e.g. lens annotations) cannot own a
     // hit. Use its nearest hit-testable container, without changing any style.
@@ -46,7 +48,11 @@ export function snapshotTextPaint(s) {
     for (const x of [rect.left + Math.min(0.5, rect.width / 2), rect.right - Math.min(0.5, rect.width / 2)]) {
       for (const y of [rect.top + Math.min(0.5, rect.height / 2), rect.bottom - Math.min(0.5, rect.height / 2)]) {
         const top = hitTest(x, y);
-        if (!top || !(top === element || element.contains(top) || top.contains(element))) return false;
+        if (!top) return false;
+        for (let overlay = top; overlay; overlay = overlay.parentElement) {
+          if (["fixed", "sticky"].includes(getComputedStyle(overlay).position) &&
+              !(overlay === element || element.contains(overlay) || overlay.contains(element))) return false;
+        }
       }
     }
     return true;

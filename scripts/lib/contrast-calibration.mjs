@@ -9,6 +9,7 @@ export async function calibrateRenderedContrast(browser, directory, name) {
     { name: "currentColor-background", html: '<p id="target" style="color:white;background:currentColor">Invisible text must fail</p>', pass: false },
     { name: "ancestor-decoration", html: '<div style="text-decoration:line-through red"><span id="target">Foreground decoration is not background</span></div>', pass: true },
     { name: "sticky-occlusion", html: '<header style="position:fixed;inset:0 0 auto;height:100px;background:white;z-index:10"></header><p id="target" style="margin:750px 0 500px;width:200px">' + "Known text under an overlay while scrolling. ".repeat(20) + "</p>", pass: true },
+    { name: "font-range-descent", html: '<div id="target" style="padding-top:100px"><h1 style="font:80px/60px sans-serif;margin:0">TITLE</h1><p style="margin:0">Ordinary adjacent line box</p></div>', pass: true },
     { name: "permanent-opacity", html: '<p id="target" style="opacity:0.8">Unsupported ancestor opacity must not pass</p>', pass: false },
     { name: "disconnected-target", html: '<p id="target">Measured before removal</p><div style="height:1800px"></div><script>addEventListener("scroll",()=>document.querySelector("#target")?.remove(),{once:true})</script>', pass: false },
   ];
