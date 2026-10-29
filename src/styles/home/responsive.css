@@ -120,6 +120,24 @@
     width: 8px;
   }
 
+  /* Give metadata and lens chips separate, content-sized rows. They used to
+     share the same absolute top edge and obscure each other's text. */
+  .lensFrame {
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+
+  .lensFrame .frameMeta {
+    position: relative;
+    inset: auto;
+    margin: 0.8rem 0.9rem 0;
+  }
+
+  .lensFrame .lfAnnotations {
+    position: relative;
+    inset: auto;
+  }
+
   .lensMarkGroup {
     position: static;
     inset: auto;
