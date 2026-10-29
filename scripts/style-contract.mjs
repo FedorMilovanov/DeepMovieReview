@@ -26,13 +26,16 @@ for (const path of [
 for (const path of cssFiles.filter((path) => /\/(article|home|modules|verdict|optics|shell)\//.test(path))) {
   const source = readFileSync(path, "utf8");
   assert.ok(source.split("\n").length <= 450, `${path}: split by responsibility before growing beyond 450 lines`);
-  if (/\/(modules|verdict)\//.test(path)) assertCanonicalUsage(source, path);
+  assertCanonicalUsage(source, path);
   const code = source.replace(/\/\*[\s\S]*?\*\//g, "");
   // Existing reduced-motion overrides only; no new force-priority rules.
   const importantBudget = path.endsWith("verdict/accessibility.css") ? 3 : 0;
   assert.ok((code.match(/!important\b/g) ?? []).length <= importantBudget,
     `${path}: do not resolve cascade conflicts by force`);
   assert.doesNotMatch(source, /the-truman-show|the-fast-and-the-furious|film[-_]?001/i, `${path}: shared CSS cannot know film identity`);
+}
+for (const path of ["src/styles/methodology.css", "src/components/experience/verdict-core.module.css"]) {
+  assertCanonicalUsage(readFileSync(path, "utf8"), path);
 }
 for (const path of files("src/data/films")) {
   assert.ok(!/\.css$/.test(path), `${path}: article data cannot own styles`);

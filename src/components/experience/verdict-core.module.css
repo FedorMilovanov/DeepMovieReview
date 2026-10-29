@@ -3,10 +3,10 @@
   isolation: isolate;
   overflow: hidden;
   min-height: clamp(20rem, 42vw, 38rem);
-  border: 1px solid color-mix(in oklab, var(--amber) 22%, var(--line));
+  border: 1px solid color-mix(in oklab, var(--accent-restoration) 22%, var(--stroke-default));
   background:
     radial-gradient(circle at 50% 42%, rgb(255 255 255 / 0.035), transparent 22%),
-    radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--crimson) 9%, transparent), transparent 46%),
+    radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--accent-fracture) 9%, transparent), transparent 46%),
     #050505;
   box-shadow: var(--shadow-dmr-depth, 0 34px 110px rgb(0 0 0 / 0.58));
   contain: layout paint style;
@@ -31,7 +31,7 @@
   background:
     radial-gradient(circle at 50% 48%, rgb(65 61 56 / 0.7) 0 8%, transparent 8.5%),
     radial-gradient(circle at 50% 48%, rgb(20 19 18 / 0.95) 0 18%, transparent 18.5%),
-    radial-gradient(circle at 50% 48%, color-mix(in oklab, var(--amber) 8%, transparent) 0 32%, transparent 33%),
+    radial-gradient(circle at 50% 48%, color-mix(in oklab, var(--accent-restoration) 8%, transparent) 0 32%, transparent 33%),
     linear-gradient(150deg, #0b0b0b, #030303 68%);
 }
 
