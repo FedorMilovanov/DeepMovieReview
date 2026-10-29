@@ -1,0 +1,219 @@
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .pipelineTrack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+}
+
+@media (max-width: 1020px) {
+  .lensStageGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .evidenceSection {
+    grid-template-columns: 1fr;
+  }
+
+  .craftStage {
+    grid-template-columns: 1fr;
+  }
+
+  .craftFrame {
+    aspect-ratio: 2.39 / 1;
+    min-height: 250px;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Three equal columns of prose do not survive a narrow screen: they were the
+     only grid on the page with no collapse rule, so the third column ran past
+     the viewport and the shell clipped it. */
+  .permissionField {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* minmax(0, 1fr), not 1fr: an auto minimum lets the widest child decide the
+     track, and the shell then clips the result instead of wrapping it. */
+  .heroGrid,
+  .splitSection,
+  .relationshipPanel,
+  .autopsySection,
+  .discoverySection,
+  .missionGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .heroSection {
+    min-height: auto;
+  }
+
+  /* Narrow hero: frame moves above the copy; ratio is already honored via
+     the base .heroGrid .livingFrame { min-height: 0 } rule. */
+  .heroGrid .livingFrame {
+    order: -1;
+  }
+
+  /* Lens stage frame keeps a mobile height floor for its text marks. */
+  .lensFrameWrap .livingFrame {
+    min-height: 210px;
+  }
+
+  .heroStatusStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .heroStatusStrip > div {
+    padding: 1rem 0;
+  }
+
+  .heroStatusStrip > div + div {
+    padding-left: 0;
+    border-top: 1px solid var(--stroke-subtle);
+  }
+
+  .characterGrid,
+  .meaningGrid,
+  .knowledgeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .autopsySection > .sectionIndex {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .pipelineTrack,
+  .permissionExamples,
+  .spoilerLadder,
+  .permissionField,
+  .craftPressureGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .permissionField article {
+    min-height: 0;
+  }
+
+  .pipelineStep {
+    min-height: 0;
+  }
+
+  .permissionAxis {
+    grid-template-columns: 1fr;
+    border-top: 0;
+  }
+
+  .permissionAxisStop {
+    text-align: left;
+    padding: 0.7rem 0 0.7rem 1.2rem;
+    border-top: 1px solid var(--stroke-subtle);
+  }
+
+  .permissionAxisStop::before {
+    top: 50%;
+    transform: translateY(-50%);
+    left: 0;
+    height: 1px;
+    width: 8px;
+  }
+
+  .lensMarkGroup {
+    position: static;
+    inset: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.8rem;
+  }
+
+  .lensMark {
+    position: static;
+    transform: none;
+  }
+
+  .lensSelector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .frameCaption span {
+    display: none;
+  }
+
+  .craftChip,
+  .examineWrap .examineAnchor,
+  .examineWrap .examineReticle {
+    display: none;
+  }
+
+  .examineRail {
+    grid-template-columns: 1fr;
+  }
+
+  .examineRail button {
+    min-height: 52px;
+  }
+
+  .spoilerPreview {
+    min-height: 0;
+  }
+
+  .relationshipPanel {
+    padding: 1.2rem;
+  }
+
+  .synthesisSteps li,
+  .evidenceChain li,
+  .storyTrack li {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .autopsyGrid > div {
+    grid-template-columns: minmax(7.5rem, 0.42fr) 1fr;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .lensSelector {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Forced colors ─────────────────────────────────────────────────────────── */
+
+@media (forced-colors: active) {
+  .livingFrame,
+  .characterCard,
+  .relationshipPanel,
+  .permissionField article,
+  .knowledgeGrid article,
+  .autopsyFrame,
+  .craftPressureCard,
+  .discoveryCard,
+  .pipelineStep,
+  .permissionExample,
+  .lensMark {
+    border-color: CanvasText;
+  }
+
+  .heroStatusStrip,
+  .permissionAxis,
+  .permissionExamples {
+    border-color: CanvasText;
+  }
+
+  .lensMark {
+    background: Canvas;
+  }
+
+  .lfMedia,
+  .portraitPlaceholder,
+  .fogPanel,
+  .autopsyFrame {
+    background: Canvas;
+  }
+}
