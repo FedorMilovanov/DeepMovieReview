@@ -1,10 +1,10 @@
-// Transport actual CI diagnostics through the checks API when artifact storage is blocked.
-// Not a replacement for raw JSON/screenshots; chunks are gzip+base64, SHA-256 verified.
+// Runner workflow commands truncate annotation messages at 4096 characters.
+// Use the Checks API, bounded chunks, and read-back verification instead.
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
-import { workflowError } from "./lib/audit-report.mjs";
 
 const directory = process.argv[2] ?? "a11y-report";
 const label = process.argv[3] ?? "current";
@@ -16,13 +16,51 @@ const scans = summary.results.map(scan => {
 });
 const bytes = gzipSync(Buffer.from(JSON.stringify({ summary, scans })));
 const encoded = bytes.toString("base64");
-const chunks = encoded.match(/.{1,60000}/g);
-assert.ok(chunks.length <= 9, "Evidence exceeds annotation budget; do not truncate diagnostics");
-const manifest = { revision: summary.revision, sha256: createHash("sha256").update(bytes).digest("hex"),
+const chunks = encoded.match(/.{1,4000}/g);
+assert.ok(chunks.length <= 1000, "Evidence exceeds Checks API budget; never truncate diagnostics");
+const digest = buffer => createHash("sha256").update(buffer).digest("hex");
+const manifest = { revision: summary.revision, sha256: digest(bytes),
   encoding: "gzip+base64", chunks: chunks.length, bytes: bytes.length };
-function notice(title, message) {
-  // Reuse tested escaping; change only the workflow command and add a fixed safe title.
-  console.log(workflowError(message).replace("::error title=Browser audit::", `::notice title=${label}-${title}::`));
+if (process.env.GITHUB_ACTIONS !== "true") {
+  console.log(JSON.stringify({ manifest, chunks }));
+} else {
+  assert.ok(process.env.GH_TOKEN, "Checks write token required only for publication step");
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const root = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/check-runs`;
+  async function api(url, method = "GET", body) {
+    const response = await fetch(url, { method, headers: {
+      Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: "application/vnd.github+json",
+      "Content-Type": "application/json", "X-GitHub-Api-Version": "2022-11-28",
+    }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    assert.ok(response.ok, `Checks API ${method}: HTTP ${response.status}`);
+    return response.json();
+  }
+  const title = `Accessibility evidence (${label})`;
+  const check = await api(root, "POST", { name: title, head_sha: head, status: "in_progress" });
+  try {
+    for (let start = 0; start < chunks.length; start += 50) {
+      await api(`${root}/${check.id}`, "PATCH", { output: {
+        title, summary: JSON.stringify(manifest), annotations: chunks.slice(start, start + 50).map((message, index) => ({
+          path: "docs/57-ACCESSIBILITY-CHECKS.md", start_line: 1, end_line: 1,
+          annotation_level: "notice", title: `chunk-${String(start + index + 1).padStart(4, "0")}`, message,
+        })),
+      } });
+    }
+    const received = [];
+    for (let page = 1; received.length < chunks.length; page++) {
+      const rows = await api(`${root}/${check.id}/annotations?per_page=100&page=${page}`);
+      assert.ok(rows.length, "Missing annotation chunks");
+      received.push(...rows);
+    }
+    received.sort((a, b) => a.title.localeCompare(b.title));
+    assert.equal(received.length, chunks.length);
+    const restored = Buffer.from(received.map(row => row.message).join(""), "base64");
+    assert.equal(restored.length, bytes.length);
+    assert.equal(digest(restored), manifest.sha256, "API read-back must be lossless");
+    await api(`${root}/${check.id}`, "PATCH", { status: "completed", conclusion: "success" });
+    console.log(`${label}: verified ${chunks.length} chunks, ${bytes.length} bytes, SHA ${summary.revision}`);
+  } catch (error) {
+    await api(`${root}/${check.id}`, "PATCH", { status: "completed", conclusion: "failure" });
+    throw error;
+  }
 }
-notice("a11y-evidence-manifest", JSON.stringify(manifest));
-chunks.forEach((chunk, index) => notice(`a11y-evidence-${index + 1}`, chunk));
