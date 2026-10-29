@@ -19,8 +19,16 @@ export function runtimeMatchesSdk(runtime, sdkVersion) {
 // SafariDriver --diagnose writes to files, not its stdout/stderr streams.
 export function safariDriverLog(directory, pid) {
   try {
-    const files = readdirSync(directory).filter(name => name.startsWith(`safaridriver.${pid}.`) && name.endsWith(".txt")).sort();
-    if (!files.length) return `No SafariDriver diagnostic file for pid ${pid}`;
+    const entries = readdirSync(directory);
+    const files = entries.filter(name => name.startsWith(`safaridriver.${pid}.`) && name.endsWith(".txt")).sort();
+    if (!files.length) return `No SafariDriver diagnostic file for pid ${pid}; available file names: ${entries.slice(0, 20).join(", ")}`.slice(-3000);
     return files.slice(-3).map(name => `${name}\n${readFileSync(join(directory, name), "utf8")}`).join("\n").slice(-12000);
   } catch (error) { return `SafariDriver diagnostics unavailable: ${error.message}`; }
+}
+
+// Runtime daemon paths also contain CoreSimulator: do not let them displace
+// the host GUI/service/driver paths in a bounded diagnostic snapshot.
+export function nativeSimulatorProcessLines(text) {
+  return text.split("\n").filter(line => /Simulator\.app\/|\/CoreSimulator\.framework\/|\/MobileSafari\.app\/MobileSafari(?:\s|$)|safaridriver/.test(line))
+    .join("\n").slice(-12000);
 }

@@ -205,7 +205,7 @@ test("Safari diagnostics are bounded and isolated to the actual driver pid", asy
 test("VoiceOver shortcuts retain native command codes without app activation", async () => {
   const { macKeyboardShortcut } = await import("../scripts/lib/assistive-commands.mjs");
   const { voiceOverKeyCodeCommands: commands, MacOSKeyCodes } = await import("@guidepup/guidepup");
-  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "moveToNextColumn", "moveDown"]) {
+  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "moveToNextColumn", "moveDown", "describeItem"]) {
     const command = commands[name];
     const parts = macKeyboardShortcut(command).split("+");
     assert.equal(MacOSKeyCodes[parts.pop()], command.keyCode);
@@ -213,4 +213,13 @@ test("VoiceOver shortcuts retain native command codes without app activation", a
   }
   assert.throws(() => macKeyboardShortcut({ keyCode: -1 }), /Unknown native key/);
   assert.throws(() => macKeyboardShortcut({ keyCode: 34, modifiers: ["unsupported"] }), /Unknown native modifier/);
+});
+
+
+test("host Simulator diagnostics do not get displaced by runtime daemon paths", async () => {
+  const { nativeSimulatorProcessLines } = await import("../scripts/lib/apple-toolchain.mjs");
+  const host = "1 /Applications/Xcode_26.3.app/Contents/Developer/Applications/Simulator.app/Contents/MacOS/Simulator";
+  const safari = "2 /Library/Developer/CoreSimulator/Volumes/iOS/RuntimeRoot/Applications/MobileSafari.app/MobileSafari";
+  const guests = Array(500).fill("3 /Library/Developer/CoreSimulator/Volumes/iOS/RuntimeRoot/usr/libexec/guestd");
+  assert.equal(nativeSimulatorProcessLines([host, safari, ...guests].join("\n")), `${host}\n${safari}`);
 });
