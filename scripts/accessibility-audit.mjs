@@ -175,5 +175,7 @@ for (const name of selected) {
   }
 }
 writeFileSync(`${out}/summary.json`, JSON.stringify(report, null, 2));
-console.log(`axe: ${report.results.length} scans; ${report.failures.length} failures. Incomplete results require review; see ${out}/summary.json.`);
+const axeScans = report.results.filter(result => Number.isInteger(result.violations)).length;
+const renderedScans = report.results.filter(result => result.state.endsWith("-rendered-contrast")).length;
+console.log(`axe: ${axeScans} scans; ${renderedScans} separate rendered assessments; ${report.failures.length} failures. Raw incomplete results retained; see ${out}/summary.json.`);
 process.exitCode = report.failures.length ? 1 : 0;
