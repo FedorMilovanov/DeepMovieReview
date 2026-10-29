@@ -178,13 +178,34 @@ export type StoryModule = FilmModuleBase & {
   }>;
 };
 
+/**
+ * How the film presents a character (docs/03 §5): the question a whole-film
+ * analysis must answer for every central figure. Aspirational is not the same
+ * as "protagonist", and focal does not imply approval.
+ */
+export type CharacterPresentation = "ASPIRATIONAL" | "CAUTIONARY" | "MIXED" | "FOCAL";
+
+/** How strongly the film's camera/script invites the viewer to inhabit a character (docs/03 §5). */
+export type IdentificationStrength = "HIGH" | "PARTIAL" | "LOW";
+
+export type ArcCredibility = "HIGH" | "MEDIUM" | "LOW";
+
 export type CharactersModule = FilmModuleBase & {
   kind: "characters";
   characters: Array<{
     id: string;
     name: string;
+    /**
+     * Presentation mode. Required once the edition is LOCKED: the analytical
+     * order in docs/03 asks this question before any normative synthesis.
+     */
+    presentation?: CharacterPresentation;
+    /** How strongly the film invites identification with this character. */
+    identification?: IdentificationStrength;
     wants: string;
     fears: string;
+    /** Which loyalties shape the character's decisions. */
+    loyalties?: string;
     contradiction: string;
     /** Hide the whole profile when wants/fears/contradiction would themselves reveal protected story information. */
     profileSpoilerLevel?: SpoilerLevel;
@@ -193,6 +214,10 @@ export type CharactersModule = FilmModuleBase & {
     believes?: string;
     selfDeception?: string;
     arcSummary?: string;
+    /** What survives the arc unchanged. */
+    unchanged?: string;
+    /** Whether the arc reads as psychologically credible, with the reason. */
+    arcCredibility?: { level: ArcCredibility; note: string };
     roleInArgument?: string;
     /** Evidence for the spoiler-safe/base profile fields. */
     profileSupport?: ClaimSupport;
@@ -438,6 +463,223 @@ export type SourcesMethodModule = FilmModuleBase & {
   }>;
 };
 
+/* ------------------------------------------------------------------------- *
+ * Editorial article
+ *
+ * The article is the readable layer of a locked edition, not a marketing page.
+ * It is stored as structured data so that three things are structurally
+ * impossible: quoting a timestamp no evidence record supports, quoting a
+ * measurement the master never produced, and publishing prose that outranks the
+ * edition it describes.
+ * ------------------------------------------------------------------------- */
+
+/** Measurement tables committed for Film 001 by the measurement script. */
+export type ArticleMeasurementTable = "totals" | "window" | "hold" | "silence";
+
+/** A pointer into the committed measurement dataset. Never a literal number. */
+export type ArticleMeasurementRef = {
+  table: ArticleMeasurementTable;
+  id: string;
+};
+
+export type ArticleTimelineItem = {
+  id: string;
+  /** Must equal the cited evidence record's timestampSeconds. */
+  timestampSeconds: number;
+  label: string;
+  evidenceId: string;
+};
+
+export type ArticleCorrectionRow = {
+  id: string;
+  /** The claim that circulates in secondary texts. */
+  commonClaim: string;
+  /** What the locked master actually shows or says. */
+  onScreen: string;
+  /** Canonical evidence for an observable correction. */
+  evidenceId?: string;
+  /** …or a measured pointer, for corrections the master proves by counting. */
+  measurement?: ArticleMeasurementRef;
+  /**
+   * True only for a correction whose point is that the beat does not exist.
+   * Such a row must not cite evidence for something it claims is absent.
+   */
+  absentFromMaster?: boolean;
+};
+
+export type ArticleTableRow = {
+  id: string;
+  /** Left column: what the article asserts about this row. */
+  label: string;
+  /** Right column: measured values, filled from the measurement dataset. */
+  measurement: ArticleMeasurementRef;
+};
+
+export type ArticleBlock =
+  | {
+      kind: "paragraph";
+      id: string;
+      text: string;
+      support?: ClaimSupport;
+      /**
+       * Scripture references that appear verbatim in `text`. Declared so the
+       * validator can tell «Деяния 17:26» from a film timecode: prose may not
+       * carry a clock reading unless it is a declared Scripture reference.
+       */
+      scriptureRefs?: string[];
+    }
+  | {
+      /**
+       * A note that stands outside the argument: edification, not analysis.
+       *
+       * It is a separate kind rather than a paragraph with a soft opening
+       * sentence because the distinction has to be structural. An aside names no
+       * evidence — it may not cite a moment of the master, and the validator
+       * rejects it if it tries — so it can never be mistaken for a reading of the
+       * film. What it says is the site's own conviction, labelled as such.
+       */
+      kind: "aside";
+      id: string;
+      /** Where the note stands, e.g. «К слову». */
+      label: string;
+      text: string;
+      /** Scripture references that appear verbatim in `text`. */
+      scriptureRefs?: string[];
+    }
+  | {
+      /**
+       * An original illustration placed inside the argument.
+       *
+       * It may only reference a declared visual asset, and that asset must be a
+       * generated illustration — the validator rejects a still, because the site
+       * does not publish frames of a film. The caption is mandatory and must say
+       * so in words: a picture that looks like a still has to be labelled as not
+       * being one.
+       */
+      kind: "illustration";
+      id: string;
+      /** Id of a manifest in `src/data/film-illustrations.ts`. */
+      assetId: string;
+      caption: string;
+      /**
+       * How much of the column the picture takes. `wide` is the default and
+       * belongs to the two large drawings; `inset` is a small vignette set to
+       * the right of the text, for the caricatures that make one point and then
+       * get out of the way.
+       */
+      layout?: "wide" | "inset";
+    }
+  | {
+      kind: "subhead";
+      id: string;
+      text: string;
+    }
+  | {
+      kind: "pullquote";
+      id: string;
+      text: string;
+      attribution?: string;
+      support?: ClaimSupport;
+    }
+  | {
+      /** Canonical moments: every timestamp here is a verified evidence anchor. */
+      kind: "timeline";
+      id: string;
+      items: ArticleTimelineItem[];
+    }
+  | {
+      /** A single measured headline number, rendered from the dataset. */
+      kind: "measurement";
+      id: string;
+      measurement: ArticleMeasurementRef;
+      text: string;
+      support?: ClaimSupport;
+    }
+  | {
+      /** Several measured rows side by side. */
+      kind: "measurement-table";
+      id: string;
+      caption: string;
+      columns: [string, string, string];
+      rows: ArticleTableRow[];
+    }
+  | {
+      kind: "corrections";
+      id: string;
+      caption: string;
+      rows: ArticleCorrectionRow[];
+    };
+
+export type ArticleSection = {
+  id: string;
+  /** One-based reading order; sections are gated by spoiler level as a suffix. */
+  number: number;
+  eyebrow: string;
+  heading: string;
+  standfirst?: string;
+  spoilerLevel: SpoilerLevel;
+  /**
+   * Analytical modules this section reads alongside. The article is the readable
+   * layer over the package, not a separate silo: every link may only point at a
+   * module the reader can open at this section's spoiler level.
+   *
+   * A list, because one section regularly spans several modules: marriage and
+   * friendship are two separate analyses, and the section that compares them is
+   * neither. Naming only one of them would leave the readable layer pointing at
+   * half of its own argument.
+   */
+  moduleIds?: string[];
+  /** Module-level claim, e.g. the section's thesis. */
+  support?: ClaimSupport;
+  blocks: ArticleBlock[];
+};
+
+export type FilmArticle = {
+  id: string;
+  /** Small label above the title. */
+  kicker: string;
+  title: string;
+  standfirst: string;
+  /**
+   * Headline for the tab and the search result, when the editorial title is
+   * longer than a tab can show. The layout appends the site name, so this is
+   * budgeted at 49 characters.
+   */
+  seoTitle?: string;
+  /** Snippet for search and social, budgeted at ~160 characters. */
+  seoDescription?: string;
+  byline: {
+    author: string;
+    /** Must match the sources-method module's editorialRevision. */
+    editorialRevision: string;
+    /** ISO calendar date the text was drafted. */
+    draftedAt: string;
+    /** ISO calendar date the editorial signature was issued. Absent while unsigned. */
+    reviewedAt?: string;
+    /**
+     * On whose authority the signature was issued.
+     *
+     * `HUMAN` — the editor read the text and signed it personally.
+     * `DELEGATED` — the editor explicitly authorised the signature in advance,
+     * recorded in `docs/53` §1. The distinction exists so a delegated date can
+     * never pass for a personal read: the field is required as soon as
+     * `reviewedAt` is set.
+     */
+    signatureBasis?: "HUMAN" | "DELEGATED";
+  };
+  /** The article is edition-bound: it may only quote the master it names here. */
+  edition: {
+    sourceId: string;
+    measuredRuntimeSeconds: number;
+  };
+  sections: ArticleSection[];
+  closing?: {
+    heading: string;
+    text: string;
+    support?: ClaimSupport;
+  };
+};
+
 export type FilmEditionLock =
   | {
       state: "TARGET_ONLY";
@@ -556,6 +798,12 @@ export type FilmPackage = {
    * a LOCKED edition or a published status.
    */
   research?: FilmResearchState;
+  /**
+   * Editorial article bound to the locked edition. Optional: a locked package
+   * may be analysed without a readable layer, but an article may never exist
+   * without a LOCKED edition (see `validateFilmArticle`).
+   */
+  article?: FilmArticle;
   /** Canonical edition-bound scene registry. Real-film scenes require a LOCKED edition. */
   scenes?: FilmSceneRecord[];
   /** Stable evidence graph shared by every analytical module. */

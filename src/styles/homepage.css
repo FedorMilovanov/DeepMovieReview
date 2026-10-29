@@ -1312,6 +1312,26 @@
   border: 1px solid var(--stroke-default);
 }
 
+.characterPresentation {
+  margin: 0 0 1.6rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 2rem;
+  color: var(--ink-2);
+}
+
+.characterTrait {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.7rem;
+}
+
+.characterPresentation .microLabel,
+.characterCard .inlineLabel {
+  color: var(--ink-3);
+  margin-right: 0.6rem;
+}
+
 .characterCard dl > div {
   display: grid;
   grid-template-columns: minmax(90px, 0.35fr) 1fr;

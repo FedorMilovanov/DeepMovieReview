@@ -175,9 +175,13 @@ jobs:
           grep -Fq 'Брайан и Дом: доверие под прикрытием' /tmp/fast-full.html
           grep -Fq 'Арестовать или отдать ключи' /tmp/fast-full.html
 
-          for draft_html in /tmp/truman-draft.html /tmp/fast-draft.html; do
-            grep -Fq 'Исследовательский черновик · вторичные источники · мастер не заблокирован' "$draft_html"
-          done
+          # Film 001 ships a LOCKED edition, so its route must not carry the
+          # research-draft banner any more; Film 002 is still a research draft.
+          grep -Fq 'Исследовательский черновик · вторичные источники · мастер не заблокирован' /tmp/fast-draft.html
+          if grep -Fq 'мастер не заблокирован' /tmp/truman-draft.html; then
+            echo "Film 001 carries a LOCKED edition; the research-draft banner must not appear."
+            exit 1
+          fi
           for full_html in /tmp/truman-full.html /tmp/fast-full.html; do
             grep -Fq 'Путь от тезиса к источнику.' "$full_html"
             grep -Fq 'Предполагаемый тезис' "$full_html"

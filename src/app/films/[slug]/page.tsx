@@ -8,7 +8,10 @@ import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { isPreviewContentEnabled } from "@/data/site-config";
+import { getFilmShareAsset } from "@/data/film-share-assets";
+import { getProductionDossier } from "@/data/films/production-dossiers";
 import { pluralRu } from "@/lib/plural-ru";
+import { filmPageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
 import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
 type FilmPageProps = {
@@ -36,14 +39,16 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
   const filmPackage = getFilmPackageBySlug(slug);
   if (!filmPackage || (filmPackage.film.status !== "published" && !isPreviewContentEnabled())) return {};
   const { film } = filmPackage;
+  const shareAsset = getFilmShareAsset(film.slug);
+  const page = filmPageMetadata(
+    filmPackage,
+    shareAsset ? shareImageFromAsset(shareAsset) : undefined,
+  );
   return {
-    title: film.title,
-    description:
-      film.status === "published"
-        ? `${film.title} (${film.year}) — ${film.premise}`
-        : filmPackage.research?.state === "SECONDARY_SOURCES"
-          ? `${film.title} — исследовательский черновик по вторичным источникам; точный просмотренный мастер ещё не заблокирован.`
-          : `${film.title} — структурная фикстура платформы «Глубокие воды».`,
+    title: page.title,
+    description: page.description,
+    openGraph: page.openGraph,
+    twitter: page.twitter,
     alternates: film.status === "published" ? { canonical: `/films/${film.slug}` } : undefined,
     robots: film.status === "published" ? undefined : { index: false, follow: false },
   };
@@ -79,6 +84,26 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
           <div><span>Жанр</span><strong>{film.genre.join(" / ")}</strong></div>
           <div><span>Вопрос</span><strong>{film.thesisQuestion}</strong></div>
         </div>
+        {filmPackage.article ? (
+          <Link
+            className="articleEntryLink"
+            href={withSpoilerQuery(`/films/${film.slug}/article`, spoilerLevel)}
+          >
+            <span>Читать разбор целиком</span>
+            <strong>{filmPackage.article.title}</strong>
+            <small>{filmPackage.article.standfirst}</small>
+          </Link>
+        ) : null}
+        {getProductionDossier(film.slug) ? (
+          <Link
+            className="articleEntryLink"
+            href={`/films/${film.slug}/making`}
+          >
+            <span>История создания</span>
+            <strong>{getProductionDossier(film.slug)!.title}</strong>
+            <small>{getProductionDossier(film.slug)!.standfirst}</small>
+          </Link>
+        ) : null}
         {researchDraft ? (
           <aside className="researchDraftNotice" aria-label="Статус исследовательского черновика">
             <strong>Исследовательский черновик · вторичные источники · мастер не заблокирован</strong>

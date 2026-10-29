@@ -19,10 +19,17 @@
     "src/lib/film-module-projection.ts",
     "src/lib/homepage-projection.ts",
     "src/lib/film-package-integrity.ts",
+    "src/lib/film-article.ts",
+    "src/lib/film-article-integrity.ts",
     "src/lib/site-publication-policy.ts",
     "src/lib/experience-quality.ts",
     "src/lib/visual-assets.ts",
     "src/lib/plural-ru.ts",
-    "src/lib/film-index.ts"
+    "src/lib/film-index.ts",
+    "src/lib/page-metadata.ts",
+    "src/lib/production-dossier.ts",
+    "src/data/films/the-truman-show-production-sources.ts",
+    "src/data/films/the-truman-show-production.ts",
+    "src/data/films/production-dossiers.ts"
   ]
 }

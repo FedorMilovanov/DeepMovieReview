@@ -1,0 +1,1026 @@
+import type { VisualAssetManifest } from "../lib/visual-assets";
+
+/**
+ * Illustrations that sit inside the readable layer.
+ *
+ * Separate from `film-share-assets.ts` on purpose. A share card is artwork for a
+ * metadata tag; an illustration is part of the argument and carries a caption in
+ * the text. The two are validated differently: a card only has to have the right
+ * shape, while an illustration must be *generated* — the site does not publish
+ * frames of a film, so an asset that started life as a still cannot become one of
+ * these no matter how it is cropped.
+ *
+ * Every entry is an original drawing commissioned for the article. Where an image
+ * quotes a scene, it quotes it the way a caricature quotes a face: recognisably,
+ * and without reproducing a frame.
+ */
+export const articleIllustrations: VisualAssetManifest[] = [
+  {
+    schemaVersion: 1,
+    id: "illu-truman-shadows",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Гости»: тени, которые больше людей",
+    alt: "Тёмная гостиная: женщина с продуктами, мужчина с поднятой в приветствии рукой и ребёнок у дивана стоят спиной к зрителю; их тени на стене огромны и изображают ценник, марионетку на крестовине и клетку с птицей; в окне — ночное небо со швом.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.5, y: 0.45 },
+    mobileFocalPoint: { x: 0.45, y: 0.4 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-shadows-800",
+        purpose: "display",
+        src: "/art/truman-illu-shadows-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 62464,
+      },
+      {
+        id: "illu-truman-shadows-800-avif",
+        purpose: "display",
+        src: "/art/truman-illu-shadows-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 27648,
+      },
+      {
+        id: "illu-truman-shadows-1200",
+        purpose: "display",
+        src: "/art/truman-illu-shadows-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 149504,
+      },
+      {
+        id: "illu-truman-shadows-1200-avif",
+        purpose: "display",
+        src: "/art/truman-illu-shadows-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 74752,
+      },
+      {
+        id: "illu-truman-shadows-master",
+        purpose: "editorial-master",
+        src: "/art/truman-illu-shadows-master.jpg",
+        format: "jpg",
+        width: 1600,
+        height: 1067,
+        byteSize: 342016,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation; the editor chose this option in a three-round battle",
+      promptVersion: "truman-illu-shadows-v1",
+      createdAt: "2026-10-28",
+      editorialNotes:
+        "Original etching-style drawing: three ordinary people in a warm room, and shadows that are larger than the people and say what their politeness hides — a price tag, a marionette cross, a cage. Not a still; the painted night sky in the window carries the seam from the film's own set.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-watching",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Все смотрят»: дом, в котором никто не поможет",
+    alt: "Дом в разрезе ночью: в каждой комнате свой телевизор с одной и той же картинкой — рука человека, уходящего под воду; старуха за кухонным столом, пара в постели с попкорном, мужчина в ванне, дети на лестнице, двое подростков фотографируют экран телефонами; во дворе чемодан и человек, уходящий прочь.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.5, y: 0.5 },
+    mobileFocalPoint: { x: 0.4, y: 0.45 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-watching-800",
+        purpose: "display",
+        src: "/art/truman-illu-watching-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 61440,
+      },
+      {
+        id: "illu-truman-watching-800-avif",
+        purpose: "display",
+        src: "/art/truman-illu-watching-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 29696,
+      },
+      {
+        id: "illu-truman-watching-1200",
+        purpose: "display",
+        src: "/art/truman-illu-watching-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 163840,
+      },
+      {
+        id: "illu-truman-watching-1200-avif",
+        purpose: "display",
+        src: "/art/truman-illu-watching-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 87040,
+      },
+      {
+        id: "illu-truman-watching-master",
+        purpose: "editorial-master",
+        src: "/art/truman-illu-watching-master.jpg",
+        format: "jpg",
+        width: 1600,
+        height: 1067,
+        byteSize: 376832,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation, style-matched to the editor's reference; the editor chose this option in a battle",
+      promptVersion: "truman-illu-watching-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original etching-style drawing of a cutaway house at night: a television in every room, the same drowning on every screen, and ordinary family life around it — popcorn, a bath, children on the stairs, two teenagers photographing the screen. Outside, a suitcase and a man walking away, ignored. Not a still; no performer's likeness.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-tag",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Ценник»: бирку поправляет чужая рука",
+    alt: "Мужчина в сером костюме стоит на низкой деревянной аукционной подставке в пустой охристой комнате, руки опущены; на шее у него на бечёвке висит большая картонная бирка с единственной пиктограммой — домом. Крупная ухоженная рука в белой манжете входит справа и двумя пальцами придерживает бирку, поправляя её, как поправляют выставочный образец. Лицо мужчины спокойно и ничего не выражает.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.5, y: 0.45 },
+    mobileFocalPoint: { x: 0.5, y: 0.45 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-tag-800",
+        purpose: "display",
+        src: "/art/truman-caric-tag-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 44722,
+      },
+      {
+        id: "illu-truman-caric-tag-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-tag-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 19224,
+      },
+      {
+        id: "illu-truman-caric-tag-1200",
+        purpose: "display",
+        src: "/art/truman-caric-tag-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 111012,
+      },
+      {
+        id: "illu-truman-caric-tag-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-tag-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 55769,
+      },
+      {
+        id: "illu-truman-caric-tag-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-tag-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 275804,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation; the editor set the single gag, chose the frame and rejected the battle re-renders",
+      promptVersion: "truman-caric-tag-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original drawing for the paragraph on ownership: one man on an auction stand, one tag, and a stranger's hand adjusting it. The point is not a shop sale — it is that the tag is put on by the owner and the man does not object. Cuff and cufflink belong to the hand, not to the town.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-born",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Прямой эфир»: кювез, устроенный как телевизор",
+    alt: "Ночная родовая палата: детский кювез устроен как старый телевизор — выпуклое стекло, ручки настройки и решётка динамика на боку, под ним колёсики каталки; внутри тепло светится и спит новорождённый. У изголовья студийная камера на высоком штативе, объектив у самого стекла, горит красный глазок. Справа медсестра в форме и колпаке отводит рукой занавеску, отвернувшись. На стене круглые часы, у окна пустое кресло и лунный свет.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.5, y: 0.5 },
+    mobileFocalPoint: { x: 0.5, y: 0.5 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-born-800",
+        purpose: "display",
+        src: "/art/truman-caric-born-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 43521,
+      },
+      {
+        id: "illu-truman-caric-born-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-born-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 19831,
+      },
+      {
+        id: "illu-truman-caric-born-1200",
+        purpose: "display",
+        src: "/art/truman-caric-born-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 97326,
+      },
+      {
+        id: "illu-truman-caric-born-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-born-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 46092,
+      },
+      {
+        id: "illu-truman-caric-born-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-born-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 224472,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation; the editor set the single gag, chose the frame and rejected the battle re-renders",
+      promptVersion: "truman-caric-born-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original drawing for the sentence about being born live: a maternity room where the incubator has become a television set and the camera stands closer than any relative. The nurse turning away is deliberate — the room is staffed, not attended.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-friend",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Друг»: рука на плече, карточка за спиной",
+    alt: "Ночной деревянный мостик над тёмной водой, двое мужчин у перил. Ближний, в плотном кардигане, с искренним обеспокоенным лицом положил руку на плечо другу, а вторая его рука за спиной держит маленькую карточку с тремя пустыми линейками; от карточки вдоль руки к уху тянется тонкий светлый проводок. Второй мужчина в тёмном пальто смотрит в воду, не поворачиваясь. Над ними один фонарь, отражение в воде, туман.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.45, y: 0.45 },
+    mobileFocalPoint: { x: 0.45, y: 0.45 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-friend-800",
+        purpose: "display",
+        src: "/art/truman-caric-friend-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 42373,
+      },
+      {
+        id: "illu-truman-caric-friend-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-friend-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 20902,
+      },
+      {
+        id: "illu-truman-caric-friend-1200",
+        purpose: "display",
+        src: "/art/truman-caric-friend-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 95888,
+      },
+      {
+        id: "illu-truman-caric-friend-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-friend-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 46115,
+      },
+      {
+        id: "illu-truman-caric-friend-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-friend-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 224824,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation; the editor set the single gag, chose the frame and rejected the battle re-renders",
+      promptVersion: "truman-caric-friend-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original drawing for the friend's grey zone: the warm hand on the shoulder and the cue card behind the back are in the same body. The card carries no words — only ruled lines — so nothing in the picture is a quotation.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-row",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Ряд»: рука над водой и никто не встаёт",
+    alt: "Небольшой старый кинозал: ряд из шести зрителей со спины, у каждого ведёрко попкорна; на экране простая чёрно-белая картинка — раскрытая ладонь над спокойной водой. Никто не поднимается. У прохода пустое откинутое кресло, через спинку перекинуто пальто. Луч проектора светится в пыли.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.5, y: 0.5 },
+    mobileFocalPoint: { x: 0.5, y: 0.5 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-row-800",
+        purpose: "display",
+        src: "/art/truman-caric-row-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 41581,
+      },
+      {
+        id: "illu-truman-caric-row-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-row-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 19788,
+      },
+      {
+        id: "illu-truman-caric-row-1200",
+        purpose: "display",
+        src: "/art/truman-caric-row-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 94569,
+      },
+      {
+        id: "illu-truman-caric-row-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-row-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 45873,
+      },
+      {
+        id: "illu-truman-caric-row-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-row-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 219588,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation; the editor set the single gag, chose the frame and rejected the battle re-renders",
+      promptVersion: "truman-caric-row-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original drawing for contemplation instead of help: one screen, one raised hand, six seated viewers with popcorn, and an empty seat whose coat suggests someone has just stepped out. The hand is a drawing, not a frame from the film.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-shift",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Смена»: ползунок молнии до упора",
+    alt: "Техническая будка студии ночью: техник в наушниках сидит у пульта с тремя большими ползунками, помеченными только пиктограммами — солнце, облако, молния. Одной рукой он держит бутерброд, другой небрежно загоняет ползунок молнии до упора. За стеклом ночное море, крошечная лодка с одним человеком у мачты, дождь и молния. Будка тёплая и уютная, снаружи шторм.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.55, y: 0.55 },
+    mobileFocalPoint: { x: 0.55, y: 0.55 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-shift-800",
+        purpose: "display",
+        src: "/art/truman-caric-shift-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 52661,
+      },
+      {
+        id: "illu-truman-caric-shift-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-shift-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 26298,
+      },
+      {
+        id: "illu-truman-caric-shift-1200",
+        purpose: "display",
+        src: "/art/truman-caric-shift-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 116706,
+      },
+      {
+        id: "illu-truman-caric-shift-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-shift-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 60373,
+      },
+      {
+        id: "illu-truman-caric-shift-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-shift-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 259647,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation; the editor set the single gag, chose the frame and rejected the battle re-renders",
+      promptVersion: "truman-caric-shift-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original drawing for the crew: no cruelty in the frame at all — a man on a shift, a sandwich, three faders, and a storm he is ordering for someone else. The pictograms are the only labelling, so nothing needs translating.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-sky",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Маляр неба»: у горизонта есть рабочее место",
+    alt: "Ночное небо: слева высокая деревянная стремянка, на её верхней ступени маляр в белом комбинезоне и кепке спокойно катает валиком синюю краску по небу, как по стене. Там, где валик прошёл, небо ровное и синее со швом на краю; сразу за швом — незакрашенная чернота с настоящими звёздами. Внизу справа крошечная лодка с одним человеком, который поднял голову и смотрит вверх на маляра. На стремянке висит ведро.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.5, y: 0.35 },
+    mobileFocalPoint: { x: 0.5, y: 0.35 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-sky-800",
+        purpose: "display",
+        src: "/art/truman-caric-sky-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 30031,
+      },
+      {
+        id: "illu-truman-caric-sky-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-sky-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 13353,
+      },
+      {
+        id: "illu-truman-caric-sky-1200",
+        purpose: "display",
+        src: "/art/truman-caric-sky-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 72394,
+      },
+      {
+        id: "illu-truman-caric-sky-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-sky-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 32514,
+      },
+      {
+        id: "illu-truman-caric-sky-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-sky-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 186163,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation; the editor set the single gag and chose the frame from a set of ten",
+      promptVersion: "truman-caric-sky-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original drawing for the finale: the horizon is not a limit, it is a surface someone paints, and the painter is on a shift, not in the sky. The boat below is deliberately tiny — the joke only works if the man is smaller than the job.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-canvas",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Холст»: океан, в который бьётся лодка",
+    alt: "Маленькая парусная лодка с одним человеком изо всех сил упирается носом в огромный нарисованный холст, натянутый на весь кадр: на холсте — спокойный океан и ровный горизонт, и ткань морщится вокруг носа лодки, а от точки удара расходятся тонкие трещины. За холстом, в узком клине справа, где ткань отвернулась: тёмный сценический пол, складной стул с термосом и моток каната.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.5, y: 0.45 },
+    mobileFocalPoint: { x: 0.5, y: 0.45 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-canvas-800",
+        purpose: "display",
+        src: "/art/truman-caric-canvas-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 63358,
+      },
+      {
+        id: "illu-truman-caric-canvas-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-canvas-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 32770,
+      },
+      {
+        id: "illu-truman-caric-canvas-1200",
+        purpose: "display",
+        src: "/art/truman-caric-canvas-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 157461,
+      },
+      {
+        id: "illu-truman-caric-canvas-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-canvas-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 86541,
+      },
+      {
+        id: "illu-truman-caric-canvas-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-canvas-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 365389,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation; the editor set the single gag and chose the frame from a set of ten",
+      promptVersion: "truman-caric-canvas-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original drawing for the sentence about freedom made of plywood: the man is not fighting the sea, he is fighting a painted cloth that gives way like fabric. The thermos and chair behind the canvas are the whole point — the horizon is somebody's workplace.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-storm",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Шторм из шланга»: погода как смена",
+    alt: "Съёмочный павильон ночью: на задней стене натянут задник с нарисованным штормовым морем; перед ним неглубокий бассейн с тёмной водой, в нём маленькая парусная лодка с одним человеком, вцепившимся в мачту. Слева на низкой стремянке рабочий в комбинезоне и резиновых сапогах направляет на лодку пожарный шланг — струя и есть шторм. Справа второй рабочий в наушниках крутит ручку большой ветродуйной машины. На полу сухой бетон, приклеенный скотчем кабель, за ветродувом складной стул с чашкой кофе.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.5, y: 0.5 },
+    mobileFocalPoint: { x: 0.5, y: 0.5 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-storm-800",
+        purpose: "display",
+        src: "/art/truman-caric-storm-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 63081,
+      },
+      {
+        id: "illu-truman-caric-storm-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-storm-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 33035,
+      },
+      {
+        id: "illu-truman-caric-storm-1200",
+        purpose: "display",
+        src: "/art/truman-caric-storm-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 143396,
+      },
+      {
+        id: "illu-truman-caric-storm-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-storm-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 75453,
+      },
+      {
+        id: "illu-truman-caric-storm-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-storm-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 305460,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation; the editor set the single gag and chose the frame from a set of ten",
+      promptVersion: "truman-caric-storm-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original drawing for the storm: the weather is a hose and a fan, operated by two men in overalls. Nothing cruel happens in the frame, which is exactly the argument — the danger is administrative.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-window",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Витрина»: ряд людей и одинаковый наклон голов",
+    alt: "Ночная витрина магазина, вся заставленная телевизорами: на каждом экране одна и та же крошечная фигура на пустой улице. Снаружи, на мокром тротуаре, плечом к плечу стоят восемь человек спиной к зрителю — головы наклонены под одним и тем же углом, дыхание туманит общее пятно стекла. В конце ряда сидит собака и смотрит вверх на людей, а не на экраны. В стекле отражается улица.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.5, y: 0.55 },
+    mobileFocalPoint: { x: 0.5, y: 0.55 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-window-800",
+        purpose: "display",
+        src: "/art/truman-caric-window-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 74919,
+      },
+      {
+        id: "illu-truman-caric-window-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-window-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 37716,
+      },
+      {
+        id: "illu-truman-caric-window-1200",
+        purpose: "display",
+        src: "/art/truman-caric-window-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 171019,
+      },
+      {
+        id: "illu-truman-caric-window-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-window-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 87501,
+      },
+      {
+        id: "illu-truman-caric-window-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-window-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 359816,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator: "Arena.ai image generation; the editor set the single gag and chose the frame from a set of ten",
+      promptVersion: "truman-caric-window-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original drawing for the audience as a row: eight people, one shared tilt of the head, one fogged patch of glass, and a dog that is the only one looking at the people. The tilt is the gag — nobody is deciding anything together, yet they all lean the same way.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-grater",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Реклама»: она играет для зала, которого в комнате нет",
+    alt: "Ночная кухня: женщина у стола в белой блузе с красным узором держит перед собой металлическую тёрку и смотрит прямо на зрителя с безупречной рекламной улыбкой; за её спиной мужчина в клетчатом пиджаке и жёлтом жилете кричит и поднимает указательный палец, и она не оборачивается. На столе тарелка с едой, над ними одна лампа.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.6, y: 0.45 },
+    mobileFocalPoint: { x: 0.55, y: 0.4 },
+    palette: {
+      background: "#14110f",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#b9925b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-grater-800",
+        purpose: "display",
+        src: "/art/truman-caric-grater-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 79569,
+      },
+      {
+        id: "illu-truman-caric-grater-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-grater-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 34855,
+      },
+      {
+        id: "illu-truman-caric-grater-1200",
+        purpose: "display",
+        src: "/art/truman-caric-grater-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 143555,
+      },
+      {
+        id: "illu-truman-caric-grater-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-grater-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 59061,
+      },
+      {
+        id: "illu-truman-caric-grater-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-grater-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 255089,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator:
+        "Arena.ai image generation with still photographs supplied as likeness reference; the editor chose this option in a battle of three compositions",
+      promptVersion: "truman-caric-grater-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original cartoon drawn from photographs used only as reference for the two performers: wife, husband, a grater, and one clean gag. She presents the object to a camera that is not there; he shouts at her back and she does not turn. No wall shadows and no reflections, on the editor's instruction: the first attempts added a shadow holding the grater and a reflection of a viewer, and both made the picture harder to read than the joke it carried.",
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: "illu-truman-caric-trophy",
+    filmSlug: "the-truman-show",
+    role: "illustration",
+    title: "«Трофей»: создатель и его коллекция",
+    alt: "Тёмная комната: пожилой человек в круглых очках и кепке смотрит сверху вниз с холодной довольной улыбкой; рядом на деревянном постаменте стоит стеклянная колба-витрина, снизу подсвеченная тёплым светом, и внутри неё — сувенирная фигурка улыбающегося мужчины с тёмной чёлкой, в клетчатом пиджаке и жёлтом жилете, который приветственно машет рукой.",
+    aspectRatio: 3 / 2,
+    focalPoint: { x: 0.55, y: 0.4 },
+    mobileFocalPoint: { x: 0.5, y: 0.35 },
+    palette: {
+      background: "#0e1014",
+      foreground: "#efe7d6",
+      fractureAccent: "#8f2027",
+      restorationAccent: "#d9a45b",
+    },
+    variants: [
+      {
+        id: "illu-truman-caric-trophy-800",
+        purpose: "display",
+        src: "/art/truman-caric-trophy-800.jpg",
+        format: "jpg",
+        width: 800,
+        height: 533,
+        byteSize: 47361,
+      },
+      {
+        id: "illu-truman-caric-trophy-800-avif",
+        purpose: "display",
+        src: "/art/truman-caric-trophy-800.avif",
+        format: "avif",
+        width: 800,
+        height: 533,
+        byteSize: 20542,
+      },
+      {
+        id: "illu-truman-caric-trophy-1200",
+        purpose: "display",
+        src: "/art/truman-caric-trophy-1200.jpg",
+        format: "jpg",
+        width: 1200,
+        height: 800,
+        byteSize: 92019,
+      },
+      {
+        id: "illu-truman-caric-trophy-1200-avif",
+        purpose: "display",
+        src: "/art/truman-caric-trophy-1200.avif",
+        format: "avif",
+        width: 1200,
+        height: 800,
+        byteSize: 38885,
+      },
+      {
+        id: "illu-truman-caric-trophy-master",
+        purpose: "editorial-master",
+        src: "/art/truman-caric-trophy-master.jpg",
+        format: "jpg",
+        width: 1536,
+        height: 1024,
+        byteSize: 182343,
+      },
+    ],
+    provenance: {
+      sourceKind: "generated",
+      generator:
+        "Arena.ai image generation with still photographs supplied as likeness reference; the editor chose this option in a battle of three compositions",
+      promptVersion: "truman-caric-trophy-v1",
+      createdAt: "2026-10-29",
+      editorialNotes:
+        "Original cartoon of the creator as a collector: the man who built the town keeps its inhabitant as a statuette under glass, lit like an exhibit, and looks down at it with the calm satisfaction of an owner checking the shelf. Two figures, one light source, no words — the whole argument of the section is in the angle of his head. The statuette went through two rounds of likeness work: the first version was a generic waving man, and only after the reference photographs were replaced with frontal film frames did the face read as the performer — fringe, square jaw, broad flat grin.",
+    },
+  },
+];
+
+export function getArticleIllustration(assetId: string): VisualAssetManifest | undefined {
+  return articleIllustrations.find((asset) => asset.id === assetId);
+}
+
+/** What the article renderer and the validator both need to know about a picture. */
+export type IllustrationView = {
+  src: string;
+  /** Width descriptors, so a wide screen gets the 1200 file instead of the 800 one. */
+  srcSet: string;
+  sizes: string;
+  width: number;
+  height: number;
+  alt: string;
+  sources: Array<{ srcSet: string; type: string }>;
+};
+
+/** The article column tops out near 760px; below that the picture is full-bleed. */
+const SIZES = "(max-width: 820px) 100vw, 760px";
+
+const MIME: Record<string, string> = {
+  avif: "image/avif",
+  webp: "image/webp",
+  jpg: "image/jpeg",
+  png: "image/png",
+};
+
+/**
+ * Display variants for an in-article image.
+ *
+ * Same shape as the page hero (AVIF first, JPEG as the guaranteed fallback), but
+ * the sizes are the article column, not the full viewport, so the largest display
+ * variant is used rather than the master.
+ */
+export function illustrationView(assetId: string): IllustrationView | undefined {
+  const asset = getArticleIllustration(assetId);
+  if (!asset || !asset.alt.trim()) return undefined;
+  const display = asset.variants
+    .filter((variant) => variant.purpose === "display")
+    .sort((a, b) => a.width - b.width);
+  const raster = display.filter((variant) => variant.format === "jpg" || variant.format === "png");
+  const fallback = raster[0] ?? display[0];
+  if (!fallback) return undefined;
+  const srcSetOf = (variants: typeof display) =>
+    variants.map((variant) => `${variant.src} ${variant.width}w`).join(", ");
+  // One <source> per format, each carrying every width: two separate AVIF
+  // entries would make the browser take the first and ignore the large file.
+  const sources = ["avif", "webp"].map((format) => {
+    const variants = display.filter((variant) => variant.format === format);
+    return variants.length ? { srcSet: srcSetOf(variants), type: MIME[format] } : undefined;
+  });
+  return {
+    src: fallback.src,
+    srcSet: srcSetOf(raster.length ? raster : display),
+    sizes: SIZES,
+    width: fallback.width,
+    height: fallback.height,
+    alt: asset.alt,
+    sources: sources.filter((source) => source !== undefined),
+  };
+}
+
+/** What the integrity validator checks: existence, provenance, alternative text. */
+export function illustrationFacts(assetId: string):
+  | { alt: string; sourceKind: string; role: string }
+  | undefined {
+  const asset = getArticleIllustration(assetId);
+  if (!asset) return undefined;
+  return { alt: asset.alt, sourceKind: asset.provenance.sourceKind, role: asset.role };
+}

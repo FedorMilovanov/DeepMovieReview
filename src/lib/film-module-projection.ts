@@ -22,8 +22,11 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
         return [{
           id: character.id,
           name: character.name,
+          presentation: character.presentation,
+          identification: character.identification,
           wants: character.wants,
           fears: character.fears,
+          loyalties: character.loyalties,
           contradiction: character.contradiction,
           profileSpoilerLevel: character.profileSpoilerLevel,
           interpretiveSpoilerLevel: character.interpretiveSpoilerLevel,
