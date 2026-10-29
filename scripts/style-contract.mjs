@@ -33,7 +33,7 @@ for (const path of files("src/data/films")) {
   if (/\.tsx?$/.test(path)) {
     const source = readFileSync(path, "utf8");
     assert.doesNotMatch(source, /import\s+["'][^"']+\.css["']/, `${path}: use shared renderers, not per-film styles`);
-    assert.doesNotMatch(source, /\b(?:className|cssText)\s*:/, `${path}: content cannot select presentation classes`);
+    assert.doesNotMatch(source, /\b(?:className|cssText|style)\s*:/, `${path}: content cannot select presentation classes`);
   }
 }
 console.log(`Style contract passed: ${cssFiles.length} CSS files; composition, size, identity, data boundary and imports checked.`);
