@@ -4861,7 +4861,8 @@ test("dark palette keeps every text token above WCAG AA contrast", () => {
     "--accent-fracture is a structural colour: if it ever becomes legible as text, this guard should be revisited along with a contrast fix",
   );
 
-  const stylesheets = readdirSync("src/styles")
+  const stylesheets = readdirSync("src/styles", { recursive: true })
+    .map(String)
     .filter((file) => file.endsWith(".css"))
     .map((file) => [file, readFileSync(`src/styles/${file}`, "utf8")] as const);
   // `(?<![-a-z])` keeps `border-color`/`background-color` out of the text check.
