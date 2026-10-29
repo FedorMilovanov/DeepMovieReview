@@ -26,6 +26,8 @@
 }
 
 .articleTable {
+  /* Preserve native column sizing; wide data scrolls in its own viewport. */
+  overflow-wrap: normal;
   width: 100%;
   border-collapse: collapse;
   font-size: var(--type-body);

@@ -4,6 +4,8 @@
    (timecodes, measurements, corrections) stays clearly secondary. */
 
 .articleShell {
+  /* Long references must wrap, not widen intrinsic grid/flex tracks. */
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   align-items: center;
