@@ -129,7 +129,7 @@
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 720px) {
   .methodologyAxioms {
     grid-template-columns: 1fr;
   }

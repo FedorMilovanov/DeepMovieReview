@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { FilmMediaFrame } from "@/components/film-media-frame";
 import { FilmEvidenceMap } from "@/components/film-modules/evidence-map";
 import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
@@ -73,7 +74,9 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
       <SpoilerDeepLinkGuard spoilerLevel={spoilerLevel} />
 
       <section className="sectionShell filmPageHero" aria-labelledby="film-title">
-        <Link className="microLabel" href="/films">← Фильмы</Link>
+        <Breadcrumbs
+          trail={[{ label: "Фильмы", href: "/films" }, { label: film.title }]}
+        />
         <FilmMediaFrame slug={film.slug} variant="hero" />
         <div className="sectionIndex">Фильм / {researchDraft ? "исследовательский черновик" : statusLabels[film.status]} / Схема {filmPackage.schemaVersion}</div>
         <h1 id="film-title">{film.title}</h1>

@@ -255,7 +255,7 @@ h3 {
   right: 0;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1020px) {
   .shellGrid {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }

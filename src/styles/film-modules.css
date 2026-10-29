@@ -11,7 +11,7 @@
 
 .filmModuleStory .storyTrack {
   margin-top: clamp(2rem, 5vw, 4rem);
-  max-width: 920px;
+  max-width: 900px;
 }
 
 .filmModule .relationshipPanel,
@@ -263,10 +263,13 @@
   text-transform: uppercase;
 }
 
-.filmKnowledgeFog {
-  background:
-    linear-gradient(120deg, rgba(255, 255, 255, 0.018), transparent 62%),
-    var(--bg) !important;
+/* The fog tint is painted as an image over the page colour rather than as a
+   background shorthand: a shorthand here would need !important to survive the
+   generic card rule, and a layout layer that wins by force is a layer that will
+   lose by accident somewhere else. */
+article.filmKnowledgeFog {
+  background-color: var(--bg);
+  background-image: linear-gradient(120deg, rgba(255, 255, 255, 0.018), transparent 62%);
 }
 
 .filmDecisionJudgment {
@@ -413,7 +416,7 @@
 
 .researchDraftNotice {
   margin-top: clamp(1.5rem, 3vw, 2.5rem);
-  max-width: 920px;
+  max-width: 900px;
   padding: clamp(1.1rem, 2.5vw, 1.75rem);
   border: 1px solid var(--stroke-warm);
   border-inline-start: 3px solid var(--accent-restoration);
