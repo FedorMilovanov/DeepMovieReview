@@ -7,7 +7,7 @@ import { mkdirSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
-import { nativeSafari } from "./lib/native-safari.mjs";
+import { nativeSafari, waitForNativeValue } from "./lib/native-safari.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari";
 mkdirSync(directory, { recursive: true });
@@ -79,20 +79,27 @@ try {
     },
   });
   report.capabilities = safari.capabilities;
+  assert.equal(safari.capabilities.platformName, "iOS");
+  assert.equal(safari.capabilities["safari:useSimulator"], true);
+  assert.equal(safari.capabilities["safari:deviceUDID"], device.udid);
   for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"]) {
+    report.phase = `native iOS route ${route}`;
     await safari.goto(`http://127.0.0.1:3213${route}`);
     const box = await safari.execute("return ({width:innerWidth,scroll:document.documentElement.scrollWidth,lang:document.documentElement.lang,h1:document.querySelectorAll('main h1').length})");
     assert.ok(box.width < 500 && box.scroll <= box.width + 1, `${route}: native iOS reflow ${JSON.stringify(box)}`);
     assert.equal(box.lang, "ru"); assert.equal(box.h1, 1);
     await safari.click(".menuButton");
-    assert.equal(await safari.execute("return document.querySelector('.menuButton').getAttribute('aria-expanded')"), "true");
+    await waitForNativeValue(() => safari.execute("return document.querySelector('.menuButton').getAttribute('aria-expanded')"), "true");
+    evidence.actions.push({ route, label: "actual menu tap opened disclosure", expanded: true });
     await safari.click(".menuButton");
-    assert.equal(await safari.execute("return document.querySelector('.menuButton').getAttribute('aria-expanded')"), "false");
+    await waitForNativeValue(() => safari.execute("return document.querySelector('.menuButton').getAttribute('aria-expanded')"), "false");
+    evidence.actions.push({ route, label: "actual menu tap closed disclosure", expanded: false });
     const data = await safari.screenshot();
     evidence.screenshots.push({ route, data });
     evidence.actions.push({ route, label: "native iOS Safari layout and actual menu taps", box });
     if (route.includes("/article?")) {
       const count = await safari.execute("return document.querySelectorAll('.articleSection').length");
+      assert.ok(count > 0, "Actual native article sections must exist before the spoiler input");
       await safari.click(".spoilerOption");
       let changed = false;
       for (let i = 0; i < 100; i++) {
@@ -103,6 +110,12 @@ try {
     }
   }
 } catch (error) {
+  if (safari) {
+    try {
+      report.failedPageState = await safari.execute("return ({url:location.href,expanded:document.querySelector('.menuButton')?.getAttribute('aria-expanded'),button:document.querySelector('.menuButton')?.getBoundingClientRect().toJSON(),width:innerWidth,scrollY})");
+      evidence.screenshots.push({ route: "failed native state", data: await safari.screenshot() });
+    } catch (diagnosticError) { report.failedPageDiagnostic = diagnosticError.message; }
+  }
   try { report.failedHostSimulatorProcesses = hostSimulatorProcesses(); }
   catch (diagnosticError) { report.failedHostSimulatorProcesses = diagnosticError.message; }
   report.failures.push(inspect(error, { depth: 8, maxStringLength: 16000 }));

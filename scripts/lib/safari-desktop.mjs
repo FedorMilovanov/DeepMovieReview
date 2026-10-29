@@ -10,12 +10,15 @@ import { setTimeout as delay } from "node:timers/promises";
 
 const executeFile = promisify(execFile);
 const nativeRun = async (file, args) => (await executeFile(file, args, { timeout: 20000, maxBuffer: 8 * 1024 * 1024 })).stdout.trim();
-// Code bodies are trusted harness constants. URL/other runtime values travel as
-// JSON data through a base64-only literal, never interpolated into executable JS.
-export function safariProbe(script, args = []) {
-  assert.ok(Array.isArray(args));
-  const data = args.length ? `JSON.parse(new TextDecoder().decode(Uint8Array.from(atob("${Buffer.from(JSON.stringify(args), "utf8").toString("base64")}"), c => c.charCodeAt(0))))` : "[]";
-  return `JSON.stringify((function(){${script}\n}).apply(null,${data}))`;
+// A closed set of read-only sources: neither URL data nor arbitrary caller code
+// can enter JavaScript construction. Compare returned navigation data in Node.
+const probes = Object.freeze({
+  ready: "JSON.stringify({href:location.href,readyState:document.readyState,fonts:document.fonts.status})",
+  geometry: "JSON.stringify({width:innerWidth,outer:outerWidth,dpr:devicePixelRatio,scroll:document.documentElement.scrollWidth})",
+});
+export function safariProbe(name) {
+  assert.ok(Object.hasOwn(probes, name), "Unknown native Safari read-only probe");
+  return probes[name];
 }
 
 export async function safariDesktop({ run = nativeRun, ci = process.env.GITHUB_ACTIONS === "true" } = {}) {
@@ -45,18 +48,19 @@ export async function safariDesktop({ run = nativeRun, ci = process.env.GITHUB_A
     assert.ok(Number.isSafeInteger(windowId) && windowId > 0, "Safari did not create a native window");
     const version = await osa('tell application "Safari" to get version');
     assert.match(version, /^\d+\./, "Native Safari version is missing");
-    async function execute(script, args = []) {
-      const value = await osa('on run argv\ntell application "Safari" to do JavaScript (item 2 of argv) in current tab of window id (item 1 of argv as integer)\nend run', windowId, safariProbe(script, args));
+    async function read(name) {
+      const value = await osa('on run argv\ntell application "Safari" to do JavaScript (item 2 of argv) in current tab of window id (item 1 of argv as integer)\nend run', windowId, safariProbe(name));
       return JSON.parse(value);
     }
     return {
       version, control: "Safari Apple Events + native keyboard; OS window PNG",
-      execute,
+      geometry: () => read("geometry"),
       async goto(url) {
         await osa('on run argv\ntell application "Safari" to set URL of current tab of window id (item 1 of argv as integer) to item 2 of argv\nend run', windowId, url);
         const deadline = Date.now() + 90000;
         while (Date.now() < deadline) {
-          if (await execute("return location.href === arguments[0] && document.readyState === 'complete' && document.fonts.status === 'loaded'", [url])) return;
+          const state = await read("ready");
+          if (state.href === url && state.readyState === "complete" && state.fonts === "loaded") return;
           await delay(100);
         }
         throw new Error(`Native Safari page/fonts readiness timed out: ${url}`);
