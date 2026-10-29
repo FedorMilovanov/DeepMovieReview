@@ -151,3 +151,19 @@ Pure selection покрыт тестом (beta/default aliases и несовме
 Перед SR/WebDriver теперь явно активируется Safari; --diagnose и ограниченные
 логи именно текущего PID экспортируются вместе с причиной startup failure.
 Изоляция PID/размер диагностики покрыты тестом; новый native pass пока pending.
+
+`3b39f73` desktop receipt123697633383 (SHA256 verified) уже создал Safari26.6.1
+session; Windows actual AT завершился SUCCESS. VoiceOver остановился раньше rotor:
+Item Chooser дал «Page Menu, Translation Available», не требуемую роль меню.
+В pinned Guidepup keyboard.perform/interact активируют приложение VoiceOver перед
+sendKeys; keyboard.press этого не делает. Теперь те же native command codes идут
+через press без дополнительной смены приложения. Mapping берётся из SDK, неизвестные
+keys/modifiers отклоняются, round-trip покрыт тестом. Это гипотеза исправления AT
+навигации, не доказательство native pass; все speech/role assertions сохранены.
+
+iOS receipt123699870046 (`3b39f73`, SHA256 verified) подтвердил согласованные
+Xcode26.3/SDK26.2 и boot92s, но отдельный simctl launch в этом запуске завис60s.
+Поэтому прежний успешный PID9049 не означает стабильный iOS pass. Убрана ручная
+предварительная launch: создание native Safari теперь поручено самому SafariDriver
+через стандартную W3C session с useSimulator/deviceUDID. Ни одна проверка страниц,
+нативных taps или reflow не удалена; результат следующей сессии пока неизвестен.

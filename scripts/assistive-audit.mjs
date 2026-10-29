@@ -7,6 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
+import { macKeyboardShortcut } from "./lib/assistive-commands.mjs";
 import { nativeSafari } from "./lib/native-safari.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -52,6 +53,9 @@ const go = async route => {
   else { await page.goto(base + route); await page.waitForLoadState("networkidle"); }
   await execute("document.fonts.ready.then(() => true)");
 };
+const perform = (command, options) => mac
+  ? reader.press(macKeyboardShortcut(command), options)
+  : reader.perform(command, options);
 async function action(label, run, expected) {
   checkpoint(label);
   await reader.clearSpokenPhraseLog();
@@ -112,22 +116,22 @@ try {
     await macOSActivate(MacOSApplications.Safari);
     // Initial-only capture can return while Item Chooser is still dismissing;
     // the following interact then lands outside, not inside, the web area.
-    await action("VoiceOver Item Chooser", () => reader.perform(reader.keyboardCommands.openItemChooser, navigationOptions), /item chooser|VoiceOver Menu/i);
+    await action("VoiceOver Item Chooser", () => perform(reader.keyboardCommands.openItemChooser, navigationOptions), /item chooser|VoiceOver Menu/i);
     await action("VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
     await action("VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
     // With the real page (no injected marker), interact already reaches its
     // skip link. An extra next moves into the banner instead of finding h1.
-    await action("VoiceOver enter web area", () => reader.interact(navigationOptions), /перейти к содержимому/i);
+    await action("VoiceOver enter web area", () => perform(reader.keyboardCommands.interactWithItem, navigationOptions), /перейти к содержимому/i);
   } else {
     await page.bringToFront();
-    await reader.perform(reader.keyboardCommands.exitFocusMode, { capture: false });
+    await perform(reader.keyboardCommands.exitFocusMode, { capture: false });
     await reader.press("Control+Home");
   }
   await action("structural heading navigation", async () => {
     if (!mac) return reader.nextHeading(navigationOptions);
     // Use VoiceOver's actual Headings rotor rather than treating a Safari web
     // group announcement from VO-Command-H as proof of a heading.
-    await reader.perform(reader.keyboardCommands.openWebItemRotor, navigationOptions);
+    await perform(reader.keyboardCommands.openWebItemRotor, navigationOptions);
     for (let category = 0; category < 12; category++) {
       const spoken = await reader.lastSpokenPhrase();
       if (/headings|заголовки/i.test(spoken)) break;
@@ -137,17 +141,17 @@ try {
     await reader.press("Home", navigationOptions);
     await reader.press("Enter", navigationOptions);
   }, [/шоу трумана/i, /heading|заголовок/i]);
-  await action("native table navigation", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/четыре окна/i, /table|таблиц/i]);
-  if (mac) await reader.interact(navigationOptions);
-  await action("table column header", () => reader.perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);
-  await action("table row header and value", () => reader.perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /библиотека[\s\S]*0 переходов/i);
+  await action("native table navigation", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/четыре окна/i, /table|таблиц/i]);
+  if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
+  await action("table column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);
+  await action("table row header and value", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /библиотека[\s\S]*0 переходов/i);
   await screenshot("table-reading");
-  if (mac) await reader.stopInteracting();
-  await action("corrections table name", () => reader.perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), /пять утверждений/i);
-  if (mac) await reader.interact(navigationOptions);
-  await action("corrections column header", () => reader.perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /что в кадре/i);
+  if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
+  await action("corrections table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), /пять утверждений/i);
+  if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
+  await action("corrections column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /что в кадре/i);
   await screenshot("corrections-table-reading");
-  if (mac) await reader.stopInteracting();
+  if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
 
   // Browser UI zoom, not CSS zoom, deviceScaleFactor or a narrower emulated viewport.
   await go("/films/the-truman-show/article?spoilers=full");

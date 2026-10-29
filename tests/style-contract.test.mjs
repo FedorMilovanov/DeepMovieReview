@@ -200,3 +200,17 @@ test("Safari diagnostics are bounded and isolated to the actual driver pid", asy
     assert.match(safariDriverLog(directory, 99), /No SafariDriver diagnostic file/);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
+
+
+test("VoiceOver shortcuts retain native command codes without app activation", async () => {
+  const { macKeyboardShortcut } = await import("../scripts/lib/assistive-commands.mjs");
+  const { voiceOverKeyCodeCommands: commands, MacOSKeyCodes } = await import("@guidepup/guidepup");
+  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "moveToNextColumn", "moveDown"]) {
+    const command = commands[name];
+    const parts = macKeyboardShortcut(command).split("+");
+    assert.equal(MacOSKeyCodes[parts.pop()], command.keyCode);
+    assert.deepEqual(parts, command.modifiers.map(modifier => ({ control: "Control", option: "Alt", command: "Meta", shift: "Shift" })[modifier]));
+  }
+  assert.throws(() => macKeyboardShortcut({ keyCode: -1 }), /Unknown native key/);
+  assert.throws(() => macKeyboardShortcut({ keyCode: 34, modifiers: ["unsupported"] }), /Unknown native modifier/);
+});
