@@ -474,8 +474,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci --no-audit --no-fund
-      - name: Configure actual OS screen reader on disposable hosted runner
+      - name: Locked install and actual OS screen-reader setup on hosted runner
         run: node scripts/assistive-setup.mjs
       - name: Enable installed Safari WebDriver
         if: runner.os == 'macOS'
