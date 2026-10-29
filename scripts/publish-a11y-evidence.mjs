@@ -7,6 +7,8 @@ import { gzipSync } from "node:zlib";
 import { workflowError } from "./lib/audit-report.mjs";
 
 const directory = process.argv[2] ?? "a11y-report";
+const label = process.argv[3] ?? "current";
+assert.match(label, /^[a-z-]+$/);
 const summary = JSON.parse(readFileSync(`${directory}/summary.json`, "utf8"));
 const scans = summary.results.map(scan => {
   const result = JSON.parse(readFileSync(`${directory}/${scan.file}`, "utf8"));
@@ -20,7 +22,7 @@ const manifest = { revision: summary.revision, sha256: createHash("sha256").upda
   encoding: "gzip+base64", chunks: chunks.length, bytes: bytes.length };
 function notice(title, message) {
   // Reuse tested escaping; change only the workflow command and add a fixed safe title.
-  console.log(workflowError(message).replace("::error title=Browser audit::", `::notice title=${title}::`));
+  console.log(workflowError(message).replace("::error title=Browser audit::", `::notice title=${label}-${title}::`));
 }
 notice("a11y-evidence-manifest", JSON.stringify(manifest));
 chunks.forEach((chunk, index) => notice(`a11y-evidence-${index + 1}`, chunk));

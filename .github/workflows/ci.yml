@@ -17,6 +17,9 @@ jobs:
   app-shell:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
     env:
       DMR_SITE_INDEXING_ENABLED: "true"
       DMR_PREVIEW_CONTENT_ENABLED: "true"
@@ -272,6 +275,15 @@ jobs:
 
           BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs
           BASE_URL=http://127.0.0.1:3212 npm run test:a11y
+
+      # Historical recovery is informational, never a substitute for current-head tests.
+      - name: Recover previous successful accessibility evidence
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        timeout-minutes: 2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/recover-a11y-evidence.py
 
       - name: Publish lossless accessibility diagnostics to checks API
         if: always()
