@@ -16,6 +16,8 @@ function fixture(run) {
     mkdirSync(join(root, "src/data/films"), { recursive: true });
     mkdirSync(join(root, "src/app"), { recursive: true });
     cpSync("src/app/globals.css", join(root, "src/app/globals.css"));
+    mkdirSync(join(root, "src/components/experience"), { recursive: true });
+    cpSync("src/components/experience/verdict-core.module.css", join(root, "src/components/experience/verdict-core.module.css"));
     const write = (path, text) => writeFileSync(join(root, path), text);
     const check = () => spawnSync(process.execPath, [script], { cwd: root, encoding: "utf8" });
     run({ root, write, check });
@@ -124,3 +126,13 @@ rejects("compatibility aliases cannot acquire per-component overrides", ({ root,
   const tokens = readFileSync(join(root, "src/styles/tokens.css"), "utf8");
   write("src/styles/tokens.css", tokens + "\n.article { --text: red; }");
 }, /keep one compatibility definition/);
+
+for (const path of [
+  "src/styles/methodology.css",
+  "src/components/experience/verdict-core.module.css",
+  "src/styles/home/hero.css",
+]) {
+  rejects(`${path}: migrated styles reject legacy tokens`, ({ write }) => {
+    write(path, ".shared { color: var(--text); }");
+  }, /use --ink-1 instead of --text/);
+}
