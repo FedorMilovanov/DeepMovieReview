@@ -4,12 +4,20 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { rectangleContrast } from "./contrast-pixels.mjs";
 
-// Mask only glyph paint. Changing CSS color would also change currentColor
+// Mask text foreground paint only. Changing CSS color would also change currentColor
 // backgrounds/borders/icons and could manufacture an apparently better bound.
 export function maskTextPaint(s) {
   const elements = new Set(s.records.filter(record => s.visibleIds.has(record.id)).map(record => record.element));
-  s.saved = [...elements].map(element => ({ element, properties: ["-webkit-text-fill-color", "text-shadow", "fill"].map(name => ({ name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
+  // Decorations are foreground paint, not the background behind the glyphs.
+  // They propagate from ancestors, so preserve/restore their actual paint owners.
+  const decorations = new Set();
+  for (const element of elements) for (let parent = element; parent; parent = parent.parentElement) {
+    if (getComputedStyle(parent).textDecorationLine !== "none") decorations.add(parent);
+  }
+  s.saved = [...new Set([...elements, ...decorations])].map(element => ({ element, properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color"].map(name => ({ name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
   for (const { element } of s.saved) {
+    if (decorations.has(element)) element.style.setProperty("text-decoration-color", "transparent");
+    if (!elements.has(element)) continue;
     element.style.setProperty("-webkit-text-fill-color", "transparent");
     element.style.setProperty("text-shadow", "none");
     if (element.namespaceURI === "http://www.w3.org/2000/svg") element.style.setProperty("fill", "transparent");
@@ -20,6 +28,61 @@ export function restoreTextPaint(s) {
     if (value) element.style.setProperty(name, value, priority); else element.style.removeProperty(name);
   }
   s.saved = [];
+}
+
+export function missingRangeIds(expected, measurements) {
+  return new Set(expected.filter(record => !record.connected || record.lines === 0 ||
+    Array.from({ length: record.lines }, (_, line) => `${record.id}:${line}`).some(key => !measurements.has(key))).map(record => record.id));
+}
+
+export function snapshotTextPaint(s) {
+  // A fully visible line can be sampled on an overlapping scroll tile. Do not use
+  // a fixed header's paint as if it were the background behind an occluded line.
+  function exposed(element, rect, width, height, hitTest) {
+    // Existing pointer-events:none paint (e.g. lens annotations) cannot own a
+    // hit. Use its nearest hit-testable container, without changing any style.
+    while (element.parentElement && getComputedStyle(element).pointerEvents === "none") element = element.parentElement;
+    if (rect.left < 0 || rect.right > width || rect.top < 0 || rect.bottom > height) return false;
+    for (const x of [rect.left + Math.min(0.5, rect.width / 2), rect.right - Math.min(0.5, rect.width / 2)]) {
+      for (const y of [rect.top + Math.min(0.5, rect.height / 2), rect.bottom - Math.min(0.5, rect.height / 2)]) {
+        const top = hitTest(x, y);
+        if (!top || !(top === element || element.contains(top) || top.contains(element))) return false;
+      }
+    }
+    return true;
+  }
+  const boxes = [];
+  const rgba = color => {
+    s.ctx.clearRect(0, 0, 1, 1); s.ctx.fillStyle = color; s.ctx.fillRect(0, 0, 1, 1);
+    const value = [...s.ctx.getImageData(0, 0, 1, 1).data]; value[3] /= 255; return value;
+  };
+  for (const record of s.records) {
+    const rects = [...record.range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth);
+    if (!rects.length) continue;
+    const style = getComputedStyle(record.element);
+    const color = record.element.namespaceURI === "http://www.w3.org/2000/svg" ? style.fill : style.webkitTextFillColor || style.color;
+    const foreground = rgba(color);
+    let issue;
+    if (!foreground[3]) issue = "Transparent/gradient text foreground requires separate assessment";
+    if (style.textShadow !== "none" || parseFloat(style.webkitTextStrokeWidth || "0") > 0) issue = "Text shadow/stroke requires separate assessment";
+    let settling = false, unpainted = false;
+    for (let element = record.element; element; element = element.parentElement) {
+      const parent = getComputedStyle(element);
+      if (+parent.opacity === 0) unpainted = true;
+      if (+parent.opacity !== 1) { settling = true; issue = "Ancestor opacity is not one"; }
+      if (parent.filter !== "none" || parent.mixBlendMode !== "normal") issue = "Filter/blend requires separate assessment";
+    }
+    if (unpainted) continue;
+    const threshold = parseFloat(style.fontSize) >= 24 || (parseFloat(style.fontWeight) >= 700 && parseFloat(style.fontSize) >= 14 * 4 / 3) ? 3 : 4.5;
+    [...record.range.getClientRects()].forEach((rect, line) => {
+      if (rect.width > 0 && rect.height > 0 && exposed(record.element, rect, innerWidth, innerHeight, (x, y) => document.elementFromPoint(x, y))) {
+        boxes.push({ id: record.id, line, rect: rect.toJSON(), foreground, color, threshold, issue, settling });
+      }
+    });
+  }
+  s.visibleIds = new Set(boxes.map(box => box.id));
+  s.currentBoxes = boxes;
+  return { boxes, scroll: scrollY, width: innerWidth, height: innerHeight, end: scrollY + innerHeight >= document.documentElement.scrollHeight };
 }
 
 export async function renderedContrast(page, nodes, directory, id) {
@@ -49,53 +112,26 @@ export async function renderedContrast(page, nodes, directory, id) {
     return { records, owners, saved: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
   }, nodes.map(node => node.target));
   const previousScroll = await page.evaluate(() => scrollY);
-  const measurements = new Map(), frames = [];
+  const measurements = new Map(), frames = [], deferred = [];
   let tileLimit = false;
   try {
-    let top = 0;
+    let top = 0, revisiting = false;
+    const revisited = new Set();
     for (let tile = 0; tile < 250; tile++) {
       await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), top);
       await page.waitForTimeout(100);
       // Let actual IntersectionObserver/reveal animation settle; never force opacity.
       let snapshot;
       for (let attempt = 0; attempt < 25; attempt++) {
-        snapshot = await page.evaluate(s => {
-          const boxes = [];
-          const rgba = color => {
-            s.ctx.clearRect(0, 0, 1, 1); s.ctx.fillStyle = color; s.ctx.fillRect(0, 0, 1, 1);
-            const value = [...s.ctx.getImageData(0, 0, 1, 1).data]; value[3] /= 255; return value;
-          };
-          for (const record of s.records) {
-            const rects = [...record.range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth);
-            if (!rects.length) continue;
-            const style = getComputedStyle(record.element);
-            const color = record.element.namespaceURI === "http://www.w3.org/2000/svg" ? style.fill : style.webkitTextFillColor || style.color;
-            const foreground = rgba(color);
-            let issue;
-            if (!foreground[3]) issue = "Transparent/gradient text foreground requires separate assessment";
-            if (style.textShadow !== "none" || parseFloat(style.webkitTextStrokeWidth || "0") > 0) issue = "Text shadow/stroke requires separate assessment";
-            let settling = false, unpainted = false;
-            for (let element = record.element; element; element = element.parentElement) {
-              const parent = getComputedStyle(element);
-              if (+parent.opacity === 0) unpainted = true;
-              if (+parent.opacity !== 1) { settling = true; issue = "Ancestor opacity is not one"; }
-              if (parent.filter !== "none" || parent.mixBlendMode !== "normal") issue = "Filter/blend requires separate assessment";
-            }
-            if (unpainted) continue;
-            const threshold = parseFloat(style.fontSize) >= 24 || (parseFloat(style.fontWeight) >= 700 && parseFloat(style.fontSize) >= 14 * 4 / 3) ? 3 : 4.5;
-            [...record.range.getClientRects()].forEach((rect, line) => {
-              if (rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth) {
-                boxes.push({ id: record.id, line, rect: rect.toJSON(), foreground, color, threshold, issue, settling });
-              }
-            });
-          }
-          s.visibleIds = new Set(boxes.map(box => box.id));
-          s.currentBoxes = boxes;
-          return { boxes, scroll: scrollY, width: innerWidth, height: innerHeight, end: scrollY + innerHeight >= document.documentElement.scrollHeight };
-        }, state);
+        snapshot = await page.evaluate(snapshotTextPaint, state);
         if (!snapshot.boxes.some(box => box.settling)) break;
         await page.waitForTimeout(100);
       }
+      for (const box of snapshot.boxes.filter(box => box.settling)) deferred.push({ id: box.id, line: box.line, tile, reason: box.issue });
+      snapshot.boxes = snapshot.boxes.filter(box => !box.settling);
+      await page.evaluate(({ s, boxes }) => {
+        s.currentBoxes = boxes; s.visibleIds = new Set(boxes.map(box => box.id));
+      }, { s: state, boxes: snapshot.boxes });
       const original = await page.screenshot();
       let background;
       try {
@@ -139,12 +175,28 @@ export async function renderedContrast(page, nodes, directory, id) {
         }
         measurements.set(key, measurement);
       }
-      if (snapshot.end) break;
+      revisiting ||= snapshot.end;
+      if (revisiting) {
+        // Revisit only missing coverage, never discard a low bound in favour of
+        // a later, prettier frame. Ordinary centered scrolling lets late reveal
+        // animations settle and moves missed text away from sticky overlays.
+        const candidate = await page.evaluate(({ s, measured, revisited }) => {
+          for (const record of s.records) {
+            if (revisited.includes(record.id) || !record.element.isConnected) continue;
+            const rects = [...record.range.getClientRects()];
+            if (!rects.some((_, line) => !measured.includes(`${record.id}:${line}`))) continue;
+            const rect = record.range.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) return { id: record.id, top: scrollY + rect.top - Math.max(0, (innerHeight - rect.height) / 2) };
+          }
+          return null;
+        }, { s: state, measured: [...measurements.keys()], revisited: [...revisited] });
+        if (!candidate) break;
+        revisited.add(candidate.id); top = Math.max(0, candidate.top);
+      } else top = snapshot.scroll + Math.floor(snapshot.height * 0.75);
       if (tile === 249) tileLimit = true;
-      top = snapshot.scroll + Math.floor(snapshot.height * 0.75);
     }
     const owners = await page.evaluate(s => s.owners, state);
-    const expected = await page.evaluate(s => s.records.map(record => ({ id: record.id, lines: record.range.getClientRects().length })), state);
+    const expected = await page.evaluate(s => s.records.map(record => ({ id: record.id, connected: record.element.isConnected && record.range.startContainer.isConnected, lines: record.range.getClientRects().length })), state);
     const ranges = [...measurements.values()].map(record => {
       let covered = 0;
       for (const [start, end] of record.intervals.toSorted((a, b) => a[0] - b[0])) {
@@ -156,10 +208,10 @@ export async function renderedContrast(page, nodes, directory, id) {
       return { ...result, minimum: Number.isFinite(record.minimum) ? record.minimum : null, covered: covered >= record.height,
         pass: !record.issues.length && covered >= record.height && record.minimum >= record.threshold && Number.isFinite(record.minimum) };
     });
-    const absent = new Set(expected.filter(record => Array.from({ length: record.lines }, (_, line) => `${record.id}:${line}`).some(key => !measurements.has(key))).map(record => record.id));
+    const absent = missingRangeIds(expected, measurements);
     const missing = owners.filter(owner => owner.error || owner.ids.some(id => absent.has(id)));
     const failed = ranges.filter(range => !range.pass);
-    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames", owners: owners.length, ranges, frames,
+    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames", owners: owners.length, targets: owners, ranges, frames, deferred,
       missing, tileLimit, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);

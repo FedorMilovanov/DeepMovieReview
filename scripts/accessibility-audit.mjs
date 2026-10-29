@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { chromium, firefox, webkit } from "playwright-core";
 import axe from "axe-core";
+import { calibrateRenderedContrast } from "./lib/contrast-calibration.mjs";
 import { renderedContrast } from "./lib/rendered-contrast.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -29,6 +30,11 @@ for (const name of selected) {
     browser = await engines[name].launch({
       ...(name === "chromium" && process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {}),
     });
+    if (process.env.A11Y_RENDERED_CONTRAST === "true") {
+      report.results.push({ browser: name, version: browser.version(), width: 390, route: "synthetic harness only", state: "rendered-calibration",
+        scope: "synthetic fixtures, not product scans", file: `${name}-calibration.json` });
+      await calibrateRenderedContrast(browser, out, name);
+    }
     for (const width of [1440, 390]) {
       for (const [index, route] of routes.entries()) {
         const id = `${name}-${width}-${index}`;
