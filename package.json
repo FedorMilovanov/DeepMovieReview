@@ -29,6 +29,7 @@
     "three": "0.186.0"
   },
   "devDependencies": {
+    "@guidepup/guidepup": "0.38.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
