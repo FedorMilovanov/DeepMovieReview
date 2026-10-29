@@ -32,7 +32,7 @@
 }
 
 .filmModule.autopsySection .autopsyCopy > p strong {
-  color: var(--text);
+  color: var(--ink-1);
 }
 
 .filmOutlineSection {
@@ -47,7 +47,7 @@
 }
 
 .filmOutline {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
 }
 
 .filmOutline a {
@@ -55,18 +55,18 @@
   grid-template-columns: 46px minmax(140px, 0.4fr) minmax(0, 1fr);
   gap: 1rem;
   padding: 0.9rem 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--stroke-default);
   align-items: baseline;
 }
 
 .filmOutline a:hover,
 .filmOutline a:focus-visible {
-  border-bottom-color: var(--line-strong);
+  border-bottom-color: var(--stroke-strong);
 }
 
 .filmOutline a > span,
 .filmOutline a > small {
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 .filmOutline a > span {
@@ -89,22 +89,22 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px;
-  border: 1px solid var(--line);
-  background: var(--line);
+  border: 1px solid var(--stroke-default);
+  background: var(--stroke-default);
 }
 
 .filmObservationGrid > article,
 .filmCraftGrid > article {
   min-height: 240px;
   padding: clamp(1.2rem, 2.5vw, 2rem);
-  background: var(--bg);
+  background: var(--surface-canvas);
 }
 
 .filmObservationGrid h3,
 .filmSignalList h3 {
   margin: 1.2rem 0 0;
   max-width: 18ch;
-  font-family: var(--display);
+  font-family: var(--font-display);
   font-size: clamp(1.35rem, 2.5vw, 2.4rem);
   font-weight: 500;
   letter-spacing: -0.035em;
@@ -115,14 +115,14 @@
 .filmCraftGrid p,
 .filmSignalList p,
 .filmDecision p {
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 .filmObservationMeta {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -131,14 +131,14 @@
 .filmCounterevidence {
   margin-top: 1.25rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
+  border-top: 1px solid var(--stroke-default);
+  color: var(--ink-3);
 }
 
 .filmCounterevidence strong {
   display: block;
   margin-bottom: 0.3rem;
-  color: var(--text);
+  color: var(--ink-1);
   font-size: 0.66rem;
   font-weight: 500;
   letter-spacing: 0.1em;
@@ -146,7 +146,7 @@
 }
 
 .filmSignalList {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
 }
 
 .filmSignalList > article {
@@ -154,12 +154,12 @@
   grid-template-columns: 64px minmax(0, 1fr);
   gap: clamp(1rem, 3vw, 2.5rem);
   padding: clamp(1.25rem, 3vw, 2rem) 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--stroke-default);
 }
 
 .filmSignalIndex {
-  color: var(--muted);
-  font-family: var(--display);
+  color: var(--ink-3);
+  font-family: var(--font-display);
   font-size: clamp(1.6rem, 3vw, 3rem);
 }
 
@@ -172,7 +172,7 @@
 .filmCraftGrid > article > strong {
   margin-top: auto;
   max-width: 24ch;
-  font-family: var(--display);
+  font-family: var(--font-display);
   font-size: clamp(1.25rem, 2.2vw, 2rem);
   font-weight: 500;
   line-height: 1.05;
@@ -187,11 +187,11 @@
 
 .filmPressureGrid > article {
   padding: 1.2rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--stroke-default);
 }
 
 .filmPressureGrid small {
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 0.65rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -201,8 +201,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
-  border: 1px solid var(--line);
-  background: var(--line);
+  border: 1px solid var(--stroke-default);
+  background: var(--stroke-default);
 }
 
 .filmDecisionOptions > article {
@@ -211,7 +211,7 @@
   flex-direction: column;
   gap: 1rem;
   padding: clamp(1.2rem, 2.5vw, 2rem);
-  background: var(--bg);
+  background: var(--surface-canvas);
 }
 
 .filmDecisionOptions > article[data-available="false"] {
@@ -220,7 +220,7 @@
 
 .filmDecisionOptions strong {
   margin-top: auto;
-  font-family: var(--display);
+  font-family: var(--font-display);
   font-size: clamp(1.35rem, 2.5vw, 2.5rem);
   font-weight: 500;
   line-height: 0.98;
@@ -231,8 +231,8 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px;
-  border: 1px solid var(--line);
-  background: var(--line);
+  border: 1px solid var(--stroke-default);
+  background: var(--stroke-default);
 }
 
 .filmDecisionContext {
@@ -243,20 +243,20 @@
 .filmDecisionContext > article {
   min-height: 210px;
   padding: clamp(1.2rem, 2.5vw, 2rem);
-  background: var(--bg);
+  background: var(--surface-canvas);
 }
 
 .filmKnowledgeGrid p,
 .filmDecisionContext p {
   padding-top: 0.8rem;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
 }
 
 .filmKnowledgeGrid p strong,
 .filmDecisionContext p strong {
   display: block;
   margin-bottom: 0.25rem;
-  color: var(--text);
+  color: var(--ink-1);
   font-size: 0.62rem;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -268,7 +268,7 @@
    generic card rule, and a layout layer that wins by force is a layer that will
    lose by accident somewhere else. */
 article.filmKnowledgeFog {
-  background-color: var(--bg);
+  background-color: var(--surface-canvas);
   background-image: linear-gradient(120deg, rgba(255, 255, 255, 0.018), transparent 62%);
 }
 
@@ -276,13 +276,13 @@ article.filmKnowledgeFog {
   margin-top: clamp(2rem, 5vw, 4rem);
   max-width: 900px;
   padding: clamp(1.4rem, 3vw, 2.4rem);
-  border-left: 1px solid var(--line-strong);
+  border-left: 1px solid var(--stroke-strong);
 }
 
 .filmDecisionJudgment > p:not(.filmCounterevidence) {
   max-width: 34ch;
-  color: var(--text);
-  font-family: var(--display);
+  color: var(--ink-1);
+  font-family: var(--font-display);
   font-size: clamp(1.4rem, 2.7vw, 2.6rem);
   line-height: 1.05;
 }
@@ -296,21 +296,21 @@ article.filmKnowledgeFog {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
+  background: var(--stroke-default);
+  border: 1px solid var(--stroke-default);
 }
 
 .filmMethodMeta > div {
   min-height: 130px;
   padding: 1.2rem;
-  background: var(--bg);
+  background: var(--surface-canvas);
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
 }
 
 .filmMethodMeta span {
-  color: var(--muted);
+  color: var(--ink-3);
   font-size: 0.66rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -325,7 +325,7 @@ article.filmKnowledgeFog {
   list-style: none;
   padding: 0;
   margin: clamp(2rem, 5vw, 4rem) 0 0;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--stroke-default);
 }
 
 .filmSourceList li {
@@ -333,22 +333,22 @@ article.filmKnowledgeFog {
   grid-template-columns: minmax(140px, 0.3fr) minmax(0, 1fr);
   gap: 1.5rem;
   padding: 1rem 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--stroke-default);
 }
 
 .filmSourceList p {
   margin: 0.3rem 0 0;
-  color: var(--muted);
+  color: var(--ink-3);
 }
 
 .filmSourceList a {
   text-decoration: underline;
-  text-decoration-color: var(--line-strong);
+  text-decoration-color: var(--stroke-strong);
   text-underline-offset: 0.22em;
 }
 
 .filmSourceList a:hover,
 .filmSourceList a:focus-visible {
-  text-decoration-color: var(--text);
+  text-decoration-color: var(--ink-1);
 }
 

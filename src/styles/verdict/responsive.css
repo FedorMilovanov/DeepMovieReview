@@ -13,11 +13,11 @@
 
   .filmSynthesisFacets > article:nth-child(4) {
     border-inline-start: 0;
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--stroke-default);
   }
 
   .filmSynthesisFacets > article:nth-child(n + 4) {
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--stroke-default);
   }
 
   .filmMoralEventGrid {
@@ -31,7 +31,7 @@
 
   .filmMoralEventGrid > div:nth-child(even) {
     padding-inline-start: clamp(0.8rem, 2cqi, 1.4rem);
-    border-inline-start: 1px solid var(--line);
+    border-inline-start: 1px solid var(--stroke-default);
   }
 }
 
@@ -43,7 +43,7 @@
   .filmMoralLedgerMeta > p {
     grid-column: 1 / -1;
     min-height: 0;
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--stroke-default);
   }
 
   .filmMoralEventTopline {
@@ -62,11 +62,11 @@
   .filmSynthesisFacets > article,
   .filmSynthesisFacets > article:nth-child(4) {
     border-inline-start: 0;
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--stroke-default);
   }
 
   .filmSynthesisFacets > article:nth-child(even) {
-    border-inline-start: 1px solid var(--line);
+    border-inline-start: 1px solid var(--stroke-default);
   }
 }
 
@@ -89,7 +89,7 @@
   .filmMoralLedgerMeta > div {
     min-height: 7rem;
     border-inline-end: 0;
-    border-bottom: 1px solid var(--line);
+    border-bottom: 1px solid var(--stroke-default);
   }
 
   .filmMoralLedgerMeta > p {
