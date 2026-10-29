@@ -1,5 +1,6 @@
 // Actual OS screen readers and installed Safari/Chrome. Never a virtual SR substitute.
 import assert from "node:assert/strict";
+import { inspect } from "node:util";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { platform, release } from "node:os";
@@ -150,7 +151,7 @@ try {
   report.results.push({ browser: name, version: report.browser.version, width: original.width,
     route: "/films/the-truman-show/article?spoilers=full", state: "real-AT-native-zoom", scope: "desktop OS", file: "actual-at.json" });
 } catch (error) {
-  const message = error.stack ?? String(error);
+  const message = inspect(error, { depth: 8, maxStringLength: 16000 });
   report.failures.push(message);
   console.error(workflowError(`${name}: ${message}`));
   if (safari || page) await screenshot("failure").catch(() => {});
