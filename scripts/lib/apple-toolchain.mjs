@@ -66,7 +66,7 @@ export function safariListenerPids(listeners, processes) {
 // kill launchd's shared service or accept filenames/look-alike process names.
 export function safariHttpServicePids(listeners, processes) {
   const pids = new Set([...listeners.matchAll(/^p(\d+)$/gm)].map(([, pid]) => Number(pid)));
-  const executable = /^\/System\/(?:Volumes\/Preboot\/Cryptexes\/App\/System\/)?Library\/StagedFrameworks\/Safari\/WebDriver\.framework\/Versions\/A\/XPCServices\/com\.apple\.WebDriver\.HTTPService\.xpc\/Contents\/MacOS\/com\.apple\.WebDriver\.HTTPService$/;
+  const executable = /^\/System\/(?:Volumes\/Preboot\/Cryptexes\/App\/System\/)?Library\/(?:StagedFrameworks\/Safari|PrivateFrameworks)\/WebDriver\.framework\/Versions\/A\/XPCServices\/com\.apple\.WebDriver\.HTTPService\.xpc\/Contents\/MacOS\/com\.apple\.WebDriver\.HTTPService$/;
   return [...processes.matchAll(/^\s*(\d+)\s+\d+\s+(.+)$/gm)]
     .filter(([, pid, command]) => pids.has(Number(pid)) && executable.test(command.trim())).map(([, pid]) => Number(pid));
 }

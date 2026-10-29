@@ -385,7 +385,7 @@ test("contrast background isolation preserves color/currentColor paint and resto
 
 test("contrast coverage rejects a disappearing target even after prior measurements", async () => {
   const { missingRangeIds } = await import("../scripts/lib/rendered-contrast.mjs");
-  const measurements = new Map([["0:0", {}], ["1:0", {}], ["2:0", {}], ["3:0", {}]]);
+  const measurements = new Map([["0:0:0", {}], ["1:0:0", {}], ["2:0:0", {}], ["3:0:0", {}]]);
   assert.deepEqual([...missingRangeIds([
     { id: 0, connected: true, lines: 1 },
     { id: 1, connected: false, lines: 1 },
@@ -422,4 +422,50 @@ test("Safari XPC diagnostic log requires exact system executable and actual TCP 
   const processes = `8798 1 ${executable}\n8799 1 ${executable}\n8800 1 /tmp/com.apple.WebDriver.HTTPService\n8801 1 ${executable}.fake`;
   assert.deepEqual(safariHttpServicePids("p8798\np8800\np8801\n", processes), [8798]);
   assert.deepEqual(safariHttpServicePids("p8797\n", processes), []);
+});
+
+
+test("iOS automation switch is CI-only, verified, exactly restored and idempotent", async () => {
+  const { simulatorAutomation } = await import("../scripts/lib/simulator-automation.mjs");
+  const udid = "f0c70c77-e423-4478-b648-3d25045b311b";
+  for (const original of [null, false, true]) {
+    let value = original; const writes = [];
+    const run = (file, args, options) => {
+      assert.equal(file, "xcrun"); assert.deepEqual(args.slice(0, 4), ["simctl", "spawn", udid, "defaults"]);
+      assert.equal(options.timeout, 30000);
+      if (args[4] === "read") {
+        if (value === null) throw Object.assign(new Error("absent"), { status: 1, stderr: "domain/default pair does not exist" });
+        return value ? "1" : "0";
+      }
+      writes.push(args);
+      value = args[4] === "delete" ? null : args.at(-1) === "true";
+      return "";
+    };
+    if (original !== true) assert.throws(() => simulatorAutomation(udid, { run }), /local preferences are not changed/);
+    assert.equal(writes.length, 0);
+    const automation = simulatorAutomation(udid, { ci: true, run });
+    assert.equal(value, true); assert.equal(automation.original, original);
+    automation.restore(); assert.equal(value, original);
+    const count = writes.length; automation.restore(); assert.equal(writes.length, count);
+  }
+});
+
+test("macOS26 XPC diagnostic identity is still a sealed-system path, not a look-alike", async () => {
+  const { safariHttpServicePids } = await import("../scripts/lib/apple-toolchain.mjs");
+  const executable = "/System/Library/PrivateFrameworks/WebDriver.framework/Versions/A/XPCServices/com.apple.WebDriver.HTTPService.xpc/Contents/MacOS/com.apple.WebDriver.HTTPService";
+  assert.deepEqual(safariHttpServicePids("p2017\np2018\n", `2017 1 ${executable}\n2018 1 /tmp${executable}\n2019 1 ${executable}`), [2017]);
+});
+
+
+test("live text ranges refresh on the same node and old versions cannot cover new text", async () => {
+  const { refreshTextRanges, missingRangeIds } = await import("../scripts/lib/rendered-contrast.mjs");
+  const text = { isConnected: true, textContent: "MEDIUM / unknown" }; let selections = 0;
+  const record = { id: 0, version: 0, text, content: text.textContent, range: { selectNodeContents: node => { assert.equal(node, text); selections++; } } };
+  const state = { records: [record], textChanges: [] };
+  refreshTextRanges(state); assert.equal(record.version, 0);
+  text.textContent = "LOW / webgl2"; refreshTextRanges(state);
+  assert.equal(record.version, 1); assert.equal(selections, 2); assert.equal(state.textChanges.length, 1);
+  assert.deepEqual([...missingRangeIds([{ id: 0, connected: true, version: 1, lines: 1 }], new Map([["0:0:0", {}]]))], [0]);
+  assert.deepEqual([...missingRangeIds([{ id: 0, connected: true, version: 1, lines: 1 }], new Map([["0:1:0", {}]]))], []);
+  text.isConnected = false; refreshTextRanges(state); assert.equal(selections, 2);
 });

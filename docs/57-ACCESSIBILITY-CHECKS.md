@@ -427,3 +427,44 @@ on a clean macos-26 runner, without Guidepup/TCC/VoiceOver or previous desktop S
 activity; the same native Simulator scenarios remain fail-closed as a separate
 job. macos-15 VoiceOver coverage is retained, not replaced by WebKit or a fake pass.
 This is a new infrastructure experiment, not evidence of iOS success.
+
+
+### fc1b87a evidence and next targeted corrections
+
+Verified current receipts: Chromium123773511235 covers2582 owners/6063 ranges and
+Firefox123773077096 covers2033 owners/5156 ranges,14 assessments each,0 failures.
+Native VoiceOver/Safari123774066772, NVDA123772313084 and app-shell also passed.
+WebKit123775551136 passed all measured bounds but correctly rejected two owners:
+`summary` / `summary > span`, the live experience-quality label. WebKit collapses
+Range offsets when React updates the connected Text.nodeValue after GPU detection.
+Keep a reference to the actual Text node and re-select its current contents; each
+content change gets a new measurement version. Old versions cannot satisfy new
+coverage, and recorded low bounds remain failures. Detached text is not rebound to
+a convenient replacement. Report actual text changes and require final live coverage.
+An eighth synthetic case now verifies live mutation, separately from the existing
+negative removal case; all eight pass locally. The stricter observed font threshold
+and maximum range height are retained when observations differ.
+
+Clean macos-26 iOS receipt123773693553 still failed RWI (Xcode26.6 / SDK26.5), while
+MobileSafari was actually running. Research identified the missing normal iOS Safari
+Remote Automation setting, independently documented by:
+- https://github.com/nathannncurtis/nathancurtis.me/blob/main/.github/workflows/ci.yml
+- https://github.com/Darren-Corbett/doughnutforge-site/blob/main/tests/ios/real-safari.ts
+
+Before the next session, read the selected Simulator's com.apple.mobilesafari /
+RemoteAutomationEnabled boolean, enable it only in disposable CI, verify read-back,
+then launch the actual Safari app once before Apple's30s discovery deadline. Restore
+the original absent/false/true preference in finally, with read-back; local preferences
+are never modified. No arbitrary domain/key scattershot or browser action replay.
+Tests cover absent/false/true, local refusal, exact restoration and idempotence.
+The new macOS26 sealed-system PrivateFrameworks HTTPService identity is also accepted
+for port-verified diagnostics only, never for killing a shared Apple service.
+This is pending verification, not an iOS success claim.
+
+Additional exactfc local checks: typecheck,44 helper +121 regression and all28 style
+fingerprints passed. The first full browser run passed573/574 checks; the GPU sample
+check failed (no frame samples for sceneA) while another Chrome sweep was running,
+with GPU tile-memory warnings. Do not relabel that run green. An isolated trusted-
+content software-WebGL run is separately recorded; no production benchmark limits,
+quality tiers, styles or error checks were weakened. Application dependency audit is0;
+two bundled npm-tool advisories outside the repository remain separate from that audit.
