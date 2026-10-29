@@ -15,7 +15,9 @@ const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] 
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 let safari;
 function hostSimulatorProcesses() {
-  return nativeSimulatorProcessLines(execFileSync("ps", ["-axo", "pid=,state=,pcpu=,comm="], { encoding: "utf8", timeout: 10000 }));
+  try {
+    return nativeSimulatorProcessLines(execFileSync("ps", ["-axo", "pid=,state=,pcpu=,comm="], { encoding: "utf8", timeout: 10000 }));
+  } catch (error) { return `Host process diagnostics unavailable: ${error.message}`; }
 }
 try {
   report.initialDeveloperDirectory = execFileSync("xcode-select", ["-p"], { encoding: "utf8", timeout: 30000 }).trim();

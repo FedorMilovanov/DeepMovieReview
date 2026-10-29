@@ -32,3 +32,19 @@ export function nativeSimulatorProcessLines(text) {
   return text.split("\n").filter(line => /Simulator\.app\/|\/CoreSimulator\.framework\/|\/MobileSafari\.app\/MobileSafari(?:\s|$)|safaridriver/.test(line))
     .join("\n").slice(-12000);
 }
+
+// /usr/bin/safaridriver can be a launcher. Trust only observed descendants,
+// never an assumed pid+1 or another concurrent driver's diagnostics.
+export function safariDriverPids(processes, rootPid) {
+  const rows = [...processes.matchAll(/^\s*(\d+)\s+(\d+)\s+(.+)$/gm)]
+    .map(([, pid, parent, command]) => ({ pid: Number(pid), parent: Number(parent), command: command.trim() }));
+  const descendants = new Set([rootPid]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const row of rows) if (descendants.has(row.parent) && !descendants.has(row.pid)) {
+      descendants.add(row.pid); changed = true;
+    }
+  }
+  return [...descendants].filter(pid => pid === rootPid || rows.some(row => row.pid === pid && /(?:^|\/)safaridriver$/.test(row.command)));
+}

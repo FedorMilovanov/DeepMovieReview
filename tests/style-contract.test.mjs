@@ -249,3 +249,10 @@ test("evidence transport verifies provenance and rejects corruption without hidi
   assert.throws(() => decodeEvidence({ ...check, head_sha: otherHead }, rows, revision), /Unexpected check head/);
   assert.deepEqual(decodeEvidence({ ...check, head_sha: otherHead }, rows, revision, otherHead).payload, data);
 });
+
+test("SafariDriver log PIDs come from the observed launcher tree, not arithmetic", async () => {
+  const { safariDriverPids } = await import("../scripts/lib/apple-toolchain.mjs");
+  const processes = "997 81 /actual/safaridriver\n81 40 /bin/sh\n40 1 /usr/bin/safaridriver\n41 2 /other/safaridriver\n998 81 /helper/service";
+  assert.deepEqual(safariDriverPids(processes, 40), [40, 997]);
+  assert.deepEqual(safariDriverPids("", 40), [40]);
+});
