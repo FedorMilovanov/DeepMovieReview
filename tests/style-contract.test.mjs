@@ -330,3 +330,25 @@ test("native Safari Apple Events adapter waits for real DOM/fonts and reads geom
   assert.deepEqual(await browser.execute("return {width:innerWidth,outer:outerWidth,scroll:document.documentElement.scrollWidth}"), { width: 320, outer: 960, scroll: 320 });
   await browser.close();
 });
+
+test("late native VoiceOver speech is awaited without replaying navigation", async () => {
+  const { settleNativeSpeech } = await import("../scripts/lib/assistive-commands.mjs");
+  const values = ["Page Menu", "VoiceOver Menu"], reads = [];
+  let clock = 0;
+  const result = await settleNativeSpeech(["old phrase"], /VoiceOver Menu/, async () => {
+    const value = values.shift(); reads.push(value); return value;
+  }, { now: () => clock++, pause: async () => {}, timeout: 10 });
+  assert.deepEqual(result.speech, ["old phrase", "Page Menu", "VoiceOver Menu"]);
+  assert.equal(reads.length, 2);
+  assert.deepEqual(result.readErrors, []);
+});
+
+test("native speech timeout never manufactures a semantic pass", async () => {
+  const { settleNativeSpeech } = await import("../scripts/lib/assistive-commands.mjs");
+  let clock = 0;
+  const result = await settleNativeSpeech(["Page Menu"], /VoiceOver Menu/, async () => { throw new Error("reader unavailable"); },
+    { now: () => clock++, pause: async () => {}, timeout: 3 });
+  assert.deepEqual(result.speech, ["Page Menu"]);
+  assert.ok(result.readErrors.length > 0);
+  assert.doesNotMatch(result.speech.join(" "), /VoiceOver Menu/);
+});

@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { macKeyboardShortcut } from "./lib/assistive-commands.mjs";
+import { macKeyboardShortcut, settleNativeSpeech } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -64,7 +64,12 @@ async function action(label, run, expected) {
   try { await run(); }
   finally {
     speech = [...await reader.spokenPhraseLog().catch(error => [`Speech log unavailable: ${error.message}`])];
-    evidence.actions.push({ label, speech });
+    let liveReadErrors;
+    if (mac && expected) {
+      const settled = await settleNativeSpeech(speech, expected);
+      speech = settled.speech; liveReadErrors = settled.readErrors;
+    }
+    evidence.actions.push({ label, speech, ...(liveReadErrors?.length ? { liveReadErrors } : {}) });
     checkpoint(`${label}: recorded`);
     console.log(label, JSON.stringify(speech));
   }

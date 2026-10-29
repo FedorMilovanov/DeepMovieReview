@@ -306,3 +306,12 @@ This alternative is pending native CI, not a declaration that WebDriver was the 
 cause. Research: github.com/upyesp/trains/blob/main/scripts/vo-audit-safari.mjs and
 crmitchelmore/todo acceptance/src/harness/safari.ts; their application-specific
 focus/fixture injections were not copied. iOS stays on native W3C, not WebKit emulation.
+
+`3f224ec` desktop123752354041 verified native Safari27.2 Apple Events/window/PNG
+setup, but Item Chooser's Guidepup log again ended at «Page Menu, Translation
+Available». The public VoiceOver AppleScript `content of last phrase` is the same
+native source Guidepup polls internally; its stored log can stabilize before late
+menu speech. Await that live source for up to8s when an expected phrase is absent,
+without replaying keyboard/Commander actions. Store actual phrases and read errors
+separately; unchanged menu/heading/table assertions still reject absence/timeout.
+Tests demonstrate delayed native speech and rejection without fabricated content.
