@@ -53,3 +53,6 @@ public/og/*.png
 
 # Portable accessibility audit evidence
 a11y-report/
+
+# Actual desktop screen-reader transcripts and screenshots
+at-report/
