@@ -211,10 +211,15 @@ async function main() {
   );
   if (subsResult.status === 0) {
     const srt = await fs.readFile(srtPath, "utf8");
-    const cues = (srt.match(/-->/g) ?? []).length;
+    // A cue line is a timing line: "00:00:01,000 -> 00:00:03,500". Matching
+    // the shape beats searching for the arrow token, which also appears inside
+    // HTML comments and would make the filter ambiguous.
+    const timing = /^\s*\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}\s*-{2}>\s*\d{1,2}:\d{2}:\d{2}[,.]\d{1,3}/;
+    const cueLines = srt.split(/\r?\n/).filter((line) => timing.test(line));
+    const cues = cueLines.length;
     const plain = srt
       .split(/\r?\n/)
-      .filter((line) => !line.includes("-->"))
+      .filter((line) => !timing.test(line))
       .filter((line) => !/^\s*\d+\s*$/.test(line))
       .filter((line) => line.trim() !== "")
       .join("\n");

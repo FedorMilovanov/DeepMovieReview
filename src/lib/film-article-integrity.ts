@@ -212,7 +212,11 @@ function checkProse(
     );
   }
   for (const value of context.measuredValues ?? []) {
-    const pattern = new RegExp(`(?<![\\d.,])${value.replace(/[.]/g, "\\.")}(?![\\d])`);
+    // The value comes from the measured dataset, so it is escaped as a whole
+    // rather than dot-by-dot: a future value with a parenthesis or a plus sign
+    // must not turn into a regex operator.
+    const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`(?<![\\d.,])${escaped}(?![\\d])`);
     if (pattern.test(text)) {
       errors.push(
         `${path}: prose contains the measured value "${value}"; measured numbers are rendered from the dataset, not typed into prose.`,
