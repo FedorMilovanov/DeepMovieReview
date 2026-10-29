@@ -54,12 +54,18 @@ try {
   report.screenReader = { name: reader.name, version: reader.version };
   if (mac) {
     safari = await nativeSafari();
-    await safari.resize(1280, 1000);
+    await safari.resize(960, 1000);
     report.browser = { name: "Safari", version: safari.version };
   } else {
     browser = await chromium.launch({ channel: "chrome", headless: false, args: ["--window-size=1280,1000"] });
     const context = await browser.newContext({ viewport: null });
     page = await context.newPage();
+    // Resize the actual OS window; never emulate the page viewport for native zoom.
+    const session = await context.newCDPSession(page);
+    const { windowId } = await session.send("Browser.getWindowForTarget");
+    const frame = await page.evaluate(() => outerWidth - innerWidth);
+    await session.send("Browser.setWindowBounds", { windowId, bounds: { width: 960 + frame, height: 1000, windowState: "normal" } });
+    await session.detach();
     report.browser = { name: "Chrome", version: browser.version() };
   }
   await go("/films/the-truman-show/article?spoilers=full");
@@ -86,7 +92,7 @@ try {
   const original = await geometry();
   let zoom = original;
   for (let i = 0; i < 10 && original.width / zoom.width < 1.98; i++) {
-    await reader.press(mac ? "Meta+=" : "Control+=", { capture: false });
+    await reader.press(mac ? "Meta+Equals" : "Control+NumPadPlus", { capture: false });
     await delay(300);
     zoom = await geometry();
   }
@@ -101,7 +107,7 @@ try {
   }
   await screenshot("zoom200");
   for (let i = 0; i < 10 && zoom.width > 321; i++) {
-    await reader.press(mac ? "Meta+=" : "Control+=", { capture: false });
+    await reader.press(mac ? "Meta+Equals" : "Control+NumPadPlus", { capture: false });
     await delay(300);
     zoom = await geometry();
   }

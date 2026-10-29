@@ -458,7 +458,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-15
+          - os: macos-15-intel
             reader: safari-voiceover
           - os: windows-2022
             reader: chrome-nvda
@@ -482,6 +482,14 @@ jobs:
       - run: npm run build
       - name: Actual AT and native zoom scenarios
         run: node scripts/assistive-audit.mjs
+      - name: Native iOS Safari on installed iPhone Simulator
+        if: runner.os == 'macOS'
+        run: node scripts/ios-safari-audit.mjs
+      - name: Publish native iOS Safari evidence
+        if: always() && runner.os == 'macOS' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-a11y-evidence.mjs at-report/ios-safari ios-safari
       - name: Publish actual transcripts with verified read-back
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         env:
