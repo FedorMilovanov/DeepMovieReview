@@ -1,3 +1,4 @@
+import { theFastAndTheFuriousDraftPackage } from "../src/data/films/the-fast-and-the-furious";
 import { createRequire } from "node:module";
 import test from "node:test";
 // Load the same CSS import reader used by the audits from the repository root,
@@ -38,7 +39,7 @@ import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-pol
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
 import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
-import { filterFilmIndex } from "../src/lib/film-index";
+import { filterFilmIndex, filmIndexStatusLabel } from "../src/lib/film-index";
 import { pluralRu } from "../src/lib/plural-ru";
 import type { FilmPackage, CharactersModule } from "../src/lib/film-package";
 import { theTrumanShowDraftPackage } from "../src/data/films/the-truman-show";
@@ -5652,4 +5653,15 @@ test("the homepage is complete without scripting", () => {
     /\.heroEnter \.heroCopy > \*,[\s\S]{0,160}animation: none !important/,
     "the no-script fallback releases the hero entrance",
   );
+});
+
+test("film index distinguishes an existing article from secondary-source research", () => {
+  assert.ok(theTrumanShowCanonicalPackage.article);
+  assert.equal(filmIndexStatusLabel(theTrumanShowCanonicalPackage), "статья · предпросмотр");
+  const research = theFastAndTheFuriousDraftPackage;
+  assert.equal(research.article, undefined);
+  assert.equal(research.research?.state, "SECONDARY_SOURCES");
+  assert.equal(research.ingest?.edition?.state, "TARGET_ONLY");
+  assert.match(filmIndexStatusLabel(research), /исследовательский черновик · статьи нет/);
+  assert.notEqual(research.film.status, "published");
 });
