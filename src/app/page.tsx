@@ -689,7 +689,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
             </article>
           ))}
         </div>
-        <div className="relationshipPanel" aria-labelledby="stand-relationship-title">
+        <div className="relationshipPanel" role="group" aria-labelledby="stand-relationship-title">
           <div>
             <span className="microLabel">Обсерватория отношений</span>
             <h3 id="stand-relationship-title">{data.relationship.label}</h3>
