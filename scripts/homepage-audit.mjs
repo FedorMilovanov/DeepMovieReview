@@ -1,3 +1,4 @@
+import { readStylesheet, listStyles } from "./lib/style-sources.mjs";
 /**
  * Homepage audit: the front door, both of its states.
  *
@@ -205,7 +206,7 @@ check("TILT", "T16", "карточки с наклоном остаются arti
 /* ── Compatibility ────────────────────────────────────────────────────── */
 
 const cssFiles = [
-  ...readdirSync("src/styles").map((name) => `src/styles/${name}`),
+  ...listStyles(),
   ...readdirSync("src/components").filter((name) => name.endsWith(".css")).map((name) => `src/components/${name}`),
   ...readdirSync("src/components/experience").filter((name) => name.endsWith(".css")).map((name) => `src/components/experience/${name}`),
   ...readdirSync("src/components/labs").filter((name) => name.endsWith(".css")).map((name) => `src/components/labs/${name}`),
@@ -239,7 +240,7 @@ check("COMPAT", "C03", ":has() используется только внутр�
 });
 
 check("COMPAT", "C04", "animation-timeline спрятан за @supports", () => {
-  const article = read("src/styles/film-article.css");
+  const article = readStylesheet("src/styles/film-article.css");
   if (!article.includes("animation-timeline")) return true;
   return /@supports \(animation-timeline: view\(\)\)/.test(article);
 });

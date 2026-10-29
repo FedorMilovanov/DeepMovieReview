@@ -1,3 +1,4 @@
+import { readStylesheet, listStyles } from "./lib/style-sources.mjs";
 /**
  * Premium audit: is this page actually good, or merely correct?
  *
@@ -40,10 +41,10 @@ function check(group, id, title, run) {
 
 const read = (path) => readFileSync(path, "utf8");
 const stylesDir = "src/styles";
-const styleFiles = readdirSync(stylesDir).map((name) => `${stylesDir}/${name}`);
+const styleFiles = listStyles();
 const allCss = [...styleFiles, "src/app/globals.css"].map(read).join("\n");
 const tokensCss = read(`${stylesDir}/tokens.css`);
-const articleCss = read(`${stylesDir}/film-article.css`);
+const articleCss = readStylesheet(`${stylesDir}/film-article.css`);
 
 /* ── Colour maths ─────────────────────────────────────────────────────── */
 

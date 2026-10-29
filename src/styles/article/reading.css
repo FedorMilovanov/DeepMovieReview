@@ -1,0 +1,173 @@
+/* ── Reading polish ────────────────────────────────────────────────────
+   Small typographic decisions that separate a page someone reads from a
+   page someone scans. Every rule here is progressive: if a browser does not
+   know it, the paragraph is simply typeset the old way. */
+
+.articleParagraph,
+.articlePullquote p,
+.articleStandfirst {
+  text-wrap: pretty;
+}
+
+.articleParagraph {
+  /* Hangs an opening quote or dash into the margin where the engine supports
+     it; elsewhere it is ignored. */
+  hanging-punctuation: first allow-end;
+  /* Russian is a long-word language: in a 68ch column an unhyphenated line can
+     leave a canyon of white at the right edge. Hyphenation is limited to words
+     long enough that a break never looks like a mistake. */
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphenate-limit-chars: 7 4 4;
+}
+
+/* Anchors from the outline and from deep links land below the sticky header
+   instead of under it. */
+.articleSection[id],
+.articleSection [id] {
+  scroll-margin-block-start: clamp(4.5rem, 12vh, 7.5rem);
+}
+
+/* A figure reserves its own space before the file arrives: the ratio comes
+   from the data, so the text never jumps when the picture lands. */
+.articleIllustration img {
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  background: var(--surface-1);
+}
+
+/* Borderless inset figures read as marginalia: a hairline only at the top. */
+.articleIllustration[data-layout="inset"] img {
+  border: 0;
+  border-top: 1px solid var(--stroke-warm);
+  padding-top: var(--space-2);
+}
+
+/* Photographs and drawings are not interactive, so they do not pretend to be:
+   no hover lift, no cursor change. The only motion is the entrance below. */
+.articleIllustration {
+  break-inside: avoid;
+}
+
+@keyframes article-figure-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.9rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scroll-driven entrance, where the platform supports it and the reader has
+   not asked for stillness. No JavaScript, no observation loop. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .articleIllustration {
+      animation: article-figure-in linear both;
+      animation-timeline: view();
+      animation-range: entry 4% cover 24%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .articleIllustration {
+    animation: none;
+  }
+}
+
+/* Print: the article is the one surface worth a paper backup. Everything that
+   is navigation disappears, the measure narrows, and a figure never splits
+   across a page. */
+@media print {
+  .articleShell {
+    display: block;
+  }
+
+  .articleHeader,
+  .articleSection,
+  .articleBody {
+    max-width: none;
+  }
+
+  .articleTitle,
+  .articleSectionHead h2 {
+    font-size: 20pt;
+    line-height: 1.2;
+  }
+
+  .articleParagraph,
+  .articleStandfirst {
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #000;
+  }
+
+  .articleByline,
+  .articleOutline,
+  .articleSpoilerBar,
+  .articleModuleLinks,
+  .articleIllustration figcaption {
+    color: #333;
+  }
+
+  .articleOutline,
+  .articleModuleLinks {
+    display: none;
+  }
+
+  .articleIllustration {
+    break-inside: avoid;
+    animation: none;
+  }
+
+  .articleIllustration img {
+    border: 1px solid #999;
+  }
+}
+
+/* Breadcrumbs: the same meta voice as the byline, but written as a trail so a
+   search visitor learns the hierarchy without hovering anything. */
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+.breadcrumbs li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.breadcrumbs li + li::before {
+  content: "/";
+  color: var(--stroke-strong);
+}
+
+.breadcrumbs a {
+  color: var(--ink-3);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.breadcrumbs a:hover,
+.breadcrumbs a:focus-visible {
+  color: var(--ink-1);
+  border-bottom-color: var(--stroke-warm);
+}
+
+.breadcrumbs [aria-current="page"] {
+  color: var(--ink-2);
+}

@@ -1,3 +1,4 @@
+import { readStylesheet, listStyles } from "./lib/style-sources.mjs";
 /**
  * Film 001 audit: one run, one verdict.
  *
@@ -444,7 +445,7 @@ check("D16", "у досье задан номер раздела у каждог
 /* ── Typesetting and effects ─────────────────────────────────────────── */
 
 const css = ["src/styles/tokens.css", "src/styles/film-article.css", "src/app/globals.css"]
-  .map((p) => readFileSync(p, "utf8"))
+  .map((p) => readStylesheet(p))
   .join("\n");
 
 check("T01", "шрифты подключены как вариативные пакеты", () => {
@@ -475,7 +476,7 @@ check("T05", "строки не растягиваются на всю шири�
 });
 
 check("T06", "анимации уважают prefers-reduced-motion", () => {
-  const all = readdirSync("src/styles").map((f) => readFileSync(`src/styles/${f}`, "utf8"));
+  const all = listStyles().map((f) => readFileSync(f, "utf8"));
   const guarded = all.filter((t) => t.includes("prefers-reduced-motion")).length;
   return guarded >= 3 || `only ${guarded} files guard motion`;
 });
@@ -521,22 +522,22 @@ check("T14", "нет инлайновых цветов в разметке ст�
 });
 
 check("T15", "абзацы размечены text-wrap: pretty", () => {
-  const articleCss = readFileSync("src/styles/film-article.css", "utf8");
+  const articleCss = readStylesheet("src/styles/film-article.css");
   return /text-wrap:\s*pretty/.test(articleCss) || "no pretty wrapping";
 });
 
 check("T16", "у статьи есть печатная версия", () => {
-  const articleCss = readFileSync("src/styles/film-article.css", "utf8");
+  const articleCss = readStylesheet("src/styles/film-article.css");
   return /@media print/.test(articleCss) && /break-inside:\s*avoid/.test(articleCss);
 });
 
 check("T17", "якоря разделов не прячутся под липкой шапкой", () => {
-  const articleCss = readFileSync("src/styles/film-article.css", "utf8");
+  const articleCss = readStylesheet("src/styles/film-article.css");
   return /scroll-margin-block-start/.test(articleCss) || "no scroll margin";
 });
 
 check("T18", "появление врезок управляется прокруткой и уважает reduced-motion", () => {
-  const articleCss = readFileSync("src/styles/film-article.css", "utf8");
+  const articleCss = readStylesheet("src/styles/film-article.css");
   const guarded = /@supports \(animation-timeline: view\(\)\)/.test(articleCss);
   const still = /@media \(prefers-reduced-motion: reduce\)[\s\S]{0,160}animation:\s*none/.test(
     articleCss,
@@ -545,12 +546,12 @@ check("T18", "появление врезок управляется прокр�
 });
 
 check("T19", "врезка резервирует пропорции до загрузки файла", () => {
-  const articleCss = readFileSync("src/styles/film-article.css", "utf8");
+  const articleCss = readStylesheet("src/styles/film-article.css");
   return /aspect-ratio:\s*3\s*\/\s*2/.test(articleCss) || "no reserved ratio";
 });
 
 check("T20", "висячая пунктуация включена там, где движок её знает", () => {
-  const articleCss = readFileSync("src/styles/film-article.css", "utf8");
+  const articleCss = readStylesheet("src/styles/film-article.css");
   return /hanging-punctuation/.test(articleCss) || "no hanging punctuation";
 });
 

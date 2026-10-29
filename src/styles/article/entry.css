@@ -1,0 +1,40 @@
+/* Entry point from the film page into the readable layer. */
+
+.articleEntryLink {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  border: 1px solid var(--stroke-default);
+  border-left: 2px solid var(--accent-restoration);
+  background: var(--surface-1);
+  text-decoration: none;
+  color: var(--ink-1);
+}
+
+.articleEntryLink:hover,
+.articleEntryLink:focus-visible {
+  border-color: var(--stroke-warm);
+}
+
+.articleEntryLink span {
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+  color: var(--ink-4);
+}
+
+.articleEntryLink strong {
+  font-family: var(--font-display);
+  font-size: var(--type-display-3);
+  line-height: 1.1;
+}
+
+.articleEntryLink small {
+  color: var(--ink-3);
+  font-size: var(--type-body);
+  line-height: 1.55;
+  max-width: 62ch;
+}
+
