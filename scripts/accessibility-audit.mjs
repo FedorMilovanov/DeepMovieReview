@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { chromium, firefox, webkit } from "playwright-core";
@@ -11,7 +12,7 @@ const out = "a11y-report";
 const engines = { chromium, firefox, webkit };
 const selected = (process.env.A11Y_BROWSERS ?? "chromium,firefox,webkit").split(",");
 const routes = ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"];
-const report = { requestedBrowsers: selected, revision: process.env.GITHUB_SHA ?? null, axe: axe.version,
+const report = { requestedBrowsers: selected, revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), axe: axe.version,
   playwright: require("playwright-core/package.json").version, results: [], failures: [] };
 mkdirSync(out, { recursive: true });
 
@@ -88,7 +89,9 @@ for (const name of selected) {
             assert.equal(await viewport.getAttribute("role"), "region");
             assert.ok(await viewport.locator('th[scope="col"]').count());
             assert.ok(await viewport.locator('th[scope="row"]').count());
-            await viewport.locator("td").first().evaluate(el => { el.textContent = "1234567890".repeat(30); });
+            const cell = viewport.locator("td").first();
+            const originalCell = await cell.textContent();
+            await cell.evaluate(el => { el.textContent = "1234567890".repeat(30); });
             await page.mouse.click(1, 100);
             await viewport.focus();
             await page.keyboard.press("Shift+Tab");
@@ -99,6 +102,7 @@ for (const name of selected) {
             await page.waitForFunction(() => document.querySelector(".articleTableViewport").scrollLeft > 0);
             assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "wide data scrolls locally");
             await page.screenshot({ path: `${out}/${id}-table-input-stress.png` });
+            await cell.evaluate((el, text) => { el.textContent = text; }, originalCell);
             await page.locator(".spoilerOption").first().click();
             await page.waitForFunction(count => document.querySelectorAll(".articleSection").length < count, sectionCount);
             await page.waitForLoadState("networkidle");
