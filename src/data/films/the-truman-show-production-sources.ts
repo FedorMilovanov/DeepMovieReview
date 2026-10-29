@@ -1001,6 +1001,17 @@ export const trumanProductionSources: ProductionSource[] = [
     supports:
       "Обзор годовых списков 1998 года: «Шоу Трумана» попало в 11 из 18 опрошенных списков, четыре из них — включая Кеннета Турана (Los Angeles Times) и Питера Трэверса (Rolling Stone) — ставят фильм на первое место. Там же: первым фильмом года Эберт назвал «Dark City», а худшим фильмом 1998-го — «Армагеддон».",
   },
+  {
+    id: "src-oscars-71",
+    label: "The 71st Academy Awards",
+    publisher: "Academy of Motion Picture Arts and Sciences",
+    url: "https://www.oscars.org/oscars/ceremonies/1999",
+    tier: "PRIMARY",
+    publishedAt: "1999-03-21",
+    checkedOn: "2026-10-29",
+    supports:
+      "Официальная карточка фильма на сайте академии: 3 номинации — Ed Harris (Actor in a Supporting Role), Peter Weir (Directing), Andrew Niccol (Writing, Screenplay Written Directly for the Screen). Побед у фильма нет; лучшим фильмом года назван «Shakespeare in Love».",
+  },
 ];
 
 
@@ -1242,7 +1253,7 @@ export const trumanProductionClaims: ProductionClaim[] = [
   {
     id: "claim-oscars-three",
     text: "На 71-й церемонии фильм получил три номинации — режиссура (Уир), второй план (Харрис), оригинальный сценарий (Никкол) — и не выиграл ни одной.",
-    sourceIds: ["src-wikipedia-truman", "src-filmaffinity-awards", "src-jimcarreyonline", "src-bfi-card"],
+    sourceIds: ["src-oscars-71", "src-wikipedia-truman", "src-filmaffinity-awards", "src-jimcarreyonline", "src-bfi-card"],
     status: "CONFIRMED",
   },
   {
@@ -1682,5 +1693,29 @@ export const trumanProductionClaims: ProductionClaim[] = [
     text: "На «Золотом глобусе» 1999 года у фильма было шесть номинаций и три победы — столько же наград, сколько у «Влюблённого Шекспира», и больше, чем у кого-либо ещё в тот вечер.",
     sourceIds: ["src-wikipedia-globes", "src-goldenglobes"],
     status: "CONFIRMED",
+  },
+  {
+    id: "claim-oscars-win-myth",
+    text: "Частая ошибка сводок и читательской памяти: «фильм получил „Оскар“», иногда — «три „Оскара“». Официальный список 71-й церемонии перечисляет ровно три номинации — Харрис за второй план, Уир за режиссуру, Никкол за оригинальный сценарий — и ни одной победы.",
+    sourceIds: ["src-oscars-71", "src-wikipedia-truman"],
+    status: "UNVERIFIED",
+  },
+  {
+    id: "claim-seaside-built-for-film",
+    text: "«Город Сисайд построили специально для съёмок» — устойчивое и неверное утверждение: к октябрю 1996 года город жил уже полтора десятилетия, застроенный с 1981 года по плану Роберта Дэвиса, Андреса Дуани и Элизабет Плейтер-Зайберк.",
+    sourceIds: ["src-wikipedia-seaside", "src-sowal-history", "src-wikipedia-truman"],
+    status: "UNVERIFIED",
+  },
+  {
+    id: "claim-carrey-salary-myth",
+    text: "«Керри получил за эту роль 20 миллионов» — так пишут часто, но 20 миллионов были его обычной ставкой тех лет, а за фильм в сводках стоит 12: он сознательно снизил гонорар, чтобы сыграть драматическую роль после череды комедий.",
+    sourceIds: ["src-wikipedia-truman", "src-industriamovies", "src-fandom-movies"],
+    status: "UNVERIFIED",
+  },
+  {
+    id: "claim-top-prize-myth",
+    text: "«Фильм взял главный приз сезона — „Золотой глобус“ за лучшую драму или BAFTA за лучший фильм». Ни того, ни другого: лучшей драмой на «Глобусе» назвали «Спасти рядового Райана», лучшим фильмом на BAFTA — «Влюблённого Шекспира».",
+    sourceIds: ["src-wikipedia-globes", "src-wikipedia-bafta"],
+    status: "UNVERIFIED",
   },
 ];
