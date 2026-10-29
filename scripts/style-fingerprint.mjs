@@ -238,7 +238,10 @@ const READY = `(() => {
   const gutter = root.getPropertyValue("--gutter").trim();
   const container = root.getPropertyValue("--container-max").trim();
   const main = document.querySelector("main");
-  return Boolean(gutter && container && main && main.children.length) && document.fonts.status === "loaded";
+  // The footer's quality summary changes width after capability detection.
+  // Styled SSR is not hydrated readiness: do not fingerprint "MEDIUM / unknown".
+  const backend = document.documentElement.dataset.graphicsBackend;
+  return Boolean(gutter && container && main && main.children.length && backend && backend !== "unknown") && document.fonts.status === "loaded";
 })()`;
 
 // Generated CSS Module names can change with the bundler while the rendered

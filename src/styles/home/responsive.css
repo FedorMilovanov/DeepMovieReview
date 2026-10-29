@@ -139,7 +139,8 @@
   }
 
   .lensMarkGroup {
-    position: static;
+    /* Retain normal flow while keeping the label stacking layer effective. */
+    position: relative;
     inset: auto;
     display: flex;
     flex-wrap: wrap;

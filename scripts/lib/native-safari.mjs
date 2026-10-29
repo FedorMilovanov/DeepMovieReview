@@ -1,9 +1,10 @@
 // Minimal W3C WebDriver client for Apple's installed Safari, not Playwright WebKit.
 import assert from "node:assert/strict";
+import { inspect } from "node:util";
 import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
-export async function nativeSafari(capabilities = {}) {
+export async function nativeSafari(capabilities = {}, { beforeSession = async () => {} } = {}) {
   const driver = spawn("/usr/bin/safaridriver", ["-p", "4444"], { stdio: ["ignore", "pipe", "pipe"] });
   let diagnostics = "", lastError;
   for (const stream of [driver.stdout, driver.stderr]) stream.on("data", chunk => {
@@ -14,7 +15,7 @@ export async function nativeSafari(capabilities = {}) {
   let session;
   async function request(path, body, method = body === undefined ? "GET" : "POST") {
     const response = await fetch(`http://127.0.0.1:4444${path}`, {
-      signal: AbortSignal.timeout(path === "/session" ? 90000 : 30000),
+      signal: AbortSignal.timeout(path === "/session" ? 90000 : path === "/status" ? 1500 : 30000),
       method, headers: { "Content-Type": "application/json" },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
@@ -24,14 +25,16 @@ export async function nativeSafari(capabilities = {}) {
   }
   try {
     let ready = false;
-    for (let i = 0; i < 60; i++) {
+    const startupDeadline = Date.now() + 90000;
+    while (Date.now() < startupDeadline) {
       try { await request("/status"); ready = true; break; } catch (error) {
         lastError = error;
         if (driver.exitCode !== null || driver.signalCode !== null) break;
         await delay(250);
       }
     }
-    assert.ok(ready, `SafariDriver did not start (exit=${driver.exitCode}, signal=${driver.signalCode}): ${lastError?.message}; ${diagnostics}`);
+    assert.ok(ready, `SafariDriver did not start (exit=${driver.exitCode}, signal=${driver.signalCode}): ${inspect(lastError, { depth: 5 })}; ${diagnostics}`);
+    await beforeSession();
     const result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari", ...capabilities } } });
     session = result.sessionId;
     const path = `/session/${session}`;
