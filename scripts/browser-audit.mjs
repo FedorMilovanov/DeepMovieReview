@@ -170,6 +170,12 @@ try {
     });
   }
 
+  async function pressTab(shift = false) {
+    const keyEvent = { key: "Tab", code: "Tab", windowsVirtualKeyCode: 9, nativeVirtualKeyCode: 9, modifiers: shift ? 8 : 0 };
+    await send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...keyEvent });
+    await send("Input.dispatchKeyEvent", { type: "keyUp", ...keyEvent });
+  }
+
   async function pressEnter() {
     const keyEvent = {
       key: "Enter",
@@ -1264,6 +1270,12 @@ try {
     await capture(`article-tables-${label}`);
   }
 
+  // Start in pointer modality: programmatic focus alone must not be mistaken
+  // for keyboard focus. Tab traversal below establishes :focus-visible natively.
+  for (const type of ["mousePressed", "mouseReleased"]) {
+    await send("Input.dispatchMouseEvent", { type, x: 1, y: 100, button: "left", clickCount: 1 });
+  }
+
   // Input stress, not CSS manipulation: a future caption with an unbroken token
   // and a long numeric cell must stay inside the article's reading column.
   await evaluate(`(() => {
@@ -1271,6 +1283,10 @@ try {
     document.querySelector('.articleTable td:not(:last-child)').textContent = '1234567890'.repeat(30);
     document.querySelector('.articleTableViewport').focus();
   })()`);
+  await pressTab(true);
+  const leftViewport = await evaluate("document.activeElement !== document.querySelector('.articleTableViewport')");
+  await pressTab();
+  assertCheck("article tables stress: native Tab reaches viewport from preceding control", leftViewport && await evaluate("document.activeElement === document.querySelector('.articleTableViewport')"));
   const stressed = JSON.parse(await evaluate(`JSON.stringify((() => {
     const viewport = document.querySelector('.articleTableViewport');
     const caption = viewport.previousElementSibling;
