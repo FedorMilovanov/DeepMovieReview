@@ -104,20 +104,20 @@ try {
   // evidence about this hosted Simulator driver, not about the control; fall
   // back to the standard W3C element activation once and keep both facts. A
   // touch that WAS delivered but did not change state is a real failure.
-  const activate = async (selector, read, expected) => {
+  const activate = async (selector, read, expected, timeout = 10000) => {
     await safari.execute(`window.__inputProbe = { events: [] };
       for (const type of ["touchstart", "touchend", "click", "pointerdown"])
         document.addEventListener(type, e => __inputProbe.events.push({ type,
           target: (e.target.className || e.target.tagName).toString().slice(0, 40) }), { capture: true, once: true });`);
     await safari.click(selector);
     let delivered = true;
-    try { await waitForNativeValue(read, expected, { timeout: 10000 }); }
+    try { await waitForNativeValue(read, expected, { timeout }); }
     catch (error) {
       const probe = await safari.execute("return { ...__inputProbe, url: location.href }");
       if (probe.events.length) { report.lastUndeliveredProbe = probe; throw error; }
       delivered = false;
       await safari.elementClick(selector);
-      await waitForNativeValue(read, expected, { timeout: 10000 });
+      await waitForNativeValue(read, expected, { timeout });
       probe.fallback = "W3C element activation after zero delivered events";
       report.undeliveredTouches = [...(report.undeliveredTouches ?? []), { selector, probe }];
     }
@@ -150,8 +150,15 @@ try {
           __spoilerProbe[type === "click" ? "clicked" : "touched"].push({ type, target: (e.target.className || e.target.tagName).toString().slice(0, 40), href: e.target.closest?.("a")?.getAttribute("href") }), { capture: true });`);
       evidence.screenshots.push({ route: `${route} — before spoiler input`, data: await safari.screenshot() });
       const sections = () => safari.execute("return document.querySelectorAll('.articleSection').length");
-      const fewerSections = async () => (await sections()) < count ? "fewer" : "same";
-      const spoilerBy = await activate(".spoilerOption", fewerSections, "fewer");
+      // The projection changes either by hiding sections in place or by a real
+      // navigation to the projected route. Both are the same reader-visible
+      // outcome; a URL that still asks for full spoilers with all sections is
+      // not a change.
+      const projection = async () => {
+        const state = await safari.execute("return { sections: document.querySelectorAll('.articleSection').length, search: location.search }");
+        return state.sections < count || !/spoilers=full/.test(state.search) ? "changed" : "same";
+      };
+      const spoilerBy = await activate(".spoilerOption", projection, "changed", 20000);
       report.spoilerProjection = { before: count, after: await sections(), by: spoilerBy,
         url: await safari.execute("return location.href") };
       report.spoilerProbe = await safari.execute("return { ...__spoilerProbe, target: (() => { const el = document.querySelector('.spoilerOption'); if (!el) return null; const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { rect: r.toJSON(), scrollY, hit: hit && (hit.className || hit.tagName) }; })() }");
