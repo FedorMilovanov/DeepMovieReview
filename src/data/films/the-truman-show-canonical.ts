@@ -83,6 +83,24 @@ const trumanEvidenceWithReviewBasis: EvidenceRecord[] = trumanCanonicalEvidence.
   };
 });
 
+/**
+ * Rewritten records carry their refusal with them. The ledger's contradicted entry
+ * is not deleted — it is the record of a check that said no — so the replacement
+ * names it and the map can state that the original was refused rather than
+ * quietly showing a success where a refusal happened.
+ */
+const rewrittenAncestorById = new Map<string, string>();
+for (const [researchId, replacements] of Object.entries(trumanCanonicalEvidenceSummary.rewritten)) {
+  if (verificationById.get(researchId)?.status !== "CONTRADICTED") continue;
+  for (const id of replacements) rewrittenAncestorById.set(id, researchId);
+}
+
+const trumanEvidenceWithHistory: EvidenceRecord[] = trumanEvidenceWithReviewBasis.map((record) => {
+  const ancestor = rewrittenAncestorById.get(record.id);
+  if (!ancestor || !record.basis) return record;
+  return { ...record, basis: { ...record.basis, refusedAncestor: ancestor } };
+});
+
 export const theTrumanShowCanonicalPackage: FilmPackage = {
   schemaVersion: 1,
   film: {
@@ -131,7 +149,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
             ? ("MINOR" as const)
             : ("NONE" as const),
   })),
-  evidence: trumanEvidenceWithReviewBasis,
+  evidence: trumanEvidenceWithHistory,
   /**
    * The readable layer of the same edition. Validated against the evidence
    * graph above and the measured timing dataset, so neither a timestamp nor a
@@ -194,7 +212,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-story-collapse",
           label: "Распад семейного контракта",
-          summary: "Срыв Мэрил с рекламной тёркой в руках, «душевный» Марлон по подсказке Кристофа и слёзное «возвращение отца» с амнезией: все линии сюжета лопаются одновременно, и шоу латает их в прямом эфире.",
+          summary: "Срыв Мэрил с рекламными инструментами в руках, «душевный» Марлон по подсказке Кристофа и слёзное «возвращение отца» с амнезией: все линии сюжета лопаются одновременно, и шоу латает их в прямом эфире.",
           spoilerLevel: "MAJOR",
           support: { evidenceIds: ["truman-ev-knife", "truman-ev-fingers", "truman-ev-marlon", "truman-ev-reunion"] },
         },
@@ -266,7 +284,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           profileSpoilerLevel: "MAJOR",
           interpretiveSpoilerLevel: "MAJOR",
           believes: "«Профессионализм» заменил ей совесть: работа есть работа",
-          selfDeception: "Убеждает себя, что фиктивный брак — «всего лишь работа», пока тёрка в руке не выдаёт панику",
+          selfDeception: "Убеждает себя, что фиктивный брак — «всего лишь работа», пока кухонные инструменты в руках не выдают панику",
           arcSummary: "От рекламной улыбки — к срыву «Сделай же что-нибудь!» — и к уходу из проекта",
           unchanged: "Способность играть — и неспособность выйти из роли иначе, чем через срыв.",
           arcCredibility: { level: "HIGH", note: "Перелом укладывается в несколько реплик: рекламная улыбка, раздражение, паника — роль рассыпается ровно там, где от неё требуют настоящего чувства." },
@@ -371,7 +389,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-rel-knife",
-          label: "Тёрка и «Сделай же что-нибудь!»",
+          label: "Инструменты и «Сделай же что-нибудь!»",
           change: "Под давлением вопросов Мэрил ломается: роли кончились, дальше — только правда или бегство",
           tone: "fracture",
           dimensions: [

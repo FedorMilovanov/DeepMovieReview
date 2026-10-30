@@ -458,7 +458,7 @@ export const theTrumanShowArticle: FilmArticle = {
             {
               id: "truman-article-bond-knife",
               timestampSeconds: 3250,
-              label: "Кухонная тёрка из супермаркета поднята на мужа",
+              label: "Упаковка «Chef's Pal» на столе; Мэрил держит инструменты перед собой",
               evidenceId: "truman-ev-knife",
               still: trumanArticleStills.kitchen,
             },
@@ -496,7 +496,7 @@ export const theTrumanShowArticle: FilmArticle = {
       eyebrow: "05 / Реквизит",
       heading: "Мир как реквизит: три предмета, которые всё объясняют",
       standfirst:
-        "Кнопка, тёрка и лестница. Ни один из них не пришёл в кадр как символ: каждый пришёл как товар или как декорация — и уже потом стал доказательством.",
+        "Кнопка, инструменты и лестница. Ни один из них не пришёл в кадр как символ: каждый пришёл как товар или как декорация — и уже потом стал доказательством.",
       spoilerLevel: "ENDING",
       moduleIds: ["truman-mod-autopsy"],
       blocks: [

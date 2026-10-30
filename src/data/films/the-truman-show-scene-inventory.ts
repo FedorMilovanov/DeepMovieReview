@@ -84,7 +84,7 @@ export const trumanCanonicalScenes: TrumanCanonicalScene[] = [
     id: "truman-sc-chefs-pal",
     sequenceIndex: 4,
     shortLabel: "«Chef's Pal» и пиво",
-    summary: "Мэрил с бесплатной тёркой; Марлон на мосту с банкой этикеткой к камере.",
+    summary: "Домашняя реклама «Chef's Pal» и пиво на мосту у Марлона.",
     startTimestampSeconds: 546.712,
     endTimestampSeconds: 583.457,
     chapterIds: ["truman-ch-04"],

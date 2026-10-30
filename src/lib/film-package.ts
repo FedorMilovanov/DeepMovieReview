@@ -43,6 +43,12 @@ export type EvidenceReviewBasis = {
    * second actually falls inside it.
    */
   inheritedFrom?: string;
+  /**
+   * Research record this one replaces. It is set only when the ledger refused the
+   * original formulation, so the card can say that a check said no — a map that
+   * shows only successes is a brochure, not evidence.
+   */
+  refusedAncestor?: string;
 };
 
 export type EvidenceRecord = {

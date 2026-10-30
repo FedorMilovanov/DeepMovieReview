@@ -263,9 +263,9 @@ function LensStage() {
             <LivingFrame
               art={lensMaster}
               alt="Фигура спиной перед светящимся дверным проёмом в тёмном коридоре"
-              metaLeft="Кадр · 0002"
+              metaLeft="Иллюстрация"
               metaRight="2.39:1"
-              label="Живой кадр: шесть линз прочтения"
+              label="Иллюстрация: шесть линз прочтения, не кадр фильма"
               className="lensFrame"
               sizes="(max-width: 1020px) 100vw, 58vw"
             >
@@ -355,11 +355,11 @@ function PlatformLanding({ preview }: { preview: boolean }) {
             art={heroMaster}
             alt="Пустой кинозал: луч проектора режет темноту, две фигуры в проходе"
             priority
-            metaLeft="Кадр · 0001"
+            metaLeft="Иллюстрация"
             metaRight="2.39:1"
             captionTitle="Доказательства раньше вердикта"
             captionNote="Публичная страница показывает метод. Незавершённые разборы остаются в редакции."
-            label="Живой кадр «Глубокие воды»"
+            label="Иллюстрация «Глубокие воды», не кадр фильма"
             sizes="(max-width: 900px) 100vw, 52vw"
             tilt
           />
@@ -626,15 +626,17 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
             <Link className="buttonGhost" href="/methodology">Методология</Link>
           </div>
         </div>
+        {/* The cover is a generated illustration, and docs/54 §7 says so. Calling it
+            a frame of the film would be the one caption this site may not print. */}
         <LivingFrame
           art={heroMaster}
-          alt={`Кадр фильма ${featuredFilm.title}`}
+          alt={`Иллюстрация к разбору «${featuredFilm.title}», не кадр фильма`}
           priority
-          metaLeft="Кадр · 0001"
+          metaLeft="Иллюстрация"
           metaRight="2.39:1"
           captionTitle={featuredFilm.title}
           captionNote={featuredFilm.premise}
-          label={`Кадр фильма ${featuredFilm.title}`}
+          label={`Иллюстрация к разбору «${featuredFilm.title}»: рисунок, не кадр фильма`}
           sizes="(max-width: 900px) 100vw, 52vw"
           tilt
         />

@@ -345,3 +345,73 @@
   }
 }
 
+
+/* The proof under an anchor. It sits in the label column's grid so the timecode
+   stays the first thing in the row and the basis reads as a footnote to it. */
+.articleTimelineBasis {
+  grid-column: 2;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.articleTimelineBasisLabel {
+  color: var(--ink-3);
+  font-size: var(--type-meta);
+  line-height: 1.45;
+}
+
+.articleTimelineBasis .evidenceBasis {
+  margin: 0;
+}
+
+/* Paragraph supports stay folded: the proof must be one click away, not in the
+   reader's way. */
+.articleSupport {
+  margin: 0 0 var(--space-3);
+  color: var(--ink-3);
+  font-size: var(--type-meta);
+}
+
+.articleSupport summary {
+  cursor: pointer;
+  color: var(--ink-4);
+  font-family: var(--font-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.articleSupport summary:hover {
+  color: var(--ink-2);
+}
+
+.articleSupport summary:focus-visible {
+  outline: 2px solid var(--accent-restoration);
+  outline-offset: 3px;
+}
+
+.articleSupport ul {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.articleSupport li {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+  padding-block: 0.35rem;
+  border-top: 1px solid var(--stroke-subtle);
+}
+
+.articleSupport li p {
+  margin: 0;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+.articleSupport .evidenceBasis {
+  margin: 0.2rem 0 0;
+}

@@ -58,3 +58,42 @@ export function reviewBasis(entry: LedgerEntryLike | undefined): EvidenceReviewB
   basis.unrecorded = ["reviewer", "date"];
   return basis;
 }
+
+/**
+ * How many records stand behind how many checks.
+ *
+ * The map lists one card per claim–record link, so the same checked scene can
+ * appear under six claims. A tally over unique records is the only honest answer
+ * to «how much has actually been checked», and `unrecorded` is as much a result as
+ * `seen`: a record with no ledger entry is not a silent success.
+ */
+export type ReviewTally = {
+  records: number;
+  seen: number;
+  heard: number;
+  refused: number;
+  pending: number;
+  unrecorded: number;
+  /** Records whose original formulation a check refused before it was rewritten. */
+  rewritten: number;
+};
+
+export function tallyReviewBasis(records: { basis?: EvidenceReviewBasis }[]): ReviewTally {
+  const tally: ReviewTally = {
+    records: records.length,
+    seen: 0,
+    heard: 0,
+    refused: 0,
+    pending: 0,
+    unrecorded: 0,
+    rewritten: 0,
+  };
+  for (const record of records) {
+    if (!record.basis) tally.unrecorded += 1;
+    else {
+      tally[record.basis.outcome] += 1;
+      if (record.basis.refusedAncestor) tally.rewritten += 1;
+    }
+  }
+  return tally;
+}

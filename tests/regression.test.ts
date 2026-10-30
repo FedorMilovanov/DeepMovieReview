@@ -38,7 +38,7 @@ import {
   identificationLabels,
 } from "../src/lib/presentation-labels";
 import { validateFilmArticle } from "../src/lib/film-article-integrity";
-import { reviewBasis } from "../src/lib/evidence-review";
+import { reviewBasis, tallyReviewBasis } from "../src/lib/evidence-review";
 import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
@@ -5836,6 +5836,20 @@ test("Film 001 comparison panels refuse a verdict, an unsupported side and a clo
   );
 });
 
+test("Homepage never presents a generated illustration as a film frame", () => {
+  // docs/54 §7: the cover is an illustration and is labelled as one. The page used
+  // to print «Кадр фильма» over it and a «Кадр · 0001» meta chip — the one caption
+  // this site cannot afford, because it is the same error the article spends a
+  // section correcting.
+  for (const file of ["src/app/page.tsx", "src/components/film-media-frame.tsx"]) {
+    const source = readFileSync(file, "utf8");
+    assert.ok(!source.includes("Кадр фильма"), `${file}: the cover must not be called a frame of the film`);
+    assert.ok(!source.includes('metaLeft="Кадр'), `${file}: no art chip may claim a frame number`);
+    assert.ok(!source.includes("Живой кадр"), `${file}: generated art is not a live frame`);
+    assert.ok(source.includes("не кадр фильма"), `${file}: the cover must state that it is a drawing`);
+  }
+});
+
 test("Film 001 every evidence card states the basis of its own verification", () => {
   // «Verified» is not a description. Each record must carry how it was checked,
   // what material was in front of the reviewer, and how wide the window was —
@@ -5894,7 +5908,33 @@ test("Film 001 every evidence card states the basis of its own verification", ()
   assert.equal(sail.basis.window, undefined);
   assert.equal(sail.basis.outcome, "pending");
 
+  // A tally over linked records, not over links: the map renders one card per
+  // claim–record link, and counting those is how «47 опор» comes to read as
+  // 47 separate truths.
+  const tally = tallyReviewBasis(theTrumanShowCanonicalPackage.evidence ?? []);
+  const records = theTrumanShowCanonicalPackage.evidence ?? [];
+  assert.equal(tally.records, records.length);
+  assert.equal(
+    tally.seen + tally.heard + tally.refused + tally.pending + tally.unrecorded,
+    tally.records,
+    "every record lands in exactly one bucket",
+  );
+  assert.equal(
+    tally.unrecorded,
+    records.filter((record) => !record.basis).length,
+    "a record with no ledger entry must be counted as unrecorded, not as checked",
+  );
+  // The edition keeps a record its own review refused; a tally that cannot show
+  // that is not a tally. The rain record is a rewrite, so the refusal is carried
+  // on the replacement rather than dropped with the retired record.
+  assert.ok(
+    tally.refused + tally.rewritten >= 1,
+    "a refused check must be visible either as a refused record or as a carried ancestor",
+  );
+
   const rain = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-rain");
+  assert.equal(rain?.basis?.refusedAncestor, "truman-ev-raincloud");
+  assert.equal(tally.rewritten, 1);
   assert.ok(rain?.basis);
   assert.deepEqual(rain.basis.window, { from: 761, to: 786 });
   assert.equal(rain.basis.observations, 2);

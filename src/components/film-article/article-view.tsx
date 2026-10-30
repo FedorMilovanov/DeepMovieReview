@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { DecisionModuleView } from "@/components/film-modules/module-components";
 import { VerdictCore } from "@/components/experience/verdict-core";
+import { EvidenceBasisLine } from "@/components/evidence-basis";
 import { ReadingOutline } from "./reading-outline";
 import { ArticleTable } from "./article-table";
 import Link from "next/link";
@@ -174,8 +175,37 @@ function ArticleBlockView({
   switch (block.kind) {
     case "duel":
       return <ArticleDuel block={block} evidenceById={evidenceById} formatTimecode={formatTimecode} />;
-    case "paragraph":
-      return <p className="articleParagraph">{block.text}</p>;
+    case "paragraph": {
+      const supports = (block.support?.evidenceIds ?? []).flatMap((id) => {
+        const record = evidenceById?.get(id);
+        return record ? [record] : [];
+      });
+      return (
+        <>
+          <p className="articleParagraph">{block.text}</p>
+          {supports.length > 0 ? (
+            <details className="articleSupport">
+              <summary>
+                {supports.length === 1 ? "Опора этого абзаца" : `Опоры этого абзаца · ${supports.length}`}
+              </summary>
+              <ul>
+                {supports.map((record) => (
+                  <li key={record.id}>
+                    <span className="articleTimecode">
+                      {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}
+                    </span>
+                    <div>
+                      <p>{record.label}</p>
+                      <EvidenceBasisLine basis={record.basis} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </>
+      );
+    }
     case "aside":
       return (
         <aside className="articleAside" role="note" aria-label={block.label}>
@@ -201,6 +231,16 @@ function ArticleBlockView({
             <li key={item.id}>
               <span className="articleTimecode">{formatTimecode(item.timestampSeconds)}</span>
               <p>{item.label}</p>
+              {(() => {
+                const record = evidenceById?.get(item.evidenceId);
+                if (!record) return null;
+                return (
+                  <div className="articleTimelineBasis">
+                    <span className="articleTimelineBasisLabel">{record.label}</span>
+                    <EvidenceBasisLine basis={record.basis} />
+                  </div>
+                );
+              })()}
               {item.still ? (
                 <figure className="articleSceneStill">
                   <picture>
