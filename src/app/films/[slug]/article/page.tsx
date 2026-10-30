@@ -119,6 +119,7 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
         synthesis={finalProjection?.kind === "final-synthesis" ? finalProjection : undefined}
         spoilerLevel={spoilerLevel}
         describeMeasurement={measurements.describe}
+        evidenceById={new Map((filmPackage.evidence ?? []).map((record) => [record.id, record]))}
         formatTimecode={measurements.formatTimecode}
         moduleHeadings={Object.fromEntries(
           filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.heading]),

@@ -4067,7 +4067,9 @@ test("Film 001 canonical evidence retires, splits and adds exactly as declared",
   const researchIds = new Set((theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id));
   const { retired, split, added, rewritten } = trumanCanonicalEvidenceSummary;
 
-  // The «personal rain» beat does not exist in the film.
+  // Retired records disappear from the canonical graph. The rain record is the
+  // one that came back under a new id — see `rewritten` below and docs/47 §8; it
+  // was retired for its placement, not because the beat is absent.
   for (const retiredId of retired) {
     assert.ok(researchIds.has(retiredId), `${retiredId}: must be an existing research record`);
     assert.equal(canonicalIds.has(retiredId), false, `${retiredId}: retired records cannot survive`);
@@ -5757,8 +5759,12 @@ test("scene quotations are exact-master stills, not generated artwork or substit
   const { createHash } = createRequire(`${process.cwd()}/package.json`)("node:crypto");
   for (const item of items) {
     const still = item.still!;
-    assert.equal(createHash("sha256").update(readFileSync(`public${still.src}`)).digest("hex"), still.imageSha256);
-    assert.equal(createHash("sha256").update(readFileSync(`public${still.avifSrc}`)).digest("hex"), still.avifSha256);
+    // The bytes live outside `public` on purpose: a still in `public` is a public
+    // URL, reachable even when the draft route is closed. The app serves them
+    // through `src/app/film-stills/[file]/route.ts`, behind the preview gate.
+    assert.equal(createHash("sha256").update(readFileSync(`assets${still.src}`)).digest("hex"), still.imageSha256);
+    assert.equal(createHash("sha256").update(readFileSync(`assets${still.avifSrc}`)).digest("hex"), still.avifSha256);
+    assert.equal(existsSync(`public${still.src}`), false, `${still.src}: a still must not be a public file`);
     assert.ok(Math.abs(still.sampleTimeSeconds - item.timestampSeconds) <= 15);
     assert.equal(still.use, "critical-review");
   }
@@ -5784,4 +5790,47 @@ test("scene quotations are exact-master stills, not generated artwork or substit
     Object.assign(first.still!, override);
     assert.match(validateFilmArticle(copy, trumanArticleContext()).join("\n"), expected);
   }
+});
+
+test("Film 001 comparison panels refuse a verdict, an unsupported side and a clock reading", () => {
+  // The duel block exists so that a comparison cannot become a scoreboard. These
+  // three mutations are the ones that would turn it back into one.
+  const base = structuredClone(theTrumanShowArticle);
+  assert.deepEqual(validateFilmArticle(base, trumanArticleContext()), []);
+
+  const duels = base.sections.flatMap((section) => section.blocks).filter((block) => block.kind === "duel");
+  assert.equal(duels.length, 3, "the article carries three comparison panels");
+
+  const noOpen = structuredClone(theTrumanShowArticle);
+  const openless = noOpen.sections
+    .flatMap((section) => section.blocks)
+    .find((block) => block.kind === "duel");
+  assert.ok(openless && openless.kind === "duel");
+  openless.open = "   ";
+  assert.match(
+    validateFilmArticle(noOpen, trumanArticleContext()).join("\n"),
+    /must state what the film leaves open/,
+  );
+
+  const unsupported = structuredClone(theTrumanShowArticle);
+  const unsupportedDuel = unsupported.sections
+    .flatMap((section) => section.blocks)
+    .find((block) => block.kind === "duel");
+  assert.ok(unsupportedDuel && unsupportedDuel.kind === "duel");
+  unsupportedDuel.sides[0]!.evidenceIds = ["truman-ev-not-a-record"];
+  assert.match(
+    validateFilmArticle(unsupported, trumanArticleContext()).join("\n"),
+    /unknown evidence id "truman-ev-not-a-record"/,
+  );
+
+  const oneSided = structuredClone(theTrumanShowArticle);
+  const oneSidedDuel = oneSided.sections
+    .flatMap((section) => section.blocks)
+    .find((block) => block.kind === "duel");
+  assert.ok(oneSidedDuel && oneSidedDuel.kind === "duel");
+  oneSidedDuel.sides = [oneSidedDuel.sides[0]!];
+  assert.match(
+    validateFilmArticle(oneSided, trumanArticleContext()).join("\n"),
+    /a duel needs at least two sides/,
+  );
 });

@@ -46,14 +46,25 @@ carries:
 - observation prose that states only what is on screen or on the subtitle track
   at that second.
 
-### 2.1 Retired
+### 2.1 Retired, then rewritten
 
-`truman-ev-raincloud` («личный дождь»). The beat does not exist in the film. Three
-separate picture passes (chapter 08 at 10 s granularity, 240–270 s, 1180–1210 s)
-found no localized rain, and the embedded English subtitle track contains no rain
-cue anywhere. The record was not rewritten into something plausible — it was
-removed, and the two modules that cited it now cite the newspaper front page that
-actually carries the control argument.
+`truman-ev-raincloud` («личный дождь»). **This entry used to say the beat does not
+exist in the film. That was wrong, and the record of the mistake is kept here on
+purpose.**
+
+Three picture passes (chapter 08 at 10 s granularity, 240–270 s, 1180–1210 s)
+found no localized rain, and the subtitle track has no rain cue. None of those
+windows contains 761 s: the beat sits at the water in chapter 06, which the pass
+never sampled. «Not in the window we looked at» was escalated into «not in the
+film», and a silent look at the track was treated as confirmation although the
+scene is nearly wordless.
+
+The record is therefore retired **as written** (wrong placement, wrong «the cloud
+follows him» staging) and rewritten as `truman-ev-rain` at 761 s in
+`truman-sc-memories-of-dad`; the lineage is recorded in
+`trumanCanonicalEvidenceSummary.rewritten`, and docs/47 §8 holds the full
+retraction. The two modules that cited the old record still cite the newspaper
+front page for the control argument.
 
 ### 2.2 Split
 

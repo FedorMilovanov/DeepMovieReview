@@ -199,3 +199,9 @@
     background: Canvas;
   }
 }
+
+/* Evidence cards are link targets: a character card or an article claim jumps
+   here, so the card needs room above it under the fixed site header. */
+.evidenceMapCard {
+  scroll-margin-top: 96px;
+}

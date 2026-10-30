@@ -80,6 +80,7 @@ function blockIds(section: ArticleSection): string[] {
     if (block.kind === "timeline") ids.push(...block.items.map((item) => item.id));
     if (block.kind === "measurement-table") ids.push(...block.rows.map((row) => row.id));
     if (block.kind === "corrections") ids.push(...block.rows.map((row) => row.id));
+    if (block.kind === "duel") ids.push(...block.sides.map((side) => side.id));
   }
   return ids;
 }
@@ -100,6 +101,8 @@ function blockText(block: ArticleBlock): string {
       return block.caption;
     case "corrections":
       return block.caption;
+    case "duel":
+      return [block.question, ...block.sides.map((side) => side.reading), block.open].join(" ");
   }
 }
 
@@ -380,6 +383,26 @@ function checkBlock(
         if (isBlank(row.label)) errors.push(`${rowPath}: label is required.`);
         checkMeasurementRef(row.measurement, `${rowPath}/measurement`, context, errors);
       }
+      return;
+    }
+    case "duel": {
+      if (isBlank(block.label)) errors.push(`${path}: a duel needs a label.`);
+      if (block.sides.length < 2) errors.push(`${path}: a duel needs at least two sides.`);
+      if (isBlank(block.open)) {
+        errors.push(`${path}: a duel must state what the film leaves open; a comparison without it is a verdict.`);
+      }
+      for (const id of duplicates(block.sides.map((side) => side.id))) {
+        errors.push(`${path}: duplicate duel side id "${id}".`);
+      }
+      for (const side of block.sides) {
+        const sidePath = `${path}/${side.id}`;
+        if (isBlank(side.label)) errors.push(`${sidePath}: label is required.`);
+        if (isBlank(side.reading)) errors.push(`${sidePath}: reading is required.`);
+        checkProse(side.reading, sidePath, context, errors);
+        checkSupport({ evidenceIds: side.evidenceIds }, sidePath, sectionLevel, context, errors, true);
+      }
+      checkProse(block.question, `${path}/question`, context, errors);
+      checkProse(block.open, `${path}/open`, context, errors);
       return;
     }
     case "corrections": {

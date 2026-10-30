@@ -19,6 +19,10 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
         );
         if (interpretationAllowed) return [character];
 
+        // Only the interpretation is hidden at this level. The profile keeps its
+        // own support: dropping it here is what made a card look like a slogan
+        // even when its proof was already allowed. The renderer filters each
+        // record by its own spoiler level, so nothing hidden can leak through.
         return [{
           id: character.id,
           name: character.name,
@@ -30,6 +34,7 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
           contradiction: character.contradiction,
           profileSpoilerLevel: character.profileSpoilerLevel,
           interpretiveSpoilerLevel: character.interpretiveSpoilerLevel,
+          profileSupport: character.profileSupport,
         }];
       });
       return characters.length > 0 ? { ...module, characters } : null;

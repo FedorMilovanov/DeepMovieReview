@@ -1,9 +1,17 @@
 import type { ReactNode } from "react";
 import { DecisionModuleView } from "@/components/film-modules/module-components";
+import { VerdictCore } from "@/components/experience/verdict-core";
 import { ReadingOutline } from "./reading-outline";
 import { ArticleTable } from "./article-table";
 import Link from "next/link";
-import type { ArticleBlock, ArticleMeasurementRef, FilmArticle, FinalSynthesisModule, DecisionModule } from "@/lib/film-package";
+import type {
+  ArticleBlock,
+  ArticleMeasurementRef,
+  EvidenceRecord,
+  FilmArticle,
+  FinalSynthesisModule,
+  DecisionModule,
+} from "@/lib/film-package";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { illustrationView } from "@/data/film-illustrations";
 import type { ArticleMeasurementView, ArticleProjection } from "@/lib/film-article";
@@ -35,6 +43,12 @@ type ArticleViewProps = {
    * article data never repeats a module's own wording.
    */
   moduleHeadings?: Record<string, string>;
+  /**
+   * Evidence records by id, for the blocks that show their own proof. The
+   * article never stores a label or a timecode next to a claim: it stores the
+   * id, and the record decides what the reader sees.
+   */
+  evidenceById?: ReadonlyMap<string, EvidenceRecord>;
 };
 
 const levelLabels: Record<SpoilerLevel, string> = {
@@ -96,16 +110,70 @@ function MeasurementFigure({ view, text }: { view: ArticleMeasurementView; text:
   );
 }
 
+/**
+ * Two readings of the same second, side by side, with the open question below.
+ *
+ * The panel deliberately has no winner row, no meter and no percentage: what a
+ * comparison of this kind can honestly deliver is the shape of the disagreement
+ * plus the proof each side stands on.
+ */
+function ArticleDuel({
+  block,
+  evidenceById,
+  formatTimecode,
+}: {
+  block: Extract<ArticleBlock, { kind: "duel" }>;
+  evidenceById?: ReadonlyMap<string, EvidenceRecord>;
+  formatTimecode: (seconds: number) => string;
+}) {
+  return (
+    <section className="articleDuel" aria-label={block.label}>
+      <p className="articleDuelLabel">{block.label}</p>
+      <h3 className="articleDuelQuestion">{block.question}</h3>
+      <div className="articleDuelSides">
+        {block.sides.map((side) => (
+          <article className="articleDuelSide" key={side.id}>
+            <h4>{side.label}</h4>
+            <p>{side.reading}</p>
+            <ul className="articleDuelEvidence" aria-label="Опора этой стороны">
+              {side.evidenceIds.map((id) => {
+                const record = evidenceById?.get(id);
+                if (!record) return null;
+                return (
+                  <li key={id}>
+                    {record.timestampSeconds !== undefined ? (
+                      <span className="articleDuelTime">{formatTimecode(record.timestampSeconds)}</span>
+                    ) : null}
+                    <span>{record.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </article>
+        ))}
+      </div>
+      <p className="articleDuelOpen">
+        <span className="microLabel">Остаётся открытым</span>
+        {block.open}
+      </p>
+    </section>
+  );
+}
+
 function ArticleBlockView({
   block,
   describeMeasurement,
+  evidenceById,
   formatTimecode,
 }: {
   block: ArticleBlock;
   describeMeasurement: ArticleViewProps["describeMeasurement"];
+  evidenceById?: ReadonlyMap<string, EvidenceRecord>;
   formatTimecode: (seconds: number) => string;
 }) {
   switch (block.kind) {
+    case "duel":
+      return <ArticleDuel block={block} evidenceById={evidenceById} formatTimecode={formatTimecode} />;
     case "paragraph":
       return <p className="articleParagraph">{block.text}</p>;
     case "aside":
@@ -210,6 +278,7 @@ export function ArticleView({
   decisions = [],
   spoilerLevel,
   describeMeasurement,
+  evidenceById,
   formatTimecode,
   moduleHeadings,
 }: ArticleViewProps) {
@@ -316,6 +385,7 @@ export function ArticleView({
                 key={block.id}
                 block={block}
                 describeMeasurement={describeMeasurement}
+                evidenceById={evidenceById}
                 formatTimecode={formatTimecode}
               />
             ))}
@@ -330,11 +400,16 @@ export function ArticleView({
             <h2 id="article-verdict-title" tabIndex={-1}>{synthesis.heading}</h2>
             <p className="sectionIntro">Качество кино и тяжесть показанного зла — разные оси, не один усреднённый балл.</p>
           </div>
-          <dl className="articleVerdictGrid">
-            {synthesis.facets.map(facet => (
-              <div key={facet.key}><dt>{facet.label}</dt><dd>{facet.value}</dd></div>
-            ))}
-          </dl>
+          <div className="articleVerdictBody">
+            <div className="articleVerdictCore">
+              <VerdictCore />
+            </div>
+            <dl className="articleVerdictGrid">
+              {synthesis.facets.map(facet => (
+                <div key={facet.key}><dt>{facet.label}</dt><dd>{facet.value}</dd></div>
+              ))}
+            </dl>
+          </div>
           <p className="articleParagraph">{synthesis.verdict}</p>
           {synthesis.qualifications.length ? (
             <details className="articleVerdictContext">

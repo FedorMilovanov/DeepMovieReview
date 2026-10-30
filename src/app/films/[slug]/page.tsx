@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { FilmMediaFrame } from "@/components/film-media-frame";
 import { FilmEvidenceMap } from "@/components/film-modules/evidence-map";
 import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
+import { FilmSceneTable } from "@/components/film-modules/scene-table";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
@@ -12,6 +13,7 @@ import { isPreviewContentEnabled } from "@/data/site-config";
 import { getFilmShareAsset } from "@/data/film-share-assets";
 import { getProductionDossier } from "@/data/films/production-dossiers";
 import { pluralRu } from "@/lib/plural-ru";
+import { formatTimecode } from "@/lib/timecode";
 import { filmPageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
 import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
@@ -68,6 +70,11 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
   const visibleModules = getVisibleFilmModules(modules, spoilerLevel);
   const hiddenModuleCount = modules.length - visibleModules.length;
   const outlineBase = withSpoilerQuery(pathname, spoilerLevel);
+  const moduleContext = {
+    evidenceById: new Map((filmPackage.evidence ?? []).map((record) => [record.id, record])),
+    formatTimecode,
+    spoilerLevel,
+  };
 
   return (
     <>
@@ -149,6 +156,12 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         )}
       </section>
 
+      <FilmSceneTable
+        evidence={filmPackage.evidence ?? []}
+        researchDraft={researchDraft}
+        scenes={filmPackage.scenes ?? []}
+      />
+
       <FilmEvidenceMap
         evidence={filmPackage.evidence ?? []}
         modules={visibleModules}
@@ -157,7 +170,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         sources={sourceRecords}
       />
 
-      <FilmModuleList modules={visibleModules} />
+      <FilmModuleList context={moduleContext} modules={visibleModules} />
     </>
   );
 }

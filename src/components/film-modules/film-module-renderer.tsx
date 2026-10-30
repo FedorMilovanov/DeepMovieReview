@@ -4,6 +4,7 @@ import {
   BiblicalSynthesisModuleView,
   CharactersModuleView,
   CraftModuleView,
+  type FilmModuleRenderContext,
   DecisionModuleView,
   FamilyYouthModuleView,
   MeaningModuleView,
@@ -18,17 +19,20 @@ import { assertNever, type FilmModule } from "@/lib/film-package";
 import { projectFilmModules } from "@/lib/film-module-projection";
 import type { SpoilerLevel } from "@/lib/spoilers";
 
-type FilmModuleRendererProps = { module: FilmModule };
+type FilmModuleRendererProps = {
+  module: FilmModule;
+  context?: FilmModuleRenderContext;
+};
 
 export function getVisibleFilmModules(modules: FilmModule[], spoilerLevel: SpoilerLevel) {
   return projectFilmModules(modules, spoilerLevel);
 }
 
 /** Presentation only: spoiler policy has already been resolved by projectFilmModules. */
-export function FilmModuleRenderer({ module }: FilmModuleRendererProps) {
+export function FilmModuleRenderer({ module, context }: FilmModuleRendererProps) {
   switch (module.kind) {
     case "story": return <StoryModuleView module={module} />;
-    case "characters": return <CharactersModuleView module={module} />;
+    case "characters": return <CharactersModuleView module={module} context={context} />;
     case "relationship": return <RelationshipModuleView module={module} />;
     case "family-youth": return <FamilyYouthModuleView module={module} />;
     case "meaning": return <MeaningModuleView module={module} />;
@@ -45,6 +49,18 @@ export function FilmModuleRenderer({ module }: FilmModuleRendererProps) {
   }
 }
 
-export function FilmModuleList({ modules }: { modules: FilmModule[] }) {
-  return <>{modules.map((module) => <FilmModuleRenderer key={module.id} module={module} />)}</>;
+export function FilmModuleList({
+  modules,
+  context,
+}: {
+  modules: FilmModule[];
+  context?: FilmModuleRenderContext;
+}) {
+  return (
+    <>
+      {modules.map((module) => (
+        <FilmModuleRenderer context={context} key={module.id} module={module} />
+      ))}
+    </>
+  );
 }

@@ -63,6 +63,8 @@ function blockProse(block: ArticleBlock): string {
       return block.caption;
     case "corrections":
       return [block.caption, ...block.rows.flatMap((row) => [row.commonClaim, row.onScreen])].join(" ");
+    case "duel":
+      return [block.question, ...block.sides.map((side) => side.reading), block.open].join(" ");
   }
 }
 

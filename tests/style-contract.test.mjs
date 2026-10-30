@@ -86,7 +86,7 @@ rejects("film data cannot bypass styles with inline declarations", ({ write }) =
 
 test("import reader preserves declarations in cascade order", () => fixture(({ root }) => {
   const surface = readStylesheet(join(root, "src/styles/film-article.css"));
-  const expected = ["body", "tables", "entry", "production", "reading", "outline"]
+  const expected = ["body", "tables", "entry", "production", "reading", "duel", "outline"]
     .map((name) => readFileSync(join(root, `src/styles/article/${name}.css`), "utf8")).join("");
   const rules = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s/g, "");
   assert.equal(rules(surface), rules(expected));

@@ -129,7 +129,11 @@ function EvidenceCard({
   });
 
   return (
-    <article className="evidenceMapCard" data-counter={counter || undefined}>
+    <article
+      className="evidenceMapCard"
+      data-counter={counter || undefined}
+      id={`evidence-${record.id}`}
+    >
       <div className="evidenceMapTopline">
         <span>{counter ? "Контрдоказательство" : researchDraft ? "Исследовательская опора" : "Доказательство"}</span>
         {scene ? (

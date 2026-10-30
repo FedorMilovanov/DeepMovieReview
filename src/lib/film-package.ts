@@ -526,6 +526,15 @@ export type ArticleCorrectionRow = {
   absentFromMaster?: boolean;
 };
 
+export type ArticleDuelSide = {
+  id: string;
+  /** Whose reading this is, e.g. «Что слышит Труман». */
+  label: string;
+  reading: string;
+  /** Every side needs its own proof; there is no unsupported side. */
+  evidenceIds: string[];
+};
+
 export type ArticleTableRow = {
   id: string;
   /** Left column: what the article asserts about this row. */
@@ -627,6 +636,26 @@ export type ArticleBlock =
       id: string;
       caption: string;
       rows: ArticleCorrectionRow[];
+    }
+  | {
+      /**
+       * Two or three readings of the same moment, side by side.
+       *
+       * This is the article's comparison surface, and it is built to make a
+       * fight impossible: every side must cite evidence, no side is scored, and
+       * the block cannot exist without an explicit statement of what the film
+       * leaves open. A «who wins» panel is exactly the kind of confident effect
+       * that outruns the master, so the type refuses to express one.
+       */
+      kind: "duel";
+      id: string;
+      /** Small label above the question, e.g. «Дуэль 01 · адресат». */
+      label: string;
+      /** The single question both sides answer differently. */
+      question: string;
+      sides: ArticleDuelSide[];
+      /** What the evidence cannot settle. Required: the panel never declares a winner. */
+      open: string;
     };
 
 export type ArticleSection = {

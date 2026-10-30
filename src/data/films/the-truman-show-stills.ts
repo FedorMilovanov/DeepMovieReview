@@ -17,7 +17,7 @@ export const trumanArticleStills = {
   radio: { ...provenance, avifSrc: "/film-stills/truman-radio-1800.avif", avifSha256: "467db345dafcf88f03c0f462f2cbb009792f02d4320bf8da15e4216162f60a78", src: "/film-stills/truman-radio-1800.jpg", sampleTimeSeconds: 1800,
     alt: "Труман оглядывается из автомобиля, услышав по радио описание собственных движений.", imageSha256: "b07698208a85f9847d3156f1d478618e1f17fd60d198a14f5fcdd7fa459815ac" },
   kitchen: { ...provenance, avifSrc: "/film-stills/truman-kitchen-3240.avif", avifSha256: "0d305d1132f47efd5b7c4b587eab43c9eb63e85a54ee2bfe9af9f48cff5f5339", src: "/film-stills/truman-kitchen-3240.jpg", sampleTimeSeconds: 3240,
-    alt: "Рука Трумана на рекламном буклете рядом с кухонным приспособлением.", imageSha256: "74f5319030503ae437f6ebf7db2196ca5e5ed93b232b2caa7c82a6a1ab650142" },
+    alt: "Рука на блистере «Chef's Pal» с кухонным приспособлением на столе; по кадру нельзя установить, чья это рука.", imageSha256: "74f5319030503ae437f6ebf7db2196ca5e5ed93b232b2caa7c82a6a1ab650142" },
   exit: { ...provenance, avifSrc: "/film-stills/truman-exit-5700.avif", avifSha256: "1f330cf8eb122937e9677fd743098cdd7283548bd72e755f08ac3c07193fcd50", src: "/film-stills/truman-exit-5700.jpg", sampleTimeSeconds: 5700,
     alt: "Труман стоит спиной перед открытым выходом в искусственном небе.", imageSha256: "633d9275156257771724cf0a218fc4e65555749c7ab9679077848a4c586950ea" },
 } satisfies Record<string, ArticleSceneStill>;
