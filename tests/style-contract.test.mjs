@@ -86,7 +86,7 @@ rejects("film data cannot bypass styles with inline declarations", ({ write }) =
 
 test("import reader preserves declarations in cascade order", () => fixture(({ root }) => {
   const surface = readStylesheet(join(root, "src/styles/film-article.css"));
-  const expected = ["body", "tables", "entry", "production", "reading"]
+  const expected = ["body", "tables", "entry", "production", "reading", "outline"]
     .map((name) => readFileSync(join(root, `src/styles/article/${name}.css`), "utf8")).join("");
   const rules = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s/g, "");
   assert.equal(rules(surface), rules(expected));
@@ -500,4 +500,20 @@ test("native UI observation waits without replaying input and fails a persistent
   assert.equal(await waitForNativeValue(async () => ++reads < 3 ? "true" : "false", "false", { now: () => clock++, pause: async () => {}, timeout: 10 }), "false");
   assert.equal(reads, 3);
   await assert.rejects(waitForNativeValue(async () => "true", "false", { now: () => clock++, pause: async () => {}, timeout: 3 }), /Native UI state/);
+});
+
+test("reading layout wraps inset artwork and preserves accessible navigation", () => {
+  const css = readStylesheet("src/styles/film-article.css");
+  assert.match(css, /display:\s*flow-root/);
+  assert.match(css, /float:\s*inline-end/);
+  assert.doesNotMatch(css, /border-top:\s*1px solid var\(--stroke-warm\);\s*padding-top:\s*var\(--space-2\)/);
+  const view = readFileSync("src/components/film-article/article-view.tsx", "utf8");
+  assert.match(view, /<noscript>/);
+  assert.match(view, /Авторская иллюстрация, не кадр из фильма/);
+  assert.doesNotMatch(view, /<figcaption>\{block.caption\}/);
+  const outline = readFileSync("src/components/film-article/reading-outline.tsx", "utf8");
+  assert.match(outline, /aria-expanded=\{open\}/);
+  assert.match(outline, /hidden=\{!open\}/);
+  assert.match(outline, /observer.disconnect/);
+  assert.match(outline, /event.key === "Escape"/);
 });

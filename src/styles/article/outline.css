@@ -1,0 +1,118 @@
+/* A quiet reading rail; the full contents appear only on intent. */
+.readingOutline {
+  position: fixed;
+  z-index: 35;
+  inset-inline-end: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.readingOutlineTrigger {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-3) 10px;
+  border: 1px solid var(--stroke-default);
+  border-inline-end: 0;
+  border-radius: 8px 0 0 8px;
+  background: var(--surface-1);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.readingOutlineWord {
+  writing-mode: vertical-rl;
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.readingOutlineRail {
+  display: grid;
+  gap: 5px;
+}
+
+.readingOutlineRail i {
+  display: block;
+  width: 12px;
+  height: 2px;
+  background: var(--ink-4);
+}
+
+.readingOutlineRail i[data-active="true"] {
+  width: 20px;
+  background: var(--ink-1);
+}
+
+.readingOutlinePanel {
+  position: absolute;
+  inset-inline-end: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(380px, calc(100vw - 60px));
+  max-height: min(76dvh, 680px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-4);
+  border: 1px solid var(--stroke-strong);
+  border-radius: 12px;
+  background: var(--surface-1);
+  box-shadow: 0 16px 60px rgb(0 0 0 / 0.45);
+}
+
+.readingOutlinePanel[hidden] { display: none; }
+
+.readingOutlineHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-4);
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-meta);
+}
+
+.readingOutlinePanel a {
+  display: grid;
+  grid-template-columns: 2ch minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-3) var(--space-2);
+  border-top: 1px solid var(--stroke-subtle);
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.readingOutlinePanel a > span {
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+}
+
+.readingOutlinePanel strong { font-weight: 500; }
+
+.readingOutlinePanel a[aria-current="location"],
+.readingOutlinePanel a:hover { color: var(--ink-1); background: var(--surface-2); }
+
+.readingOutlineTrigger:focus-visible,
+.readingOutlinePanel a:focus-visible { outline: 2px solid var(--ink-1); outline-offset: -3px; }
+
+@media (max-width: 720px) {
+  .readingOutline { top: auto; bottom: var(--space-4); transform: none; }
+  .readingOutlineWord { writing-mode: horizontal-tb; }
+  .readingOutlineRail { display: none; }
+  .readingOutlinePanel { top: auto; bottom: 0; transform: none; max-height: 65dvh; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .readingOutlinePanel a { transition: background 140ms, color 140ms; }
+}
+
+@media print { .readingOutline { display: none; } }

@@ -90,12 +90,16 @@
 }
 
 .articleSection {
+  max-width: 1080px;
   display: grid;
   gap: var(--space-5);
   border-top: 1px solid var(--stroke-subtle);
 }
 
 .articleSectionHead {
+  width: 100%;
+  max-width: 80ch;
+  margin-inline: auto;
   display: grid;
   gap: var(--space-3);
 }
@@ -145,9 +149,10 @@
 
 .articleBody {
   min-inline-size: 0;
-  display: grid;
-  gap: var(--space-5);
-  max-width: var(--reading-max);
+  display: flow-root;
+  width: 100%;
+  max-width: 80ch;
+  margin-inline: auto;
 }
 
 .articleParagraph {
@@ -165,40 +170,32 @@
   border-top: 1px solid var(--stroke-warm);
 }
 
-.articleIllustration {
-  margin: var(--space-7) 0;
-  display: grid;
-  gap: var(--space-2);
+.articleBody > * + * { margin-block-start: var(--space-5); }
+
+.articleBody > :not(.articleParagraph):not(.articleIllustration[data-layout="inset"]) {
+  clear: both;
 }
+
+.articleIllustration { margin: var(--space-5) 0; }
 
 .articleIllustration img {
+  display: block;
   width: 100%;
   height: auto;
-  border: 1px solid var(--stroke-default);
-  background: var(--surface-1);
 }
 
-.articleIllustration figcaption {
-  color: var(--ink-4);
-  max-width: 70ch;
-}
-
-/* A vignette, not a spread: the text keeps the column, the picture steps aside. */
+/* The paragraph follows the picture's contour, rather than a vacant grid cell. */
 .articleIllustration[data-layout="inset"] {
-  justify-self: end;
-  width: min(100%, 430px);
-  margin-block: var(--space-3);
-}
-
-.articleIllustration[data-layout="inset"] figcaption {
-  font-size: 0.94em;
-  line-height: 1.45;
+  float: inline-end;
+  width: min(44%, 340px);
+  margin: 0 0 var(--space-4) var(--space-5);
 }
 
 @media (max-width: 720px) {
   .articleIllustration[data-layout="inset"] {
-    justify-self: stretch;
+    float: none;
     width: 100%;
+    margin: var(--space-5) 0;
   }
 }
 

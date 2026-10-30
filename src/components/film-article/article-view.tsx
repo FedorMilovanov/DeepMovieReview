@@ -1,3 +1,4 @@
+import { ReadingOutline } from "./reading-outline";
 import { ArticleTable } from "./article-table";
 import Link from "next/link";
 import type { ArticleBlock, ArticleMeasurementRef, FilmArticle } from "@/lib/film-package";
@@ -45,14 +46,7 @@ function formatSignatureDate(iso: string): string {
   return `${day}.${month}.${year}`;
 }
 
-/**
- * An illustration inside the argument.
- *
- * A plain `<picture>` again: AVIF first, JPEG as the guaranteed fallback, no
- * build-time image service. The caption is not decoration — it is where the
- * picture admits it is a drawing and not a frame of the film, and the validator
- * refuses the block if that sentence is missing.
- */
+/** Original drawing. Provenance stays in the model and accessible alternative, not a prose caption. */
 function ArticleIllustration({
   block,
 }: {
@@ -70,14 +64,13 @@ function ArticleIllustration({
           src={view.src}
           srcSet={view.srcSet}
           sizes={view.sizes}
-          alt={view.alt}
+          alt={`Авторская иллюстрация, не кадр из фильма. ${view.alt}`}
           width={view.width}
           height={view.height}
           loading="lazy"
           decoding="async"
         />
       </picture>
-      <figcaption>{block.caption}</figcaption>
     </figure>
   );
 }
@@ -232,14 +225,14 @@ export function ArticleView({
         </div>
       </header>
 
-      <nav className="sectionShell sectionRule articleOutline" aria-label="Разделы статьи">
-        {visibleSections.map((section) => (
-          <Link key={section.id} href={`#${section.id}`}>
-            <span>{String(section.number).padStart(2, "0")}</span>
-            <strong>{section.heading}</strong>
-          </Link>
-        ))}
-      </nav>
+      <ReadingOutline sections={visibleSections.map(({ id, number, heading }) => ({ id, number, heading }))} />
+      <noscript>
+        <nav className="sectionShell articleOutline" aria-label="Разделы статьи без JavaScript">
+          {visibleSections.map(({ id, number, heading }) => (
+            <a key={id} href={`#${id}`}><span>{number}</span><strong>{heading}</strong></a>
+          ))}
+        </nav>
+      </noscript>
 
       {hiddenSections > 0 ? (
         <p className="sectionShell spoilerOmissionNotice" aria-live="polite">
@@ -258,7 +251,7 @@ export function ArticleView({
         >
           <div className="articleSectionHead">
             <div className="sectionIndex">{section.eyebrow}</div>
-            <h2 id={`${section.id}-title`}>{section.heading}</h2>
+            <h2 id={`${section.id}-title`} tabIndex={-1}>{section.heading}</h2>
             {section.standfirst ? <p className="sectionIntro">{section.standfirst}</p> : null}
             {section.moduleIds?.length ? (
               <div className="articleModuleLinks">

@@ -123,6 +123,16 @@ for (const name of selected) {
           if (route.includes("/article?")) {
             const sectionCount = await page.locator(".articleSection").count();
             const hiddenId = await page.locator(".articleSection").last().getAttribute("id");
+            const outline = page.getByRole("button", { name: "Оглавление статьи" });
+            await outline.focus();
+            await page.keyboard.press("Enter");
+            await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
+            assert.equal(await outline.getAttribute("aria-expanded"), "true");
+            await page.keyboard.press("Escape");
+            await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'false');
+            assert.equal(await outline.getAttribute("aria-expanded"), "false");
+            assert.ok(await outline.evaluate(el => el === document.activeElement), "outline focus restored");
+            await page.keyboard.press("Enter");
             const link = page.locator(".articleOutline a").first();
             await link.focus();
             await page.keyboard.press("Enter");

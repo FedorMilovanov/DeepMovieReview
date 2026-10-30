@@ -36,13 +36,6 @@
   background: var(--surface-1);
 }
 
-/* Borderless inset figures read as marginalia: a hairline only at the top. */
-.articleIllustration[data-layout="inset"] img {
-  border: 0;
-  border-top: 1px solid var(--stroke-warm);
-  padding-top: var(--space-2);
-}
-
 /* Photographs and drawings are not interactive, so they do not pretend to be:
    no hover lift, no cursor change. The only motion is the entrance below. */
 .articleIllustration {

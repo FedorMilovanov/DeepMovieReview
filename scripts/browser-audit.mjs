@@ -1277,6 +1277,9 @@ try {
       });
     })()`);
     assertCheck(`article navigation ${label}: every outline link names a rendered section`, outlineValid);
+    await evaluate("document.querySelector('.readingOutlineTrigger').focus()");
+    await pressEnter();
+    await sleep(100);
     await evaluate("document.querySelector('.articleOutline a').focus()");
     await pressEnter();
     let anchorState;
@@ -1303,8 +1306,13 @@ try {
     // without increasing document.scrollWidth. Restore each node afterwards.
     for (const selector of [
       '.articleOutline strong', '.articleModuleLink', '.articleAside p:last-child',
-      '.articleIllustration figcaption', '.articleSectionHead h2', '.articleParagraph',
+      '.articleMeasurement figcaption', '.articleSectionHead h2', '.articleParagraph',
     ]) {
+      if (selector === '.articleOutline strong') {
+        await evaluate("document.querySelector('.readingOutlineTrigger').focus()");
+        await pressEnter();
+        await sleep(100);
+      }
       await evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'center',behavior:'instant'})`);
       await sleep(100);
       const textState = JSON.parse(await evaluate(`JSON.stringify((() => {
@@ -1313,7 +1321,7 @@ try {
         const original = node.textContent;
         node.textContent = 'LongReference'.repeat(40);
         const rect = element.getBoundingClientRect();
-        const container = element.closest('.sectionShell').getBoundingClientRect();
+        const container = element.closest('.sectionShell, .readingOutlinePanel').getBoundingClientRect();
         return { original, width: rect.width, left: rect.left, right: rect.right,
           containerLeft: container.left, containerRight: container.right,
           overflow: element.scrollWidth - element.clientWidth };
@@ -1327,6 +1335,10 @@ try {
         const element = document.querySelector(${JSON.stringify(selector)});
         [...element.childNodes].find(child => child.nodeType === Node.TEXT_NODE).textContent = ${JSON.stringify(textState.original)};
       })()`);
+      if (selector === '.articleOutline strong') {
+        await evaluate("document.querySelector('.readingOutlineTrigger').focus()");
+        await pressEnter();
+      }
     }
 
   }
