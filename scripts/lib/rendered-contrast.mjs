@@ -262,7 +262,17 @@ export async function renderedContrast(page, nodes, directory, id) {
           await page.evaluate(hardMaskTextPaint, state);
           await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
           background = await page.screenshot();
-          const still = leaked(PNG.sync.read(background), snapshot.boxes);
+          let still = leaked(PNG.sync.read(background), snapshot.boxes);
+          if (still.length) {
+            // WebKit can serve a cached composite of a fixed layer. Nudging the
+            // scroll by one pixel and restoring it forces a real recomposite
+            // without touching the product's styles or layout.
+            await page.evaluate(() => { const y = scrollY; scrollTo({ top: y + 1, behavior: "instant" });
+              scrollTo({ top: y, behavior: "instant" }); });
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            background = await page.screenshot();
+            still = leaked(PNG.sync.read(background), snapshot.boxes);
+          }
           maskEscalations.push({ tile, escalated: snapshot.boxes.map(box => box.id), unresolved: still });
           for (const box of snapshot.boxes) if (still.includes(box.id)) box.issue = "Text paint survived both masks";
         }
