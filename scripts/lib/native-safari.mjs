@@ -134,9 +134,13 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
             script: `const el=arguments[0],r=el.getBoundingClientRect(),v=visualViewport;
               const point={x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)};
               const hit=document.elementFromPoint(point.x,point.y);
+              // The gesture now uses the element as its W3C origin, so the
+              // driver resolves the centre itself. Readiness waits for a stable
+              // box in a settled document; the hit-test is recorded, not used as
+              // a precondition on coordinates this driver does not honour.
               return {ready:el.isConnected&&document.readyState==='complete'&&document.fonts.status==='loaded'&&
-                point.x>=0&&point.x<innerWidth&&point.y>=0&&point.y<innerHeight&&!!hit&&el.contains(hit),
-                point,rect:r.toJSON(),scroll:{x:scrollX,y:scrollY},
+                point.x>=0&&point.x<innerWidth&&point.y>=0&&point.y<innerHeight,
+                point,hitContained:!!hit&&el.contains(hit),rect:r.toJSON(),scroll:{x:scrollX,y:scrollY},
                 viewport:v?{x:v.offsetLeft,y:v.offsetTop,width:v.width,height:v.height,scale:v.scale}:null};`,
             args: [element],
           }));
