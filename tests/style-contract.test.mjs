@@ -383,6 +383,15 @@ test("contrast background isolation preserves color/currentColor paint and resto
 });
 
 
+test("contrast coverage does not demand a line box that draws nothing", async () => {
+  const { missingRangeIds } = await import("../scripts/lib/rendered-contrast.mjs");
+  const measurements = new Map([["0:0:1", {}]]);
+  // A wrapped trailing space produces a zero-area line box: nothing is painted
+  // there, so it can never be sampled and must not read as uncovered text.
+  assert.deepEqual([...missingRangeIds([{ id: 0, connected: true, version: 0, lines: 2, emptyLines: [0] }], measurements)], []);
+  assert.deepEqual([...missingRangeIds([{ id: 0, connected: true, version: 0, lines: 2 }], measurements)], [0]);
+});
+
 test("contrast coverage rejects a disappearing target even after prior measurements", async () => {
   const { missingRangeIds } = await import("../scripts/lib/rendered-contrast.mjs");
   const measurements = new Map([["0:0:0", {}], ["1:0:0", {}], ["2:0:0", {}], ["3:0:0", {}]]);

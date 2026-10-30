@@ -61,8 +61,15 @@ export function refreshTextRanges(s) {
 }
 
 export function missingRangeIds(expected, measurements) {
-  return new Set(expected.filter(record => !record.connected || record.lines === 0 ||
-    Array.from({ length: record.lines }, (_, line) => `${record.id}:${record.version ?? 0}:${line}`).some(key => !measurements.has(key))).map(record => record.id));
+  return new Set(expected.filter(record => {
+    if (!record.connected || record.lines === 0) return true;
+    // A zero-area line box draws nothing and can never be sampled. Requiring it
+    // would report a permanently uncovered owner for text that paints no glyphs —
+    // a wrapped trailing space, not a reading risk.
+    const empty = new Set(record.emptyLines ?? []);
+    return Array.from({ length: record.lines }, (_, line) => line).filter(line => !empty.has(line))
+      .some(line => !measurements.has(`${record.id}:${record.version ?? 0}:${line}`));
+  }).map(record => record.id));
 }
 
 
@@ -412,20 +419,30 @@ export async function renderedContrast(page, nodes, directory, id) {
       // reader is looking at now. Resume only for a record with attempts left, and
       // only once the whole document has been traversed.
       await page.evaluate(refreshTextRanges, state);
-      const expectedNow = await page.evaluate(s => s.records.map(record => ({ id: record.id, version: record.version,
-        connected: record.element.isConnected && record.range.startContainer.isConnected, lines: record.range.getClientRects().length })), state);
+      const expectedNow = await page.evaluate(s => s.records.map(record => {
+        const rects = [...record.range.getClientRects()];
+        return { id: record.id, version: record.version,
+          connected: record.element.isConnected && record.range.startContainer.isConnected, lines: rects.length,
+          emptyLines: rects.map((rect, line) => (rect.width > 0 && rect.height > 0 ? -1 : line)).filter(line => line >= 0) };
+      }), state);
       const absentNow = [...missingRangeIds(expectedNow, measurements)];
       coverageRounds.push({ round, absent: absentNow.length });
       if (!absentNow.length || !revisiting || tile >= 250) break;
-      const resume = await page.evaluate(({ s, absent, attempts, limit }) => {
+      // Aim at the line box that is actually unmeasured, not at the record's
+      // bounding box: a line at the wrap boundary can sit outside the frame the
+      // whole record would be centred in.
+      const resume = await page.evaluate(({ s, absent, attempts, limit, measured }) => {
         for (const id of absent) {
           const record = s.records[id];
           if (!record || (attempts[id] ?? 0) >= limit || !record.element.isConnected) continue;
-          const rect = record.range.getBoundingClientRect();
-          if (rect.width > 0 && rect.height > 0) return { id, top: scrollY + rect.top - Math.max(0, (innerHeight - rect.height) / 2) };
+          const rects = [...record.range.getClientRects()];
+          const line = rects.findIndex((rect, index) => rect.width > 0 && rect.height > 0 &&
+            !measured.includes(`${record.id}:${record.version ?? 0}:${index}`));
+          const rect = line >= 0 ? rects[line] : record.range.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) return { id, line, top: scrollY + rect.top - Math.max(0, (innerHeight - rect.height) / 2) };
         }
         return null;
-      }, { s: state, absent: absentNow, attempts: Object.fromEntries(revisitAttempts), limit: 3 });
+      }, { s: state, absent: absentNow, attempts: Object.fromEntries(revisitAttempts), limit: 3, measured: [...measurements.keys()] });
       if (!resume) break;
       revisitAttempts.set(resume.id, (revisitAttempts.get(resume.id) ?? 0) + 1);
       top = Math.max(0, resume.top);
@@ -433,7 +450,11 @@ export async function renderedContrast(page, nodes, directory, id) {
     const owners = await page.evaluate(s => s.owners, state);
     await page.evaluate(refreshTextRanges, state);
     const textChanges = await page.evaluate(s => s.textChanges, state);
-    const expected = await page.evaluate(s => s.records.map(record => ({ id: record.id, version: record.version, connected: record.element.isConnected && record.range.startContainer.isConnected, lines: record.range.getClientRects().length })), state);
+    const expected = await page.evaluate(s => s.records.map(record => {
+      const rects = [...record.range.getClientRects()];
+      return { id: record.id, version: record.version, connected: record.element.isConnected && record.range.startContainer.isConnected,
+        lines: rects.length, emptyLines: rects.map((rect, line) => (rect.width > 0 && rect.height > 0 ? -1 : line)).filter(line => line >= 0) };
+    }), state);
     const ranges = [...measurements.values()].map(record => {
       let covered = 0;
       for (const [start, end] of record.intervals.toSorted((a, b) => a[0] - b[0])) {
@@ -447,8 +468,26 @@ export async function renderedContrast(page, nodes, directory, id) {
     });
     const absent = missingRangeIds(expected, measurements);
     const missing = owners.filter(owner => owner.error || owner.ids.some(id => absent.has(id)));
+    // An owner that stays uncovered has to explain itself: the live line boxes,
+    // where they sit, and what is on top of them. A failed gate should arrive
+    // with the reason attached, not with a count.
+    const uncovered = absent.size ? await page.evaluate(({ s, absent }) => absent.map(id => {
+      const record = s.records[id];
+      if (!record) return { id, error: "record absent" };
+      const rects = [...record.range.getClientRects()];
+      return { id, connected: record.element.isConnected, lines: rects.length, scrollY, innerWidth, innerHeight,
+        rects: rects.slice(0, 6).map(rect => ({
+          x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height),
+          hit: (() => {
+            const x = Math.min(innerWidth - 0.5, Math.max(0.5, rect.left + rect.width / 2));
+            const y = Math.min(innerHeight - 0.5, Math.max(0.5, rect.top + rect.height / 2));
+            const top = document.elementFromPoint(x, y);
+            return top ? String(top.className || top.tagName).slice(0, 40) : null;
+          })(),
+        })) };
+    }), { s: state, absent: [...absent] }) : [];
     const failed = ranges.filter(range => !range.pass);
-    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
+    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
       missing, tileLimit, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);
