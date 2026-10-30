@@ -54,6 +54,17 @@ for (const name of selected) {
 
           // Scan the whole document, not just main. Preserve every axe result.
           const scan = async (state, scope = "document") => {
+            // Axe samples computed colors at one instant. A disclosure that is
+            // still fading in would be judged mid-transition at ~1.9:1. Wait for
+            // finite entrance animations to finish, never for infinite ones and
+            // never by forcing styles; the settled colors are the real ones.
+            await page.waitForFunction(root => {
+              const element = root === "document" ? document.documentElement : document.querySelector(root);
+              if (!element) return true;
+              const running = element.getAnimations({ subtree: true }).filter(animation =>
+                animation.playState === "running" && Number.isFinite(animation.effect?.getComputedTiming().endTime));
+              return running.length === 0;
+            }, scope, { timeout: 5000 }).catch(() => {});
             await page.addScriptTag({ content: axe.source });
             const result = await page.evaluate(async scope => window.axe.run(scope === "document" ? document : document.querySelector(scope), {
               runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] },
