@@ -19,7 +19,12 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
     let frame = 0;
     const update = () => {
       frame = 0;
-      const line = Math.min(window.innerHeight * 0.28, 240);
+      const first = document.getElementById(sections[0]?.id ?? "");
+      const padding = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+      const margin = first ? parseFloat(getComputedStyle(first).scrollMarginBlockStart) || 0 : 0;
+      // Native anchors combine scroll-padding and scroll-margin. Honour their
+      // real landing line even in a short landscape viewport, not a magic y.
+      const line = Math.min(window.innerHeight - 1, Math.max(window.innerHeight * 0.28, padding + margin + 1));
       let current = sections[0]?.id ?? "";
       for (const { id } of sections) {
         const section = document.getElementById(id);

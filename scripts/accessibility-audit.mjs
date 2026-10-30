@@ -136,6 +136,24 @@ for (const name of selected) {
               await section.evaluate(el => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
               await page.waitForFunction(id => document.querySelector(`.readingOutlinePanel a[href="#${id}"]`)?.getAttribute('aria-current') === 'location', id);
             }
+            if (width === 1440) {
+              await page.setViewportSize({ width: 900, height: 320 });
+              for (const index of [sectionCount - 1, Math.floor(sectionCount / 2), 0]) {
+                const section = page.locator('.articleSection').nth(index);
+                const id = await section.getAttribute('id');
+                await section.evaluate(el => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
+                await page.waitForFunction(id => document.querySelector(`.readingOutlinePanel a[href="#${id}"]`)?.getAttribute('aria-current') === 'location', id);
+              }
+              await outline.focus(); await page.keyboard.press('Enter');
+              await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
+              assert.ok(await page.locator('.readingOutlinePanel').evaluate(el => {
+                const r = el.getBoundingClientRect();
+                return r.x >= 0 && r.y >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
+              }), "landscape contents panel fits the viewport");
+              await page.screenshot({ path: `${out}/${id}-landscape-outline.png` });
+              await page.keyboard.press('Escape');
+              await page.setViewportSize({ width, height: 900 });
+            }
             const analysis = page.locator('.articleAnalysis');
             if (await analysis.count()) {
               await analysis.locator('summary').focus();
