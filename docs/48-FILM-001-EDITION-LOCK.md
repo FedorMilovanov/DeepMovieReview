@@ -128,12 +128,15 @@ CI fails.
 
 ## 6. What is deliberately still closed
 
-- **Publication.** `film.status` is `draft`; indexing stays behind
-  `DMR_SITE_INDEXING_ENABLED` and the published-feature gate.
+- **Publication.** Since 30.10.2026 `film.status` is `published` (docs/53 §2.1);
+  indexing opens on a real host by itself and stays closed on a preview
+  deployment or with an explicit `DMR_SITE_INDEXING_ENABLED=false`.
 - **Review.** No human editorial pass has signed the prose yet, so
   `sources-method.lastReviewedAt` remains unset.
-- **Stills.** Nothing from the evidence bundle is authorized for publication
-  (`docs/38` §9). The bundle lives outside git and stays there.
+- **Stills.** Four stills are published with the article since 30.10.2026
+  (800×450, 30-second grid, second + master digest + per-file SHA-256, credit).
+  The bundle itself still lives outside git and stays there; `docs/38` §9 governs
+  the master, not the four quotations.
 - **Character/relationship depth.** The modules still carry research-era depth in
   places. They are now *supported* by verified evidence, which is a different
   claim from being finished.
