@@ -115,6 +115,10 @@ try {
       // scroll, the driver delivered a touch at the requested point to a
       // different element, so a scrolled tap would measure the driver rather
       // than the control.
+      await safari.execute(`window.__spoilerProbe = { touched: [], clicked: [], url: location.href };
+        for (const type of ["touchstart", "touchend", "click"]) document.addEventListener(type, e =>
+          __spoilerProbe[type === "click" ? "clicked" : "touched"].push({ type, target: (e.target.className || e.target.tagName).toString().slice(0, 40), href: e.target.closest?.("a")?.getAttribute("href") }), { capture: true });`);
+      evidence.screenshots.push({ route: `${route} — before spoiler tap`, data: await safari.screenshot() });
       await safari.click(".spoilerOption");
       let changed = false;
       for (let i = 0; i < 100; i++) {
@@ -124,6 +128,8 @@ try {
       report.spoilerProjection = { before: count,
         after: await safari.execute("return document.querySelectorAll('.articleSection').length"),
         url: await safari.execute("return location.href") };
+      report.spoilerProbe = await safari.execute("return { ...__spoilerProbe, target: (() => { const el = document.querySelector('.spoilerOption'); const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { rect: r.toJSON(), scrollY, hit: hit && (hit.className || hit.tagName) }; })() }");
+      evidence.actions.push({ route, label: "native spoiler tap probe", ...report.spoilerProbe });
       evidence.actions.push({ route, label: "native spoiler tap changed projection", ...report.spoilerProjection });
       assert.ok(changed, `iOS spoiler tap must change DOM projection: ${JSON.stringify(report.spoilerProjection)}`);
       evidence.screenshots.push({ route: `${route} — after spoiler tap`, data: await safari.screenshot() });

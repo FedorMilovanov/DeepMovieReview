@@ -556,7 +556,7 @@ test("native touch waits for a stable hit target without repeating the gesture",
   const target = await waitForStableNativeTarget(async () => states[Math.min(reads++, states.length - 1)], {
     now: () => clock, pause: async () => { clock += 100; }, timeout: 1000,
   });
-  assert.deepEqual(target, { x: 4, y: 20 });
+  assert.deepEqual(target, { ready: true, point: { x: 4, y: 20 } });
   assert.equal(reads, 6);
   await assert.rejects(waitForStableNativeTarget(async () => ({ ready: false }), {
     now: () => clock, pause: async () => { clock += 100; }, timeout: 300,

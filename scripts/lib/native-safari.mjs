@@ -35,7 +35,7 @@ export async function waitForStableNativeTarget(read, { timeout = 10000, now = D
     const key = target?.ready ? JSON.stringify(target) : undefined;
     stable = key && key === previous ? stable + 1 : 0;
     previous = key;
-    if (stable >= 2) return target.point;
+    if (stable >= 2) return target;
     await pause();
   }
   throw new Error("Native touch target did not settle or remained occluded before input");
@@ -128,7 +128,7 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
                 viewport:v?{x:v.offsetLeft,y:v.offsetTop,width:v.width,height:v.height,scale:v.scale}:null};`,
             args: [element],
           }));
-          inputs.push({ selector, point, gesture: "single native touch after stable hit-test" });
+          inputs.push({ selector, ...point, gesture: "single native touch after stable hit-test" });
           try {
             return await request(`${path}/actions`, { actions: [{ type: "pointer", id: "finger", parameters: { pointerType: "touch" }, actions: [
               { type: "pointerMove", duration: 0, ...point }, { type: "pointerDown", button: 0 },
