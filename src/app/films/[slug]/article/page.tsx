@@ -17,8 +17,10 @@ import { parseSpoilerLevel } from "@/lib/spoilers";
  *
  * This route exists only when the package carries an article, and the article
  * itself cannot be validated without a LOCKED edition (see
- * `src/lib/film-article-integrity.ts`). While the film is a draft the route is
- * preview-only and noindex — the same gate as the film page, not a second one.
+ * `src/lib/film-article-integrity.ts`). A published film is reachable without a
+ * preview flag and gets a canonical link; a draft is preview-only and noindex —
+ * the same gate as the film page, not a second one. Frames are a third decision,
+ * and they follow `filmStillsServable()`, not publication.
  */
 
 type ArticlePageProps = {
