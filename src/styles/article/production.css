@@ -30,7 +30,7 @@
 .articleHeaderLinks a {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  min-height: 2.75rem;
   padding-block: var(--space-2);
   border-bottom: 1px solid var(--stroke-subtle);
 }
@@ -159,8 +159,8 @@
 
 .productionRefs a {
   display: inline-flex;
-  min-inline-size: 24px;
-  min-block-size: 24px;
+  min-inline-size: 1.5rem;
+  min-block-size: 1.5rem;
   align-items: center;
   justify-content: center;
   color: var(--ink-4);
@@ -208,7 +208,7 @@
   display: grid;
   gap: 0.2rem;
   cursor: pointer;
-  min-height: 42px;
+  min-height: 2.625rem;
   color: var(--ink-1);
 }
 
@@ -241,7 +241,7 @@
   color: var(--ink-1);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 40em) {
   .productionFacts dl > div,
   .productionTimeline li {
     grid-template-columns: 1fr;

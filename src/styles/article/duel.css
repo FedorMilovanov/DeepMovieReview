@@ -105,7 +105,7 @@
 
 .articleVerdictCore {
   position: relative;
-  min-height: 260px;
+  min-height: 16.25rem;
   border: 1px solid var(--stroke-default);
   background: radial-gradient(circle at 50% 45%, rgb(143 32 39 / 0.14), transparent 62%), var(--surface-1);
   overflow: hidden;
@@ -121,6 +121,6 @@
   }
 
   .articleVerdictCore {
-    min-height: 200px;
+    min-height: 12.5rem;
   }
 }

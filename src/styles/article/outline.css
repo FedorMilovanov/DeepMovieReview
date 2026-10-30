@@ -11,8 +11,8 @@
   display: grid;
   justify-items: center;
   gap: var(--space-3);
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   padding: var(--space-3) var(--space-2);
   border: 1px solid var(--stroke-default);
   border-inline-end: 0;
@@ -94,7 +94,7 @@
   grid-template-columns: 2ch minmax(0, 1fr);
   align-items: baseline;
   gap: var(--space-3);
-  min-height: 44px;
+  min-height: 2.75rem;
   padding: var(--space-3) var(--space-2);
   border-top: 0;
   color: var(--ink-2);

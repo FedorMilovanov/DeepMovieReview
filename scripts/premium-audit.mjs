@@ -753,6 +753,10 @@ check("CR", "CR11", "нет мёртвых стилей: каждый класс
     read("src/app/films/[slug]/page.tsx"),
     read("src/app/films/[slug]/article/page.tsx"),
     read("src/app/films/[slug]/making/page.tsx"),
+    // Shared with the film page: the article renders the same basis line, so the
+    // classes it styles are article markup even though the file lives elsewhere.
+    read("src/components/evidence-basis.tsx"),
+    read("src/components/film-modules/evidence-map.tsx"),
   ].join("\n");
   const classes = [...new Set([...articleCss.matchAll(/\.([a-zA-Z][a-zA-Z0-9]+)/g)].map((m) => m[1]))];
   const orphans = classes.filter((name) => !components.includes(name));

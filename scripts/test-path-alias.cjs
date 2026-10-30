@@ -6,6 +6,8 @@
  * already render components; this makes that possible instead of forcing every
  * shared module to use relative imports.
  */
+/* eslint-disable @typescript-eslint/no-require-imports -- this file runs as CommonJS
+   before the test runner loads, so it cannot be an ES module. */
 const Module = require("node:module");
 const { resolve } = require("node:path");
 

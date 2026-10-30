@@ -344,6 +344,13 @@ export const theTrumanShowArticle: FilmArticle = {
           support: { evidenceIds: ["truman-ev-knife", "truman-ev-knife-call"] },
         },
         {
+          kind: "paragraph",
+          id: "truman-article-bonds-marriage-3",
+          text:
+            "У этой сцены есть граница, и она не в словах. Пока разговор идёт о доме, Мэрил ещё отвечает мужу — раздражённо, но ему. После реплики в камеру комната перестаёт быть комнатой: у разговора появляется второй адресат, и всё дальнейшее происходит уже при нём. Меняется не семейный конфликт, а то, на чьих глазах он идёт. Тот же стол, тот же напиток — но теперь это эфир.",
+          support: { evidenceIds: ["truman-ev-mococoa", "truman-ev-knife"] },
+        },
+        {
           kind: "duel",
           id: "truman-article-duel-kitchen",
           label: "Дуэль 01 · адресат",
