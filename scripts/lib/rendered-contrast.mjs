@@ -203,14 +203,9 @@ export async function renderedContrast(page, nodes, directory, id) {
       // while the masked frame is captured. Wait for native animation completion
       // and a stable pair of animation frames before masking; never force styles.
       let background;
-      for (let attempt = 0; attempt < 20; attempt++) {
-        const running = await page.evaluate(() => {
-          const animations = document.getAnimations ? document.getAnimations() : [];
-          return animations.filter(animation => animation.playState === "running").length;
-        });
-        if (!running) break;
-        await page.waitForTimeout(100);
-      }
+      // Two native frames settle a same-tick repaint without polling every
+      // running animation on the page: an infinite ambient animation would
+      // otherwise burn the job's whole budget.
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       try {
         await page.evaluate(maskTextPaint, state);
@@ -231,7 +226,7 @@ export async function renderedContrast(page, nodes, directory, id) {
         // A late re-render can replace masked text after the style probe.
         // Verify the captured frame still had transparent foregrounds and that
         // the recorded elements stayed connected; otherwise mask again, bounded.
-        for (let retry = 0; retry < 3; retry++) {
+        for (let retry = 0; retry < 1; retry++) {
           const stillMasked = await page.evaluate(s => s.records.filter(record => s.visibleIds.has(record.id)).every(record => {
             if (!record.element.isConnected) return false;
             const style = getComputedStyle(record.element);
