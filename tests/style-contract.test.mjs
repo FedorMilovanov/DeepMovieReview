@@ -627,3 +627,11 @@ test("renderer mask fallback hides only visible text owners, never moves boxes",
   assert.deepEqual(calls, [["visibility", "hidden"]]);
   assert.equal(state.usedHardMask, true);
 });
+
+test("a text-coloured background is a contrast failure, not a lost mask", async () => {
+  const { samePaintedColor } = await import("../scripts/lib/rendered-contrast.mjs");
+  assert.equal(samePaintedColor([255, 255, 255, 1], [255, 255, 255, 1]), true);
+  assert.equal(samePaintedColor([155, 151, 143, 1], [154, 151, 146, 1]), true);
+  assert.equal(samePaintedColor([0, 0, 0, 1], [255, 255, 255, 1]), false);
+  assert.equal(samePaintedColor([155, 151, 143, 0.5], [155, 151, 143, 1]), false);
+});

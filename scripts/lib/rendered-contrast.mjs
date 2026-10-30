@@ -30,6 +30,14 @@ export function restoreTextPaint(s) {
   s.saved = [];
 }
 
+// A text-coloured background is a real contrast failure, not a failed mask.
+// Only call the mask lost when no opaque ancestor paints that same colour.
+export function samePaintedColor(a, b, tolerance = 12) {
+  if (!a || !b || a.length < 3 || b.length < 3) return false;
+  if ((a[3] ?? 1) < 1 || (b[3] ?? 1) < 1) return false;
+  return [0, 1, 2].every(index => Math.abs(a[index] - b[index]) <= tolerance);
+}
+
 // WebKit can keep a promoted panel's glyphs in a stale layer even when the
 // computed fill is transparent. Hiding the paint owner with visibility keeps
 // every box exactly where it is, so the captured background is the real one.
@@ -126,6 +134,12 @@ export function snapshotTextPaint(s) {
       }
     }
     if (unpainted) continue;
+    // Walk real ancestors for an opaque background colour equal to the glyphs.
+    let backgroundExplainable = false;
+    for (let element = record.element; element; element = element.parentElement) {
+      const painted = rgba(getComputedStyle(element).backgroundColor);
+      if (painted[3] >= 1 && samePaintedColor(painted, foreground)) { backgroundExplainable = true; break; }
+    }
     const threshold = parseFloat(style.fontSize) >= 24 || (parseFloat(style.fontWeight) >= 700 && parseFloat(style.fontSize) >= 14 * 4 / 3) ? 3 : 4.5;
     [...record.range.getClientRects()].forEach((rect, line) => {
       if (!(rect.width > 0 && rect.height > 0 && exposed(record.element, rect, innerWidth, innerHeight, (x, y) => document.elementFromPoint(x, y)))) return;
@@ -145,7 +159,7 @@ export function snapshotTextPaint(s) {
       const rowOrigin = Math.floor(rect.top), rowEnd = Math.ceil(rect.bottom);
       const occluded = Array.from({ length: Math.max(0, rowEnd - rowOrigin) }, (_, row) =>
         overlayAt(rect.left + inset, rowOrigin + row + 0.5) || overlayAt(rect.right - inset, rowOrigin + row + 0.5));
-      boxes.push({ id: record.id, version: record.version, line, rect: rect.toJSON(), rowOrigin, occluded, foreground, color, threshold, issue, settling });
+      boxes.push({ id: record.id, version: record.version, line, rect: rect.toJSON(), rowOrigin, occluded, foreground, color, threshold, issue, settling, backgroundExplainable });
     });
   }
   s.visibleIds = new Set(boxes.map(box => box.id));
@@ -238,7 +252,7 @@ export async function renderedContrast(page, nodes, directory, id) {
         // band is (almost) exactly the text colour, the compositor kept the text
         // paint; hide the paint owner instead (visibility keeps every box in
         // place) and capture again. Both facts are recorded, never papered over.
-        const leaked = (image, boxes) => boxes.filter(box => !box.issue &&
+        const leaked = (image, boxes) => boxes.filter(box => !box.issue && !box.backgroundExplainable &&
           rectangleContrast(image, box.sample, box.foreground).minimum < 1.05).map(box => box.id);
         if (leaked(PNG.sync.read(background), snapshot.boxes).length) {
           await page.evaluate(hardMaskTextPaint, state);
