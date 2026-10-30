@@ -277,7 +277,13 @@ function ArticleBlockView({
               if (!view) return null;
               return (
                 <tr key={row.id}>
-                  <th scope="row">{row.label}</th>
+                  <th scope="row">
+                    {row.label}
+                    {/* The span and the rate belong to the row, not to a hover
+                        title: a reader comparing a 65-second window with a
+                        four-minute one should not have to divide. */}
+                    <small className="articleTableNote">{view.detail}</small>
+                  </th>
                   <td>{view.primary}</td>
                   <td>{view.secondary}</td>
                 </tr>

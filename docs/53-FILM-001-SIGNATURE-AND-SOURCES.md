@@ -68,7 +68,9 @@ byline: {
 **Индексация — без переменных.** `resolveIndexingRequest()` больше не требует
 `DMR_SITE_INDEXING_ENABLED`: настоящий хост (`DMR_SITE_URL` или
 `VERCEL_PROJECT_PRODUCTION_URL`) означает публичный сайт, а `VERCEL_ENV=preview`
-всегда оставляет `noindex`. Явный флаг по-прежнему перекрывает всё в обе стороны.
+всегда оставляет `noindex`. Превью — жёсткий пол: его не открывает даже явный
+`DMR_SITE_INDEXING_ENABLED=true`. На любом другом хосте флаг перекрывает решение в
+обе стороны.
 Origin берётся из `DMR_SITE_URL`, иначе из `VERCEL_PROJECT_PRODUCTION_URL` /
 `VERCEL_URL`, иначе localhost.
 
