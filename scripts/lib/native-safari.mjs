@@ -142,8 +142,12 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
           }));
           inputs.push({ selector, ...point, gesture: "single native touch after stable hit-test" });
           try {
+            // Absolute viewport coordinates from this driver landed on a
+            // different element (measured: a touch aimed at y=32 reached
+            // appShell). Give the driver the element itself as the W3C origin
+            // so it resolves its own centre; still one native touch.
             return await request(`${path}/actions`, { actions: [{ type: "pointer", id: "finger", parameters: { pointerType: "touch" }, actions: [
-              { type: "pointerMove", duration: 0, ...point }, { type: "pointerDown", button: 0 },
+              { type: "pointerMove", duration: 0, origin: element, x: 0, y: 0 }, { type: "pointerDown", button: 0 },
               { type: "pause", duration: 80 }, { type: "pointerUp", button: 0 },
             ] }] });
           } finally { await request(`${path}/actions`, undefined, "DELETE"); }
