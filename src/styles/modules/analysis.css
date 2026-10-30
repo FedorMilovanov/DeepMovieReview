@@ -215,7 +215,8 @@
 }
 
 .filmDecisionOptions > article[data-available="false"] {
-  opacity: 0.52;
+  background: var(--surface-2);
+  border-inline-start: 2px solid var(--stroke-strong);
 }
 
 .filmDecisionOptions strong {

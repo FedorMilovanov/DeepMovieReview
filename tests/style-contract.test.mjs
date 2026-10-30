@@ -517,3 +517,15 @@ test("reading layout wraps inset artwork and preserves accessible navigation", (
   assert.match(outline, /observer.disconnect/);
   assert.match(outline, /event.key === "Escape"/);
 });
+
+test("unavailable decision alternatives remain readable rather than opacity-disabled", () => {
+  const css = postcss.parse(readStylesheet("src/styles/modules/analysis.css"));
+  let found = false;
+  css.walkRules(rule => {
+    if (!rule.selector.includes('[data-available="false"]')) return;
+    found = true;
+    rule.walkDecls("opacity", decl => assert.equal(Number(decl.value), 1));
+    assert.ok(rule.nodes.some(node => node.prop === "background"));
+  });
+  assert.ok(found, "unavailable state still has a visual distinction alongside its explicit label");
+});
