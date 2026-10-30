@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ArticleTable } from "../src/components/film-article/article-table";
 import { FilmEvidenceMap } from "../src/components/film-modules/evidence-map";
+import { FilmSceneTable } from "../src/components/film-modules/scene-table";
 import { theFastAndTheFuriousDraftPackage } from "../src/data/films/the-fast-and-the-furious";
 import { createRequire } from "node:module";
 import test from "node:test";
@@ -43,6 +44,7 @@ import {
 } from "../src/lib/presentation-labels";
 import { validateFilmArticle } from "../src/lib/film-article-integrity";
 import { reviewBasis, tallyReviewBasis } from "../src/lib/evidence-review";
+import { evidenceBasisOutcomeLabels } from "../src/lib/presentation-labels";
 import {
   canIndexSite,
   resolveIndexingRequest,
@@ -195,10 +197,32 @@ test("a deployment indexes itself without anyone setting a variable", () => {
   assert.equal(resolveIndexingRequest({ DMR_SITE_INDEXING_ENABLED: "false", VERCEL_ENV: "production", DMR_SITE_URL: "https://a.example" }), false);
   assert.equal(resolveIndexingRequest({ DMR_SITE_INDEXING_ENABLED: "true" }), true);
 
+  // A preview deployment is a hard floor: the flag cannot open one.
+  assert.equal(
+    resolveIndexingRequest({
+      DMR_SITE_INDEXING_ENABLED: "true",
+      DMR_SITE_URL: "https://a.example",
+      VERCEL_ENV: "preview",
+    }),
+    false,
+    "no variable may open a preview deployment to crawlers",
+  );
+
   // Origin: explicit URL, then the platform's production host, then localhost.
-  assert.equal(resolveSiteOrigin("https://a.example/path", "b.vercel.app"), "https://a.example");
-  assert.equal(resolveSiteOrigin(undefined, "deep.vercel.app"), "https://deep.vercel.app");
-  assert.equal(resolveSiteOrigin(undefined, undefined), "http://localhost:3000");
+  // The third argument is the environment, injected so a test that passes
+  // `undefined` exercises the fallback instead of inheriting the CI job's variables.
+  const noEnv = {};
+  assert.equal(resolveSiteOrigin("https://a.example/path", "b.vercel.app", noEnv), "https://a.example");
+  assert.equal(resolveSiteOrigin(undefined, "deep.vercel.app", noEnv), "https://deep.vercel.app");
+  assert.equal(resolveSiteOrigin(undefined, undefined, noEnv), "http://localhost:3000");
+  assert.equal(
+    resolveSiteOrigin(undefined, undefined, { DMR_SITE_URL: "https://from-env.example/x" }),
+    "https://from-env.example",
+  );
+  assert.equal(
+    resolveSiteOrigin(undefined, undefined, { VERCEL_PROJECT_PRODUCTION_URL: "prod.vercel.app" }),
+    "https://prod.vercel.app",
+  );
 });
 
 test("site origin normalization keeps only a safe http(s) origin", () => {
@@ -5974,16 +5998,88 @@ test("Film 001 every evidence anchor on the film page resolves", () => {
       researchDraft: false,
       scenes: filmPackage.scenes ?? [],
       sources: sourcesModule?.kind === "sources-method" ? sourcesModule.sources : [],
+      spoilerLevel: "FULL",
     }),
   );
 
-  const hrefs = [...html.matchAll(/href="#evidence-([a-z0-9-]+)"/g)].map((match) => match[1]!);
-  const ids = new Set([...html.matchAll(/id="evidence-([a-z0-9-]+)"/g)].map((match) => match[1]!));
-  assert.ok(hrefs.length > 0, "the map must link to its own anchors");
-  assert.deepEqual([...new Set(hrefs.filter((id) => !ids.has(id)))], [], "no anchor may land on nothing");
-  for (const record of filmPackage.evidence ?? []) {
-    assert.ok(ids.has(record.id), `${record.id}: every record needs a target for its anchor`);
+  const idList = [...html.matchAll(/id="evidence-([a-z0-9-]+)"/g)].map((match) => match[1]!);
+  const ids = new Set(idList);
+  // The anchors come from the character cards and the claim cards, which link to
+  // `#evidence-<id>`. Rendering the module list here would pull the WebGL verdict
+  // component into a CommonJS test build, so the same guarantee is checked against
+  // the data the cards are built from: every id any module cites is a record.
+  const cited = new Set(
+    [...JSON.stringify(filmPackage.modules).matchAll(/"(truman-ev-[a-z0-9-]+)"/g)].map(
+      (match) => match[1]!,
+    ),
+  );
+  assert.ok(cited.size > 0, "modules must cite evidence");
+  assert.deepEqual(
+    [...cited].filter((id) => !ids.has(id)),
+    [],
+    "every cited evidence id must render an anchor target",
+  );
+
+  const noneHtml = renderToStaticMarkup(
+    createElement(FilmEvidenceMap, {
+      evidence: filmPackage.evidence ?? [],
+      modules: filmPackage.modules,
+      researchDraft: false,
+      scenes: filmPackage.scenes ?? [],
+      sources: sourcesModule?.kind === "sources-method" ? sourcesModule.sources : [],
+      spoilerLevel: "NONE",
+    }),
+  );
+  const noneIds = new Set(
+    [...noneHtml.matchAll(/id="evidence-([a-z0-9-]+)"/g)].map((match) => match[1]!),
+  );
+  const endingRecords = (filmPackage.evidence ?? []).filter(
+    (record) => record.spoilerLevel === "ENDING" || record.spoilerLevel === "FULL",
+  );
+  assert.ok(endingRecords.length > 0);
+  for (const record of endingRecords) {
+    assert.ok(!noneIds.has(record.id), `${record.id}: a level-NONE reader must not see this record`);
   }
+});
+
+test("a level-NONE reader is not told how the film ends", () => {
+  // The first section is marked NONE, but one of its paragraphs described the set the
+  // hero reaches only at the end, and a NONE evidence record spelled out the same
+  // thing in its observation. A level is a promise about the text, not a label.
+  const none = projectArticleSections(theTrumanShowArticle, "NONE");
+  const text = JSON.stringify(none);
+  for (const token of ["декораци", "нарисованн", "увидит только в", "Край неба", "EXIT"]) {
+    assert.ok(!text.includes(token), `NONE projection leaked: ${token}`);
+  }
+
+  for (const record of theTrumanShowCanonicalPackage.evidence ?? []) {
+    if (record.spoilerLevel !== "NONE") continue;
+    assert.ok(
+      !/декораци|нарисованн|шторм|дверь EXIT/i.test(record.observation ?? ""),
+      `${record.id}: a NONE record may not describe the ending`,
+    );
+  }
+});
+
+test("Film 001 spoilers=NONE renders no scene from the last act", () => {
+  const filmPackage = theTrumanShowCanonicalPackage;
+  const render = (spoilerLevel: "NONE" | "FULL") =>
+    renderToStaticMarkup(
+      createElement(FilmSceneTable, {
+        evidence: filmPackage.evidence ?? [],
+        researchDraft: false,
+        scenes: filmPackage.scenes ?? [],
+        spoilerLevel,
+      }),
+    );
+
+  // «Край неба и дверь» is the last scene of the film. It was in the table for every
+  // reader, because the table was handed every scene and filtered none.
+  const noneHtml = render("NONE");
+  const fullHtml = render("FULL");
+  assert.ok(fullHtml.includes("Край неба"), "the full level must show the ending scene");
+  assert.ok(!noneHtml.includes("Край неба"), "level NONE must not show the ending scene");
+  assert.match(noneHtml, /скрыто до выбранного уровня спойлеров/);
 });
 
 test("Homepage projection keeps the spoiler budget instead of filling the page", () => {
@@ -6150,7 +6246,9 @@ test("review basis never upgrades a record the ledger did not confirm", () => {
 
   const pending = reviewBasis({ status: "PENDING_LOCAL_REVIEW", frames: [frame(10), frame(40)] });
   assert.ok(pending);
-  assert.equal(pending.outcome, "refused");
+  // «Not checked yet» and «checked and did not hold» are different answers.
+  assert.equal(pending.outcome, "pending");
+  assert.match(evidenceBasisOutcomeLabels[pending.outcome], /не записана/);
   assert.deepEqual(pending.window, { from: 10, to: 40 });
 
   const transcript = reviewBasis({ status: "TRANSCRIPT_CONFIRMED", frames: [frame(3459.2), frame(3464.3)] });

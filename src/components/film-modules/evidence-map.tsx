@@ -7,6 +7,7 @@ import type {
 } from "@/lib/film-package";
 import { EvidenceBasisLine } from "@/components/evidence-basis";
 import { tallyReviewBasis } from "@/lib/evidence-review";
+import { canRevealSpoiler, type SpoilerLevel } from "@/lib/spoilers";
 import { pluralRu } from "@/lib/plural-ru";
 import {
   evidenceBasisMaterialLabels,
@@ -28,6 +29,8 @@ type FilmEvidenceMapProps = {
   scenes: FilmSceneRecord[];
   sources: SourcesMethodModule["sources"];
   researchDraft: boolean;
+  /** The reader's level. The register lists only records this level may see. */
+  spoilerLevel: SpoilerLevel;
 };
 
 function addSupport(entries: SupportEntry[], id: string, label: string, support: ClaimSupport | undefined) {
@@ -138,11 +141,7 @@ function EvidenceCard({
   });
 
   return (
-    <article
-      className="evidenceMapCard"
-      data-counter={counter || undefined}
-      id={`evidence-${record.id}`}
-    >
+    <article className="evidenceMapCard" data-counter={counter || undefined}>
       <div className="evidenceMapTopline">
         <span>{counter ? "Контрдоказательство" : researchDraft ? "Исследовательская опора" : "Доказательство"}</span>
         {scene ? (
@@ -181,6 +180,7 @@ export function FilmEvidenceMap({
   scenes,
   sources,
   researchDraft,
+  spoilerLevel,
 }: FilmEvidenceMapProps) {
   const entries = modules.flatMap(collectModuleSupports);
   if (entries.length === 0) return null;
@@ -199,6 +199,14 @@ export function FilmEvidenceMap({
       links += 1;
     }
   }
+  // The tally describes the whole ledger; the register below cannot. A record whose
+  // own label names the ending is a spoiler even when it is a fact about a check, so
+  // the list is projected by level and says how much of it the reader is not seeing.
+  const registerRecords = evidence.filter((record) =>
+    canRevealSpoiler(spoilerLevel, record.spoilerLevel),
+  );
+  const hiddenRecordCount = evidence.length - registerRecords.length;
+
   const tally = tallyReviewBasis(evidence);
   const tallyParts = [
     tally.seen > 0 ? `${tally.seen} ${pluralRu(tally.seen, "проверена", "проверены", "проверено")} по кадрам` : undefined,
@@ -225,8 +233,12 @@ export function FilmEvidenceMap({
         {tallyParts.join(", ")}. {entries.length} {pluralRu(entries.length, "тезис", "тезиса", "тезисов")}{" "}
         ссылаются на {links} {pluralRu(links, "опору", "опоры", "опор")} — это {linkedIds.size}{" "}
         {pluralRu(linkedIds.size, "запись", "записи", "записей")}, потому что одна проверка может
-        подтверждать несколько тезисов. Реестр ниже перечисляет все проверки, включая те, на
-        которые пока не сослался ни один тезис.
+        подтверждать несколько тезисов. Реестр ниже перечисляет проверки, включая те, на которые
+        пока не сослался ни один тезис
+        {hiddenRecordCount > 0
+          ? `; ${hiddenRecordCount} ${pluralRu(hiddenRecordCount, "запись", "записи", "записей")} скрыто до выбранного уровня спойлеров`
+          : ""}
+        .
       </p>
       <div className="evidenceMapList">
         {entries.map((entry, index) => (
@@ -267,11 +279,7 @@ export function FilmEvidenceMap({
         ))}
       </div>
       <EvidenceRegister
-        cardIds={new Set(entries.flatMap((entry) => [
-          ...entry.support.evidenceIds,
-          ...(entry.support.counterevidenceIds ?? []),
-        ]))}
-        evidence={evidence}
+        evidence={registerRecords}
         researchDraft={researchDraft}
         scenesById={scenesById}
       />
@@ -288,12 +296,9 @@ export function FilmEvidenceMap({
  * records nobody has cited yet, so «проверено» can be counted instead of believed.
  */
 function EvidenceRegister({
-  cardIds,
   evidence,
   scenesById,
 }: {
-  /** Records the map above already gave a card. Each anchor id must resolve once. */
-  cardIds: ReadonlySet<string>;
   evidence: EvidenceRecord[];
   scenesById: Map<string, FilmSceneRecord>;
   researchDraft: boolean;
@@ -328,23 +333,21 @@ function EvidenceRegister({
           <tbody>
             {ordered.map((record) => {
               const scene = record.sceneId ? scenesById.get(record.sceneId) : undefined;
-              const hasCard = cardIds.has(record.id);
               return (
                 <tr
                   key={record.id}
                   data-outcome={record.basis?.outcome ?? "missing"}
-                  // A record the map did not need still has to own its anchor: the
-                  // character cards link to «#evidence-<id>», and 39 of those links
-                  // used to land on nothing.
-                  id={hasCard ? undefined : `evidence-${record.id}`}
+                  // The register row is the one canonical target for a record: the
+                  // same record can appear as a card under six claims, and six cards
+                  // carrying one id is invalid HTML that lands the reader somewhere
+                  // arbitrary. Cards stay visual; the row owns «#evidence-<id>».
+                  id={`evidence-${record.id}`}
                 >
                   <td className="evidenceRegisterTime">
                     {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}
                   </td>
                   <td>{scene ? scene.shortLabel : "—"}</td>
-                  <th scope="row">
-                    {hasCard ? <a href={`#evidence-${record.id}`}>{record.label}</a> : record.label}
-                  </th>
+                  <th scope="row">{record.label}</th>
                   <td>{record.basis ? evidenceBasisMaterialLabels[record.basis.material] : "не записана"}</td>
                   <td>
                     {record.basis ? evidenceBasisOutcomeLabels[record.basis.outcome] : "нет записи в журнале"}

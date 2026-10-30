@@ -166,6 +166,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         evidence={filmPackage.evidence ?? []}
         researchDraft={researchDraft}
         scenes={filmPackage.scenes ?? []}
+        spoilerLevel={spoilerLevel}
       />
 
       <FilmEvidenceMap
@@ -174,6 +175,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         researchDraft={researchDraft}
         scenes={filmPackage.scenes ?? []}
         sources={sourceRecords}
+        spoilerLevel={spoilerLevel}
       />
 
       <FilmModuleList context={moduleContext} modules={visibleModules} />

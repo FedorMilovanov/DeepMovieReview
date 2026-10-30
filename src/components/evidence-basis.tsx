@@ -36,7 +36,7 @@ export function EvidenceBasisLine({ basis }: { basis?: EvidenceReviewBasis }) {
     >
       <span>Основа проверки</span>
       {evidenceBasisMaterialLabels[basis.material]} · {evidenceBasisOutcomeLabels[basis.outcome]}
-      {window ? ` · окно ${window}` : ""} · {basis.observations}{" "}
+      {window ? ` · наблюдения ${window}` : ""} · {basis.observations}{" "}
       {pluralRu(basis.observations, "наблюдение", "наблюдения", "наблюдений")}
       {basis.unrecorded?.length
         ? ` · не записано: ${basis.unrecorded

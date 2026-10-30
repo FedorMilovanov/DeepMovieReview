@@ -24,21 +24,25 @@ export function canIndexSite({
  * Whether this build should ask search engines in.
  *
  * The flag is a switch, not a requirement: a real deployment on a real host is
- * treated as public, and a Vercel preview deployment is not, because a preview URL
- * must never compete with the production one in an index. `DMR_SITE_INDEXING_ENABLED`
- * still wins in both directions when someone wants to override that.
+ * treated as public, because nobody should have to set a variable to be found.
+ *
+ * A preview deployment is a hard floor, not a default. Preview URLs must never
+ * compete with production in an index, and a stray `DMR_SITE_INDEXING_ENABLED=true`
+ * in a shared environment must not be able to open one — a rule that a variable can
+ * override is not a rule. Everywhere else the flag wins in both directions.
  */
 export function resolveIndexingRequest(
   env: Record<string, string | undefined> = process.env,
 ): boolean {
+  // A preview deployment never indexes, whatever the flag says.
+  if (env.VERCEL_ENV?.trim().toLowerCase() === "preview") return false;
+
   const explicit = env.DMR_SITE_INDEXING_ENABLED?.trim().toLowerCase();
   if (explicit === "true") return true;
   if (explicit === "false") return false;
 
-  // Zero-config default: a host is known, and it is not a preview deployment.
-  const onRealHost = Boolean(env.DMR_SITE_URL?.trim() || env.VERCEL_PROJECT_PRODUCTION_URL?.trim());
-  const previewDeployment = env.VERCEL_ENV?.trim().toLowerCase() === "preview";
-  return onRealHost && !previewDeployment;
+  // Zero-config default: a real host is known, so the site is public.
+  return Boolean(env.DMR_SITE_URL?.trim() || env.VERCEL_PROJECT_PRODUCTION_URL?.trim());
 }
 
 /**
@@ -50,11 +54,15 @@ export function resolveIndexingRequest(
  * route composes from one origin.
  */
 export function resolveSiteOrigin(
-  rawValue: string | undefined = process.env.DMR_SITE_URL,
-  deploymentHost: string | undefined =
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL,
+  rawValue?: string,
+  deploymentHost?: string,
+  // Injected rather than captured in a default parameter: a test that passes
+  // `undefined` must test the fallback, not inherit whatever the CI job exports.
+  env: Record<string, string | undefined> = process.env,
 ): string {
-  const candidate = rawValue?.trim() || (deploymentHost?.trim() ? `https://${deploymentHost.trim()}` : "http://localhost:3000");
+  const explicit = rawValue ?? env.DMR_SITE_URL;
+  const host = deploymentHost ?? env.VERCEL_PROJECT_PRODUCTION_URL ?? env.VERCEL_URL;
+  const candidate = explicit?.trim() || (host?.trim() ? `https://${host.trim()}` : "http://localhost:3000");
   let url: URL;
   try {
     url = new URL(candidate);

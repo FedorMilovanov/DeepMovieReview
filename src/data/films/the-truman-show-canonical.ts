@@ -141,7 +141,9 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
     summary: scene.summary,
     startTimestampSeconds: scene.startTimestampSeconds,
     endTimestampSeconds: scene.endTimestampSeconds,
-    verificationState: "VERIFIED" as const,
+    // The inventory decides. A scene it has not checked yet is DRAFT here, so a
+    // future PENDING shows as «черновая» instead of being promoted by this file.
+    verificationState: scene.verificationState === "VERIFIED" ? "VERIFIED" : "DRAFT",
     spoilerLevel:
       scene.endTimestampSeconds >= 5264.092
         ? ("ENDING" as const)

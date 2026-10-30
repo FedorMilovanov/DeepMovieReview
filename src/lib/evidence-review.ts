@@ -23,7 +23,7 @@ const OUTCOME: Record<LedgerEntryLike["status"], EvidenceReviewBasis["outcome"]>
   VISUAL_CONFIRMED: "seen",
   TRANSCRIPT_CONFIRMED: "heard",
   CONTRADICTED: "refused",
-  PENDING_LOCAL_REVIEW: "refused",
+  PENDING_LOCAL_REVIEW: "pending",
 };
 
 const TIMED = new Set<EvidenceReviewBasis["material"]>(["frames", "subtitle-track"]);
@@ -33,8 +33,9 @@ const TIMED = new Set<EvidenceReviewBasis["material"]>(["frames", "subtitle-trac
  *
  * Nothing here is editorial: the material follows the status the reviewer chose,
  * the window is the first and last observed second, and the count is the number of
- * observations. `PENDING_LOCAL_REVIEW` is reported as `refused` because a record
- * that was not checked in picture may not be described as seen.
+ * observations. `PENDING_LOCAL_REVIEW` is reported as `pending`, not as `refused`:
+ * «not checked yet» and «checked and did not hold» are different answers, and a
+ * reader who is told the second when the first is true is being misled.
  */
 export function reviewBasis(entry: LedgerEntryLike | undefined): EvidenceReviewBasis | undefined {
   if (!entry || entry.frames.length === 0) return undefined;
@@ -53,6 +54,8 @@ export function reviewBasis(entry: LedgerEntryLike | undefined): EvidenceReviewB
   if (TIMED.has(material) && times.length > 0) {
     basis.window = { from: times[0]!, to: times[times.length - 1]! };
   }
+  // `window` spans the first and last observation; it is not a stretch of film
+  // somebody watched continuously, and the UI labels it as the observations it is.
   // The ledger has never recorded who reviewed a record or when. Saying so is
   // cheaper than implying a signature the data does not carry.
   basis.unrecorded = ["reviewer", "date"];
