@@ -529,3 +529,16 @@ test("unavailable decision alternatives remain readable rather than opacity-disa
   });
   assert.ok(found, "unavailable state still has a visual distinction alongside its explicit label");
 });
+
+
+test("disclosure touch policy is scoped to controls, not article selection", () => {
+  const css = postcss.parse(readStylesheet("src/styles/primitives.css"));
+  let found = false;
+  css.walkRules(rule => {
+    if (rule.selector !== "button[aria-expanded]") return;
+    found = true;
+    assert.ok(rule.nodes.some(node => node.prop === "touch-action" && node.value === "manipulation"));
+    assert.ok(rule.nodes.some(node => node.prop === "-webkit-user-select" && node.value === "none"));
+  });
+  assert.ok(found);
+});

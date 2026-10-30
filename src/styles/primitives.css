@@ -43,6 +43,14 @@ body {
   font: inherit;
 }
 
+/* Repeated disclosure taps must toggle, not select the changing button label.
+   Scoped to disclosure buttons: prose selection and page pinch zoom remain. */
+button[aria-expanded] {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 p {
   line-height: var(--leading-body);
 }
