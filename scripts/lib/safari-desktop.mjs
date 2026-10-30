@@ -15,6 +15,7 @@ const nativeRun = async (file, args) => (await executeFile(file, args, { timeout
 const probes = Object.freeze({
   ready: "JSON.stringify({href:location.href,readyState:document.readyState,fonts:document.fonts.status})",
   geometry: "JSON.stringify({width:innerWidth,outer:outerWidth,dpr:devicePixelRatio,scroll:document.documentElement.scrollWidth})",
+  focus: "JSON.stringify((() => { const el = document.activeElement; return el ? {tag: el.tagName, text: (el.textContent || '').trim().slice(0, 80), href: el.getAttribute('href'), className: el.className} : null; })())",
 });
 export function safariProbe(name) {
   assert.ok(Object.hasOwn(probes, name), "Unknown native Safari read-only probe");
@@ -55,6 +56,8 @@ export async function safariDesktop({ run = nativeRun, ci = process.env.GITHUB_A
     return {
       version, control: "Safari Apple Events + native keyboard; OS window PNG",
       geometry: () => read("geometry"),
+      // Read-only native focus identity for VoiceOver diagnostics.
+      focus: () => read("focus"),
       async goto(url) {
         await osa('on run argv\ntell application "Safari" to set URL of current tab of window id (item 1 of argv as integer) to item 2 of argv\nend run', windowId, url);
         const deadline = Date.now() + 90000;

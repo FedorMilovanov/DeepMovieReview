@@ -609,7 +609,16 @@ try {
       "return {media,dataset:document.documentElement.dataset.reducedMotion,lensDurations:durations};" +
     "})())"
   ));
-  assertCheck("home reduced motion: media preference is active", homeReducedState.media && homeReducedState.dataset === "true", homeReducedState);
+  // The runtime applies the OS preference after hydration; read the settled
+  // attribute instead of the provider's initial false.
+  await waitForExpression("document.documentElement.dataset.reducedMotion === 'true'");
+  const homeReducedSettled = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const media=matchMedia('(prefers-reduced-motion: reduce)').matches;" +
+      "const lens=document.querySelector('.lensReading') || document.querySelector('[data-lens-reading]');" +
+      "const durations=lens?getComputedStyle(lens).transitionDuration.split(',').map((value)=>parseFloat(value)||0):[];" +
+      "return {media,dataset:document.documentElement.dataset.reducedMotion,lensDurations:durations};})())"
+  ));
+  assertCheck("home reduced motion: media preference is active", homeReducedSettled.media && homeReducedSettled.dataset === "true", homeReducedSettled);
   assertCheck("home reduced motion: lens reading transition is disabled", homeReducedState.lensDurations.length > 0 && homeReducedState.lensDurations.every((value) => value <= 0.00001), homeReducedState);
   await evaluate("document.querySelectorAll('[data-analysis-workbench] [role=tab]')[2]?.click()");
   await waitForExpression("Boolean(document.querySelector('[data-analysis-workbench] [data-knowledge-veil]'))");

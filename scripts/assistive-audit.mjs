@@ -140,9 +140,8 @@ try {
       // Diagnose native focus separately from speech: a silent name is not the
       // same defect as focus landing on another control. Never relax the speech
       // assertion to the generic web-area help phrase.
-      focusProbe = await safari.execute(`(() => { const el = document.activeElement;
-        return el ? { tag: el.tagName, text: (el.textContent || '').trim().slice(0, 80),
-          href: el.getAttribute('href'), className: el.className } : null; })()`);
+      try { focusProbe = await safari.focus(); }
+      catch (error) { focusProbe = { error: error.message }; }
       evidence.focusProbe = focusProbe;
       report.focusProbe = focusProbe;
       checkpoint("VoiceOver enter web area: native focus probed");
