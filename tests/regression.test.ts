@@ -4545,6 +4545,59 @@ test("Film 001 measured timing dataset is internally consistent", () => {
   assert.equal(formatMasterTimecode(5755.382), "95:55");
 });
 
+test("a measured window is described by what was measured, not by the chapter it sits in", () => {
+  const hold = trumanMasterHolds[0];
+  const reunion = theTrumanShowCanonicalPackage.evidence?.find(
+    (record) => record.id === "truman-ev-reunion",
+  );
+  assert.ok(hold && reunion?.timestampSeconds);
+  // The embrace the review cites is at 1:00:10; the longest hold ends at 57:27.
+  // Naming that hold «возвращение отца» was an attribution the data contradicts.
+  assert.ok(
+    reunion.timestampSeconds > hold.to,
+    "the reunion sits outside the longest hold; the article may not name the hold after it",
+  );
+  const holdView = describeTrumanMeasurement({ table: "hold", id: hold.id });
+  assert.equal(holdView?.title, "Самый длинный отрезок без обнаруженного перехода");
+
+  // The 46:29–47:34 window is the repeating-street beat inside the scene the
+  // inventory itself names for the flowers and the dented beetle — not a manhunt.
+  const panic = trumanMasterWindows.find((window) => window.id === "panic");
+  assert.ok(panic);
+  assert.equal(panic.startSceneId, "truman-sc-lady-flowers-dented-beetle");
+  const panicView = describeTrumanMeasurement({ table: "window", id: panic.id });
+  assert.ok(panicView);
+  assert.ok(!/идёт|переполох/i.test(panicView.title), "the label may not invent a manhunt");
+
+  // Figures the prose prints must be the figures the dataset holds.
+  const wall = trumanMasterWindows.find((window) => window.id === "wall");
+  assert.ok(wall);
+  const perMinute = (transitions: number, seconds: number) =>
+    (transitions / seconds) * 60;
+  const panicRate = perMinute(panic.detectedTransitions, panic.durationSeconds);
+  const wallRate = perMinute(wall.detectedTransitions, wall.durationSeconds);
+  assert.ok(panicRate / wallRate > 4 && panicRate / wallRate < 4.3, "the ratio is ~4.2");
+  // The rates are derived in the view, not typed into prose: prose may not carry a
+  // measured number, and a reader comparing a 65-second window with a 4-minute one
+  // should not have to divide.
+  const panicDetail = describeTrumanMeasurement({ table: "window", id: "panic" })?.detail ?? "";
+  const wallDetail = describeTrumanMeasurement({ table: "window", id: "wall" })?.detail ?? "";
+  assert.match(panicDetail, /28,6 перехода в минуту/);
+  assert.match(wallDetail, /6,8 перехода в минуту/);
+  const articleText = JSON.stringify(theTrumanShowArticle);
+  assert.ok(!/\d,\d перехода в минуту/.test(articleText), "rates are rendered, not typed");
+  // Four chosen windows cannot establish the film's maximum cutting rate.
+  assert.ok(!articleText.includes("максимальный темп"));
+  // Nor may a detection count be reported as a continuously moving camera.
+  assert.ok(!articleText.includes("одна камера, один план"));
+  assert.ok(!articleText.includes("монтаж не вмешивается"));
+
+  // What the script counted is subtitle cues, and the interface now says so.
+  assert.match(panicView.secondary, /строк/);
+  const silenceView = describeTrumanMeasurement({ table: "silence", id: "silence-01" });
+  assert.match(silenceView?.detail ?? "", /строк[аи]? субтитров/);
+});
+
 test("Film 001 measurement figures add up: end minus start equals the printed length", () => {
   const toSeconds = (timecode: string) => {
     const [minutes, seconds] = timecode.split(":").map(Number);

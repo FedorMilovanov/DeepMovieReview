@@ -243,8 +243,23 @@ const groupDigits = (value: number): string => String(value).replace(/\B(?=(\d{3
 const transitionsPhrase = (count: number): string =>
   `${groupDigits(count)} ${plural(count, "переход", "перехода", "переходов")}`;
 
+/**
+ * A subtitle cue is not a line of dialogue: one block can hold two speakers, and a
+ * block with no speech can still be a cue. The count is named for what was counted.
+ */
 const cuesPhrase = (count: number): string =>
-  `${groupDigits(count)} ${plural(count, "реплика", "реплики", "реплик")}`;
+  `${groupDigits(count)} ${plural(count, "строка субтитров", "строки субтитров", "строк субтитров")}`;
+
+/**
+ * Detected transitions per minute of the window.
+ *
+ * The window table prints a count and a length; a reader should not have to divide
+ * to compare two windows that are sixty-five seconds and four minutes long. The
+ * rate is derived from the same measurement, so the two can never disagree, and a
+ * fractional value takes the genitive singular («28,6 перехода»).
+ */
+const perMinute = (count: number, seconds: number): string =>
+  seconds > 0 ? ((count / seconds) * 60).toFixed(1).replace(".", ",") : "—";
 
 /** `MM:SS` without the leading zero: "2:04", "4:12". */
 const duration = (seconds: number): string => {
@@ -265,7 +280,10 @@ const span = (from: number, to: number): string =>
 
 const WINDOW_LABELS: Record<string, string> = {
   library: "Библиотека: герой пишет, рядом девушка в красном",
-  panic: "Город в переполохе: «он идёт!»",
+  // The window is 46:29–47:34, inside `truman-sc-lady-flowers-dented-beetle`: the
+  // street where the same passers-by and the same dented car come round again. It is
+  // not a manhunt, and the label may not say what the scene does not show.
+  panic: "Повторяющиеся прохожие и помятый жук на той же улице",
   "hes-gone": "Побег и поиски: пустая кровать, город, вода",
   wall: "Стена, лестница, поиск выхода",
 };
@@ -292,7 +310,10 @@ export function describeTrumanMeasurement(
       title: WINDOW_LABELS[window.id] ?? window.label,
       primary: transitionsPhrase(window.detectedTransitions),
       secondary: cuesPhrase(window.subtitleCueStarts),
-      detail: `${span(window.from, window.to)} · ${duration(window.durationSeconds)}`,
+      detail: `${span(window.from, window.to)} · ${duration(window.durationSeconds)} · ${perMinute(
+        window.detectedTransitions,
+        window.durationSeconds,
+      )} перехода в минуту`,
     };
   }
 
@@ -301,7 +322,7 @@ export function describeTrumanMeasurement(
     return {
       title:
         hold.id === "hold-01"
-          ? "Возвращение отца"
+          ? "Самый длинный отрезок без обнаруженного перехода"
           : hold.id === "hold-02"
             ? "Библиотека: герой и девушка в красном"
             : "Без обнаруженного перехода",
@@ -316,6 +337,6 @@ export function describeTrumanMeasurement(
     title: "У края нарисованного неба",
     primary: duration(silence.durationSeconds),
     secondary: transitionsPhrase(silence.detectedTransitions),
-    detail: `${span(silence.from, silence.to)} · ни одной реплики`,
+    detail: `${span(silence.from, silence.to)} · ни одной строки субтитров`,
   };
 }
