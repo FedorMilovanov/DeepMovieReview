@@ -204,11 +204,18 @@ jobs:
             done
           done
 
+          # Film 001 is published (docs/53 §2.1), so its preview page previews a public
+          # page: noindex here, and the canonical already points at the URL it becomes.
+          # Film 002 is still a research draft and must not advertise one.
           if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/truman-draft.html; then
-            echo "Film 001 draft route must remain noindex/nofollow in preview."
+            echo "Published film route must remain noindex/nofollow in a preview build."
             exit 1
           fi
-          if grep -Eiq 'rel="canonical"|href="https://deepwaters\.example\.test/films/the-truman-show"' /tmp/truman-draft.html; then
+          if ! grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/films/the-truman-show"' /tmp/truman-draft.html; then
+            echo "Published film route must advertise its canonical public URL."
+            exit 1
+          fi
+          if grep -Eiq 'rel="canonical"' /tmp/fast-draft.html; then
             echo "Research draft must not advertise a canonical public film URL."
             exit 1
           fi
@@ -365,20 +372,42 @@ jobs:
           fi
           echo "Verified public homepage state: $public_state"
 
+          # DMR_SITE_INDEXING_ENABLED=true and preview mode off: a public, published
+          # site that invites crawlers. `-Fx` matters — "Disallow: /labs/" contains
+          # "Disallow: /", so a substring check would pass and fail for the wrong reason.
           curl --fail --silent --show-error http://127.0.0.1:3211/robots.txt > /tmp/public-robots.txt
-          grep -Fq 'Disallow: /' /tmp/public-robots.txt
+          if ! grep -Fxq 'Allow: /' /tmp/public-robots.txt; then
+            echo "Indexing was requested and preview mode is off; robots.txt must allow the site."
+            exit 1
+          fi
+          if grep -Fxq 'Disallow: /' /tmp/public-robots.txt; then
+            echo "robots.txt blanket-disallows a site that was asked to be indexed."
+            exit 1
+          fi
+          grep -Fq 'Disallow: /labs/' /tmp/public-robots.txt
+          grep -Fq 'Sitemap: https://deepwaters.example.test/sitemap.xml' /tmp/public-robots.txt
 
           curl --fail --silent --show-error http://127.0.0.1:3211/sitemap.xml > /tmp/public-sitemap.xml
-          for forbidden_path in '/labs/' '/films/the-truman-show' '/films/the-fast-and-the-furious' '/films/pilot-film'; do
+          for public_path in '/films/the-truman-show</loc>' '/films/the-truman-show/article</loc>' '/films/the-truman-show/making</loc>'; do
+            if ! grep -Fq "$public_path" /tmp/public-sitemap.xml; then
+              echo "Published sitemap is missing public route: $public_path"
+              exit 1
+            fi
+          done
+          for forbidden_path in '/labs/' '/films/the-fast-and-the-furious' '/films/pilot-film'; do
             if grep -Fq "$forbidden_path" /tmp/public-sitemap.xml; then
-              echo "Public prelaunch sitemap leaked non-public route: $forbidden_path"
+              echo "Public sitemap leaked non-public route: $forbidden_path"
               exit 1
             fi
           done
 
           grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/?"|href="https://deepwaters\.example\.test/?"[^>]*rel="canonical"' /tmp/public-home.html
 
-          for preview_marker in 'Структурный стенд' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'Шоу Трумана' 'Форсаж' 'Труман Бёрбанк' 'Доминик Торетто' 'исследовательский черновик'; do
+          if ! grep -Fq 'Шоу Трумана' /tmp/public-home.html; then
+            echo "Public homepage does not feature the published Film 001."
+            exit 1
+          fi
+          for preview_marker in 'Структурный стенд' 'Pilot Film' 'Character A' 'Character B' 'Fixture statement' 'Форсаж' 'Доминик Торетто' 'исследовательский черновик'; do
             if grep -Fq "$preview_marker" /tmp/public-home.html; then
               echo "Public homepage leaked preview marker: $preview_marker"
               exit 1
@@ -391,8 +420,8 @@ jobs:
             echo "Public film index exposed fixture content."
             exit 1
           fi
-          if grep -Fq 'Шоу Трумана' /tmp/public-films.html; then
-            echo "Public film index exposed the Film 001 draft."
+          if ! grep -Fq 'Шоу Трумана' /tmp/public-films.html; then
+            echo "Public film index does not list the published Film 001."
             exit 1
           fi
           if grep -Fq 'Форсаж' /tmp/public-films.html; then
@@ -400,23 +429,24 @@ jobs:
             exit 1
           fi
 
+          # Film 001 is published: the route is a real page on the public site, not a
+          # soft-404. Its own robots tag must agree with the layout — these routes once
+          # returned `robots: undefined` for a published film, which dropped the
+          # layout's noindex and left robots.txt and the page disagreeing.
           truman_status=$(curl --silent --output /tmp/public-truman-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/the-truman-show)
-          if [[ "$truman_status" != "200" && "$truman_status" != "404" ]]; then
-            echo "Protected Film 001 draft route returned unexpected HTTP $truman_status."
+          if [[ "$truman_status" != "200" ]]; then
+            echo "Published Film 001 route returned HTTP $truman_status."
             exit 1
           fi
-          if [[ "$truman_status" == "200" ]] && ! grep -Eiq 'name="robots"[^>]*content="noindex|content="noindex[^>]*name="robots"' /tmp/public-truman-route.html; then
-            echo "Streamed Film 001 soft-404 must include robots noindex."
+          if grep -Eiq 'name="robots"[^>]*content="noindex|content="noindex[^>]*name="robots"' /tmp/public-truman-route.html; then
+            echo "Published Film 001 route is noindex on a site that allows indexing."
             exit 1
           fi
-          if ! grep -Fq '404 / Не найдено' /tmp/public-truman-route.html; then
-            echo "Protected Film 001 draft route did not resolve to the not-found boundary."
+          if ! grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/films/the-truman-show"' /tmp/public-truman-route.html; then
+            echo "Published Film 001 route is missing its canonical URL."
             exit 1
           fi
-          if grep -Fq 'Труман Бёрбанк' /tmp/public-truman-route.html; then
-            echo "Protected Film 001 draft route leaked real-film draft content."
-            exit 1
-          fi
+          grep -Fq 'Труман Бёрбанк' /tmp/public-truman-route.html
 
           fast_status=$(curl --silent --output /tmp/public-fast-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/the-fast-and-the-furious)
           if [[ "$fast_status" != "200" && "$fast_status" != "404" ]]; then
