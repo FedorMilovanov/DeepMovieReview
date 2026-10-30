@@ -7,6 +7,7 @@ import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { getArticleMeasurementBundle } from "@/data/article-measurements";
 import { isPreviewContentEnabled } from "@/data/site-config";
 import { getFilmShareAsset } from "@/data/film-share-assets";
+import { projectFilmModule } from "@/lib/film-module-projection";
 import { projectArticleSections } from "@/lib/film-article";
 import { articlePageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
 import { parseSpoilerLevel } from "@/lib/spoilers";
@@ -68,6 +69,8 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
 
   const spoilerLevel = parseSpoilerLevel(query.spoilers);
   const projection = projectArticleSections(filmPackage.article, spoilerLevel);
+  const finalModule = filmPackage.modules.find(module => module.kind === "final-synthesis");
+  const finalProjection = finalModule ? projectFilmModule(finalModule, spoilerLevel) : null;
   const pathname = `/films/${filmPackage.film.slug}/article`;
 
   // Structured data for the trail the page already shows. It is derived from the
@@ -110,6 +113,7 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
         filmSlug={filmPackage.film.slug}
         filmTitle={filmPackage.film.title}
         projection={projection}
+        synthesis={finalProjection?.kind === "final-synthesis" ? finalProjection : undefined}
         spoilerLevel={spoilerLevel}
         describeMeasurement={measurements.describe}
         formatTimecode={measurements.formatTimecode}

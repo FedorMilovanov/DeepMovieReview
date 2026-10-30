@@ -124,6 +124,12 @@ for (const name of selected) {
             const sectionCount = await page.locator(".articleSection").count();
             const hiddenId = await page.locator(".articleSection").last().getAttribute("id");
             const outline = page.getByRole("button", { name: "Оглавление статьи" });
+            if (width === 1440) {
+              await outline.hover();
+              await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
+              await page.mouse.move(1, 100);
+              await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'false');
+            }
             await outline.focus();
             await page.keyboard.press("Enter");
             await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
@@ -133,6 +139,12 @@ for (const name of selected) {
             assert.equal(await outline.getAttribute("aria-expanded"), "false");
             assert.ok(await outline.evaluate(el => el === document.activeElement), "outline focus restored");
             await page.keyboard.press("Enter");
+            await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
+            assert.ok(await page.locator('.readingOutlinePanel').evaluate(el => {
+              const rect = el.getBoundingClientRect();
+              return rect.left >= 0 && rect.right <= innerWidth + 1 && rect.top >= 0 && rect.bottom <= innerHeight + 1;
+            }), "open outline fits the actual viewport");
+            await scan("outline-open", ".readingOutline");
             const link = page.locator(".articleOutline a").first();
             await link.focus();
             await page.keyboard.press("Enter");

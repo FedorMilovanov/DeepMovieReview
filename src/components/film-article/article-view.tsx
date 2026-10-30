@@ -1,7 +1,7 @@
 import { ReadingOutline } from "./reading-outline";
 import { ArticleTable } from "./article-table";
 import Link from "next/link";
-import type { ArticleBlock, ArticleMeasurementRef, FilmArticle } from "@/lib/film-package";
+import type { ArticleBlock, ArticleMeasurementRef, FilmArticle, FinalSynthesisModule } from "@/lib/film-package";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { illustrationView } from "@/data/film-illustrations";
 import type { ArticleMeasurementView, ArticleProjection } from "@/lib/film-article";
@@ -19,6 +19,7 @@ type ArticleViewProps = {
    */
   filmTitle: string;
   projection: ArticleProjection;
+  synthesis?: FinalSynthesisModule;
   spoilerLevel: SpoilerLevel;
   /** Renders a measurement from the committed dataset, never from prose. */
   describeMeasurement: (ref: ArticleMeasurementRef) => ArticleMeasurementView | undefined;
@@ -128,6 +129,16 @@ function ArticleBlockView({
             <li key={item.id}>
               <span className="articleTimecode">{formatTimecode(item.timestampSeconds)}</span>
               <p>{item.label}</p>
+              {item.still ? (
+                <figure className="articleSceneStill">
+                  <img src={item.still.src} width={item.still.width} height={item.still.height}
+                    alt={item.still.alt} loading="lazy" decoding="async" />
+                  <figcaption>
+                    <span>Кадр · {formatTimecode(item.still.capturedAtSeconds)}</span>
+                    <small>{item.still.credit}</small>
+                  </figcaption>
+                </figure>
+              ) : null}
             </li>
           ))}
         </ol>
@@ -187,6 +198,7 @@ export function ArticleView({
   filmSlug,
   filmTitle,
   projection,
+  synthesis,
   spoilerLevel,
   describeMeasurement,
   formatTimecode,
@@ -195,6 +207,10 @@ export function ArticleView({
   const { visibleSections, hiddenSections, nextHiddenLevel } = projection;
   const readingMinutes = articleReadingMinutes(article);
   const complete = hiddenSections === 0;
+  const readingSections = [
+    ...visibleSections.map(({ id, number, heading }) => ({ id, number, heading })),
+    ...(complete && synthesis ? [{ id: "article-verdict", number: article.sections.length + 1, heading: synthesis.heading }] : []),
+  ];
 
   return (
     <article className="articleShell">
@@ -225,10 +241,10 @@ export function ArticleView({
         </div>
       </header>
 
-      <ReadingOutline sections={visibleSections.map(({ id, number, heading }) => ({ id, number, heading }))} />
+      <ReadingOutline sections={readingSections} />
       <noscript>
         <nav className="sectionShell articleOutline" aria-label="Разделы статьи без JavaScript">
-          {visibleSections.map(({ id, number, heading }) => (
+          {readingSections.map(({ id, number, heading }) => (
             <a key={id} href={`#${id}`}><span>{number}</span><strong>{heading}</strong></a>
           ))}
         </nav>
@@ -288,6 +304,22 @@ export function ArticleView({
           </div>
         </section>
       ))}
+
+      {complete && synthesis ? (
+        <section id="article-verdict" className="sectionShell sectionRule articleSection articleVerdict" aria-labelledby="article-verdict-title">
+          <div className="articleSectionHead">
+            <div className="sectionIndex">Редакционная оценка</div>
+            <h2 id="article-verdict-title" tabIndex={-1}>{synthesis.heading}</h2>
+            <p className="sectionIntro">Качество кино и тяжесть показанного зла — разные оси, не один усреднённый балл.</p>
+          </div>
+          <dl className="articleVerdictGrid">
+            {synthesis.facets.map(facet => (
+              <div key={facet.key}><dt>{facet.label}</dt><dd>{facet.value}</dd></div>
+            ))}
+          </dl>
+          <p className="articleParagraph">{synthesis.verdict}</p>
+        </section>
+      ) : null}
 
       {article.closing && complete ? (
         <footer className="sectionShell sectionRule articleClosing">

@@ -1,3 +1,4 @@
+import { trumanArticleStills } from "./the-truman-show-stills";
 import type { FilmArticle } from "@/lib/film-package";
 
 /**
@@ -97,6 +98,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 210,
               label: "С неба на тротуар падает осветительный прибор с серийной маркировкой",
               evidenceId: "truman-ev-light",
+              still: trumanArticleStills.light,
             },
           ],
         },
@@ -152,6 +154,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 1798.265,
               label: "Радио на чужой частоте диктует маршрут героя и командует статистами",
               evidenceId: "truman-ev-radio",
+              still: trumanArticleStills.radio,
             },
             {
               id: "truman-article-anchor-elevator",
@@ -389,6 +392,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 3250,
               label: "Кухонная тёрка из супермаркета поднята на мужа",
               evidenceId: "truman-ev-knife",
+              still: trumanArticleStills.kitchen,
             },
             {
               id: "truman-article-bond-knife-call",
@@ -706,6 +710,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 5691.316,
               label: "Утренняя формула в последний раз, поклон и шаг в проём EXIT",
               evidenceId: "truman-ev-exit",
+              still: trumanArticleStills.exit,
             },
           ],
         },

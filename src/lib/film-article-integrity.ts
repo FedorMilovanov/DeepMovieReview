@@ -303,7 +303,7 @@ function checkBlock(
       }
       if (asset.sourceKind !== "generated") {
         errors.push(
-          `${path}: "${block.assetId}" is not an original illustration; the site does not publish stills.`,
+          `${path}: "${block.assetId}" is not an original illustration; stills require the scene-quotation path.`,
         );
       }
       if (isBlank(asset.alt)) errors.push(`${path}: "${block.assetId}" has no alternative text.`);
@@ -333,6 +333,26 @@ function checkBlock(
           errors.push(`${itemPath}: evidence "${item.evidenceId}" has no verified scene.`);
         } else if (scene.verificationState !== "VERIFIED") {
           errors.push(`${itemPath}: evidence "${item.evidenceId}" belongs to unverified scene "${scene.id}".`);
+        }
+        if (item.still) {
+          const frame = item.still;
+          if (context.edition?.state !== "LOCKED" || frame.sourceId !== context.edition.sourceId ||
+              String(frame.masterDigest).toLowerCase() !== context.edition.masterDigest?.toLowerCase()) {
+            errors.push(`${itemPath}: still must belong to the locked master.`);
+          }
+          if (!/^\/film-stills\/[a-z0-9-]+\.jpg$/.test(frame.src) || !/^[a-f0-9]{64}$/.test(frame.imageSha256)) {
+            errors.push(`${itemPath}: still needs a local JPEG and SHA-256.`);
+          }
+          if (!Number.isFinite(frame.capturedAtSeconds) || !scene || scene.endTimestampSeconds === undefined ||
+              frame.capturedAtSeconds < scene.startTimestampSeconds || frame.capturedAtSeconds > scene.endTimestampSeconds ||
+              Math.abs(frame.capturedAtSeconds - item.timestampSeconds) > 15) {
+            errors.push(`${itemPath}: still must show the cited scene near its anchor; keep its own exact time.`);
+          }
+          if (!Number.isInteger(frame.width) || !Number.isInteger(frame.height) || frame.width < 1 ||
+              frame.height < 1 || frame.width > 1280 || frame.height > 720 ||
+              isBlank(frame.alt) || isBlank(frame.credit) || frame.use !== "critical-review") {
+            errors.push(`${itemPath}: still needs bounded dimensions, alt, credit and critical-review use.`);
+          }
         }
         if (context.realFilm && !canRevealSpoiler(sectionLevel, evidence.spoilerLevel)) {
           errors.push(

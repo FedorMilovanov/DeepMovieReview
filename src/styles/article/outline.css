@@ -108,7 +108,14 @@
   .readingOutline { top: auto; bottom: var(--space-4); transform: none; }
   .readingOutlineWord { writing-mode: horizontal-tb; }
   .readingOutlineRail { display: none; }
-  .readingOutlinePanel { top: auto; bottom: 0; transform: none; max-height: 65dvh; }
+  .readingOutlinePanel {
+    top: auto;
+    bottom: calc(100% + 8px);
+    inset-inline-end: 12px;
+    width: min(380px, calc(100vw - 24px));
+    transform: none;
+    max-height: 65dvh;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

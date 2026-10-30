@@ -5445,7 +5445,7 @@ test("An in-article illustration must be a generated drawing, captioned as not a
 
   const cases: Array<[Record<string, unknown>, string]> = [
     [{ assetId: "illu-unknown" }, 'unknown illustration "illu-unknown"'],
-    [{ assetId: "illu-still" }, "the site does not publish stills"],
+    [{ assetId: "illu-still" }, "stills require the scene-quotation path"],
     [{ assetId: "illu-card" }, 'has role "social"'],
     [{ assetId: "illu-noalt" }, "has no alternative text"],
     [{ assetId: "illu-ok", caption: "" }, "an illustration needs a caption"],
@@ -5723,4 +5723,37 @@ test("browser failures retain measured details in escaped workflow annotations",
     "::error title=Browser audit::100%25%0D%0A::error::injected");
   assert.ok(!workflowError(message).includes("\n"));
   assert.ok(workflowError(message).includes('"focused":false'));
+});
+
+test("scene quotations are exact-master stills, not generated artwork or substitute evidence", () => {
+  const article = structuredClone(theTrumanShowArticle);
+  const items = article.sections.flatMap(section => section.blocks.flatMap(block =>
+    block.kind === "timeline" ? block.items.filter(item => item.still) : []));
+  assert.equal(items.length, 4, "a small editorial selection, not a film gallery");
+  assert.deepEqual(validateFilmArticle(article, trumanArticleContext()), []);
+  const { createHash } = createRequire(`${process.cwd()}/package.json`)("node:crypto");
+  for (const item of items) {
+    const still = item.still!;
+    assert.equal(createHash("sha256").update(readFileSync(`public${still.src}`)).digest("hex"), still.imageSha256);
+    assert.ok(Math.abs(still.capturedAtSeconds - item.timestampSeconds) <= 15);
+    assert.equal(still.use, "critical-review");
+  }
+  for (const [override, expected] of [
+    [{ masterDigest: "sha256:" + "0".repeat(64) }, /locked master/],
+    [{ sourceId: "other-edition" }, /locked master/],
+    [{ capturedAtSeconds: -1 }, /cited scene/],
+    [{ capturedAtSeconds: items[0].timestampSeconds + 120 }, /cited scene/],
+    [{ src: "/film-stills/../private.jpg" }, /local JPEG/],
+    [{ imageSha256: "invalid" }, /SHA-256/],
+    [{ width: 1920 }, /bounded dimensions/],
+    [{ credit: "" }, /credit/],
+    [{ alt: "" }, /alt/],
+    [{ use: "decoration" }, /critical-review/],
+  ] as const) {
+    const copy = structuredClone(article);
+    const first = copy.sections.flatMap(section => section.blocks.flatMap(block =>
+      block.kind === "timeline" ? block.items.filter(item => item.still) : []))[0];
+    Object.assign(first.still!, override);
+    assert.match(validateFilmArticle(copy, trumanArticleContext()).join("\n"), expected);
+  }
 });

@@ -482,12 +482,27 @@ export type ArticleMeasurementRef = {
   id: string;
 };
 
+/** A small editorial quotation from the measured master, never generated artwork. */
+export type ArticleSceneStill = {
+  src: string;
+  width: number;
+  height: number;
+  alt: string;
+  capturedAtSeconds: number;
+  sourceId: string;
+  masterDigest: string;
+  imageSha256: string;
+  credit: string;
+  use: "critical-review";
+};
+
 export type ArticleTimelineItem = {
   id: string;
   /** Must equal the cited evidence record's timestampSeconds. */
   timestampSeconds: number;
   label: string;
   evidenceId: string;
+  still?: ArticleSceneStill;
 };
 
 export type ArticleCorrectionRow = {
