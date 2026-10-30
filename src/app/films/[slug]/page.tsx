@@ -15,6 +15,7 @@ import { getProductionDossier } from "@/data/films/production-dossiers";
 import { pluralRu } from "@/lib/plural-ru";
 import { formatTimecode } from "@/lib/timecode";
 import { filmPageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
+import { siteIndexingEnabled } from "@/lib/site-indexing";
 import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
 type FilmPageProps = {
@@ -53,7 +54,12 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
     openGraph: page.openGraph,
     twitter: page.twitter,
     alternates: film.status === "published" ? { canonical: `/films/${film.slug}` } : undefined,
-    robots: film.status === "published" ? undefined : { index: false, follow: false },
+    // A published page is indexable only when the build itself is: on a preview
+    // deployment the layout's noindex must not be dropped by this route.
+    robots:
+      film.status === "published" && siteIndexingEnabled()
+        ? undefined
+        : { index: false, follow: false },
   };
 }
 

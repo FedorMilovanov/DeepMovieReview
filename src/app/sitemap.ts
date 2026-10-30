@@ -1,17 +1,11 @@
 import type { MetadataRoute } from "next";
-import { filmPackages, requireFilmPackageBySlug } from "@/data/film-registry";
-import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
+import { filmPackages } from "@/data/film-registry";
 import { getProductionDossier } from "@/data/films/production-dossiers";
-import { canIndexSite, resolveSiteOrigin } from "@/lib/site-publication-policy";
+import { resolveSiteOrigin } from "@/lib/site-publication-policy";
+import { siteIndexingEnabled } from "@/lib/site-indexing";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const homepageFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
-  const previewContentEnabled = isPreviewContentEnabled();
-  const indexingEnabled = canIndexSite({
-    siteIndexingRequested: process.env.DMR_SITE_INDEXING_ENABLED === "true",
-    previewContentEnabled,
-    homepageStatus: homepageFilmPackage.film.status,
-  });
+  const indexingEnabled = siteIndexingEnabled();
 
   if (!indexingEnabled) return [];
 

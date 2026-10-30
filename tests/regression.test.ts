@@ -11,9 +11,11 @@ const { readStylesheet } = createRequire(`${process.cwd()}/package.json`)(
   "./scripts/lib/style-sources.mjs",
 ) as { readStylesheet: (path: string) => string };
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
 import { publishedFilmStillsEnabled } from "../src/data/site-config";
+import { trumanArticleStills } from "../src/data/films/the-truman-show-stills";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
 import {
@@ -41,7 +43,11 @@ import {
 } from "../src/lib/presentation-labels";
 import { validateFilmArticle } from "../src/lib/film-article-integrity";
 import { reviewBasis, tallyReviewBasis } from "../src/lib/evidence-review";
-import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-policy";
+import {
+  canIndexSite,
+  resolveIndexingRequest,
+  resolveSiteOrigin,
+} from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
 import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
@@ -137,6 +143,62 @@ test("site indexing is allowed only for a published non-preview public build", (
       }
     }
   }
+});
+
+test("the frozen research draft is not a second source of truth", () => {
+  // Two packages for one film is how a site comes to have two answers. The canonical
+  // package is served; the research draft is an archive, and the rule that keeps it
+  // an archive is that nothing under src/ imports it.
+  // grep exits 1 when nothing matches, which is the passing result here.
+  const hits = spawnSync("grep", ["-rl", 'from "@/data/films/the-truman-show"', "src"], {
+    encoding: "utf8",
+  }).stdout.trim();
+  assert.equal(hits, "", `the frozen draft must not be imported: ${hits}`);
+  const draft = readFileSync("src/data/films/the-truman-show.ts", "utf8");
+  assert.match(draft, /ЗАМОРОЖЕННЫЙ ИССЛЕДОВАТЕЛЬСКИЙ ЧЕРНОВИК/);
+  assert.match(draft, /the-truman-show-canonical\.ts/);
+});
+
+test("a page's own robots tag never contradicts robots.txt", () => {
+  // The film routes wrote `robots: undefined` for any published film, which drops the
+  // layout's noindex at the page level while robots.txt still says Disallow: /. On a
+  // preview deployment that made a published page indexable by its own tag.
+  const filmRoutes = [
+    readFileSync("src/app/films/[slug]/page.tsx", "utf8"),
+    readFileSync("src/app/films/[slug]/article/page.tsx", "utf8"),
+  ];
+  for (const source of filmRoutes) {
+    assert.match(source, /film\.status === "published" && siteIndexingEnabled\(\)/);
+  }
+  // And the four consumers of the switch read it from one place, not four.
+  for (const route of ["src/app/robots.ts", "src/app/sitemap.ts", "src/app/layout.tsx"]) {
+    const source = readFileSync(route, "utf8");
+    assert.match(source, /siteIndexingEnabled\(\)/, route);
+    assert.doesNotMatch(source, /resolveIndexingRequest\(/, `${route} must not re-derive the switch`);
+  }
+});
+
+test("a deployment indexes itself without anyone setting a variable", () => {
+  // Zero-config: a real host means a public site; a Vercel preview deployment never
+  // competes with the production host in an index; and an explicit flag still wins.
+  assert.equal(resolveIndexingRequest({}), false, "no host and no flag stays closed");
+  assert.equal(resolveIndexingRequest({ VERCEL_PROJECT_PRODUCTION_URL: "deep.vercel.app" }), true);
+  assert.equal(
+    resolveIndexingRequest({ VERCEL_PROJECT_PRODUCTION_URL: "deep.vercel.app", VERCEL_ENV: "preview" }),
+    false,
+    "a preview deployment is not the site",
+  );
+  assert.equal(
+    resolveIndexingRequest({ VERCEL_PROJECT_PRODUCTION_URL: "deep.vercel.app", VERCEL_ENV: "production" }),
+    true,
+  );
+  assert.equal(resolveIndexingRequest({ DMR_SITE_INDEXING_ENABLED: "false", VERCEL_ENV: "production", DMR_SITE_URL: "https://a.example" }), false);
+  assert.equal(resolveIndexingRequest({ DMR_SITE_INDEXING_ENABLED: "true" }), true);
+
+  // Origin: explicit URL, then the platform's production host, then localhost.
+  assert.equal(resolveSiteOrigin("https://a.example/path", "b.vercel.app"), "https://a.example");
+  assert.equal(resolveSiteOrigin(undefined, "deep.vercel.app"), "https://deep.vercel.app");
+  assert.equal(resolveSiteOrigin(undefined, undefined), "http://localhost:3000");
 });
 
 test("site origin normalization keeps only a safe http(s) origin", () => {
@@ -5887,12 +5949,21 @@ test("Homepage projection keeps the spoiler budget instead of filling the page",
   }
 });
 
-test("Film 001 is published, and the frames stay behind the rights switch", () => {
-  // Publication and rights are two decisions. The edition is published, so the pages
-  // stand without a preview flag; the frames of the film are not cleared, so the
-  // article keeps the timecodes and loses the pictures until the switch flips.
+test("Film 001 is published, and the stills carry their provenance", () => {
+  // Publication and frames are two decisions, kept in two places: the edition is
+  // published, and the four stills are quotations with a second, a master digest and
+  // a per-file SHA-256. A page that cannot serve them drops the picture and keeps
+  // the anchor, which the second half of this test holds.
   assert.equal(theTrumanShowCanonicalPackage.film.status, "published");
-  assert.equal(publishedFilmStillsEnabled, false);
+  assert.equal(publishedFilmStillsEnabled, true);
+
+  for (const still of Object.values(trumanArticleStills)) {
+    assert.match(still.credit, /права у правообладателей/, "a still must name whose rights it is");
+    assert.equal(still.use, "critical-review");
+    assert.ok(still.sampleTimeSeconds > 0);
+    assert.match(still.imageSha256, /^[a-f0-9]{64}$/);
+    assert.match(still.alt, /\S/);
+  }
 
   const withFrames = projectArticleSections(theTrumanShowCanonicalPackage.article!, "FULL", { stills: true });
   const withoutFrames = projectArticleSections(theTrumanShowCanonicalPackage.article!, "FULL", { stills: false });

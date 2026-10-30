@@ -10,6 +10,7 @@ import { getFilmShareAsset } from "@/data/film-share-assets";
 import { projectFilmModule } from "@/lib/film-module-projection";
 import { projectArticleSections } from "@/lib/film-article";
 import { articlePageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
+import { siteIndexingEnabled } from "@/lib/site-indexing";
 import { parseSpoilerLevel } from "@/lib/spoilers";
 
 /**
@@ -57,7 +58,12 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     openGraph: page.openGraph,
     twitter: page.twitter,
     alternates: film.status === "published" ? { canonical: `/films/${film.slug}/article` } : undefined,
-    robots: film.status === "published" ? undefined : { index: false, follow: false },
+    // A published page is indexable only when the build itself is: on a preview
+    // deployment the layout's noindex must not be dropped by this route.
+    robots:
+      film.status === "published" && siteIndexingEnabled()
+        ? undefined
+        : { index: false, follow: false },
   };
 }
 
