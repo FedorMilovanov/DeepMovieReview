@@ -152,11 +152,12 @@ try {
     if (route.includes("/article?")) {
       const count = await safari.execute("return document.querySelectorAll('.articleSection').length");
       assert.ok(count > 0, "Actual native article sections must exist before the spoiler input");
-      // Exercise the control first, at the document's natural top, where this
-      // driver's touch coordinates are proven by the menu taps above. After a
-      // scroll, the driver delivered a touch at the requested point to a
-      // different element, so a scrolled tap would measure the driver rather
-      // than the control.
+      // Exercise the control before anything else on the page. It sits at the
+      // very edge of the installed simulator's 390x844 window — behind Safari's
+      // own bottom toolbar — and a tap there reached no DOM event at all
+      // (measured on 2cecbb7 and on two earlier heads). Center it in the actual
+      // viewport first, so the single native tap lands inside the web content,
+      // and record where it was aimed.
       await safari.execute(`window.__spoilerProbe = { touched: [], clicked: [], url: location.href };
         for (const type of ["touchstart", "touchend", "click"]) document.addEventListener(type, e =>
           __spoilerProbe[type === "click" ? "clicked" : "touched"].push({ type, target: (e.target.className || e.target.tagName).toString().slice(0, 40), href: e.target.closest?.("a")?.getAttribute("href") }), { capture: true });`);
@@ -170,6 +171,12 @@ try {
         const state = await safari.execute("return { sections: document.querySelectorAll('.articleSection').length, search: location.search }");
         return state.sections < count || !/spoilers=full/.test(state.search) ? "changed" : "same";
       };
+      await safari.execute("document.querySelector('.spoilerOption').scrollIntoView({ block: 'center', behavior: 'instant' });");
+      report.spoilerTarget = await safari.execute(`const el = document.querySelector('.spoilerOption');
+        const rect = el.getBoundingClientRect();
+        return { rect: rect.toJSON(), scrollY, innerWidth, innerHeight,
+          visualViewport: visualViewport ? { height: visualViewport.height, offsetTop: visualViewport.offsetTop } : null };`);
+      evidence.actions.push({ route, label: "native spoiler target geometry", ...report.spoilerTarget });
       const spoilerBy = await activate(".spoilerOption", projection, "changed", 20000);
       report.spoilerProjection = { before: count, after: await sections(), by: spoilerBy,
         url: await safari.execute("return location.href") };
