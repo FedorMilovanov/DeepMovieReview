@@ -46,17 +46,6 @@ export function hardMaskTextPaint(s) {
   s.usedHardMask = true;
 }
 
-// Verify a failing bound with the measured glyphs themselves removed: a promoted
-// layer can keep text paint in the "background" capture, and text sampled against
-// its own paint can never pass. Only the failing records are hidden, so text that
-// legitimately paints behind other text still does.
-export function hideTextPaintOwners(s, ids) {
-  const elements = new Set(s.records.filter(record => ids.includes(record.id)).map(record => record.element));
-  s.saved = [...elements].map(element => ({ element, properties: [{ name: "visibility",
-    value: element.style.getPropertyValue("visibility"), priority: element.style.getPropertyPriority("visibility") }] }));
-  for (const element of elements) element.style.setProperty("visibility", "hidden");
-}
-
 // Updating Text.nodeValue collapses existing DOM Range offsets in WebKit.
 // Re-select the same connected text node, and version its actual content; never
 // transfer old geometry/coverage to replacement text or resurrect detached DOM.
@@ -310,19 +299,41 @@ export async function renderedContrast(page, nodes, directory, id) {
       if (suspects.length) {
         const ids = [...new Set(suspects.map(box => box.id))];
         const before = suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum }));
-        let verified;
+        const read = bytes => {
+          const png = PNG.sync.read(bytes);
+          if (png.width !== snapshot.width || png.height !== snapshot.height) throw new Error("Pixel/viewport scale mismatch in a verification capture");
+          return new Map(suspects.map(box => [box, rectangleContrast(png, box.sample, box.foreground)]));
+        };
+        let verified, verifiedBounds, retried = false;
         try {
-          await page.evaluate(hideTextPaintOwners, { s: state, ids });
+          await page.evaluate(({ s, ids }) => {
+            // Hide only the measured glyphs: text that legitimately paints behind
+            // other text must stay, or the "background" would be a fiction.
+            const elements = new Set(s.records.filter(record => ids.includes(record.id)).map(record => record.element));
+            s.saved = [...elements].map(element => ({ element, properties: [{ name: "visibility",
+              value: element.style.getPropertyValue("visibility"), priority: element.style.getPropertyPriority("visibility") }] }));
+            for (const element of elements) element.style.setProperty("visibility", "hidden");
+          }, { s: state, ids });
           await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
           verified = await page.screenshot();
+          verifiedBounds = read(verified);
+          if (suspects.some(box => verifiedBounds.get(box).minimum !== null && verifiedBounds.get(box).minimum < box.threshold)) {
+            // A promoted layer can keep the previous frame. Nudging the scroll by
+            // one pixel and restoring it forces a real recomposite without
+            // touching the product's styles or layout.
+            await page.evaluate(() => { const y = scrollY; scrollTo({ top: y + 1, behavior: "instant" });
+              scrollTo({ top: y, behavior: "instant" }); });
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            verified = await page.screenshot();
+            verifiedBounds = read(verified);
+            retried = true;
+          }
         } finally {
           await page.evaluate(restoreTextPaint, state);
         }
-        const verifiedImage = PNG.sync.read(verified);
-        if (verifiedImage.width !== snapshot.width || verifiedImage.height !== snapshot.height) throw new Error("Pixel/viewport scale mismatch in a verification capture");
         writeFileSync(`${directory}/${name}-verified.png`, verified);
-        for (const box of suspects) bounds.set(box, rectangleContrast(verifiedImage, box.sample, box.foreground));
-        verifications.push({ tile, ids, capture: `${name}-verified.png`, before,
+        for (const box of suspects) bounds.set(box, verifiedBounds.get(box));
+        verifications.push({ tile, ids, retried, capture: `${name}-verified.png`, before,
           after: suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum })) });
       }
       for (const box of snapshot.boxes) {
