@@ -14,7 +14,7 @@ export function maskTextPaint(s) {
   for (const element of elements) for (let parent = element; parent; parent = parent.parentElement) {
     if (getComputedStyle(parent).textDecorationLine !== "none") decorations.add(parent);
   }
-  s.saved = [...new Set([...elements, ...decorations])].map(element => ({ element, properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color"].map(name => ({ name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
+  s.saved = [...new Set([...elements, ...decorations])].map(element => ({ element, properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color", "visibility"].map(name => ({ name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
   for (const { element } of s.saved) {
     if (decorations.has(element)) element.style.setProperty("text-decoration-color", "transparent");
     if (!elements.has(element)) continue;
@@ -28,6 +28,14 @@ export function restoreTextPaint(s) {
     if (value) element.style.setProperty(name, value, priority); else element.style.removeProperty(name);
   }
   s.saved = [];
+}
+
+// WebKit can keep a promoted panel's glyphs in a stale layer even when the
+// computed fill is transparent. Hiding the paint owner with visibility keeps
+// every box exactly where it is, so the captured background is the real one.
+export function hardMaskTextPaint(s) {
+  for (const record of s.records) if (s.visibleIds.has(record.id)) record.element.style.setProperty("visibility", "hidden");
+  s.usedHardMask = true;
 }
 
 // Updating Text.nodeValue collapses existing DOM Range offsets in WebKit.
@@ -172,7 +180,7 @@ export async function renderedContrast(page, nodes, directory, id) {
     return { records, owners, saved: [], textChanges: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
   }, nodes.map(node => node.target));
   const previousScroll = await page.evaluate(() => scrollY);
-  const measurements = new Map(), frames = [], deferred = [];
+  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [];
   let tileLimit = false;
   try {
     let top = 0, revisiting = false;
@@ -222,26 +230,23 @@ export async function renderedContrast(page, nodes, directory, id) {
           }).map(record => record.id)];
         }, state);
         for (const box of snapshot.boxes) if (invalidMask.includes(box.id)) box.issue = "Text mask did not remove foreground";
-        // WebKit may keep a promoted (composited) panel's old layer until the
-        // next frame; screenshotting in the same task measured the unmasked
-        // glyphs at 1:1. Let the masked paint commit, then capture.
+        // Let the masked paint commit before capture: a promoted layer can keep
+        // the previous frame for one tick.
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         background = await page.screenshot();
-        // A late re-render can replace masked text after the style probe.
-        // Verify the captured frame still had transparent foregrounds and that
-        // the recorded elements stayed connected; otherwise mask again, bounded.
-        for (let retry = 0; retry < 1; retry++) {
-          const stillMasked = await page.evaluate(s => s.records.filter(record => s.visibleIds.has(record.id)).every(record => {
-            if (!record.element.isConnected) return false;
-            const style = getComputedStyle(record.element);
-            const color = record.element.namespaceURI === "http://www.w3.org/2000/svg" ? style.fill : style.webkitTextFillColor || style.color;
-            s.ctx.clearRect(0, 0, 1, 1); s.ctx.fillStyle = color; s.ctx.fillRect(0, 0, 1, 1);
-            return s.ctx.getImageData(0, 0, 1, 1).data[3] === 0;
-          }), state);
-          if (stillMasked) break;
-          await page.evaluate(maskTextPaint, state);
+        // Prove the capture is a real background, not the glyphs. If a sampled
+        // band is (almost) exactly the text colour, the compositor kept the text
+        // paint; hide the paint owner instead (visibility keeps every box in
+        // place) and capture again. Both facts are recorded, never papered over.
+        const leaked = (image, boxes) => boxes.filter(box => !box.issue &&
+          rectangleContrast(image, box.sample, box.foreground).minimum < 1.05).map(box => box.id);
+        if (leaked(PNG.sync.read(background), snapshot.boxes).length) {
+          await page.evaluate(hardMaskTextPaint, state);
           await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
           background = await page.screenshot();
+          const still = leaked(PNG.sync.read(background), snapshot.boxes);
+          maskEscalations.push({ tile, escalated: snapshot.boxes.map(box => box.id), unresolved: still });
+          for (const box of snapshot.boxes) if (still.includes(box.id)) box.issue = "Text paint survived both masks";
         }
       } finally {
         await page.evaluate(restoreTextPaint, state);
@@ -309,7 +314,7 @@ export async function renderedContrast(page, nodes, directory, id) {
     const absent = missingRangeIds(expected, measurements);
     const missing = owners.filter(owner => owner.error || owner.ids.some(id => absent.has(id)));
     const failed = ranges.filter(range => !range.pass);
-    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames", owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
+    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames", maskEscalations, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
       missing, tileLimit, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);

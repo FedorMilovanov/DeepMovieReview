@@ -612,3 +612,18 @@ test("contrast sampling snaps to whole exposed pixel rows", async () => {
   const band = exposedRows(rows.length, row => rows[row]);
   assert.deepEqual([rowOrigin + band[0], rowOrigin + band[1]], [64, 78]);
 });
+
+test("renderer mask fallback hides only visible text owners, never moves boxes", async () => {
+  const { hardMaskTextPaint } = await import("../scripts/lib/rendered-contrast.mjs");
+  const calls = [];
+  const state = {
+    visibleIds: new Set([1]),
+    records: [
+      { id: 1, element: { style: { setProperty: (property, value) => calls.push([property, value]) } } },
+      { id: 2, element: { style: { setProperty: () => { throw new Error("invisible record touched"); } } } },
+    ],
+  };
+  hardMaskTextPaint(state);
+  assert.deepEqual(calls, [["visibility", "hidden"]]);
+  assert.equal(state.usedHardMask, true);
+});
