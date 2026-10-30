@@ -503,44 +503,70 @@ try {
       "return {exists:Boolean(root),tabs:tabs.length,selected:tabs.filter(t=>t.getAttribute('aria-selected')==='true').length,panel:Boolean(root?.querySelector('[role=tabpanel]')),mode:root?.querySelector('[data-workbench-mode]')?.dataset.workbenchMode};" +
     "})())"
   ));
-  assertCheck("home workbench: production demo exists", workbenchState.exists, workbenchState);
-  assertCheck("home workbench: three semantic tabs", workbenchState.tabs === 3, workbenchState);
-  assertCheck("home workbench: exactly one selected tab", workbenchState.selected === 1, workbenchState);
-  assertCheck("home workbench: labelled tabpanel exists", workbenchState.panel, workbenchState);
-  assertCheck("home workbench: autopsy is the initial mode", workbenchState.mode === "autopsy", workbenchState);
-  await inspectMinimumTargetSize("home workbench tabs", "[data-analysis-workbench] [role=tab]");
-  await inspectMinimumTargetSize("home workbench evidence anchors", "[data-analysis-workbench] [aria-label='Точки доказательств'] button");
+  // The analysis workbench belongs to the prelaunch platform surface. Once the
+  // featured film is published the homepage renders the film hero instead, so the
+  // audit states which homepage it is looking at and checks that one: asserting a
+  // component that is not on the page is how a real regression hides behind six
+  // vacuous failures.
+  if (workbenchState.exists) {
+    assertCheck("home workbench: production demo exists", workbenchState.exists, workbenchState);
+    assertCheck("home workbench: three semantic tabs", workbenchState.tabs === 3, workbenchState);
+    assertCheck("home workbench: exactly one selected tab", workbenchState.selected === 1, workbenchState);
+    assertCheck("home workbench: labelled tabpanel exists", workbenchState.panel, workbenchState);
+    assertCheck("home workbench: autopsy is the initial mode", workbenchState.mode === "autopsy", workbenchState);
+    await inspectMinimumTargetSize("home workbench tabs", "[data-analysis-workbench] [role=tab]");
+    await inspectMinimumTargetSize("home workbench evidence anchors", "[data-analysis-workbench] [aria-label='Точки доказательств'] button");
 
-  await evaluate("document.querySelector('[data-analysis-workbench] [role=tab]')?.focus()");
-  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowRight", code: "ArrowRight" });
-  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "ArrowRight", code: "ArrowRight" });
-  await sleep(120);
-  const workbenchKeyboard = JSON.parse(await evaluate(
-    "JSON.stringify((() => {" +
-      "const root=document.querySelector('[data-analysis-workbench]');" +
-      "const tabs=[...root.querySelectorAll('[role=tab]')];" +
-      "return {selected:tabs[1]?.getAttribute('aria-selected'),focused:document.activeElement===tabs[1],mode:root.querySelector('[data-workbench-mode]')?.dataset.workbenchMode};" +
-    "})())"
-  ));
-  assertCheck("home workbench: ArrowRight activates relationship mode", workbenchKeyboard.selected === "true" && workbenchKeyboard.focused && workbenchKeyboard.mode === "relationship", workbenchKeyboard);
+    await evaluate("document.querySelector('[data-analysis-workbench] [role=tab]')?.focus()");
+    await send("Input.dispatchKeyEvent", { type: "keyDown", key: "ArrowRight", code: "ArrowRight" });
+    await send("Input.dispatchKeyEvent", { type: "keyUp", key: "ArrowRight", code: "ArrowRight" });
+    await sleep(120);
+    const workbenchKeyboard = JSON.parse(await evaluate(
+      "JSON.stringify((() => {" +
+        "const root=document.querySelector('[data-analysis-workbench]');" +
+        "const tabs=[...root.querySelectorAll('[role=tab]')];" +
+        "return {selected:tabs[1]?.getAttribute('aria-selected'),focused:document.activeElement===tabs[1],mode:root.querySelector('[data-workbench-mode]')?.dataset.workbenchMode};" +
+      "})())"
+    ));
+    assertCheck("home workbench: ArrowRight activates relationship mode", workbenchKeyboard.selected === "true" && workbenchKeyboard.focused && workbenchKeyboard.mode === "relationship", workbenchKeyboard);
 
-  await evaluate("document.querySelectorAll('[data-analysis-workbench] [role=tab]')[2]?.click()");
-  await waitForExpression("Boolean(document.querySelector('[data-analysis-workbench] [data-workbench-mode=decision]'))");
-  const revealBefore = await evaluate("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.getAttribute('aria-expanded')");
-  assertCheck("home workbench: later knowledge starts concealed", revealBefore === "false", revealBefore);
-  await evaluate("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.click()");
-  await waitForExpression("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.getAttribute('aria-expanded') === 'true'");
-  await waitForExpression("Boolean(document.querySelector('[data-analysis-workbench] [data-state=later]'))");
-  const revealAfter = JSON.parse(await evaluate(
-    "JSON.stringify((() => { const root=document.querySelector('[data-analysis-workbench]'); const b=root.querySelector('button[aria-expanded]'); return {expanded:b?.getAttribute('aria-expanded'),later:Boolean(root.querySelector('[data-state=later]'))}; })())"
-  ));
-  assertCheck("home workbench: Knowledge Fog reveal exposes later facts", revealAfter.expanded === "true" && revealAfter.later, revealAfter);
+    await evaluate("document.querySelectorAll('[data-analysis-workbench] [role=tab]')[2]?.click()");
+    await waitForExpression("Boolean(document.querySelector('[data-analysis-workbench] [data-workbench-mode=decision]'))");
+    const revealBefore = await evaluate("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.getAttribute('aria-expanded')");
+    assertCheck("home workbench: later knowledge starts concealed", revealBefore === "false", revealBefore);
+    await evaluate("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.click()");
+    await waitForExpression("document.querySelector('[data-analysis-workbench] button[aria-expanded]')?.getAttribute('aria-expanded') === 'true'");
+    await waitForExpression("Boolean(document.querySelector('[data-analysis-workbench] [data-state=later]'))");
+    const revealAfter = JSON.parse(await evaluate(
+      "JSON.stringify((() => { const root=document.querySelector('[data-analysis-workbench]'); const b=root.querySelector('button[aria-expanded]'); return {expanded:b?.getAttribute('aria-expanded'),later:Boolean(root.querySelector('[data-state=later]'))}; })())"
+    ));
+    assertCheck("home workbench: Knowledge Fog reveal exposes later facts", revealAfter.expanded === "true" && revealAfter.later, revealAfter);
+    await capture("home-workbench", true);
+  } else {
+    const publishedHome = JSON.parse(await evaluate(
+      "JSON.stringify((() => {" +
+        "const hero=document.querySelector('.heroSection');" +
+        "const title=document.querySelector('#hero-title')?.textContent?.trim() ?? '';" +
+        "const links=[...document.querySelectorAll('.heroActions a')].map(a=>a.getAttribute('href'));" +
+        "const stand=document.querySelector('#structural-stand');" +
+        "return {hero:Boolean(hero),title,links,stand:Boolean(stand)};" +
+      "})())"
+    ));
+    assertCheck("published home: the film hero replaces the prelaunch workbench", publishedHome.hero && !workbenchState.exists, publishedHome);
+    assertCheck("published home: the hero names the featured film", publishedHome.title.length > 0, publishedHome);
+    assertCheck(
+      "published home: the hero opens the film page",
+      publishedHome.links.some((href) => typeof href === "string" && /^\/films\/[a-z0-9-]+$/.test(href)),
+      publishedHome,
+    );
+    assertCheck("published home: the analysed material follows the hero", publishedHome.stand, publishedHome);
+  }
 
   const lensTransition = JSON.parse(await evaluate(
     "JSON.stringify((() => { const n=document.querySelector('.lensReading[data-lens=story]'); const s=n?getComputedStyle(n):null; return s ? {display:s.display,opacity:s.opacity,transition:s.transitionProperty} : null; })())"
   ));
   assertCheck("home lenses: active reading uses opacity transition instead of display snapping", lensTransition?.display === "block" && lensTransition?.opacity === "1" && lensTransition?.transition.includes("opacity"), lensTransition);
-  await capture("home-workbench", true);
+  if (workbenchState.exists) await capture("home-workbench", true);
   await capture("home-desktop", true);
 
   await navigate("/", 390, 844);
@@ -572,8 +598,10 @@ try {
       mobileMenuAfterHashNavigation.focusReturned === true,
     mobileMenuAfterHashNavigation,
   );
-  await inspectMinimumTargetSize("home mobile workbench tabs", "[data-analysis-workbench] [role=tab]");
-  await inspectMinimumTargetSize("home mobile workbench evidence controls", "[data-analysis-workbench] [aria-label='Точки доказательств'] button");
+  if (workbenchState.exists) {
+    await inspectMinimumTargetSize("home mobile workbench tabs", "[data-analysis-workbench] [role=tab]");
+    await inspectMinimumTargetSize("home mobile workbench evidence controls", "[data-analysis-workbench] [aria-label='Точки доказательств'] button");
+  }
   const autopsyDefinitionOverlap = await evaluate(
     "[...document.querySelectorAll('.autopsyGrid > div')].some((row) => {" +
       "const term=row.querySelector('dt'); const value=row.querySelector('dd');" +
@@ -582,7 +610,11 @@ try {
       "return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;" +
     "})"
   );
-  assertCheck("home mobile: autopsy labels do not overlap values", !autopsyDefinitionOverlap);
+  // The autopsy grid belongs to the workbench; without it the check has nothing to
+  // measure, and a vacuous pass is worse than saying so.
+  if (workbenchState.exists) {
+    assertCheck("home mobile: autopsy labels do not overlap values", !autopsyDefinitionOverlap);
+  }
   await capture("home-mobile", true);
 
   await navigate("/", 1280, 900, false, true);
@@ -620,12 +652,14 @@ try {
   ));
   assertCheck("home reduced motion: media preference is active", homeReducedSettled.media && homeReducedSettled.dataset === "true", homeReducedSettled);
   assertCheck("home reduced motion: lens reading transition is disabled", homeReducedState.lensDurations.length > 0 && homeReducedState.lensDurations.every((value) => value <= 0.00001), homeReducedState);
-  await evaluate("document.querySelectorAll('[data-analysis-workbench] [role=tab]')[2]?.click()");
-  await waitForExpression("Boolean(document.querySelector('[data-analysis-workbench] [data-knowledge-veil]'))");
-  const veilDurations = JSON.parse(await evaluate(
-    "JSON.stringify(getComputedStyle(document.querySelector('[data-analysis-workbench] [data-knowledge-veil]')).transitionDuration.split(',').map((value)=>parseFloat(value)||0))"
-  ));
-  assertCheck("home reduced motion: Knowledge Fog transition is disabled", veilDurations.length > 0 && veilDurations.every((value) => value <= 0.00001), veilDurations);
+  if (workbenchState.exists) {
+    await evaluate("document.querySelectorAll('[data-analysis-workbench] [role=tab]')[2]?.click()");
+    await waitForExpression("Boolean(document.querySelector('[data-analysis-workbench] [data-knowledge-veil]'))");
+    const veilDurations = JSON.parse(await evaluate(
+      "JSON.stringify(getComputedStyle(document.querySelector('[data-analysis-workbench] [data-knowledge-veil]')).transitionDuration.split(',').map((value)=>parseFloat(value)||0))"
+    ));
+    assertCheck("home reduced motion: Knowledge Fog transition is disabled", veilDurations.length > 0 && veilDurations.every((value) => value <= 0.00001), veilDurations);
+  }
   await capture("home-reduced-motion", false);
 
   await navigate("/labs/living-frame", 1280, 900);
