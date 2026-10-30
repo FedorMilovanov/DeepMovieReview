@@ -72,9 +72,18 @@ try {
       // Warm the real app before the driver's internal 30s RWI deadline; never
       // terminate/relaunch it or replay a failed browser scenario.
       report.phase = "launching real Simulator Safari before RWI discovery";
-      report.safariLaunch = execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], {
-        encoding: "utf8", timeout: 60000,
-      }).trim();
+      // Cold app launch is host setup, not the product's interaction deadline.
+      // A measured 60s timeout left the real device on SpringBoard (97bf64f).
+      // Allow one bounded 120s launch, record its actual cost, never replay it.
+      const launchStarted = performance.now();
+      report.safariLaunchTiming = { timeoutMs: 120000 };
+      try {
+        report.safariLaunch = execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], {
+          encoding: "utf8", timeout: report.safariLaunchTiming.timeoutMs,
+        }).trim();
+      } finally {
+        report.safariLaunchTiming.elapsedMs = Math.round(performance.now() - launchStarted);
+      }
       report.phase = "creating native iOS Safari session";
     },
   });
