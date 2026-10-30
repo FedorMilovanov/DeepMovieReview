@@ -1,6 +1,14 @@
-import type { FilmPackage } from "@/lib/film-package";
+import type { EvidenceRecord, FilmPackage } from "@/lib/film-package";
+import { reviewBasis } from "../../lib/evidence-review";
 import { trumanMasterSegmentation } from "./the-truman-show-master-segmentation";
-import { trumanCanonicalEvidence } from "./the-truman-show-canonical-evidence";
+import {
+  trumanCanonicalEvidence,
+  trumanCanonicalEvidenceSummary,
+} from "./the-truman-show-canonical-evidence";
+import {
+  trumanPostLockEvidenceVerifications,
+  trumanVisualVerifications,
+} from "./the-truman-show-visual-verification";
 import { trumanCanonicalScenes } from "./the-truman-show-scene-inventory";
 import { theTrumanShowArticle } from "./the-truman-show-article";
 
@@ -19,6 +27,62 @@ import { theTrumanShowArticle } from "./the-truman-show-article";
  * See docs/47-FILM-001-VISUAL-VERIFICATION.md for how each observation was
  * verified and docs/48-FILM-001-EDITION-LOCK.md for the promotion ledger.
  */
+/**
+ * The verification ledger is the only thing that knows *how* a record was
+ * checked. Attaching its summary to the record keeps that knowledge next to the
+ * claim, so «VERIFIED» on a card can be read as «subtitle track, two lines,
+ * reviewer unknown» instead of an unqualified promise.
+ *
+ * Records written after the lock (the rain rewrite) have no research-era ledger
+ * entry to inherit from, so they carry their basis in the record itself.
+ */
+const verificationById = new Map(
+  [...trumanVisualVerifications, ...trumanPostLockEvidenceVerifications].map((record) => [
+    record.evidenceId,
+    record,
+  ]),
+);
+
+/**
+ * A research record split into two scene-accurate halves was checked once: the
+ * ledger keeps one entry, under the research id. Both halves inherit it, and the
+ * window stays the parent's — narrowing it per half would claim a separate check
+ * that never happened.
+ */
+const splitParentById = new Map<string, string>();
+for (const [researchId, replacements] of Object.entries(trumanCanonicalEvidenceSummary.split)) {
+  const entry = verificationById.get(researchId);
+  if (!entry) continue;
+  for (const replacementId of replacements) {
+    verificationById.set(replacementId, entry);
+    splitParentById.set(replacementId, researchId);
+  }
+}
+
+const trumanEvidenceWithReviewBasis: EvidenceRecord[] = trumanCanonicalEvidence.map((record) => {
+  if (record.basis) return record;
+  const basis = reviewBasis(verificationById.get(record.id));
+  if (!basis) return record;
+
+  const parent = splitParentById.get(record.id);
+  if (!parent) return { ...record, basis };
+
+  // A compound record's check covered two places. A half may inherit the fact of
+  // the check, never a window it does not sit inside — and when its own second was
+  // never looked at, the card says so instead of borrowing «verified» from the
+  // parent. This is how the undeclared boat/setting-sail split came to light.
+  const inside =
+    basis.window === undefined ||
+    record.timestampSeconds === undefined ||
+    (record.timestampSeconds >= basis.window.from && record.timestampSeconds <= basis.window.to);
+  return {
+    ...record,
+    basis: inside
+      ? { ...basis, inheritedFrom: parent }
+      : { ...basis, inheritedFrom: parent, window: undefined, outcome: "pending" },
+  };
+});
+
 export const theTrumanShowCanonicalPackage: FilmPackage = {
   schemaVersion: 1,
   film: {
@@ -67,7 +131,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
             ? ("MINOR" as const)
             : ("NONE" as const),
   })),
-  evidence: trumanCanonicalEvidence,
+  evidence: trumanEvidenceWithReviewBasis,
   /**
    * The readable layer of the same edition. Validated against the evidence
    * graph above and the measured timing dataset, so neither a timestamp nor a

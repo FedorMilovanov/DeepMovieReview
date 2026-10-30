@@ -142,14 +142,28 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "MINOR",
     "В лодке отец говорит: «Не нравится мне эта погода, сын», — и шторм уносит его за борт на глазах мальчика.",
   ),
-  record(
-    "truman-ev-rain",
-    "Дождь, который стоит на месте",
-    "truman-sc-memories-of-dad",
-    761,
-    "MINOR",
-    "После разговора у воды начинается дождь: узкая струя падает на сидящего Трумана. Он встаёт и отходит в сторону — струя остаётся на прежнем месте, отдельно от него, — затем возвращается к ней. Через полминуты дождь расширяется на всю сцену. Кадры не показывают ни механизма, ни «тучи, которая следует за героем»: это домысел, а не увиденное.",
-  ),
+  /**
+   * Written after the lock, so it has no research-era ledger entry to inherit a
+   * basis from: the basis is stated here, and it is the one thing this record
+   * knows that the ledger does not. Two frames, 12:41 and 13:06, both watched.
+   */
+  {
+    ...record(
+      "truman-ev-rain",
+      "Дождь, который стоит на месте",
+      "truman-sc-memories-of-dad",
+      761,
+      "MINOR",
+      "После разговора у воды начинается дождь: узкая струя падает на сидящего Трумана. Он встаёт и отходит в сторону — струя остаётся на прежнем месте, отдельно от него, — затем возвращается к ней. Через полминуты дождь расширяется на всю сцену. Кадры не показывают ни механизма, ни «тучи, которая следует за героем»: это домысел, а не увиденное.",
+    ),
+    basis: {
+      material: "frames",
+      window: { from: 761, to: 786 },
+      observations: 2,
+      outcome: "seen",
+      unrecorded: ["reviewer", "date"],
+    },
+  },
   record(
     "truman-ev-ghost",
     "Призрак отца",
@@ -469,10 +483,13 @@ export const trumanCanonicalEvidenceSummary = {
   split: {
     "truman-ev-knife": ["truman-ev-knife", "truman-ev-knife-call"],
     "truman-ev-reunion": ["truman-ev-reunion", "truman-ev-reunion-amnesia"],
+    // The ledger's boat note already said the sailing footage «must be anchored
+    // there when the record is split»; the split was never declared, and the
+    // review-basis pass is what surfaced it.
+    "truman-ev-boat": ["truman-ev-boat", "truman-ev-setting-sail"],
   },
   /** Canonical records that have no research-era counterpart. */
   added: [
-    "truman-ev-setting-sail",
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",
     "truman-ev-seahaven-design",

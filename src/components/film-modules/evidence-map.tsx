@@ -104,6 +104,48 @@ function formatTime(seconds: number | undefined) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
+const basisMaterialLabels = {
+  frames: "кадры мастера",
+  "subtitle-track": "встроенные субтитры",
+} as const;
+
+const basisOutcomeLabels = {
+  seen: "наблюдение подтверждено",
+  heard: "подтверждено по репликам",
+  refused: "запись не подтвердилась",
+  pending: "на этом таймкоде проверка не записана",
+} as const;
+
+/**
+ * What the check actually covered.
+ *
+ * A record with no basis says so instead of borrowing the word «проверено»: the
+ * ledger, not the card, decides how much is known.
+ */
+function EvidenceBasis({ basis }: { basis?: EvidenceRecord["basis"] }) {
+  if (!basis) {
+    return (
+      <p className="evidenceBasis" data-outcome="missing">
+        <span>Основа проверки</span>в журнале не записана
+      </p>
+    );
+  }
+  const window = basis.window
+    ? `${formatTime(basis.window.from)}–${formatTime(basis.window.to)}`
+    : undefined;
+  return (
+    <p className="evidenceBasis" data-outcome={basis.outcome}>
+      <span>Основа проверки</span>
+      {basisMaterialLabels[basis.material]} · {basisOutcomeLabels[basis.outcome]}
+      {window ? ` · окно ${window}` : ""} · {basis.observations}{" "}
+      {basis.observations === 1 ? "наблюдение" : "наблюдений"}
+      {basis.unrecorded?.length
+        ? ` · не записано: ${basis.unrecorded.map((field) => (field === "reviewer" ? "кто проверял" : "когда")).join(", ")}`
+        : ""}
+    </p>
+  );
+}
+
 function EvidenceCard({
   evidenceId,
   evidenceById,
@@ -144,6 +186,7 @@ function EvidenceCard({
       </div>
       <h3>{record.label}</h3>
       <p>{record.observation}</p>
+      <EvidenceBasis basis={record.basis} />
       <dl className="evidenceMapMeta">
         {scene ? <div><dt>Сцена</dt><dd>{scene.shortLabel}</dd></div> : null}
         <div>

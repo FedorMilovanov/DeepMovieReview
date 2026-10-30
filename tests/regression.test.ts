@@ -38,6 +38,7 @@ import {
   identificationLabels,
 } from "../src/lib/presentation-labels";
 import { validateFilmArticle } from "../src/lib/film-article-integrity";
+import { reviewBasis } from "../src/lib/evidence-review";
 import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
@@ -5833,4 +5834,87 @@ test("Film 001 comparison panels refuse a verdict, an unsupported side and a clo
     validateFilmArticle(oneSided, trumanArticleContext()).join("\n"),
     /a duel needs at least two sides/,
   );
+});
+
+test("Film 001 every evidence card states the basis of its own verification", () => {
+  // «Verified» is not a description. Each record must carry how it was checked,
+  // what material was in front of the reviewer, and how wide the window was —
+  // derived from the ledger, never typed next to the claim.
+  const ledgerStatus = new Map(
+    [...trumanVisualVerifications, ...trumanPostLockEvidenceVerifications].map((record) => [
+      record.evidenceId,
+      record.status,
+    ]),
+  );
+  const expectedMaterial = {
+    VISUAL_CONFIRMED: "frames",
+    CONTRADICTED: "frames",
+    TRANSCRIPT_CONFIRMED: "subtitle-track",
+    PENDING_LOCAL_REVIEW: "frames",
+  } as const;
+
+  for (const record of theTrumanShowCanonicalPackage.evidence ?? []) {
+    assert.ok(record.basis, `${record.id}: no review basis`);
+    assert.ok(record.basis.observations > 0, `${record.id}: basis with no observations`);
+    assert.deepEqual(
+      record.basis.unrecorded,
+      ["reviewer", "date"],
+      `${record.id}: the ledger records neither reviewer nor date; say so`,
+    );
+
+    if (record.basis.window && record.timestampSeconds !== undefined) {
+      assert.ok(
+        record.timestampSeconds >= record.basis.window.from &&
+          record.timestampSeconds <= record.basis.window.to,
+        `${record.id}: the cited second is outside the reviewed window`,
+      );
+    } else {
+      assert.ok(
+        record.basis.inheritedFrom,
+        `${record.id}: only a half of a split record may lack its own window`,
+      );
+    }
+
+    const status = ledgerStatus.get(record.id);
+    if (status) {
+      assert.equal(record.basis.material, expectedMaterial[status], `${record.id}: material drifted`);
+      assert.equal(record.basis.outcome === "refused", status !== "VISUAL_CONFIRMED" && status !== "TRANSCRIPT_CONFIRMED",
+        `${record.id}: a record the ledger refused cannot read as seen`);
+    }
+  }
+
+  // The rain rewrite is the one record with no research-era entry to inherit a
+  // basis from, so its basis is stated in the record: two frames, 12:41 and 13:06.
+  // The boat split was undeclared until this pass: the parent's check covers
+  // 4830–4850 s, the sailing record cites 4970 s, so the card must not claim a
+  // window — it says the second itself was never checked.
+  const sail = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-setting-sail");
+  assert.ok(sail?.basis);
+  assert.equal(sail.basis.inheritedFrom, "truman-ev-boat");
+  assert.equal(sail.basis.window, undefined);
+  assert.equal(sail.basis.outcome, "pending");
+
+  const rain = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-rain");
+  assert.ok(rain?.basis);
+  assert.deepEqual(rain.basis.window, { from: 761, to: 786 });
+  assert.equal(rain.basis.observations, 2);
+  assert.equal(rain.basis.outcome, "seen");
+});
+
+test("review basis never upgrades a record the ledger did not confirm", () => {
+  const frame = (frameTimeSeconds: number) => ({ frameTimeSeconds });
+
+  assert.equal(reviewBasis(undefined), undefined);
+  assert.equal(reviewBasis({ status: "VISUAL_CONFIRMED", frames: [] }), undefined);
+
+  const pending = reviewBasis({ status: "PENDING_LOCAL_REVIEW", frames: [frame(10), frame(40)] });
+  assert.ok(pending);
+  assert.equal(pending.outcome, "refused");
+  assert.deepEqual(pending.window, { from: 10, to: 40 });
+
+  const transcript = reviewBasis({ status: "TRANSCRIPT_CONFIRMED", frames: [frame(3459.2), frame(3464.3)] });
+  assert.ok(transcript);
+  assert.equal(transcript.material, "subtitle-track");
+  assert.equal(transcript.outcome, "heard");
+  assert.equal(transcript.observations, 2);
 });

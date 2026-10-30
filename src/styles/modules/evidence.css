@@ -205,3 +205,36 @@
 .evidenceMapCard {
   scroll-margin-top: 96px;
 }
+
+/* The review basis: what the check covered, before the reader trusts the word
+   «проверено». Muted, because it is a limit statement, not a finding. */
+.evidenceBasis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  align-items: baseline;
+  margin: 0.75rem 0 0;
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.evidenceBasis span {
+  color: var(--ink-4);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.evidenceBasis[data-outcome="refused"] {
+  color: var(--accent-fracture-bright);
+}
+
+.evidenceBasis[data-outcome="missing"] {
+  color: var(--ink-4);
+}
+
+.evidenceBasis[data-outcome="refused"] span,
+.evidenceBasis[data-outcome="missing"] span {
+  color: inherit;
+}
