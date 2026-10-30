@@ -41,7 +41,7 @@ export async function waitForStableNativeTarget(read, { timeout = 10000, now = D
   throw new Error("Native touch target did not settle or remained occluded before input");
 }
 
-export async function nativeSafari(capabilities = {}, { beforeSession = async () => {} } = {}) {
+export async function nativeSafari(capabilities = {}, { beforeSession = async () => {}, retrySetup = async () => {} } = {}) {
   // Never attach iOS to a desktop driver's leftover fixed-port listener.
   const reservation = createServer().listen(0, "127.0.0.1");
   await once(reservation, "listening");
@@ -102,8 +102,20 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       cleanupPids = [...new Set([...safariDriverPids(processes, driver.pid), ...safariListenerPids(listeners, processes)])];
       diagnosticPids = [...new Set([...cleanupPids, ...safariHttpServicePids(listeners, processes)])];
     } catch (error) { diagnostics += `\nDriver process snapshot unavailable: ${error.message}`; }
-    await beforeSession();
-    const result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari", ...capabilities } } });
+    // Host-level session setup on a cold Simulator can time out while the
+    // browser's RWI service is still starting. Retry SESSION CREATION once with
+    // a real relaunch; product gestures are never replayed.
+    let result;
+    for (let attempt = 1; !result; attempt++) {
+      await beforeSession();
+      try {
+        result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari", ...capabilities } } });
+      } catch (error) {
+        if (attempt >= 2) throw error;
+        diagnostics += `\nSession attempt ${attempt} failed: ${error.message}`;
+        await retrySetup();
+      }
+    }
     session = result.sessionId;
     const path = `/session/${session}`;
     return {

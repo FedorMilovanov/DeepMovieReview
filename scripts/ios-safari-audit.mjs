@@ -86,6 +86,14 @@ try {
       }
       report.phase = "creating native iOS Safari session";
     },
+    // A simulator Safari that never exposed RWI is restarted for a second
+    // session attempt. This repairs host setup only; no product step is redone.
+    retrySetup: async () => {
+      report.sessionRetry = (report.sessionRetry ?? 0) + 1;
+      try { execFileSync("xcrun", ["simctl", "terminate", device.udid, "com.apple.mobilesafari"], { timeout: 30000 }); }
+      catch (error) { report.safariTerminate = error.message; }
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    },
   });
   report.capabilities = safari.capabilities;
   report.nativeInputs = safari.inputs;
