@@ -485,6 +485,8 @@ export type ArticleMeasurementRef = {
 /** A small editorial quotation from the measured master, never generated artwork. */
 export type ArticleSceneStill = {
   src: string;
+  avifSrc: string;
+  avifSha256: string;
   width: number;
   height: number;
   alt: string;

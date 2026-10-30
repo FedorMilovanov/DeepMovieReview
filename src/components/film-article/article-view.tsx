@@ -1,7 +1,6 @@
 import { ReadingOutline } from "./reading-outline";
 import { ArticleTable } from "./article-table";
 import Link from "next/link";
-import Image from "next/image";
 import type { ArticleBlock, ArticleMeasurementRef, FilmArticle, FinalSynthesisModule } from "@/lib/film-package";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { illustrationView } from "@/data/film-illustrations";
@@ -132,8 +131,11 @@ function ArticleBlockView({
               <p>{item.label}</p>
               {item.still ? (
                 <figure className="articleSceneStill">
-                  <Image unoptimized src={item.still.src} width={item.still.width} height={item.still.height}
-                    alt={item.still.alt} loading="lazy" decoding="async" />
+                  <picture>
+                    <source type="image/avif" srcSet={item.still.avifSrc} />
+                    <img src={item.still.src} width={item.still.width} height={item.still.height}
+                      alt={item.still.alt} loading="lazy" decoding="async" />
+                  </picture>
                   <figcaption>
                     <span>Кадр ≈ {formatTimecode(item.still.sampleTimeSeconds)} · сетка {item.still.samplingIntervalSeconds} с</span>
                     <small>{item.still.credit}</small>

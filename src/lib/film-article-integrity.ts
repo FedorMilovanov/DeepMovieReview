@@ -340,7 +340,8 @@ function checkBlock(
               String(frame.masterDigest).toLowerCase() !== context.edition.masterDigest?.toLowerCase()) {
             errors.push(`${itemPath}: still must belong to the locked master.`);
           }
-          if (!/^\/film-stills\/[a-z0-9-]+\.jpg$/.test(frame.src) || !/^[a-f0-9]{64}$/.test(frame.imageSha256)) {
+          if (!/^\/film-stills\/[a-z0-9-]+\.jpg$/.test(frame.src) || !/^[a-f0-9]{64}$/.test(frame.imageSha256) ||
+              frame.avifSrc !== frame.src.replace(/\.jpg$/, ".avif") || !/^[a-f0-9]{64}$/.test(frame.avifSha256)) {
             errors.push(`${itemPath}: still needs a local JPEG and SHA-256.`);
           }
           if (!Number.isFinite(frame.sampleTimeSeconds) || !scene || scene.endTimestampSeconds === undefined ||

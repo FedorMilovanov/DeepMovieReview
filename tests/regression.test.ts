@@ -5735,6 +5735,7 @@ test("scene quotations are exact-master stills, not generated artwork or substit
   for (const item of items) {
     const still = item.still!;
     assert.equal(createHash("sha256").update(readFileSync(`public${still.src}`)).digest("hex"), still.imageSha256);
+    assert.equal(createHash("sha256").update(readFileSync(`public${still.avifSrc}`)).digest("hex"), still.avifSha256);
     assert.ok(Math.abs(still.sampleTimeSeconds - item.timestampSeconds) <= 15);
     assert.equal(still.use, "critical-review");
   }
@@ -5745,6 +5746,8 @@ test("scene quotations are exact-master stills, not generated artwork or substit
     [{ sampleTimeSeconds: items[0].timestampSeconds + 120 }, /cited scene/],
     [{ src: "/film-stills/../private.jpg" }, /local JPEG/],
     [{ imageSha256: "invalid" }, /SHA-256/],
+    [{ avifSrc: "/other.avif" }, /local JPEG/],
+    [{ avifSha256: "invalid" }, /SHA-256/],
     [{ width: 1920 }, /bounded dimensions/],
     [{ samplingIntervalSeconds: 0 }, /sampling/],
     [{ sampleTimeSeconds: 211 }, /sampling/],
