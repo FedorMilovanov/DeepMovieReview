@@ -623,6 +623,11 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
           <p className="lede">{featuredFilm.thesisQuestion}</p>
           <div className="heroActions">
             <Link className="buttonPrimary" href={`/films/${featuredFilm.slug}`}>Открыть разбор</Link>
+            {featuredFilmPackage.article ? (
+              <Link className="buttonGhost" href={`/films/${featuredFilm.slug}/article`}>
+                Читать текст
+              </Link>
+            ) : null}
             <Link className="buttonGhost" href="/methodology">Методология</Link>
           </div>
         </div>
