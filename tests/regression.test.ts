@@ -6257,3 +6257,17 @@ test("review basis never upgrades a record the ledger did not confirm", () => {
   assert.equal(transcript.outcome, "heard");
   assert.equal(transcript.observations, 2);
 });
+
+test("the phone timeline keeps its basis, stills and captions in the one column", () => {
+  const css = readStylesheet("src/styles/article/body.css");
+
+  // Pinned to column 2 inside a one-column grid the basis created an implicit
+  // track: the explicit 1fr track kept a character, so at 390px the timecode
+  // stacked five lines high and every still rendered as a sliver.
+  const pinned = css.indexOf(".articleTimelineBasis {\n  grid-column: 2;");
+  const phone = css.lastIndexOf("  .articleTimelineBasis {\n    grid-column: 1 / -1;");
+  assert.ok(pinned >= 0, "the split layout pins the basis to the evidence column");
+  assert.ok(phone > pinned, "the phone override follows the pinned rule, so it wins on equal specificity");
+  const phoneBlock = css.lastIndexOf("@media (max-width: 45em)", phone);
+  assert.ok(phoneBlock >= 0 && !css.slice(phoneBlock, phone).includes("}"), "the override sits inside the phone block");
+});

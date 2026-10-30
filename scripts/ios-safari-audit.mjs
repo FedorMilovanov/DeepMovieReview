@@ -54,17 +54,26 @@ try {
   safari = await nativeSafari({ platformName: "iOS", "safari:useSimulator": true, "safari:deviceUDID": device.udid }, {
     beforeSession: async () => {
       report.phase = "booting iPhone Simulator after host driver readiness";
-      // `bootstatus -b` boots the device when it is not booted and waits for it.
-      // A separate `boot` races CoreSimulator's own start-up: the state read from
-      // `simctl list` two seconds earlier says Shutdown while the device is already
-      // booting, and `boot` then exits non-zero with «Unable to boot in current
-      // state», which is exactly how this job failed on two consecutive heads.
       // Bring up the device frontend while SpringBoard is booting, not after
       // waiting for a headless cold boot that may never finish on hosted Intel.
       execFileSync("open", ["-a", simulatorApp, "--args", "-CurrentDeviceUDID", device.udid], { stdio: "inherit", timeout: 30000 });
-      report.bootLog = execFileSync("xcrun", ["simctl", "bootstatus", device.udid, "-b"], {
+      // `bootstatus -b` also *boots* the device, and the frontend opened above is
+      // already booting it: the boot attempt then exits non-zero with «Unable to
+      // boot device in current state: Booted» (measured on 988fce5). A separate
+      // `boot` raced the same way on two earlier heads. So: attempt the boot, but
+      // treat exactly that idempotent outcome as the state we want, then wait for
+      // boot completion with plain `bootstatus`, which never boots anything.
+      let bootNote = "";
+      try {
+        execFileSync("xcrun", ["simctl", "boot", device.udid], { encoding: "utf8", timeout: 120000, maxBuffer: 1024 * 1024 });
+      } catch (error) {
+        const detail = `${error.stdout ?? ""}${error.stderr ?? ""}${error.message ?? ""}`;
+        if (!/current state: Boot(ed|ing)/.test(detail)) throw error;
+        bootNote = `simctl boot reported the idempotent state, not a failure: ${detail.trim().split("\n").slice(-1)[0]}`;
+      }
+      report.bootLog = [bootNote, execFileSync("xcrun", ["simctl", "bootstatus", device.udid], {
         encoding: "utf8", timeout: 480000, maxBuffer: 16 * 1024 * 1024,
-      }).slice(-12000);
+      }).slice(-12000)].filter(Boolean).join("\n");
       console.log(report.bootLog);
       report.device.state = "Booted";
       report.hostSimulatorProcesses = hostSimulatorProcesses();

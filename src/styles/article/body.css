@@ -339,6 +339,7 @@
     gap: var(--space-1);
   }
 
+
   .articleByline > span + span::before {
     content: none;
     margin: 0;
@@ -362,6 +363,20 @@
 
 .articleTimelineBasis .evidenceBasis {
   margin: 0;
+}
+
+/* Below the split layout the row has one column, so the basis must live in it.
+   Pinned to column 2 there it created an implicit second track: the auto track
+   took the evidence digest's width, the explicit 1fr track kept only a
+   character, and the timecode, the still and its caption were laid out in that
+   character — at 390px the timecode stacked five lines high and the credit ran
+   to eighty-two. Keeping the basis in the single explicit column removes the
+   implicit track entirely. This block follows the pinned rule on purpose: same
+   specificity, so it has to come later to win. */
+@media (max-width: 45em) {
+  .articleTimelineBasis {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Paragraph supports stay folded: the proof must be one click away, not in the

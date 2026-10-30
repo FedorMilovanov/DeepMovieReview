@@ -46,6 +46,17 @@ export function hardMaskTextPaint(s) {
   s.usedHardMask = true;
 }
 
+// Verify a failing bound with the measured glyphs themselves removed: a promoted
+// layer can keep text paint in the "background" capture, and text sampled against
+// its own paint can never pass. Only the failing records are hidden, so text that
+// legitimately paints behind other text still does.
+export function hideTextPaintOwners(s, ids) {
+  const elements = new Set(s.records.filter(record => ids.includes(record.id)).map(record => record.element));
+  s.saved = [...elements].map(element => ({ element, properties: [{ name: "visibility",
+    value: element.style.getPropertyValue("visibility"), priority: element.style.getPropertyPriority("visibility") }] }));
+  for (const element of elements) element.style.setProperty("visibility", "hidden");
+}
+
 // Updating Text.nodeValue collapses existing DOM Range offsets in WebKit.
 // Re-select the same connected text node, and version its actual content; never
 // transfer old geometry/coverage to replacement text or resurrect detached DOM.
@@ -198,7 +209,7 @@ export async function renderedContrast(page, nodes, directory, id) {
     return { records, owners, saved: [], textChanges: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
   }, nodes.map(node => node.target));
   const previousScroll = await page.evaluate(() => scrollY);
-  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [];
+  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [];
   let tileLimit = false;
   try {
     let top = 0, revisiting = false;
@@ -286,18 +297,45 @@ export async function renderedContrast(page, nodes, directory, id) {
       writeFileSync(`${directory}/${name}-background.png`, background);
       const hash = bytes => createHash("sha256").update(bytes).digest("hex");
       frames.push({ tile, scroll: snapshot.scroll, original: `${name}-original.png`, originalSha256: hash(original), background: `${name}-background.png`, backgroundSha256: hash(background) });
+      // Bounds are computed before they are recorded so that every below-threshold
+      // box can be verified against a capture with only its own glyph paint
+      // removed. A real failure keeps failing there; a compositor leak does not.
+      const bounds = new Map();
+      for (const box of snapshot.boxes) {
+        if (box.rect.x < 0 || box.rect.right > snapshot.width) { box.issue = "Text range extends outside horizontal viewport"; continue; }
+        if (box.issue) continue;
+        bounds.set(box, rectangleContrast(image, box.sample, box.foreground));
+      }
+      const suspects = snapshot.boxes.filter(box => bounds.get(box)?.minimum != null && bounds.get(box).minimum < box.threshold);
+      if (suspects.length) {
+        const ids = [...new Set(suspects.map(box => box.id))];
+        const before = suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum }));
+        let verified;
+        try {
+          await page.evaluate(hideTextPaintOwners, { s: state, ids });
+          await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+          verified = await page.screenshot();
+        } finally {
+          await page.evaluate(restoreTextPaint, state);
+        }
+        const verifiedImage = PNG.sync.read(verified);
+        if (verifiedImage.width !== snapshot.width || verifiedImage.height !== snapshot.height) throw new Error("Pixel/viewport scale mismatch in a verification capture");
+        writeFileSync(`${directory}/${name}-verified.png`, verified);
+        for (const box of suspects) bounds.set(box, rectangleContrast(verifiedImage, box.sample, box.foreground));
+        verifications.push({ tile, ids, capture: `${name}-verified.png`, before,
+          after: suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum })) });
+      }
       for (const box of snapshot.boxes) {
         const key = `${box.id}:${box.version}:${box.line}`;
         const measurement = measurements.get(key) ?? { id: box.id, version: box.version, line: box.line, threshold: box.threshold, height: Math.ceil(box.rect.height), intervals: [], minimum: Infinity, issues: [] };
         measurement.threshold = Math.max(measurement.threshold, box.threshold);
         measurement.height = Math.max(measurement.height, Math.ceil(box.rect.height));
         measurement.intervals.push([Math.max(0, Math.floor(-box.sample.y)), Math.min(measurement.height, Math.ceil(snapshot.height - box.sample.y))]);
-        if (box.rect.x < 0 || box.rect.right > snapshot.width) box.issue = "Text range extends outside horizontal viewport";
         if (box.issue) {
           if (!measurement.issues.includes(box.issue)) measurement.issues.push(box.issue);
         } else {
-          const bound = rectangleContrast(image, box.sample, box.foreground);
-          if (bound.minimum !== null && bound.minimum < measurement.minimum) {
+          const bound = bounds.get(box);
+          if (bound && bound.minimum !== null && bound.minimum < measurement.minimum) {
             Object.assign(measurement, { minimum: bound.minimum, worstBackground: bound.worstBackground, foreground: box.foreground, color: box.color, tile });
           }
         }
@@ -342,7 +380,7 @@ export async function renderedContrast(page, nodes, directory, id) {
     const absent = missingRangeIds(expected, measurements);
     const missing = owners.filter(owner => owner.error || owner.ids.some(id => absent.has(id)));
     const failed = ranges.filter(range => !range.pass);
-    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames", maskEscalations, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
+    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
       missing, tileLimit, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);
