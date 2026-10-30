@@ -112,7 +112,7 @@ export const trumanCanonicalScenes: TrumanCanonicalScene[] = [
     chapterIds: ["truman-ch-06"],
     verificationState: "VERIFIED",
     note:
-      "Longest research-era chapter; it holds both the origin of the water trauma and the first crack in the story world.",
+      "Longest research-era chapter; it holds both the origin of the water trauma and the first crack in the story world — the rain that falls on one man and then on the whole street.",
   },
   {
     id: "truman-sc-lauren-sylvia",
@@ -136,7 +136,7 @@ export const trumanCanonicalScenes: TrumanCanonicalScene[] = [
     chapterIds: ["truman-ch-08"],
     verificationState: "VERIFIED",
     note:
-      "Densest chapter of the film (13 cuts/min). The research record placed a «personal rain» beat here; picture review found no such beat.",
+      "Densest chapter of the film (13 cuts/min). The research record placed the «personal rain» beat here; a frame pass over this window found no rain at the sampled times — the beat sits in the previous chapter, at the water, and is recorded there.",
   },
   {
     id: "truman-sc-no-place-like-home",

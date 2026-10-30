@@ -136,7 +136,7 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
       frame(1960, "Street scene, dry."),
     ],
     note:
-      "The localized-rain beat is NOT present in chapter 08 as the research record places it, and the embedded English subtitle track has no rain cue anywhere in the film. Either this beat lives in a different, later context or the research record generalized a production anecdote. The current observation may not be promoted as written.",
+      "The record may not be promoted as written, for two reasons, and the second one is the correction. First, the beat is not in chapter 08: the three sampled frames above are dry, and they stay in the ledger as what the window actually showed. Second, the beat itself is not absent from the film — a second pass over the master at 12:41–13:06 (previous chapter, at the water) shows a narrow stream of rain falling on the seated Truman, staying in place when he steps aside, and then widening over the whole scene. So the record's placement and its «the cloud follows him» staging both fail, while its subject survives: the retired record is rewritten as `truman-ev-rain` in `the-truman-show-canonical-evidence.ts`. The earlier reading of the subtitle track was also used wrongly here — the scene is nearly wordless, so the absence of the word «rain» in subtitles could never have settled the question.",
   },
   {
     evidenceId: "truman-ev-quota",
@@ -248,11 +248,12 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
     status: "VISUAL_CONFIRMED",
     sceneId: "truman-sc-mococoa",
     frames: [
-      frame(3250, "Meryl, cornered by Truman's questions, holds the «Chef's Pal» dicer up in both hands."),
+      frame(3250, "Truman's questions corner Meryl; the «Chef's Pal» packaging lies on the table between them."),
+      frame(3260, "Meryl picks up the kitchen tools and holds them in front of her; the camera cuts between her face and Truman's."),
       frame(3272.199, "She calls for intervention: «Do something!»"),
     ],
     note:
-      "Picture-confirmed with a correction: the object is not a kitchen knife but the earlier product-placement dicer, still in its blister packaging. The prop that advertised domestic order becomes the thing an actress threatens with, which tightens the record rather than weakening it.",
+      "Picture-confirmed with a correction of staging, not of subject. The object is not a kitchen knife, and Truman does not grab it; the earlier description («holds the blister up in both hands») mixed two beats. What the frames show: the packaging sits on the table, Meryl takes the tools and holds them in front of her, and the line that asks whether she means to cut or peel him belongs to Truman. The commercial copy in this sequence is about cocoa, not about the dicer.",
   },
   {
     evidenceId: "truman-ev-fingers",
@@ -524,11 +525,11 @@ export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
     frames: [
       frame(
         3459.2,
-        "Track lines 3447.8 / 3459.2 and 3464.3 / 3469.9: Marlon delivers both halves of his promise twice, the second time with a correction — the same words reshot.",
+        "Track lines 3447.8 / 3459.2 and 3464.3 / 3469.9: the same promise is delivered twice within seconds, the second time with a small change.",
       ),
     ],
     note:
-      "Added after lock in the module-audit batch. It carries no claim about an earpiece or any device: only that the line is delivered twice with a correction. The modules previously asserted a earpiece prompt that no ledger entry supported, and that assertion was removed.",
+      "Added after lock in the module-audit batch. It carries no claim about an earpiece or any device, and none about a retake: the track shows a repetition, not who repeats the line or why. An earlier note read the repetition as the same words reshot until they sounded right; that inference was not supported by the track and has been removed. The modules previously asserted an earpiece prompt that no ledger entry supported, and that assertion was removed as well.",
   },
   {
     evidenceId: "truman-ev-camera-count",

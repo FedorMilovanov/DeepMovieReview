@@ -17,9 +17,22 @@
  * - the observation text states only what is on screen or on the subtitle
  *   track at that second — no interpretation, no unverified prop.
  *
- * Records that failed verification are deliberately absent or rewritten:
- * the research-tier «personal rain» beat does not exist in the film, and the
- * tunnel in the escape record was not found in picture.
+ * Records that failed verification are deliberately absent or rewritten. Two
+ * cases have a history worth keeping:
+ *
+ * - the research-tier «personal rain» record is retired, but *not* because the
+ *   beat is absent. A frame pass over the master's 12:41–13:06 window shows the
+ *   opposite: a narrow stream of rain falls on the seated Truman, he steps out
+ *   from under it, the stream stays where it was, and the rain then widens. The
+ *   retired record had two defects — it placed the beat in chapter 08, and it
+ *   asserted that the cloud follows the hero. The beat is rewritten here as
+ *   `truman-ev-rain`, in the scene where it actually stands;
+ * - the tunnel in the escape record was not found in picture.
+ *
+ * A retraction is not permission to overclaim in the other direction: the
+ * rewritten record states the stream as observed and names the mechanism
+ * («technical failure of the dome») as an interpretation, because no frame shows
+ * a mechanism.
  */
 
 import type { EvidenceRecord } from "@/lib/film-package";
@@ -130,6 +143,14 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "В лодке отец говорит: «Не нравится мне эта погода, сын», — и шторм уносит его за борт на глазах мальчика.",
   ),
   record(
+    "truman-ev-rain",
+    "Дождь, который стоит на месте",
+    "truman-sc-memories-of-dad",
+    761,
+    "MINOR",
+    "После разговора у воды начинается дождь: узкая струя падает на сидящего Трумана. Он встаёт и отходит в сторону — струя остаётся на прежнем месте, отдельно от него, — затем возвращается к ней. Через полминуты дождь расширяется на всю сцену. Кадры не показывают ни механизма, ни «тучи, которая следует за героем»: это домысел, а не увиденное.",
+  ),
+  record(
     "truman-ev-ghost",
     "Призрак отца",
     "truman-sc-memories-of-dad",
@@ -215,7 +236,7 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "truman-sc-mococoa",
     3250,
     "MAJOR",
-    "Прижатая вопросами Трумана, Мэрил поднимает обеими руками кухонную тёрку «Chef's Pal» — ту самую, что в начале фильма рекламировали как подарок в супермаркете.",
+    "Прижатая вопросами Трумана, Мэрил берёт со стола кухонные инструменты «Chef's Pal» и держит их перед собой, пока камера чередует её лицо и реакцию Трумана. Упаковка до этого лежит на столе: в кадре не нож, не блистер в руках и не он.",
   ),
   record(
     "truman-ev-knife-call",
@@ -417,7 +438,7 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "truman-sc-father-and-son-reunion",
     3459.2,
     "MAJOR",
-    "Ночью на мосту Марлон дважды произносит обещание — «скорее брошусь под машину» и «последнее, что я стал бы делать, — врать тебе», — и оба раза повторяет фразу с поправкой через несколько секунд: реплику подают заново, пока она не прозвучит правильно.",
+    "Ночью на мосту обещание звучит дважды почти дословно: «скорее брошусь под машину» и «последнее, что я стал бы делать, — врать тебе», — и оба раза фраза повторяется через несколько секунд с небольшим изменением. Кто произносит каждый повтор и почему он повторён — по субтитрам не установить: запись фиксирует повтор, а не его причину.",
   ),
   record(
     "truman-ev-camera-count",
@@ -433,6 +454,14 @@ export const trumanCanonicalEvidenceSummary = {
   records: trumanCanonicalEvidence.length,
   /** Research records deliberately not promoted. */
   retired: ["truman-ev-raincloud"],
+  /**
+   * Retired research records that come back under a new id, rewritten to what
+   * the master actually shows. A rewritten record is neither «retired» nor
+   * «added»: it keeps a lineage, and the ledger above keeps its history.
+   */
+  rewritten: {
+    "truman-ev-raincloud": ["truman-ev-rain"],
+  },
   /**
    * One research record that was split into two canonical records because its
    * two halves sit in different scenes.

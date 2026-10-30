@@ -4,7 +4,6 @@ import { inspect } from "node:util";
 import { arch, release } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
-import { setTimeout as delay } from "node:timers/promises";
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari, waitForNativeValue } from "./lib/native-safari.mjs";

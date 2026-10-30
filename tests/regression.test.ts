@@ -4065,7 +4065,7 @@ test("Film 001 canonical package is LOCKED, draft, and free of the research tier
 test("Film 001 canonical evidence retires, splits and adds exactly as declared", () => {
   const canonicalIds = new Set(trumanCanonicalEvidence.map((item) => item.id));
   const researchIds = new Set((theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id));
-  const { retired, split, added } = trumanCanonicalEvidenceSummary;
+  const { retired, split, added, rewritten } = trumanCanonicalEvidenceSummary;
 
   // The «personal rain» beat does not exist in the film.
   for (const retiredId of retired) {
@@ -4087,12 +4087,24 @@ test("Film 001 canonical evidence retires, splits and adds exactly as declared",
     assert.equal(researchIds.has(addedId), false, `${addedId}: must be new, not inherited`);
   }
 
+  // A rewritten record keeps a lineage: one retired research id comes back under
+  // a new canonical id, and the count moves by exactly one.
+  for (const [researchId, replacements] of Object.entries(rewritten)) {
+    assert.ok(researchIds.has(researchId), `${researchId}: must exist in research tier`);
+    assert.equal(canonicalIds.has(researchId), false, `${researchId}: rewritten records are retired`);
+    for (const replacementId of replacements) {
+      assert.ok(canonicalIds.has(replacementId), `${replacementId}: missing rewritten record`);
+      assert.equal(researchIds.has(replacementId), false, `${replacementId}: must be a new id`);
+    }
+  }
+
   const inherited = [...researchIds].filter((id) => !(retired as readonly string[]).includes(id));
   const expected =
     inherited.length -
     Object.keys(split).length +
     Object.values(split).reduce((total, ids) => total + ids.length, 0) +
-    added.length;
+    added.length +
+    Object.values(rewritten).reduce((total, ids) => total + ids.length, 0);
   assert.equal(canonicalIds.size, expected, "canonical evidence count drifted");
 });
 
@@ -4371,14 +4383,18 @@ test("Film 001 article keeps the five refuted claims inside the corrections tabl
   assert.ok(corrections && corrections.kind === "corrections");
   assert.equal(corrections.rows.length, 5);
 
-  // The piece may *discuss* a refuted claim in prose (that is the point of the
+  // The piece may *discuss* a corrected claim in prose (that is the point of the
   // section), but the correction itself must live in the table, with a source:
-  // evidence for a rewritten fact, an explicit absence for a beat that does not
-  // exist, and nothing hanging unsupported.
+  // evidence for a rewritten fact and nothing hanging unsupported.
+  //
+  // This test used to require exactly one `absentFromMaster` row. That row was
+  // the rain, and it was wrong: the beat is in the film. A correction may still
+  // declare a beat absent, but nothing in this article does, and a new absence
+  // claim has to bring its own reason — so the count is asserted at zero.
   assert.equal(
     corrections.rows.filter((row) => row.absentFromMaster).length,
-    1,
-    "exactly one correction is an absent-beat claim",
+    0,
+    "no correction declares a beat absent: the last one was a misreading",
   );
   for (const row of corrections.rows) {
     assert.ok(row.commonClaim.length > 0 && row.onScreen.length > 0);
@@ -4388,13 +4404,20 @@ test("Film 001 article keeps the five refuted claims inside the corrections tabl
     );
   }
 
+  // The rain row is the regression this file exists for: it used to say the
+  // episode does not exist. It must now point at a canonical record that does.
+  const rainRow = corrections.rows.find((row) => row.id === "truman-article-correction-rain");
+  assert.ok(rainRow, "the rain correction must stay in the table");
+  assert.equal(rainRow.evidenceId, "truman-ev-rain");
+  assert.equal(/нет ни в одной|отсутству/i.test(rainRow.onScreen), false, "the rain row must not claim absence");
+
   const claims = corrections.rows.map((row) => row.commonClaim.toLowerCase()).join(" | ");
   for (const marker of ["дождь", "нож", "полос", "пальц", "подкоп"]) {
     assert.ok(claims.includes(marker), `corrections table lost the "${marker}" claim`);
   }
 
-  // The five refuted claims are exactly the ones the promoted evidence graph
-  // can answer; the absent one is absent from the subtitle track as well.
+  // The five corrected claims are exactly the ones the promoted evidence graph
+  // can answer.
   const evidenceIds = new Set((theTrumanShowCanonicalPackage.evidence ?? []).map((item) => item.id));
   for (const row of corrections.rows) {
     if (row.evidenceId) {
