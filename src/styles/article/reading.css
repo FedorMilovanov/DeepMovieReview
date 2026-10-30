@@ -235,4 +235,4 @@
 @media print { .articleVerdictContext::details-content { display: block; } }
 
 .articleAnalysis { background: var(--surface-1); padding-inline: var(--space-4); }
-.articleAnalysis > .filmDecision { width: 100%; padding-block: var(--space-5); border: 0; }
+.articleAnalysis > section { width: 100%; padding-block: var(--space-5); border: 0; }
