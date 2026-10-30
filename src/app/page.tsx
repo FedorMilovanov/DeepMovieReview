@@ -7,7 +7,7 @@ import { AutopsyExamine } from "@/components/home/autopsy-examine";
 import { PipelineSpy } from "@/components/home/pipeline-spy";
 import { SpoilerLadder } from "@/components/home/spoiler-ladder";
 import type { NarrativePermissionState } from "@/lib/content";
-import { getFilmPackageBySlug, requireFilmPackageBySlug } from "@/data/film-registry";
+import { filmPackages, getFilmPackageBySlug, requireFilmPackageBySlug } from "@/data/film-registry";
 import { pluralRu } from "@/lib/plural-ru";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { projectHomepage, type HomepageViewModel } from "@/lib/homepage-projection";
@@ -831,6 +831,61 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
   );
 }
 
+/**
+ * The finished edition, named on the homepage without pretending it is published.
+ *
+ * The front page features a structural fixture, so the real analysis — 22 scenes,
+ * 47 evidence records, a full article — is reachable only by someone who already
+ * knows the URL. Featuring a draft as if it were live would be the opposite error;
+ * naming it, printing what is actually inside and saying plainly why it is not
+ * indexed is the honest middle. Every number is read from the package.
+ */
+function EditionEntry() {
+  const edition = filmPackages.find(
+    (filmPackage) =>
+      filmPackage.film.status !== "fixture" && filmPackage.ingest?.edition?.state === "LOCKED",
+  );
+  if (!edition) return null;
+
+  const scenes = edition.scenes?.length ?? 0;
+  const evidence = edition.evidence?.length ?? 0;
+  const sections = edition.article?.sections.length ?? 0;
+
+  return (
+    <section className="sectionShell editionEntry" aria-labelledby="edition-entry-title">
+      <div className="sectionIndex">FILM 001 · залоченное издание, черновик</div>
+      <h2 id="edition-entry-title">{edition.film.title}</h2>
+      <p className="sectionIntro">{edition.film.thesisQuestion}</p>
+      <dl className="editionEntryCounts">
+        <div>
+          <dt>Сцены</dt>
+          <dd>{scenes}</dd>
+        </div>
+        <div>
+          <dt>Записи доказательств</dt>
+          <dd>{evidence}</dd>
+        </div>
+        <div>
+          <dt>Разделы разбора</dt>
+          <dd>{sections}</dd>
+        </div>
+      </dl>
+      <div className="heroActions">
+        <Link className="buttonPrimary" href={`/films/${edition.film.slug}`}>
+          Открыть разбор
+        </Link>
+        <Link className="buttonGhost" href={`/films/${edition.film.slug}/article`}>
+          Читать текст
+        </Link>
+      </div>
+      <p className="heroPreviewNote">
+        Не опубликовано: мастер заблокирован, страница закрыта от индексации и открыта только в
+        режиме предпросмотра. Черновик не считается публикацией.
+      </p>
+    </section>
+  );
+}
+
 export default function HomePage() {
   const previewContentEnabled = isPreviewContentEnabled();
   const isPublished = featuredFilmPackage.film.status === "published";
@@ -854,6 +909,7 @@ export default function HomePage() {
   return (
     <>
       <PlatformLanding preview />
+      <EditionEntry />
       <DataSections data={data} published={false} />
     </>
   );

@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ArticleTable } from "../src/components/film-article/article-table";
+import { FilmEvidenceMap } from "../src/components/film-modules/evidence-map";
 import { theFastAndTheFuriousDraftPackage } from "../src/data/films/the-fast-and-the-furious";
 import { createRequire } from "node:module";
 import test from "node:test";
@@ -5834,6 +5835,31 @@ test("Film 001 comparison panels refuse a verdict, an unsupported side and a clo
     validateFilmArticle(oneSided, trumanArticleContext()).join("\n"),
     /a duel needs at least two sides/,
   );
+});
+
+test("Film 001 every evidence anchor on the film page resolves", () => {
+  // Character cards and the map itself link to `#evidence-<id>`. Only the records a
+  // claim happened to cite got a card, so 39 of 47 anchors landed on nothing. The
+  // register now gives every record an anchor, and this test holds that line.
+  const filmPackage = theTrumanShowCanonicalPackage;
+  const sourcesModule = filmPackage.modules.find((module) => module.kind === "sources-method");
+  const html = renderToStaticMarkup(
+    createElement(FilmEvidenceMap, {
+      evidence: filmPackage.evidence ?? [],
+      modules: filmPackage.modules,
+      researchDraft: false,
+      scenes: filmPackage.scenes ?? [],
+      sources: sourcesModule?.kind === "sources-method" ? sourcesModule.sources : [],
+    }),
+  );
+
+  const hrefs = [...html.matchAll(/href="#evidence-([a-z0-9-]+)"/g)].map((match) => match[1]!);
+  const ids = new Set([...html.matchAll(/id="evidence-([a-z0-9-]+)"/g)].map((match) => match[1]!));
+  assert.ok(hrefs.length > 0, "the map must link to its own anchors");
+  assert.deepEqual([...new Set(hrefs.filter((id) => !ids.has(id)))], [], "no anchor may land on nothing");
+  for (const record of filmPackage.evidence ?? []) {
+    assert.ok(ids.has(record.id), `${record.id}: every record needs a target for its anchor`);
+  }
 });
 
 test("Homepage never presents a generated illustration as a film frame", () => {

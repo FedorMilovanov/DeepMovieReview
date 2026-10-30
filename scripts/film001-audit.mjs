@@ -65,6 +65,30 @@ for (const section of article.sections) {
   for (const block of section.blocks) sectionOf.set(block.id, section);
 }
 
+/**
+ * Every string a block actually prints.
+ *
+ * The audit used to read `text ?? caption`, which quietly excluded the duel and the
+ * corrections row-list from the prose checks — the blocks that argue hardest were
+ * the ones measured least.
+ */
+function proseOf(block) {
+  switch (block.kind) {
+    case "duel":
+      return [block.label, block.question, block.open, ...block.sides.map((side) => side.reading)]
+        .filter(Boolean)
+        .join(" ");
+    case "corrections":
+      return [block.caption, ...block.rows.flatMap((row) => [row.commonClaim, row.onScreen])]
+        .filter(Boolean)
+        .join(" ");
+    case "timeline":
+      return block.items.map((item) => item.label).join(" ");
+    default:
+      return [block.text, block.caption].filter(Boolean).join(" ");
+  }
+}
+
 /* ── Article structure ───────────────────────────────────────────────── */
 
 check("A01", "статья существует и связана с фильмом", () => {
@@ -104,23 +128,33 @@ check("A07", "у каждого блока непустой текст или п
     if (b.kind === "timeline" || b.kind === "myths") return false;
     if (b.kind === "illustration" || b.kind === "corrections") return !b.caption;
     if (b.kind === "measurement-table") return false;
+    // A duel carries no `text` of its own: its content is the question, every side's
+    // reading, and the open question the block exists to state.
+    if (b.kind === "duel") {
+      return !(
+        b.question?.trim() &&
+        b.open?.trim() &&
+        b.sides.length > 0 &&
+        b.sides.every((side) => side.reading?.trim())
+      );
+    }
     return !b.text || !b.text.trim();
   });
   return empty.length === 0 || empty.map((b) => b.id).join(",");
 });
 
 check("A08", "объём статьи не меньше 25 тысяч знаков", () => {
-  const chars = blocks.reduce((n, b) => n + (b.text?.length ?? b.caption?.length ?? 0), 0);
+  const chars = blocks.reduce((n, b) => n + proseOf(b).length, 0);
   return chars >= 25000 || `only ${chars}`;
 });
 
 check("A09", "в статье нет двойных пробелов и висящих пробелов", () => {
-  const bad = blocks.filter((b) => /  |\s$|^\s/.test(b.text ?? b.caption ?? ""));
+  const bad = blocks.filter((b) => /  |\s$|^\s/.test(proseOf(b)));
   return bad.length === 0 || bad.map((b) => b.id).join(",");
 });
 
 check("A10", "в статье нет типографских прямых кавычек", () => {
-  const bad = blocks.filter((b) => /"/.test(b.text ?? b.caption ?? ""));
+  const bad = blocks.filter((b) => /"/.test(proseOf(b)));
   return bad.length === 0 || bad.map((b) => b.id).join(",");
 });
 

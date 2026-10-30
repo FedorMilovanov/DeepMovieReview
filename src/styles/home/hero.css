@@ -183,3 +183,49 @@
   margin-bottom: clamp(1.5rem, 4vw, 3rem);
 }
 
+
+/* The real edition, named on a homepage that still features the fixture. It sits
+   between the platform hero and the structural stand, so it is the first thing a
+   reader meets after the introduction. */
+.editionEntry {
+  display: grid;
+  gap: 1rem;
+  padding-block: 3rem;
+  border-bottom: 1px solid var(--stroke-subtle);
+}
+
+.editionEntry h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  line-height: 1.1;
+}
+
+.editionEntryCounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin: 0;
+}
+
+.editionEntryCounts div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.editionEntryCounts dt {
+  color: var(--ink-4);
+  font-family: var(--font-meta);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.editionEntryCounts dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.editionEntry .heroActions {
+  margin: 0;
+}

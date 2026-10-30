@@ -266,7 +266,15 @@ export function FilmEvidenceMap({
           </details>
         ))}
       </div>
-      <EvidenceRegister evidence={evidence} researchDraft={researchDraft} scenesById={scenesById} />
+      <EvidenceRegister
+        cardIds={new Set(entries.flatMap((entry) => [
+          ...entry.support.evidenceIds,
+          ...(entry.support.counterevidenceIds ?? []),
+        ]))}
+        evidence={evidence}
+        researchDraft={researchDraft}
+        scenesById={scenesById}
+      />
     </section>
   );
 }
@@ -280,9 +288,12 @@ export function FilmEvidenceMap({
  * records nobody has cited yet, so «проверено» can be counted instead of believed.
  */
 function EvidenceRegister({
+  cardIds,
   evidence,
   scenesById,
 }: {
+  /** Records the map above already gave a card. Each anchor id must resolve once. */
+  cardIds: ReadonlySet<string>;
   evidence: EvidenceRecord[];
   scenesById: Map<string, FilmSceneRecord>;
   researchDraft: boolean;
@@ -317,14 +328,22 @@ function EvidenceRegister({
           <tbody>
             {ordered.map((record) => {
               const scene = record.sceneId ? scenesById.get(record.sceneId) : undefined;
+              const hasCard = cardIds.has(record.id);
               return (
-                <tr key={record.id} data-outcome={record.basis?.outcome ?? "missing"}>
+                <tr
+                  key={record.id}
+                  data-outcome={record.basis?.outcome ?? "missing"}
+                  // A record the map did not need still has to own its anchor: the
+                  // character cards link to «#evidence-<id>», and 39 of those links
+                  // used to land on nothing.
+                  id={hasCard ? undefined : `evidence-${record.id}`}
+                >
                   <td className="evidenceRegisterTime">
                     {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}
                   </td>
                   <td>{scene ? scene.shortLabel : "—"}</td>
                   <th scope="row">
-                    <a href={`#evidence-${record.id}`}>{record.label}</a>
+                    {hasCard ? <a href={`#evidence-${record.id}`}>{record.label}</a> : record.label}
                   </th>
                   <td>{record.basis ? evidenceBasisMaterialLabels[record.basis.material] : "не записана"}</td>
                   <td>
