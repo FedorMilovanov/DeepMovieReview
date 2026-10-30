@@ -152,7 +152,23 @@ try {
     await reader.press("Control+Home");
   }
   await action("structural heading navigation", async () => {
-    if (!mac) return reader.nextHeading(navigationOptions);
+    if (!mac) {
+      // NVDA can announce only the host window when Chrome lost foreground focus
+      // after page load. Heading navigation is read-only: re-assert document
+      // focus and repeat once, recording the condition instead of accepting the
+      // window title as a heading.
+      for (let attempt = 1; ; attempt++) {
+        await reader.nextHeading(navigationOptions);
+        const speech = (await reader.spokenPhraseLog()).join(" ");
+        if (attempt > 1 || !/\bwindow\b/i.test(speech)) {
+          report.headingNavigation = { attempts: attempt, refocused: attempt > 1 };
+          return;
+        }
+        await page.bringToFront();
+        await perform(reader.keyboardCommands.exitFocusMode, { capture: false });
+        await reader.press("Control+Home");
+      }
+    }
     // Use VoiceOver's actual Headings rotor rather than treating a Safari web
     // group announcement from VO-Command-H as proof of a heading.
     await perform(reader.keyboardCommands.openWebItemRotor, navigationOptions);
