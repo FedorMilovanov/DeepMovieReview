@@ -299,41 +299,52 @@ export async function renderedContrast(page, nodes, directory, id) {
       if (suspects.length) {
         const ids = [...new Set(suspects.map(box => box.id))];
         const before = suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum }));
-        const read = bytes => {
-          const png = PNG.sync.read(bytes);
-          if (png.width !== snapshot.width || png.height !== snapshot.height) throw new Error("Pixel/viewport scale mismatch in a verification capture");
-          return new Map(suspects.map(box => [box, rectangleContrast(png, box.sample, box.foreground)]));
-        };
-        let verified, verifiedBounds, retried = false;
+        const captures = [];
         try {
+          // Text-only mask: it must not disturb the element's own background. A
+          // `currentColor` background resolves from `color`, which this never
+          // touches, so the calibration fixture keeps failing as it should.
           await page.evaluate(({ s, ids }) => {
-            // Hide only the measured glyphs: text that legitimately paints behind
-            // other text must stay, or the "background" would be a fiction.
             const elements = new Set(s.records.filter(record => ids.includes(record.id)).map(record => record.element));
-            s.saved = [...elements].map(element => ({ element, properties: [{ name: "visibility",
-              value: element.style.getPropertyValue("visibility"), priority: element.style.getPropertyPriority("visibility") }] }));
-            for (const element of elements) element.style.setProperty("visibility", "hidden");
+            s.saved = [...elements].map(element => ({ element,
+              properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color"].map(name => ({
+                name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
+            for (const element of elements) {
+              element.style.setProperty("-webkit-text-fill-color", "transparent");
+              element.style.setProperty("text-shadow", "none");
+              if (element.namespaceURI === "http://www.w3.org/2000/svg") element.style.setProperty("fill", "transparent");
+            }
           }, { s: state, ids });
-          await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-          verified = await page.screenshot();
-          verifiedBounds = read(verified);
-          if (suspects.some(box => verifiedBounds.get(box).minimum !== null && verifiedBounds.get(box).minimum < box.threshold)) {
-            // A promoted layer can keep the previous frame. Nudging the scroll by
-            // one pixel and restoring it forces a real recomposite without
-            // touching the product's styles or layout.
-            await page.evaluate(() => { const y = scrollY; scrollTo({ top: y + 1, behavior: "instant" });
+          for (const pass of [0, 1]) {
+            // A promoted layer can keep the previous frame even after a transparent
+            // fill. The second pass nudges the scroll by one pixel and restores it,
+            // which forces a real recomposite without touching styles or layout.
+            if (pass === 1) await page.evaluate(() => { const y = scrollY; scrollTo({ top: y + 1, behavior: "instant" });
               scrollTo({ top: y, behavior: "instant" }); });
             await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-            verified = await page.screenshot();
-            verifiedBounds = read(verified);
-            retried = true;
+            captures.push(await page.screenshot());
           }
         } finally {
           await page.evaluate(restoreTextPaint, state);
         }
-        writeFileSync(`${directory}/${name}-verified.png`, verified);
-        for (const box of suspects) bounds.set(box, verifiedBounds.get(box));
-        verifications.push({ tile, ids, retried, capture: `${name}-verified.png`, before,
+        const read = (bytes, name) => {
+          const png = PNG.sync.read(bytes);
+          if (png.width !== snapshot.width || png.height !== snapshot.height) throw new Error("Pixel/viewport scale mismatch in a verification capture");
+          writeFileSync(`${directory}/${name}-verified.png`, bytes);
+          return new Map(suspects.map(box => [box, rectangleContrast(png, box.sample, box.foreground)]));
+        };
+        const passes = captures.map((bytes, index) => read(bytes, `${name}-${index}`));
+        // Keep the highest of the two: a capture that still contains the glyphs can
+        // only measure lower than the same capture without them.
+        const applied = [];
+        for (const box of suspects) {
+          const best = passes.map(pass => pass.get(box)).reduce((a, b) =>
+            (b.minimum ?? 0) > (a.minimum ?? 0) ? b : a);
+          // Below 1.02 the capture is the glyph paint itself, not a background.
+          // Then the original bound stands: the failure is kept, never waived.
+          if (best.minimum != null && best.minimum >= 1.02) { bounds.set(box, best); applied.push(box.id); }
+        }
+        verifications.push({ tile, ids, captures: captures.map((_, index) => `${name}-${index}-verified.png`), before, applied,
           after: suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum })) });
       }
       for (const box of snapshot.boxes) {
