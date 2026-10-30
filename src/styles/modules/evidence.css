@@ -293,6 +293,25 @@
   font-size: 0.82rem;
 }
 
+/* 40rem of minimum width is a desktop floor. On a phone it is a horizontal
+   scrollbar inside a page that forbids one, so the floor comes off and the cells
+   wrap; the caption still names the table for a screen reader. */
+@media (max-width: 760px) {
+  .evidenceRegisterWrap table {
+    min-width: 0;
+  }
+
+  .evidenceRegisterWrap th,
+  .evidenceRegisterWrap td {
+    padding: 0.45rem 0.4rem;
+    overflow-wrap: anywhere;
+  }
+
+  .evidenceRegisterTime {
+    white-space: normal;
+  }
+}
+
 .evidenceRegisterWrap th,
 .evidenceRegisterWrap td {
   padding: 0.5rem 0.7rem;

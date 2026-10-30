@@ -130,6 +130,30 @@
   text-align: right;
 }
 
+/* A 390px screen cannot hold five columns of padded table: the shell clips, the
+   reader loses the last column, and the audit sees content wider than its box.
+   Below the tablet breakpoint the cells wrap instead of holding a line, and the
+   padding shrinks — the table stays a table, it just stops pretending to be wide. */
+@media (max-width: 760px) {
+  .filmSceneTable thead th,
+  .filmSceneTable tbody th,
+  .filmSceneTable tbody td {
+    padding: 0.55rem 0.5rem;
+  }
+
+  .filmSceneIndex,
+  .filmSceneTime,
+  .filmSceneSupports,
+  .filmSceneState {
+    white-space: normal;
+  }
+
+  .filmSceneTable tbody th,
+  .filmSceneTable tbody td {
+    overflow-wrap: anywhere;
+  }
+}
+
 .filmSceneState {
   font-family: var(--font-meta);
   font-size: 0.68rem;
