@@ -222,6 +222,10 @@ export async function renderedContrast(page, nodes, directory, id) {
           }).map(record => record.id)];
         }, state);
         for (const box of snapshot.boxes) if (invalidMask.includes(box.id)) box.issue = "Text mask did not remove foreground";
+        // WebKit may keep a promoted (composited) panel's old layer until the
+        // next frame; screenshotting in the same task measured the unmasked
+        // glyphs at 1:1. Let the masked paint commit, then capture.
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         background = await page.screenshot();
         // A late re-render can replace masked text after the style probe.
         // Verify the captured frame still had transparent foregrounds and that
@@ -236,6 +240,7 @@ export async function renderedContrast(page, nodes, directory, id) {
           }), state);
           if (stillMasked) break;
           await page.evaluate(maskTextPaint, state);
+          await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
           background = await page.screenshot();
         }
       } finally {
