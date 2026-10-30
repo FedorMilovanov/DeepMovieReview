@@ -562,3 +562,21 @@ test("native touch waits for a stable hit target without repeating the gesture",
     now: () => clock, pause: async () => { clock += 100; }, timeout: 300,
   }), /remained occluded/);
 });
+
+test("quaternary meta text clears AA on the lightest elevated surface", () => {
+  const css = readStylesheet("src/styles/tokens.css");
+  const token = name => css.match(new RegExp(`${name}\\s*:\\s*(#[0-9a-fA-F]{6})`))?.[1];
+  const luminance = hex => {
+    const channels = hex.slice(1).match(/../g).map(part => parseInt(part, 16) / 255)
+      .map(value => value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  };
+  const ratio = (a, b) => {
+    const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (light + 0.05) / (dark + 0.05);
+  };
+  // #2c2b2a is the lightest composited surface measured by CI contrast scans.
+  assert.ok(ratio(token("--ink-4") || "#000", "#2c2b2a") >= 4.5, `--ink-4 fails AA: ${token("--ink-4")}`);
+  assert.ok(luminance(token("--ink-3")) > luminance(token("--ink-4")), "ink-3 stays above ink-4");
+  assert.ok(luminance(token("--ink-2")) > luminance(token("--ink-3")), "ink-2 stays above ink-3");
+});

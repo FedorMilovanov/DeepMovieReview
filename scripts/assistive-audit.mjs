@@ -133,7 +133,20 @@ try {
     await action("VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
     // With the real page (no injected marker), interact already reaches its
     // skip link. An extra next moves into the banner instead of finding h1.
-    await action("VoiceOver enter web area", () => perform(reader.keyboardCommands.interactWithItem, navigationOptions), /перейти к содержимому/i);
+    let focusProbe;
+    try {
+      await action("VoiceOver enter web area", () => perform(reader.keyboardCommands.interactWithItem, navigationOptions), /перейти к содержимому/i);
+    } finally {
+      // Diagnose native focus separately from speech: a silent name is not the
+      // same defect as focus landing on another control. Never relax the speech
+      // assertion to the generic web-area help phrase.
+      focusProbe = await safari.execute(`(() => { const el = document.activeElement;
+        return el ? { tag: el.tagName, text: (el.textContent || '').trim().slice(0, 80),
+          href: el.getAttribute('href'), className: el.className } : null; })()`);
+      evidence.focusProbe = focusProbe;
+      report.focusProbe = focusProbe;
+      checkpoint("VoiceOver enter web area: native focus probed");
+    }
   } else {
     await page.bringToFront();
     await perform(reader.keyboardCommands.exitFocusMode, { capture: false });
