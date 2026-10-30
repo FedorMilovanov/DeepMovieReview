@@ -635,3 +635,14 @@ test("a text-coloured background is a contrast failure, not a lost mask", async 
   assert.equal(samePaintedColor([0, 0, 0, 1], [255, 255, 255, 1]), false);
   assert.equal(samePaintedColor([155, 151, 143, 0.5], [155, 151, 143, 1]), false);
 });
+
+test("page-serialised probes never reference module-scope helpers", async () => {
+  const lib = await import("../scripts/lib/rendered-contrast.mjs");
+  // Playwright serialises these functions into the browser, where imports do not exist.
+  for (const name of ["snapshotTextPaint", "maskTextPaint", "restoreTextPaint", "refreshTextRanges", "hardMaskTextPaint"]) {
+    const source = lib[name].toString();
+    for (const helper of ["samePaintedColor", "exposedRows", "rectangleContrast", "missingRangeIds"]) {
+      assert.ok(!source.includes(`${helper}(`), `${name} must not call ${helper}`);
+    }
+  }
+});

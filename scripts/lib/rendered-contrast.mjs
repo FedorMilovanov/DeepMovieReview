@@ -135,10 +135,14 @@ export function snapshotTextPaint(s) {
     }
     if (unpainted) continue;
     // Walk real ancestors for an opaque background colour equal to the glyphs.
+    // Inline comparison: this function is serialised into the page, so it may
+    // not reference module-scope helpers.
+    const samePainted = (a, b, tolerance = 12) => (a[3] ?? 1) >= 1 && (b[3] ?? 1) >= 1 &&
+      [0, 1, 2].every(index => Math.abs(a[index] - b[index]) <= tolerance);
     let backgroundExplainable = false;
     for (let element = record.element; element; element = element.parentElement) {
       const painted = rgba(getComputedStyle(element).backgroundColor);
-      if (painted[3] >= 1 && samePaintedColor(painted, foreground)) { backgroundExplainable = true; break; }
+      if (samePainted(painted, foreground)) { backgroundExplainable = true; break; }
     }
     const threshold = parseFloat(style.fontSize) >= 24 || (parseFloat(style.fontWeight) >= 700 && parseFloat(style.fontSize) >= 14 * 4 / 3) ? 3 : 4.5;
     [...record.range.getClientRects()].forEach((rect, line) => {
