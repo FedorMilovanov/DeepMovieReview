@@ -43,6 +43,14 @@ body {
   font: inherit;
 }
 
+/* Repeated disclosure taps must toggle, not select the changing button label.
+   Scoped to disclosure buttons: prose selection and page pinch zoom remain. */
+button[aria-expanded] {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 p {
   line-height: var(--leading-body);
 }
@@ -202,12 +210,10 @@ h3 {
 .siteHeader {
   min-height: 78px;
   border-bottom-color: var(--stroke-subtle);
+  /* Opaque from the first paint. A translucent scrim plus backdrop blur let
+     meta text pass beneath the sticky bar at ~3.6:1, and the transition made
+     that window visible on every scroll. Solid canvas, no live blur. */
   background: var(--surface-canvas);
-  background: color-mix(in srgb, var(--surface-canvas) 86%, transparent);
-  /* Prefixed twin for Safari: the unprefixed property only shipped there
-     in Safari 18, and without it the sticky header loses its scrim. */
-  -webkit-backdrop-filter: blur(18px) saturate(115%);
-  backdrop-filter: blur(18px) saturate(115%);
 }
 
 .siteHeader::after {

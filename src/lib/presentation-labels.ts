@@ -4,6 +4,7 @@ import type {
   CharacterPresentation,
   Confidence,
   CraftMechanism,
+  EvidenceReviewBasis,
   DecisionKnowledgeState,
   IdentificationStrength,
   DecisionPressureKind,
@@ -181,4 +182,20 @@ export const researchSourceRoleLabels: Record<ResearchSourceRole, string> = {
   "professional-reference": "профессиональный источник",
   "database-transcript": "база / каталог / расшифровка",
   "tertiary-community": "третичный / общественный разбор",
+};
+
+/**
+ * How a check was carried out, in the reader's words. Shared so that a film-page
+ * card and an article note cannot describe the same basis differently.
+ */
+export const evidenceBasisMaterialLabels: Record<EvidenceReviewBasis["material"], string> = {
+  frames: "кадры мастера",
+  "subtitle-track": "встроенные субтитры",
+};
+
+export const evidenceBasisOutcomeLabels: Record<EvidenceReviewBasis["outcome"], string> = {
+  seen: "наблюдение подтверждено",
+  heard: "подтверждено по репликам",
+  refused: "запись не подтвердилась",
+  pending: "на этом таймкоде проверка не записана",
 };

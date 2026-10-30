@@ -1,6 +1,18 @@
+import type { ReactNode } from "react";
+import { DecisionModuleView } from "@/components/film-modules/module-components";
+import { VerdictCore } from "@/components/experience/verdict-core";
+import { EvidenceBasisLine } from "@/components/evidence-basis";
+import { ReadingOutline } from "./reading-outline";
 import { ArticleTable } from "./article-table";
 import Link from "next/link";
-import type { ArticleBlock, ArticleMeasurementRef, FilmArticle } from "@/lib/film-package";
+import type {
+  ArticleBlock,
+  ArticleMeasurementRef,
+  EvidenceRecord,
+  FilmArticle,
+  FinalSynthesisModule,
+  DecisionModule,
+} from "@/lib/film-package";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { illustrationView } from "@/data/film-illustrations";
 import type { ArticleMeasurementView, ArticleProjection } from "@/lib/film-article";
@@ -18,6 +30,9 @@ type ArticleViewProps = {
    */
   filmTitle: string;
   projection: ArticleProjection;
+  synthesis?: FinalSynthesisModule;
+  controls?: ReactNode;
+  decisions?: DecisionModule[];
   spoilerLevel: SpoilerLevel;
   /** Renders a measurement from the committed dataset, never from prose. */
   describeMeasurement: (ref: ArticleMeasurementRef) => ArticleMeasurementView | undefined;
@@ -29,6 +44,12 @@ type ArticleViewProps = {
    * article data never repeats a module's own wording.
    */
   moduleHeadings?: Record<string, string>;
+  /**
+   * Evidence records by id, for the blocks that show their own proof. The
+   * article never stores a label or a timecode next to a claim: it stores the
+   * id, and the record decides what the reader sees.
+   */
+  evidenceById?: ReadonlyMap<string, EvidenceRecord>;
 };
 
 const levelLabels: Record<SpoilerLevel, string> = {
@@ -45,14 +66,7 @@ function formatSignatureDate(iso: string): string {
   return `${day}.${month}.${year}`;
 }
 
-/**
- * An illustration inside the argument.
- *
- * A plain `<picture>` again: AVIF first, JPEG as the guaranteed fallback, no
- * build-time image service. The caption is not decoration — it is where the
- * picture admits it is a drawing and not a frame of the film, and the validator
- * refuses the block if that sentence is missing.
- */
+/** Original drawing. Provenance stays in the model and accessible alternative, not a prose caption. */
 function ArticleIllustration({
   block,
 }: {
@@ -70,14 +84,13 @@ function ArticleIllustration({
           src={view.src}
           srcSet={view.srcSet}
           sizes={view.sizes}
-          alt={view.alt}
+          alt={`Авторская иллюстрация, не кадр из фильма. ${view.alt}`}
           width={view.width}
           height={view.height}
           loading="lazy"
           decoding="async"
         />
       </picture>
-      <figcaption>{block.caption}</figcaption>
     </figure>
   );
 }
@@ -98,18 +111,101 @@ function MeasurementFigure({ view, text }: { view: ArticleMeasurementView; text:
   );
 }
 
+/**
+ * Two readings of the same second, side by side, with the open question below.
+ *
+ * The panel deliberately has no winner row, no meter and no percentage: what a
+ * comparison of this kind can honestly deliver is the shape of the disagreement
+ * plus the proof each side stands on.
+ */
+function ArticleDuel({
+  block,
+  evidenceById,
+  formatTimecode,
+}: {
+  block: Extract<ArticleBlock, { kind: "duel" }>;
+  evidenceById?: ReadonlyMap<string, EvidenceRecord>;
+  formatTimecode: (seconds: number) => string;
+}) {
+  return (
+    <section className="articleDuel" aria-label={block.label}>
+      <p className="articleDuelLabel">{block.label}</p>
+      <h3 className="articleDuelQuestion">{block.question}</h3>
+      <div className="articleDuelSides">
+        {block.sides.map((side) => (
+          <article className="articleDuelSide" key={side.id}>
+            <h4>{side.label}</h4>
+            <p>{side.reading}</p>
+            <ul className="articleDuelEvidence" aria-label="Опора этой стороны">
+              {side.evidenceIds.map((id) => {
+                const record = evidenceById?.get(id);
+                if (!record) return null;
+                return (
+                  <li key={id}>
+                    {record.timestampSeconds !== undefined ? (
+                      <span className="articleDuelTime">{formatTimecode(record.timestampSeconds)}</span>
+                    ) : null}
+                    <span>{record.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </article>
+        ))}
+      </div>
+      <p className="articleDuelOpen">
+        <span className="microLabel">Остаётся открытым</span>
+        {block.open}
+      </p>
+    </section>
+  );
+}
+
 function ArticleBlockView({
   block,
   describeMeasurement,
+  evidenceById,
   formatTimecode,
 }: {
   block: ArticleBlock;
   describeMeasurement: ArticleViewProps["describeMeasurement"];
+  evidenceById?: ReadonlyMap<string, EvidenceRecord>;
   formatTimecode: (seconds: number) => string;
 }) {
   switch (block.kind) {
-    case "paragraph":
-      return <p className="articleParagraph">{block.text}</p>;
+    case "duel":
+      return <ArticleDuel block={block} evidenceById={evidenceById} formatTimecode={formatTimecode} />;
+    case "paragraph": {
+      const supports = (block.support?.evidenceIds ?? []).flatMap((id) => {
+        const record = evidenceById?.get(id);
+        return record ? [record] : [];
+      });
+      return (
+        <>
+          <p className="articleParagraph">{block.text}</p>
+          {supports.length > 0 ? (
+            <details className="articleSupport">
+              <summary>
+                {supports.length === 1 ? "Опора этого абзаца" : `Опоры этого абзаца · ${supports.length}`}
+              </summary>
+              <ul>
+                {supports.map((record) => (
+                  <li key={record.id}>
+                    <span className="articleTimecode">
+                      {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}
+                    </span>
+                    <div>
+                      <p>{record.label}</p>
+                      <EvidenceBasisLine basis={record.basis} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </>
+      );
+    }
     case "aside":
       return (
         <aside className="articleAside" role="note" aria-label={block.label}>
@@ -135,6 +231,29 @@ function ArticleBlockView({
             <li key={item.id}>
               <span className="articleTimecode">{formatTimecode(item.timestampSeconds)}</span>
               <p>{item.label}</p>
+              {(() => {
+                const record = evidenceById?.get(item.evidenceId);
+                if (!record) return null;
+                return (
+                  <div className="articleTimelineBasis">
+                    <span className="articleTimelineBasisLabel">{record.label}</span>
+                    <EvidenceBasisLine basis={record.basis} />
+                  </div>
+                );
+              })()}
+              {item.still ? (
+                <figure className="articleSceneStill">
+                  <picture>
+                    <source type="image/avif" srcSet={item.still.avifSrc} />
+                    <img src={item.still.src} width={item.still.width} height={item.still.height}
+                      alt={item.still.alt} loading="lazy" decoding="async" />
+                  </picture>
+                  <figcaption>
+                    <span>Кадр ≈ {formatTimecode(item.still.sampleTimeSeconds)} · сетка {item.still.samplingIntervalSeconds} с</span>
+                    <small>{item.still.credit}</small>
+                  </figcaption>
+                </figure>
+              ) : null}
             </li>
           ))}
         </ol>
@@ -158,7 +277,13 @@ function ArticleBlockView({
               if (!view) return null;
               return (
                 <tr key={row.id}>
-                  <th scope="row">{row.label}</th>
+                  <th scope="row">
+                    {row.label}
+                    {/* The span and the rate belong to the row, not to a hover
+                        title: a reader comparing a 65-second window with a
+                        four-minute one should not have to divide. */}
+                    <small className="articleTableNote">{view.detail}</small>
+                  </th>
                   <td>{view.primary}</td>
                   <td>{view.secondary}</td>
                 </tr>
@@ -194,14 +319,22 @@ export function ArticleView({
   filmSlug,
   filmTitle,
   projection,
+  synthesis,
+  controls,
+  decisions = [],
   spoilerLevel,
   describeMeasurement,
+  evidenceById,
   formatTimecode,
   moduleHeadings,
 }: ArticleViewProps) {
   const { visibleSections, hiddenSections, nextHiddenLevel } = projection;
   const readingMinutes = articleReadingMinutes(article);
   const complete = hiddenSections === 0;
+  const readingSections = [
+    ...visibleSections.map(({ id, number, heading }) => ({ id, number, heading })),
+    ...(complete && synthesis ? [{ id: "article-verdict", number: article.sections.length + 1, heading: synthesis.heading }] : []),
+  ];
 
   return (
     <article className="articleShell">
@@ -213,10 +346,7 @@ export function ArticleView({
             { label: "Разбор" },
           ]}
         />
-        <div className="articleHeaderLinks">
-          <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
-          <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
-        </div>
+
         <div className="sectionIndex">{article.kicker}</div>
         <h1 className="articleTitle">{article.title}</h1>
         <p className="articleStandfirst">{article.standfirst}</p>
@@ -230,16 +360,22 @@ export function ArticleView({
           <span>{readingMinutes} мин чтения</span>
           <span>точка зрения: {levelLabels[spoilerLevel]}</span>
         </div>
+        <div className="articleHeaderLinks">
+          <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
+          <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
+          {complete && synthesis ? <a className="microLabel" href="#article-verdict">Редакционная оценка ↓</a> : null}
+        </div>
+        {controls ? <div className="articleSpoilerBar">{controls}</div> : null}
       </header>
 
-      <nav className="sectionShell sectionRule articleOutline" aria-label="Разделы статьи">
-        {visibleSections.map((section) => (
-          <Link key={section.id} href={`#${section.id}`}>
-            <span>{String(section.number).padStart(2, "0")}</span>
-            <strong>{section.heading}</strong>
-          </Link>
-        ))}
-      </nav>
+      <ReadingOutline sections={readingSections} />
+      <noscript>
+        <nav className="sectionShell articleOutline" aria-label="Разделы статьи без JavaScript">
+          {readingSections.map(({ id, number, heading }) => (
+            <a key={id} href={`#${id}`}><span>{number}</span><strong>{heading}</strong></a>
+          ))}
+        </nav>
+      </noscript>
 
       {hiddenSections > 0 ? (
         <p className="sectionShell spoilerOmissionNotice" aria-live="polite">
@@ -258,7 +394,7 @@ export function ArticleView({
         >
           <div className="articleSectionHead">
             <div className="sectionIndex">{section.eyebrow}</div>
-            <h2 id={`${section.id}-title`}>{section.heading}</h2>
+            <h2 id={`${section.id}-title`} tabIndex={-1}>{section.heading}</h2>
             {section.standfirst ? <p className="sectionIntro">{section.standfirst}</p> : null}
             {section.moduleIds?.length ? (
               <div className="articleModuleLinks">
@@ -283,18 +419,52 @@ export function ArticleView({
               </div>
             ) : null}
           </div>
+          {decisions.filter(module => section.moduleIds?.includes(module.id)).map(module => (
+            <details className="articleAnalysis articleVerdictContext" key={module.id}>
+              <summary>Карта решения: варианты, знание, давление</summary>
+              <DecisionModuleView module={module} />
+            </details>
+          ))}
           <div className="articleBody">
             {section.blocks.map((block) => (
               <ArticleBlockView
                 key={block.id}
                 block={block}
                 describeMeasurement={describeMeasurement}
+                evidenceById={evidenceById}
                 formatTimecode={formatTimecode}
               />
             ))}
           </div>
         </section>
       ))}
+
+      {complete && synthesis ? (
+        <section id="article-verdict" className="sectionShell sectionRule articleSection articleVerdict" aria-labelledby="article-verdict-title">
+          <div className="articleSectionHead">
+            <div className="sectionIndex">Редакционная оценка</div>
+            <h2 id="article-verdict-title" tabIndex={-1}>{synthesis.heading}</h2>
+            <p className="sectionIntro">Качество кино и тяжесть показанного зла — разные оси, не один усреднённый балл.</p>
+          </div>
+          <div className="articleVerdictBody">
+            <div className="articleVerdictCore">
+              <VerdictCore />
+            </div>
+            <dl className="articleVerdictGrid">
+              {synthesis.facets.map(facet => (
+                <div key={facet.key}><dt>{facet.label}</dt><dd>{facet.value}</dd></div>
+              ))}
+            </dl>
+          </div>
+          <p className="articleParagraph">{synthesis.verdict}</p>
+          {synthesis.qualifications.length ? (
+            <details className="articleVerdictContext">
+              <summary>Оговорки к оценке <span>{synthesis.qualifications.length}</span></summary>
+              <ul>{synthesis.qualifications.map(text => <li key={text}>{text}</li>)}</ul>
+            </details>
+          ) : null}
+        </section>
+      ) : null}
 
       {article.closing && complete ? (
         <footer className="sectionShell sectionRule articleClosing">

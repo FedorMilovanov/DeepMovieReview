@@ -9,7 +9,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
-import { canIndexSite, resolveSiteOrigin } from "@/lib/site-publication-policy";
+import { resolveSiteOrigin } from "@/lib/site-publication-policy";
+import { siteIndexingEnabled } from "@/lib/site-indexing";
 // This side-effect import executes the fail-closed visual manifest registry assertion.
 import "@/data/visual-assets";
 import "../styles/platform.css";
@@ -42,11 +43,7 @@ if (homepageFilmPackage.film.status === "draft" && !previewContentEnabled) {
   );
 }
 
-const indexingEnabled = canIndexSite({
-  siteIndexingRequested: process.env.DMR_SITE_INDEXING_ENABLED === "true",
-  previewContentEnabled,
-  homepageStatus: homepageFilmPackage.film.status,
-});
+const indexingEnabled = siteIndexingEnabled();
 
 export const viewport = {
   themeColor: "#030303",

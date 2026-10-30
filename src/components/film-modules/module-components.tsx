@@ -1,5 +1,7 @@
 import type {
   AutopsyModule,
+  ClaimSupport,
+  EvidenceRecord,
   BiblicalSynthesisModule,
   CharactersModule,
   CraftModule,
@@ -13,6 +15,7 @@ import type {
   StoryModule,
   TeachingSignalsModule,
 } from "@/lib/film-package";
+import { canRevealSpoiler, type SpoilerLevel } from "@/lib/spoilers";
 import {
   arcCredibilityLabels,
   characterPresentationLabels,
@@ -33,6 +36,67 @@ import {
   sourceKindLabels,
   teachingSignalLabels,
 } from "@/lib/presentation-labels";
+
+/**
+ * Everything a module may need in order to show its own proof.
+ *
+ * Modules hold claims; claims hold evidence ids. Rendering the id would be a
+ * dead end for a reader, so the list resolves each id to the record and each
+ * record to an anchor in the evidence map. When a resolver is missing the card
+ * degrades to text — it never invents a label or a timecode.
+ */
+export type FilmModuleRenderContext = {
+  evidenceById?: ReadonlyMap<string, EvidenceRecord>;
+  formatTimecode?: (seconds: number) => string;
+  /** Reader's level: an anchor above it must not be rendered, even as a title. */
+  spoilerLevel?: SpoilerLevel;
+};
+
+type ResolvedSupport = { record: EvidenceRecord; counter: boolean };
+
+function resolveSupport(
+  support: ClaimSupport | undefined,
+  context: FilmModuleRenderContext | undefined,
+): ResolvedSupport[] {
+  if (!support || !context?.evidenceById) return [];
+  const revealable = (record: EvidenceRecord) =>
+    !context.spoilerLevel || canRevealSpoiler(context.spoilerLevel, record.spoilerLevel);
+  const resolved: ResolvedSupport[] = [];
+  for (const id of support.evidenceIds) {
+    const record = context.evidenceById.get(id);
+    if (record && revealable(record)) resolved.push({ record, counter: false });
+  }
+  for (const id of support.counterevidenceIds ?? []) {
+    const record = context.evidenceById.get(id);
+    if (record && revealable(record)) resolved.push({ record, counter: true });
+  }
+  return resolved;
+}
+
+function CharacterAnchors({
+  support,
+  context,
+}: {
+  support: ClaimSupport | undefined;
+  context?: FilmModuleRenderContext;
+}) {
+  const anchors = resolveSupport(support, context);
+  if (anchors.length === 0) return null;
+  return (
+    <ul className="characterAnchors" aria-label="Опора этого тезиса">
+      {anchors.map(({ record, counter }) => (
+        <li key={record.id} data-counter={counter || undefined}>
+          <a href={`#evidence-${record.id}`}>
+            {context?.formatTimecode && record.timestampSeconds !== undefined ? (
+              <span className="characterAnchorTime">{context.formatTimecode(record.timestampSeconds)}</span>
+            ) : null}
+            <span className="characterAnchorLabel">{counter ? "Контропора: " : ""}{record.label}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function ModuleHeader({ eyebrow, heading }: { eyebrow?: string; heading: string }) {
   return (
@@ -60,51 +124,64 @@ export function StoryModuleView({ module }: { module: StoryModule }) {
   );
 }
 
-export function CharactersModuleView({ module }: { module: CharactersModule }) {
+export function CharactersModuleView({
+  module,
+  context,
+}: {
+  module: CharactersModule;
+  context?: FilmModuleRenderContext;
+}) {
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       <div className="characterGrid">
         {module.characters.map((character) => (
           <article className="characterCard" key={character.id}>
-            <div className="portraitPlaceholder" aria-hidden="true" />
-            <h3>{character.name}</h3>
-            {character.presentation || character.identification ? (
-              <p className="characterPresentation">
-                {character.presentation ? (
-                  <span className="characterTrait">
-                    <span className="microLabel">Подача</span>
-                    {characterPresentationLabels[character.presentation]}
-                  </span>
-                ) : null}
-                {character.identification ? (
-                  <span className="characterTrait">
-                    <span className="microLabel">Идентификация</span>
-                    {identificationLabels[character.identification]}
-                  </span>
-                ) : null}
-              </p>
-            ) : null}
-            <dl>
-              <div><dt>Хочет</dt><dd>{character.wants}</dd></div>
-              <div><dt>Боится</dt><dd>{character.fears}</dd></div>
-              {character.loyalties ? <div><dt>Верен</dt><dd>{character.loyalties}</dd></div> : null}
-              <div><dt>Противоречие</dt><dd>{character.contradiction}</dd></div>
-              {character.believes ? <div><dt>Верит</dt><dd>{character.believes}</dd></div> : null}
-              {character.selfDeception ? <div><dt>Самообман</dt><dd>{character.selfDeception}</dd></div> : null}
-              {character.arcSummary ? <div><dt>Арка</dt><dd>{character.arcSummary}</dd></div> : null}
-              {character.unchanged ? <div><dt>Не меняется</dt><dd>{character.unchanged}</dd></div> : null}
-              {character.arcCredibility ? (
-                <div>
-                  <dt>Дуга</dt>
-                  <dd>
-                    <span className="microLabel inlineLabel">{arcCredibilityLabels[character.arcCredibility.level]}</span>
-                    {character.arcCredibility.note}
-                  </dd>
-                </div>
+            <div className="characterCardHead">
+              <h3>{character.name}</h3>
+              {character.presentation || character.identification ? (
+                <p className="characterPresentation">
+                  {character.presentation ? (
+                    <span className="characterTrait">
+                      <span className="microLabel">Подача</span>
+                      {characterPresentationLabels[character.presentation]}
+                    </span>
+                  ) : null}
+                  {character.identification ? (
+                    <span className="characterTrait">
+                      <span className="microLabel">Идентификация</span>
+                      {identificationLabels[character.identification]}
+                    </span>
+                  ) : null}
+                </p>
               ) : null}
-              {character.roleInArgument ? <div><dt>Роль</dt><dd>{character.roleInArgument}</dd></div> : null}
-            </dl>
+            </div>
+            <p className="characterThesis">{character.contradiction}</p>
+            <CharacterAnchors context={context} support={character.profileSupport} />
+            <CharacterAnchors context={context} support={character.interpretiveSupport} />
+            <details className="characterDetails">
+              <summary>Разбор по полям</summary>
+              <dl>
+                <div><dt>Хочет</dt><dd>{character.wants}</dd></div>
+                <div><dt>Боится</dt><dd>{character.fears}</dd></div>
+                {character.loyalties ? <div><dt>Верен</dt><dd>{character.loyalties}</dd></div> : null}
+                {character.believes ? <div><dt>Верит</dt><dd>{character.believes}</dd></div> : null}
+                {character.selfDeception ? <div><dt>Самообман</dt><dd>{character.selfDeception}</dd></div> : null}
+                {character.arcSummary ? <div><dt>Арка</dt><dd>{character.arcSummary}</dd></div> : null}
+                {character.unchanged ? <div><dt>Не меняется</dt><dd>{character.unchanged}</dd></div> : null}
+                {character.arcCredibility ? (
+                  <div>
+                    <dt>Дуга</dt>
+                    <dd>
+                      <span className="microLabel inlineLabel">{arcCredibilityLabels[character.arcCredibility.level]}</span>
+                      {character.arcCredibility.note}
+                    </dd>
+                  </div>
+                ) : null}
+                {character.roleInArgument ? <div><dt>Роль</dt><dd>{character.roleInArgument}</dd></div> : null}
+                <div><dt>Противоречие</dt><dd>{character.contradiction}</dd></div>
+              </dl>
+            </details>
           </article>
         ))}
       </div>

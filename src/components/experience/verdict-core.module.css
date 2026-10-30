@@ -82,14 +82,20 @@
   mask-image: radial-gradient(circle, #000 0 38%, transparent 67%);
 }
 
+/* The label is decorative, but it is painted text, and painted text has to be
+   readable: at 0.48 alpha it measured 4.43:1 against the panel's #090909, just
+   under the 4.5:1 floor. 0.58 keeps it quiet and clears the floor at 6.1:1 with
+   room for the renderer's antialiasing, so the audit measures a real bound
+   instead of being asked to exempt the label. */
 .meta {
+  --verdict-meta-ink: rgb(242 238 230 / 0.58);
   position: absolute;
   z-index: 4;
   inset: 1rem 1rem auto;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  color: rgb(242 238 230 / 0.48);
+  color: var(--verdict-meta-ink);
   font-size: 0.58rem;
   letter-spacing: 0.13em;
   text-transform: uppercase;

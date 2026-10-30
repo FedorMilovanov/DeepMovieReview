@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { FilmMediaFrame } from "@/components/film-media-frame";
 import { FilmEvidenceMap } from "@/components/film-modules/evidence-map";
 import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
+import { FilmSceneTable } from "@/components/film-modules/scene-table";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
@@ -12,7 +13,9 @@ import { isPreviewContentEnabled } from "@/data/site-config";
 import { getFilmShareAsset } from "@/data/film-share-assets";
 import { getProductionDossier } from "@/data/films/production-dossiers";
 import { pluralRu } from "@/lib/plural-ru";
+import { formatTimecode } from "@/lib/timecode";
 import { filmPageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
+import { siteIndexingEnabled } from "@/lib/site-indexing";
 import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
 type FilmPageProps = {
@@ -51,7 +54,12 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
     openGraph: page.openGraph,
     twitter: page.twitter,
     alternates: film.status === "published" ? { canonical: `/films/${film.slug}` } : undefined,
-    robots: film.status === "published" ? undefined : { index: false, follow: false },
+    // A published page is indexable only when the build itself is: on a preview
+    // deployment the layout's noindex must not be dropped by this route.
+    robots:
+      film.status === "published" && siteIndexingEnabled()
+        ? undefined
+        : { index: false, follow: false },
   };
 }
 
@@ -68,6 +76,11 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
   const visibleModules = getVisibleFilmModules(modules, spoilerLevel);
   const hiddenModuleCount = modules.length - visibleModules.length;
   const outlineBase = withSpoilerQuery(pathname, spoilerLevel);
+  const moduleContext = {
+    evidenceById: new Map((filmPackage.evidence ?? []).map((record) => [record.id, record])),
+    formatTimecode,
+    spoilerLevel,
+  };
 
   return (
     <>
@@ -149,15 +162,23 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         )}
       </section>
 
+      <FilmSceneTable
+        evidence={filmPackage.evidence ?? []}
+        researchDraft={researchDraft}
+        scenes={filmPackage.scenes ?? []}
+        spoilerLevel={spoilerLevel}
+      />
+
       <FilmEvidenceMap
         evidence={filmPackage.evidence ?? []}
         modules={visibleModules}
         researchDraft={researchDraft}
         scenes={filmPackage.scenes ?? []}
         sources={sourceRecords}
+        spoilerLevel={spoilerLevel}
       />
 
-      <FilmModuleList modules={visibleModules} />
+      <FilmModuleList context={moduleContext} modules={visibleModules} />
     </>
   );
 }

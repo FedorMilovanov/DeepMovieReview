@@ -10,7 +10,7 @@ typecheck, lint, **52/52** regression tests, production build (15 pages), route 
 
 ## 2. SSR crawl (all 200s, 404 correct)
 
-Every route: `lang="ru"`, exactly one `h1` and one `main`, zero images without `alt`, prelaunch `noindex` everywhere, no canonical on draft/fixture film pages, `robots.txt` disallows all, sitemap empty, labs `noindex`. Canonicals resolve through build-time `DMR_SITE_URL` (documented in `layout.tsx`); localhost default is dev-only by construction.
+Every route: `lang="ru"`, exactly one `h1` and one `main`, zero images without `alt`, prelaunch `noindex` everywhere, no canonical on draft/fixture film pages, `robots.txt` disallows all, sitemap empty, labs `noindex`. Canonicals resolve through build-time `DMR_SITE_URL`, then the platform production host, then localhost (documented in `layout.tsx`); the localhost default is dev-only by construction. Indexing follows the same inputs: a real host opens it, a preview deployment closes it, and `DMR_SITE_INDEXING_ENABLED` overrides both.
 
 ## 3. Fixed by this audit
 

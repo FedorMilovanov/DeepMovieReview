@@ -22,7 +22,12 @@ try {
   if (compileStatus !== 0) {
     status = compileStatus;
   } else {
-    status = run(process.execPath, ["--test", buildDir + "/tests/regression.test.js"]);
+    status = run(process.execPath, [
+      "--require",
+      resolve("scripts", "test-path-alias.cjs"),
+      "--test",
+      buildDir + "/tests/regression.test.js",
+    ]);
   }
 } finally {
   rmSync(buildDir, { recursive: true, force: true });

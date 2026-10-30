@@ -22,9 +22,20 @@
 .articleHeaderLinks {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
   align-items: baseline;
 }
+
+/* Secondary navigation stays easy to hit, not a tiny meta-text target. */
+.articleHeaderLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-block: var(--space-2);
+  border-bottom: 1px solid var(--stroke-subtle);
+}
+
+.articleHeaderLinks a:hover { color: var(--ink-1); border-bottom-color: var(--stroke-strong); }
 
 .productionShell .articleSectionHead {
   max-width: var(--reading-max);
@@ -99,14 +110,14 @@
 .productionTimeline li {
   display: grid;
   grid-template-columns: 6.5rem 1fr;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
   align-items: baseline;
   padding-left: var(--space-4);
   border-left: 1px solid var(--stroke-default);
 }
 
 .productionTimeline time {
-  color: var(--ink-4);
+  color: var(--ink-2);
   font-family: var(--font-meta);
   font-size: var(--type-meta);
   font-variant-numeric: tabular-nums;
@@ -148,8 +159,8 @@
 
 .productionRefs a {
   display: inline-flex;
-  min-inline-size: 24px;
-  min-block-size: 24px;
+  min-inline-size: 1.5rem;
+  min-block-size: 1.5rem;
   align-items: center;
   justify-content: center;
   color: var(--ink-4);
@@ -197,7 +208,7 @@
   display: grid;
   gap: 0.2rem;
   cursor: pointer;
-  min-height: 42px;
+  min-height: 2.625rem;
   color: var(--ink-1);
 }
 
@@ -230,7 +241,7 @@
   color: var(--ink-1);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 40em) {
   .productionFacts dl > div,
   .productionTimeline li {
     grid-template-columns: 1fr;

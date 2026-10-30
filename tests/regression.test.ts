@@ -1,6 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ArticleTable } from "../src/components/film-article/article-table";
+import { FilmEvidenceMap } from "../src/components/film-modules/evidence-map";
+import { FilmSceneTable } from "../src/components/film-modules/scene-table";
 import { theFastAndTheFuriousDraftPackage } from "../src/data/films/the-fast-and-the-furious";
 import { createRequire } from "node:module";
 import test from "node:test";
@@ -10,8 +12,11 @@ const { readStylesheet } = createRequire(`${process.cwd()}/package.json`)(
   "./scripts/lib/style-sources.mjs",
 ) as { readStylesheet: (path: string) => string };
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
+import { publishedFilmStillsEnabled } from "../src/data/site-config";
+import { trumanArticleStills } from "../src/data/films/the-truman-show-stills";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
 import {
@@ -38,7 +43,13 @@ import {
   identificationLabels,
 } from "../src/lib/presentation-labels";
 import { validateFilmArticle } from "../src/lib/film-article-integrity";
-import { canIndexSite, resolveSiteOrigin } from "../src/lib/site-publication-policy";
+import { reviewBasis, tallyReviewBasis } from "../src/lib/evidence-review";
+import { evidenceBasisOutcomeLabels } from "../src/lib/presentation-labels";
+import {
+  canIndexSite,
+  resolveIndexingRequest,
+  resolveSiteOrigin,
+} from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
 import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
@@ -134,6 +145,84 @@ test("site indexing is allowed only for a published non-preview public build", (
       }
     }
   }
+});
+
+test("the frozen research draft is not a second source of truth", () => {
+  // Two packages for one film is how a site comes to have two answers. The canonical
+  // package is served; the research draft is an archive, and the rule that keeps it
+  // an archive is that nothing under src/ imports it.
+  // grep exits 1 when nothing matches, which is the passing result here.
+  const hits = spawnSync("grep", ["-rl", 'from "@/data/films/the-truman-show"', "src"], {
+    encoding: "utf8",
+  }).stdout.trim();
+  assert.equal(hits, "", `the frozen draft must not be imported: ${hits}`);
+  const draft = readFileSync("src/data/films/the-truman-show.ts", "utf8");
+  assert.match(draft, /ЗАМОРОЖЕННЫЙ ИССЛЕДОВАТЕЛЬСКИЙ ЧЕРНОВИК/);
+  assert.match(draft, /the-truman-show-canonical\.ts/);
+});
+
+test("a page's own robots tag never contradicts robots.txt", () => {
+  // The film routes wrote `robots: undefined` for any published film, which drops the
+  // layout's noindex at the page level while robots.txt still says Disallow: /. On a
+  // preview deployment that made a published page indexable by its own tag.
+  const filmRoutes = [
+    readFileSync("src/app/films/[slug]/page.tsx", "utf8"),
+    readFileSync("src/app/films/[slug]/article/page.tsx", "utf8"),
+  ];
+  for (const source of filmRoutes) {
+    assert.match(source, /film\.status === "published" && siteIndexingEnabled\(\)/);
+  }
+  // And the four consumers of the switch read it from one place, not four.
+  for (const route of ["src/app/robots.ts", "src/app/sitemap.ts", "src/app/layout.tsx"]) {
+    const source = readFileSync(route, "utf8");
+    assert.match(source, /siteIndexingEnabled\(\)/, route);
+    assert.doesNotMatch(source, /resolveIndexingRequest\(/, `${route} must not re-derive the switch`);
+  }
+});
+
+test("a deployment indexes itself without anyone setting a variable", () => {
+  // Zero-config: a real host means a public site; a Vercel preview deployment never
+  // competes with the production host in an index; and an explicit flag still wins.
+  assert.equal(resolveIndexingRequest({}), false, "no host and no flag stays closed");
+  assert.equal(resolveIndexingRequest({ VERCEL_PROJECT_PRODUCTION_URL: "deep.vercel.app" }), true);
+  assert.equal(
+    resolveIndexingRequest({ VERCEL_PROJECT_PRODUCTION_URL: "deep.vercel.app", VERCEL_ENV: "preview" }),
+    false,
+    "a preview deployment is not the site",
+  );
+  assert.equal(
+    resolveIndexingRequest({ VERCEL_PROJECT_PRODUCTION_URL: "deep.vercel.app", VERCEL_ENV: "production" }),
+    true,
+  );
+  assert.equal(resolveIndexingRequest({ DMR_SITE_INDEXING_ENABLED: "false", VERCEL_ENV: "production", DMR_SITE_URL: "https://a.example" }), false);
+  assert.equal(resolveIndexingRequest({ DMR_SITE_INDEXING_ENABLED: "true" }), true);
+
+  // A preview deployment is a hard floor: the flag cannot open one.
+  assert.equal(
+    resolveIndexingRequest({
+      DMR_SITE_INDEXING_ENABLED: "true",
+      DMR_SITE_URL: "https://a.example",
+      VERCEL_ENV: "preview",
+    }),
+    false,
+    "no variable may open a preview deployment to crawlers",
+  );
+
+  // Origin: explicit URL, then the platform's production host, then localhost.
+  // The third argument is the environment, injected so a test that passes
+  // `undefined` exercises the fallback instead of inheriting the CI job's variables.
+  const noEnv = {};
+  assert.equal(resolveSiteOrigin("https://a.example/path", "b.vercel.app", noEnv), "https://a.example");
+  assert.equal(resolveSiteOrigin(undefined, "deep.vercel.app", noEnv), "https://deep.vercel.app");
+  assert.equal(resolveSiteOrigin(undefined, undefined, noEnv), "http://localhost:3000");
+  assert.equal(
+    resolveSiteOrigin(undefined, undefined, { DMR_SITE_URL: "https://from-env.example/x" }),
+    "https://from-env.example",
+  );
+  assert.equal(
+    resolveSiteOrigin(undefined, undefined, { VERCEL_PROJECT_PRODUCTION_URL: "prod.vercel.app" }),
+    "https://prod.vercel.app",
+  );
 });
 
 test("site origin normalization keeps only a safe http(s) origin", () => {
@@ -4035,13 +4124,15 @@ test("Film 001 canonical package satisfies the full integrity graph", () => {
   assert.deepEqual(errors, [], `canonical package errors:\n${errors.join("\n")}`);
 });
 
-test("Film 001 canonical package is LOCKED, draft, and free of the research tier", () => {
+test("Film 001 canonical package is LOCKED, published, and free of the research tier", () => {
   const edition = theTrumanShowCanonicalPackage.ingest?.edition;
   assert.ok(edition);
   assert.equal(edition.state, "LOCKED");
   assert.equal(edition.sourceId, TRUMAN_LOCKED_EDITION_SOURCE_ID);
   assert.equal(theTrumanShowCanonicalPackage.research, undefined);
-  assert.equal(theTrumanShowCanonicalPackage.film.status, "draft");
+  // Published is an editorial decision taken on top of the evidence lock; the lock
+  // itself is what the rest of this test holds.
+  assert.equal(theTrumanShowCanonicalPackage.film.status, "published");
 
   const scenes = theTrumanShowCanonicalPackage.scenes ?? [];
   assert.equal(scenes.length, trumanCanonicalScenes.length);
@@ -4065,9 +4156,11 @@ test("Film 001 canonical package is LOCKED, draft, and free of the research tier
 test("Film 001 canonical evidence retires, splits and adds exactly as declared", () => {
   const canonicalIds = new Set(trumanCanonicalEvidence.map((item) => item.id));
   const researchIds = new Set((theTrumanShowDraftPackage.evidence ?? []).map((item) => item.id));
-  const { retired, split, added } = trumanCanonicalEvidenceSummary;
+  const { retired, split, added, rewritten } = trumanCanonicalEvidenceSummary;
 
-  // The «personal rain» beat does not exist in the film.
+  // Retired records disappear from the canonical graph. The rain record is the
+  // one that came back under a new id — see `rewritten` below and docs/47 §8; it
+  // was retired for its placement, not because the beat is absent.
   for (const retiredId of retired) {
     assert.ok(researchIds.has(retiredId), `${retiredId}: must be an existing research record`);
     assert.equal(canonicalIds.has(retiredId), false, `${retiredId}: retired records cannot survive`);
@@ -4087,12 +4180,24 @@ test("Film 001 canonical evidence retires, splits and adds exactly as declared",
     assert.equal(researchIds.has(addedId), false, `${addedId}: must be new, not inherited`);
   }
 
+  // A rewritten record keeps a lineage: one retired research id comes back under
+  // a new canonical id, and the count moves by exactly one.
+  for (const [researchId, replacements] of Object.entries(rewritten)) {
+    assert.ok(researchIds.has(researchId), `${researchId}: must exist in research tier`);
+    assert.equal(canonicalIds.has(researchId), false, `${researchId}: rewritten records are retired`);
+    for (const replacementId of replacements) {
+      assert.ok(canonicalIds.has(replacementId), `${replacementId}: missing rewritten record`);
+      assert.equal(researchIds.has(replacementId), false, `${replacementId}: must be a new id`);
+    }
+  }
+
   const inherited = [...researchIds].filter((id) => !(retired as readonly string[]).includes(id));
   const expected =
     inherited.length -
     Object.keys(split).length +
     Object.values(split).reduce((total, ids) => total + ids.length, 0) +
-    added.length;
+    added.length +
+    Object.values(rewritten).reduce((total, ids) => total + ids.length, 0);
   assert.equal(canonicalIds.size, expected, "canonical evidence count drifted");
 });
 
@@ -4371,14 +4476,18 @@ test("Film 001 article keeps the five refuted claims inside the corrections tabl
   assert.ok(corrections && corrections.kind === "corrections");
   assert.equal(corrections.rows.length, 5);
 
-  // The piece may *discuss* a refuted claim in prose (that is the point of the
+  // The piece may *discuss* a corrected claim in prose (that is the point of the
   // section), but the correction itself must live in the table, with a source:
-  // evidence for a rewritten fact, an explicit absence for a beat that does not
-  // exist, and nothing hanging unsupported.
+  // evidence for a rewritten fact and nothing hanging unsupported.
+  //
+  // This test used to require exactly one `absentFromMaster` row. That row was
+  // the rain, and it was wrong: the beat is in the film. A correction may still
+  // declare a beat absent, but nothing in this article does, and a new absence
+  // claim has to bring its own reason — so the count is asserted at zero.
   assert.equal(
     corrections.rows.filter((row) => row.absentFromMaster).length,
-    1,
-    "exactly one correction is an absent-beat claim",
+    0,
+    "no correction declares a beat absent: the last one was a misreading",
   );
   for (const row of corrections.rows) {
     assert.ok(row.commonClaim.length > 0 && row.onScreen.length > 0);
@@ -4388,13 +4497,20 @@ test("Film 001 article keeps the five refuted claims inside the corrections tabl
     );
   }
 
+  // The rain row is the regression this file exists for: it used to say the
+  // episode does not exist. It must now point at a canonical record that does.
+  const rainRow = corrections.rows.find((row) => row.id === "truman-article-correction-rain");
+  assert.ok(rainRow, "the rain correction must stay in the table");
+  assert.equal(rainRow.evidenceId, "truman-ev-rain");
+  assert.equal(/нет ни в одной|отсутству/i.test(rainRow.onScreen), false, "the rain row must not claim absence");
+
   const claims = corrections.rows.map((row) => row.commonClaim.toLowerCase()).join(" | ");
   for (const marker of ["дождь", "нож", "полос", "пальц", "подкоп"]) {
     assert.ok(claims.includes(marker), `corrections table lost the "${marker}" claim`);
   }
 
-  // The five refuted claims are exactly the ones the promoted evidence graph
-  // can answer; the absent one is absent from the subtitle track as well.
+  // The five corrected claims are exactly the ones the promoted evidence graph
+  // can answer.
   const evidenceIds = new Set((theTrumanShowCanonicalPackage.evidence ?? []).map((item) => item.id));
   for (const row of corrections.rows) {
     if (row.evidenceId) {
@@ -4451,6 +4567,59 @@ test("Film 001 measured timing dataset is internally consistent", () => {
 
   assert.equal(formatMasterTimecode(1320), "22:00");
   assert.equal(formatMasterTimecode(5755.382), "95:55");
+});
+
+test("a measured window is described by what was measured, not by the chapter it sits in", () => {
+  const hold = trumanMasterHolds[0];
+  const reunion = theTrumanShowCanonicalPackage.evidence?.find(
+    (record) => record.id === "truman-ev-reunion",
+  );
+  assert.ok(hold && reunion?.timestampSeconds);
+  // The embrace the review cites is at 1:00:10; the longest hold ends at 57:27.
+  // Naming that hold «возвращение отца» was an attribution the data contradicts.
+  assert.ok(
+    reunion.timestampSeconds > hold.to,
+    "the reunion sits outside the longest hold; the article may not name the hold after it",
+  );
+  const holdView = describeTrumanMeasurement({ table: "hold", id: hold.id });
+  assert.equal(holdView?.title, "Самый длинный отрезок без обнаруженного перехода");
+
+  // The 46:29–47:34 window is the repeating-street beat inside the scene the
+  // inventory itself names for the flowers and the dented beetle — not a manhunt.
+  const panic = trumanMasterWindows.find((window) => window.id === "panic");
+  assert.ok(panic);
+  assert.equal(panic.startSceneId, "truman-sc-lady-flowers-dented-beetle");
+  const panicView = describeTrumanMeasurement({ table: "window", id: panic.id });
+  assert.ok(panicView);
+  assert.ok(!/идёт|переполох/i.test(panicView.title), "the label may not invent a manhunt");
+
+  // Figures the prose prints must be the figures the dataset holds.
+  const wall = trumanMasterWindows.find((window) => window.id === "wall");
+  assert.ok(wall);
+  const perMinute = (transitions: number, seconds: number) =>
+    (transitions / seconds) * 60;
+  const panicRate = perMinute(panic.detectedTransitions, panic.durationSeconds);
+  const wallRate = perMinute(wall.detectedTransitions, wall.durationSeconds);
+  assert.ok(panicRate / wallRate > 4 && panicRate / wallRate < 4.3, "the ratio is ~4.2");
+  // The rates are derived in the view, not typed into prose: prose may not carry a
+  // measured number, and a reader comparing a 65-second window with a 4-minute one
+  // should not have to divide.
+  const panicDetail = describeTrumanMeasurement({ table: "window", id: "panic" })?.detail ?? "";
+  const wallDetail = describeTrumanMeasurement({ table: "window", id: "wall" })?.detail ?? "";
+  assert.match(panicDetail, /28,6 перехода в минуту/);
+  assert.match(wallDetail, /6,8 перехода в минуту/);
+  const articleText = JSON.stringify(theTrumanShowArticle);
+  assert.ok(!/\d,\d перехода в минуту/.test(articleText), "rates are rendered, not typed");
+  // Four chosen windows cannot establish the film's maximum cutting rate.
+  assert.ok(!articleText.includes("максимальный темп"));
+  // Nor may a detection count be reported as a continuously moving camera.
+  assert.ok(!articleText.includes("одна камера, один план"));
+  assert.ok(!articleText.includes("монтаж не вмешивается"));
+
+  // What the script counted is subtitle cues, and the interface now says so.
+  assert.match(panicView.secondary, /строк/);
+  const silenceView = describeTrumanMeasurement({ table: "silence", id: "silence-01" });
+  assert.match(silenceView?.detail ?? "", /строк[аи]? субтитров/);
 });
 
 test("Film 001 measurement figures add up: end minus start equals the printed length", () => {
@@ -4767,7 +4936,13 @@ test("Film 001 page metadata describes the page, not the site, and cannot spoil 
   assert.equal(filmPage.title, "Шоу Трумана");
   assert.equal(filmPage.openGraph.url, "/films/the-truman-show");
   assert.equal(filmPage.openGraph.type, "article");
-  assert.match(filmPage.description, /публикация ещё не открыта/);
+  assert.equal(
+    filmPage.description,
+    `Шоу Трумана (1998) — ${theTrumanShowCanonicalPackage.film.premise}`,
+  );
+  // A published description may not carry the ending: the premise stops at the first
+  // anomaly, before the sea, the wall and the door.
+  assert.doesNotMatch(filmPage.description, /финал|дверь|стен|море|уходит|выбирается/i);
   assert.equal(filmPage.twitter.title, filmPage.openGraph.title);
   // A page-level openGraph replaces the layout's object, images included: the
   // card must still carry artwork, or shares go out with no picture at all.
@@ -5445,7 +5620,7 @@ test("An in-article illustration must be a generated drawing, captioned as not a
 
   const cases: Array<[Record<string, unknown>, string]> = [
     [{ assetId: "illu-unknown" }, 'unknown illustration "illu-unknown"'],
-    [{ assetId: "illu-still" }, "the site does not publish stills"],
+    [{ assetId: "illu-still" }, "stills require the scene-quotation path"],
     [{ assetId: "illu-card" }, 'has role "social"'],
     [{ assetId: "illu-noalt" }, "has no alternative text"],
     [{ assetId: "illu-ok", caption: "" }, "an illustration needs a caption"],
@@ -5678,7 +5853,7 @@ test("the homepage is complete without scripting", () => {
 
 test("film index distinguishes an existing article from secondary-source research", () => {
   assert.ok(theTrumanShowCanonicalPackage.article);
-  assert.equal(filmIndexStatusLabel(theTrumanShowCanonicalPackage), "статья · предпросмотр");
+  assert.equal(filmIndexStatusLabel(theTrumanShowCanonicalPackage), "опубликовано");
   const research = theFastAndTheFuriousDraftPackage;
   assert.equal(research.article, undefined);
   assert.equal(research.research?.state, "SECONDARY_SOURCES");
@@ -5723,4 +5898,376 @@ test("browser failures retain measured details in escaped workflow annotations",
     "::error title=Browser audit::100%25%0D%0A::error::injected");
   assert.ok(!workflowError(message).includes("\n"));
   assert.ok(workflowError(message).includes('"focused":false'));
+});
+
+test("scene quotations are exact-master stills, not generated artwork or substitute evidence", () => {
+  const article = structuredClone(theTrumanShowArticle);
+  const items = article.sections.flatMap(section => section.blocks.flatMap(block =>
+    block.kind === "timeline" ? block.items.filter(item => item.still) : []));
+  assert.equal(items.length, 4, "a small editorial selection, not a film gallery");
+  assert.deepEqual(validateFilmArticle(article, trumanArticleContext()), []);
+  const { createHash } = createRequire(`${process.cwd()}/package.json`)("node:crypto");
+  for (const item of items) {
+    const still = item.still!;
+    // The bytes live outside `public` on purpose: a still in `public` is a public
+    // URL, reachable even when the draft route is closed. The app serves them
+    // through `src/app/film-stills/[file]/route.ts`, behind the preview gate.
+    assert.equal(createHash("sha256").update(readFileSync(`assets${still.src}`)).digest("hex"), still.imageSha256);
+    assert.equal(createHash("sha256").update(readFileSync(`assets${still.avifSrc}`)).digest("hex"), still.avifSha256);
+    assert.equal(existsSync(`public${still.src}`), false, `${still.src}: a still must not be a public file`);
+    assert.ok(Math.abs(still.sampleTimeSeconds - item.timestampSeconds) <= 15);
+    assert.equal(still.use, "critical-review");
+  }
+  for (const [override, expected] of [
+    [{ masterDigest: "sha256:" + "0".repeat(64) }, /locked master/],
+    [{ sourceId: "other-edition" }, /locked master/],
+    [{ sampleTimeSeconds: -1 }, /cited scene/],
+    [{ sampleTimeSeconds: items[0].timestampSeconds + 120 }, /cited scene/],
+    [{ src: "/film-stills/../private.jpg" }, /local JPEG/],
+    [{ imageSha256: "invalid" }, /SHA-256/],
+    [{ avifSrc: "/other.avif" }, /local JPEG/],
+    [{ avifSha256: "invalid" }, /SHA-256/],
+    [{ width: 1920 }, /bounded dimensions/],
+    [{ samplingIntervalSeconds: 0 }, /sampling/],
+    [{ sampleTimeSeconds: 211 }, /sampling/],
+    [{ credit: "" }, /credit/],
+    [{ alt: "" }, /alt/],
+    [{ use: "decoration" }, /critical-review/],
+  ] as const) {
+    const copy = structuredClone(article);
+    const first = copy.sections.flatMap(section => section.blocks.flatMap(block =>
+      block.kind === "timeline" ? block.items.filter(item => item.still) : []))[0];
+    Object.assign(first.still!, override);
+    assert.match(validateFilmArticle(copy, trumanArticleContext()).join("\n"), expected);
+  }
+});
+
+test("Film 001 comparison panels refuse a verdict, an unsupported side and a clock reading", () => {
+  // The duel block exists so that a comparison cannot become a scoreboard. These
+  // three mutations are the ones that would turn it back into one.
+  const base = structuredClone(theTrumanShowArticle);
+  assert.deepEqual(validateFilmArticle(base, trumanArticleContext()), []);
+
+  const duels = base.sections.flatMap((section) => section.blocks).filter((block) => block.kind === "duel");
+  assert.equal(duels.length, 3, "the article carries three comparison panels");
+
+  const noOpen = structuredClone(theTrumanShowArticle);
+  const openless = noOpen.sections
+    .flatMap((section) => section.blocks)
+    .find((block) => block.kind === "duel");
+  assert.ok(openless && openless.kind === "duel");
+  openless.open = "   ";
+  assert.match(
+    validateFilmArticle(noOpen, trumanArticleContext()).join("\n"),
+    /must state what the film leaves open/,
+  );
+
+  const unsupported = structuredClone(theTrumanShowArticle);
+  const unsupportedDuel = unsupported.sections
+    .flatMap((section) => section.blocks)
+    .find((block) => block.kind === "duel");
+  assert.ok(unsupportedDuel && unsupportedDuel.kind === "duel");
+  unsupportedDuel.sides[0]!.evidenceIds = ["truman-ev-not-a-record"];
+  assert.match(
+    validateFilmArticle(unsupported, trumanArticleContext()).join("\n"),
+    /unknown evidence id "truman-ev-not-a-record"/,
+  );
+
+  const oneSided = structuredClone(theTrumanShowArticle);
+  const oneSidedDuel = oneSided.sections
+    .flatMap((section) => section.blocks)
+    .find((block) => block.kind === "duel");
+  assert.ok(oneSidedDuel && oneSidedDuel.kind === "duel");
+  oneSidedDuel.sides = [oneSidedDuel.sides[0]!];
+  assert.match(
+    validateFilmArticle(oneSided, trumanArticleContext()).join("\n"),
+    /a duel needs at least two sides/,
+  );
+});
+
+test("Film 001 every evidence anchor on the film page resolves", () => {
+  // Character cards and the map itself link to `#evidence-<id>`. Only the records a
+  // claim happened to cite got a card, so 39 of 47 anchors landed on nothing. The
+  // register now gives every record an anchor, and this test holds that line.
+  const filmPackage = theTrumanShowCanonicalPackage;
+  const sourcesModule = filmPackage.modules.find((module) => module.kind === "sources-method");
+  const html = renderToStaticMarkup(
+    createElement(FilmEvidenceMap, {
+      evidence: filmPackage.evidence ?? [],
+      modules: filmPackage.modules,
+      researchDraft: false,
+      scenes: filmPackage.scenes ?? [],
+      sources: sourcesModule?.kind === "sources-method" ? sourcesModule.sources : [],
+      spoilerLevel: "FULL",
+    }),
+  );
+
+  const idList = [...html.matchAll(/id="evidence-([a-z0-9-]+)"/g)].map((match) => match[1]!);
+  const ids = new Set(idList);
+  // The anchors come from the character cards and the claim cards, which link to
+  // `#evidence-<id>`. Rendering the module list here would pull the WebGL verdict
+  // component into a CommonJS test build, so the same guarantee is checked against
+  // the data the cards are built from: every id any module cites is a record.
+  const cited = new Set(
+    [...JSON.stringify(filmPackage.modules).matchAll(/"(truman-ev-[a-z0-9-]+)"/g)].map(
+      (match) => match[1]!,
+    ),
+  );
+  assert.ok(cited.size > 0, "modules must cite evidence");
+  assert.deepEqual(
+    [...cited].filter((id) => !ids.has(id)),
+    [],
+    "every cited evidence id must render an anchor target",
+  );
+
+  const noneHtml = renderToStaticMarkup(
+    createElement(FilmEvidenceMap, {
+      evidence: filmPackage.evidence ?? [],
+      modules: filmPackage.modules,
+      researchDraft: false,
+      scenes: filmPackage.scenes ?? [],
+      sources: sourcesModule?.kind === "sources-method" ? sourcesModule.sources : [],
+      spoilerLevel: "NONE",
+    }),
+  );
+  const noneIds = new Set(
+    [...noneHtml.matchAll(/id="evidence-([a-z0-9-]+)"/g)].map((match) => match[1]!),
+  );
+  const endingRecords = (filmPackage.evidence ?? []).filter(
+    (record) => record.spoilerLevel === "ENDING" || record.spoilerLevel === "FULL",
+  );
+  assert.ok(endingRecords.length > 0);
+  for (const record of endingRecords) {
+    assert.ok(!noneIds.has(record.id), `${record.id}: a level-NONE reader must not see this record`);
+  }
+});
+
+test("a level-NONE reader is not told how the film ends", () => {
+  // The first section is marked NONE, but one of its paragraphs described the set the
+  // hero reaches only at the end, and a NONE evidence record spelled out the same
+  // thing in its observation. A level is a promise about the text, not a label.
+  const none = projectArticleSections(theTrumanShowArticle, "NONE");
+  const text = JSON.stringify(none);
+  for (const token of ["декораци", "нарисованн", "увидит только в", "Край неба", "EXIT"]) {
+    assert.ok(!text.includes(token), `NONE projection leaked: ${token}`);
+  }
+
+  for (const record of theTrumanShowCanonicalPackage.evidence ?? []) {
+    if (record.spoilerLevel !== "NONE") continue;
+    assert.ok(
+      !/декораци|нарисованн|шторм|дверь EXIT/i.test(record.observation ?? ""),
+      `${record.id}: a NONE record may not describe the ending`,
+    );
+  }
+});
+
+test("Film 001 spoilers=NONE renders no scene from the last act", () => {
+  const filmPackage = theTrumanShowCanonicalPackage;
+  const render = (spoilerLevel: "NONE" | "FULL") =>
+    renderToStaticMarkup(
+      createElement(FilmSceneTable, {
+        evidence: filmPackage.evidence ?? [],
+        researchDraft: false,
+        scenes: filmPackage.scenes ?? [],
+        spoilerLevel,
+      }),
+    );
+
+  // «Край неба и дверь» is the last scene of the film. It was in the table for every
+  // reader, because the table was handed every scene and filtered none.
+  const noneHtml = render("NONE");
+  const fullHtml = render("FULL");
+  assert.ok(fullHtml.includes("Край неба"), "the full level must show the ending scene");
+  assert.ok(!noneHtml.includes("Край неба"), "level NONE must not show the ending scene");
+  assert.match(noneHtml, /скрыто до выбранного уровня спойлеров/);
+});
+
+test("Homepage projection keeps the spoiler budget instead of filling the page", () => {
+  // The homepage projects at NONE. The published film's relationship, permission,
+  // meaning and craft modules carry higher levels, so their panels are absent —
+  // the projection returns null/empty rather than a module that would spoil the
+  // film, and the page renders what is left without inventing a placeholder.
+  const projection = projectHomepage(theTrumanShowCanonicalPackage);
+  assert.equal(projection.relationship, null);
+  assert.deepEqual(projection.permissions, []);
+  assert.deepEqual(projection.craft, []);
+  assert.ok(projection.storyBeats.length > 0, "the safe tier still carries the story");
+  assert.ok(projection.characters.length > 0, "and the people");
+  for (const beat of projection.storyBeats) {
+    assert.equal(beat.spoilerSafe, true, `${beat.label}: homepage beats must be spoiler-safe`);
+  }
+});
+
+test("Film 001 is published, and the stills carry their provenance", () => {
+  // Publication and frames are two decisions, kept in two places: the edition is
+  // published, and the four stills are quotations with a second, a master digest and
+  // a per-file SHA-256. A page that cannot serve them drops the picture and keeps
+  // the anchor, which the second half of this test holds.
+  assert.equal(theTrumanShowCanonicalPackage.film.status, "published");
+  assert.equal(publishedFilmStillsEnabled, true);
+
+  for (const still of Object.values(trumanArticleStills)) {
+    assert.match(still.credit, /права у правообладателей/, "a still must name whose rights it is");
+    assert.equal(still.use, "critical-review");
+    assert.ok(still.sampleTimeSeconds > 0);
+    assert.match(still.imageSha256, /^[a-f0-9]{64}$/);
+    assert.match(still.alt, /\S/);
+  }
+
+  const withFrames = projectArticleSections(theTrumanShowCanonicalPackage.article!, "FULL", { stills: true });
+  const withoutFrames = projectArticleSections(theTrumanShowCanonicalPackage.article!, "FULL", { stills: false });
+
+  const stillsOf = (projection: ReturnType<typeof projectArticleSections>) =>
+    projection.visibleSections.flatMap((section) =>
+      section.blocks.flatMap((block) => (block.kind === "timeline" ? block.items.filter((item) => item.still) : [])),
+    );
+
+  assert.ok(stillsOf(withFrames).length > 0, "the edition does hold stills");
+  assert.equal(stillsOf(withoutFrames).length, 0, "a page without rights must not cite a frame");
+
+  // Dropping the picture must not drop the anchor: the reader still gets the second.
+  const anchorsOf = (projection: ReturnType<typeof projectArticleSections>) =>
+    projection.visibleSections.flatMap((section) =>
+      section.blocks.flatMap((block) => (block.kind === "timeline" ? block.items.map((item) => item.id) : [])),
+    );
+  assert.deepEqual(anchorsOf(withoutFrames), anchorsOf(withFrames));
+});
+
+test("Homepage never presents a generated illustration as a film frame", () => {
+  // docs/54 §7: the cover is an illustration and is labelled as one. The page used
+  // to print «Кадр фильма» over it and a «Кадр · 0001» meta chip — the one caption
+  // this site cannot afford, because it is the same error the article spends a
+  // section correcting.
+  for (const file of ["src/app/page.tsx", "src/components/film-media-frame.tsx"]) {
+    const source = readFileSync(file, "utf8");
+    assert.ok(!source.includes("Кадр фильма"), `${file}: the cover must not be called a frame of the film`);
+    assert.ok(!source.includes('metaLeft="Кадр'), `${file}: no art chip may claim a frame number`);
+    assert.ok(!source.includes("Живой кадр"), `${file}: generated art is not a live frame`);
+    assert.ok(source.includes("не кадр фильма"), `${file}: the cover must state that it is a drawing`);
+  }
+});
+
+test("Film 001 every evidence card states the basis of its own verification", () => {
+  // «Verified» is not a description. Each record must carry how it was checked,
+  // what material was in front of the reviewer, and how wide the window was —
+  // derived from the ledger, never typed next to the claim.
+  const ledgerStatus = new Map(
+    [...trumanVisualVerifications, ...trumanPostLockEvidenceVerifications].map((record) => [
+      record.evidenceId,
+      record.status,
+    ]),
+  );
+  const expectedMaterial = {
+    VISUAL_CONFIRMED: "frames",
+    CONTRADICTED: "frames",
+    TRANSCRIPT_CONFIRMED: "subtitle-track",
+    PENDING_LOCAL_REVIEW: "frames",
+  } as const;
+
+  for (const record of theTrumanShowCanonicalPackage.evidence ?? []) {
+    assert.ok(record.basis, `${record.id}: no review basis`);
+    assert.ok(record.basis.observations > 0, `${record.id}: basis with no observations`);
+    assert.deepEqual(
+      record.basis.unrecorded,
+      ["reviewer", "date"],
+      `${record.id}: the ledger records neither reviewer nor date; say so`,
+    );
+
+    if (record.basis.window && record.timestampSeconds !== undefined) {
+      assert.ok(
+        record.timestampSeconds >= record.basis.window.from &&
+          record.timestampSeconds <= record.basis.window.to,
+        `${record.id}: the cited second is outside the reviewed window`,
+      );
+    } else {
+      assert.ok(
+        record.basis.inheritedFrom,
+        `${record.id}: only a half of a split record may lack its own window`,
+      );
+    }
+
+    const status = ledgerStatus.get(record.id);
+    if (status) {
+      assert.equal(record.basis.material, expectedMaterial[status], `${record.id}: material drifted`);
+      assert.equal(record.basis.outcome === "refused", status !== "VISUAL_CONFIRMED" && status !== "TRANSCRIPT_CONFIRMED",
+        `${record.id}: a record the ledger refused cannot read as seen`);
+    }
+  }
+
+  // The rain rewrite is the one record with no research-era entry to inherit a
+  // basis from, so its basis is stated in the record: two frames, 12:41 and 13:06.
+  // The boat split was undeclared until this pass: the parent's check covers
+  // 4830–4850 s, the sailing record cites 4970 s, so the card must not claim a
+  // window — it says the second itself was never checked.
+  const sail = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-setting-sail");
+  assert.ok(sail?.basis);
+  assert.equal(sail.basis.inheritedFrom, "truman-ev-boat");
+  assert.equal(sail.basis.window, undefined);
+  assert.equal(sail.basis.outcome, "pending");
+
+  // A tally over linked records, not over links: the map renders one card per
+  // claim–record link, and counting those is how «47 опор» comes to read as
+  // 47 separate truths.
+  const tally = tallyReviewBasis(theTrumanShowCanonicalPackage.evidence ?? []);
+  const records = theTrumanShowCanonicalPackage.evidence ?? [];
+  assert.equal(tally.records, records.length);
+  assert.equal(
+    tally.seen + tally.heard + tally.refused + tally.pending + tally.unrecorded,
+    tally.records,
+    "every record lands in exactly one bucket",
+  );
+  assert.equal(
+    tally.unrecorded,
+    records.filter((record) => !record.basis).length,
+    "a record with no ledger entry must be counted as unrecorded, not as checked",
+  );
+  // The edition keeps a record its own review refused; a tally that cannot show
+  // that is not a tally. The rain record is a rewrite, so the refusal is carried
+  // on the replacement rather than dropped with the retired record.
+  assert.ok(
+    tally.refused + tally.rewritten >= 1,
+    "a refused check must be visible either as a refused record or as a carried ancestor",
+  );
+
+  const rain = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-rain");
+  assert.equal(rain?.basis?.refusedAncestor, "truman-ev-raincloud");
+  assert.equal(tally.rewritten, 1);
+  assert.ok(rain?.basis);
+  assert.deepEqual(rain.basis.window, { from: 761, to: 786 });
+  assert.equal(rain.basis.observations, 2);
+  assert.equal(rain.basis.outcome, "seen");
+});
+
+test("review basis never upgrades a record the ledger did not confirm", () => {
+  const frame = (frameTimeSeconds: number) => ({ frameTimeSeconds });
+
+  assert.equal(reviewBasis(undefined), undefined);
+  assert.equal(reviewBasis({ status: "VISUAL_CONFIRMED", frames: [] }), undefined);
+
+  const pending = reviewBasis({ status: "PENDING_LOCAL_REVIEW", frames: [frame(10), frame(40)] });
+  assert.ok(pending);
+  // «Not checked yet» and «checked and did not hold» are different answers.
+  assert.equal(pending.outcome, "pending");
+  assert.match(evidenceBasisOutcomeLabels[pending.outcome], /не записана/);
+  assert.deepEqual(pending.window, { from: 10, to: 40 });
+
+  const transcript = reviewBasis({ status: "TRANSCRIPT_CONFIRMED", frames: [frame(3459.2), frame(3464.3)] });
+  assert.ok(transcript);
+  assert.equal(transcript.material, "subtitle-track");
+  assert.equal(transcript.outcome, "heard");
+  assert.equal(transcript.observations, 2);
+});
+
+test("the phone timeline keeps its basis, stills and captions in the one column", () => {
+  const css = readStylesheet("src/styles/article/body.css");
+
+  // Pinned to column 2 inside a one-column grid the basis created an implicit
+  // track: the explicit 1fr track kept a character, so at 390px the timecode
+  // stacked five lines high and every still rendered as a sliver.
+  const pinned = css.indexOf(".articleTimelineBasis {\n  grid-column: 2;");
+  const phone = css.lastIndexOf("  .articleTimelineBasis {\n    grid-column: 1 / -1;");
+  assert.ok(pinned >= 0, "the split layout pins the basis to the evidence column");
+  assert.ok(phone > pinned, "the phone override follows the pinned rule, so it wins on equal specificity");
+  const phoneBlock = css.lastIndexOf("@media (max-width: 45em)", phone);
+  assert.ok(phoneBlock >= 0 && !css.slice(phoneBlock, phone).includes("}"), "the override sits inside the phone block");
 });

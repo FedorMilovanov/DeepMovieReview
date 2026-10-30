@@ -199,3 +199,158 @@
     background: Canvas;
   }
 }
+
+/* Evidence cards are link targets: a character card or an article claim jumps
+   here, so the card needs room above it under the fixed site header. */
+.evidenceMapCard {
+  scroll-margin-top: 96px;
+}
+
+/* The review basis: what the check covered, before the reader trusts the word
+   «проверено». Muted, because it is a limit statement, not a finding. */
+.evidenceBasis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  align-items: baseline;
+  margin: 0.75rem 0 0;
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.evidenceBasis span {
+  color: var(--ink-4);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.evidenceBasis[data-outcome="refused"] {
+  color: var(--accent-fracture-bright);
+}
+
+.evidenceBasis[data-outcome="missing"] {
+  color: var(--ink-4);
+}
+
+.evidenceBasis[data-outcome="refused"] span,
+.evidenceBasis[data-outcome="missing"] span {
+  color: inherit;
+}
+
+/* The tally: how many records stand behind how many links. Sits directly under
+   the section intro so the number is read before the cards, not after them. */
+.evidenceMapTally {
+  max-width: 62ch;
+  margin: 1.25rem 0 0;
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+/* A refusal that was answered by a rewrite. It is part of the basis, not a
+   footnote, so it stays on the same line block and keeps the warning colour. */
+.evidenceBasisRefusal {
+  flex-basis: 100%;
+  color: var(--accent-fracture-bright);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* The register: the whole ledger, sorted by the film's clock. It reuses the scene
+   table's horizontal-scroll pattern so a narrow screen scrolls the table instead
+   of the page. */
+.evidenceRegister {
+  margin-top: 2.5rem;
+}
+
+.evidenceRegister h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.evidenceRegisterIntro {
+  max-width: 62ch;
+  margin: 0.5rem 0 1rem;
+  color: var(--ink-3);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.evidenceRegisterWrap {
+  overflow-x: auto;
+  border: 1px solid var(--line-2);
+  border-radius: 2px;
+}
+
+.evidenceRegisterWrap table {
+  width: 100%;
+  min-width: 40rem;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+/* 40rem of minimum width is a desktop floor. On a phone it is a horizontal
+   scrollbar inside a page that forbids one, so the floor comes off and the cells
+   wrap; the caption still names the table for a screen reader. */
+@media (max-width: 760px) {
+  .evidenceRegisterWrap table {
+    min-width: 0;
+  }
+
+  .evidenceRegisterWrap th,
+  .evidenceRegisterWrap td {
+    padding: 0.45rem 0.4rem;
+    overflow-wrap: anywhere;
+  }
+
+  .evidenceRegisterTime {
+    white-space: normal;
+  }
+}
+
+.evidenceRegisterWrap th,
+.evidenceRegisterWrap td {
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--line-1);
+  text-align: left;
+  vertical-align: top;
+}
+
+.evidenceRegisterWrap thead th {
+  color: var(--ink-4);
+  font-family: var(--font-meta);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.evidenceRegisterWrap tbody th {
+  font-weight: 500;
+}
+
+.evidenceRegisterWrap a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-2);
+}
+
+.evidenceRegisterTime {
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.evidenceRegisterWrap tr[data-outcome="refused"] td,
+.evidenceRegisterWrap tr[data-outcome="refused"] th {
+  color: var(--accent-fracture-bright);
+}
+
+.evidenceRegisterWrap tr[data-outcome="missing"] td,
+.evidenceRegisterWrap tr[data-outcome="missing"] th {
+  color: var(--ink-3);
+}

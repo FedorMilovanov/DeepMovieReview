@@ -43,11 +43,11 @@ export function FilmMediaFrame({ slug, variant }: FilmMediaFrameProps) {
       art={art}
       alt=""
       sizes="100vw"
-      metaLeft="Кадр · стенд-ин"
+      metaLeft="Иллюстрация"
       metaRight="платформенный арт"
       className="filmMediaFrameHero"
       transitionSlug={slug}
-      label="Декоративный платформенный арт. Это не кадр из фильма."
+      label="Декоративный платформенный арт: рисунок, не кадр фильма."
     />
   );
 }

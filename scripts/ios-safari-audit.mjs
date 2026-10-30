@@ -3,8 +3,7 @@ import assert from "node:assert/strict";
 import { inspect } from "node:util";
 import { arch, release } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
-import { mkdirSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
-import { setTimeout as delay } from "node:timers/promises";
+import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari, waitForNativeValue } from "./lib/native-safari.mjs";
@@ -55,13 +54,26 @@ try {
   safari = await nativeSafari({ platformName: "iOS", "safari:useSimulator": true, "safari:deviceUDID": device.udid }, {
     beforeSession: async () => {
       report.phase = "booting iPhone Simulator after host driver readiness";
-      if (device.state !== "Booted") execFileSync("xcrun", ["simctl", "boot", device.udid], { stdio: "inherit" });
       // Bring up the device frontend while SpringBoard is booting, not after
       // waiting for a headless cold boot that may never finish on hosted Intel.
       execFileSync("open", ["-a", simulatorApp, "--args", "-CurrentDeviceUDID", device.udid], { stdio: "inherit", timeout: 30000 });
-      report.bootLog = execFileSync("xcrun", ["simctl", "bootstatus", device.udid, "-b"], {
+      // `bootstatus -b` also *boots* the device, and the frontend opened above is
+      // already booting it: the boot attempt then exits non-zero with «Unable to
+      // boot device in current state: Booted» (measured on 988fce5). A separate
+      // `boot` raced the same way on two earlier heads. So: attempt the boot, but
+      // treat exactly that idempotent outcome as the state we want, then wait for
+      // boot completion with plain `bootstatus`, which never boots anything.
+      let bootNote = "";
+      try {
+        execFileSync("xcrun", ["simctl", "boot", device.udid], { encoding: "utf8", timeout: 120000, maxBuffer: 1024 * 1024 });
+      } catch (error) {
+        const detail = `${error.stdout ?? ""}${error.stderr ?? ""}${error.message ?? ""}`;
+        if (!/current state: Boot(ed|ing)/.test(detail)) throw error;
+        bootNote = `simctl boot reported the idempotent state, not a failure: ${detail.trim().split("\n").slice(-1)[0]}`;
+      }
+      report.bootLog = [bootNote, execFileSync("xcrun", ["simctl", "bootstatus", device.udid], {
         encoding: "utf8", timeout: 480000, maxBuffer: 16 * 1024 * 1024,
-      }).slice(-12000);
+      }).slice(-12000)].filter(Boolean).join("\n");
       console.log(report.bootLog);
       report.device.state = "Booted";
       report.hostSimulatorProcesses = hostSimulatorProcesses();
@@ -72,44 +84,131 @@ try {
       // Warm the real app before the driver's internal 30s RWI deadline; never
       // terminate/relaunch it or replay a failed browser scenario.
       report.phase = "launching real Simulator Safari before RWI discovery";
-      report.safariLaunch = execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], {
-        encoding: "utf8", timeout: 60000,
-      }).trim();
+      // Cold app launch is host setup, not the product's interaction deadline.
+      // A measured 60s timeout left the real device on SpringBoard (97bf64f).
+      // Allow one bounded 120s launch, record its actual cost, never replay it.
+      const launchStarted = performance.now();
+      report.safariLaunchTiming = { timeoutMs: 120000 };
+      try {
+        report.safariLaunch = execFileSync("xcrun", ["simctl", "launch", device.udid, "com.apple.mobilesafari"], {
+          encoding: "utf8", timeout: report.safariLaunchTiming.timeoutMs,
+        }).trim();
+      } finally {
+        report.safariLaunchTiming.elapsedMs = Math.round(performance.now() - launchStarted);
+      }
       report.phase = "creating native iOS Safari session";
+    },
+    // A simulator Safari that never exposed RWI is restarted for a second
+    // session attempt. This repairs host setup only; no product step is redone.
+    retrySetup: async () => {
+      report.sessionRetry = (report.sessionRetry ?? 0) + 1;
+      try { execFileSync("xcrun", ["simctl", "terminate", device.udid, "com.apple.mobilesafari"], { timeout: 30000 }); }
+      catch (error) { report.safariTerminate = error.message; }
+      await new Promise(resolve => setTimeout(resolve, 3000));
     },
   });
   report.capabilities = safari.capabilities;
+  report.nativeInputs = safari.inputs;
   assert.equal(safari.capabilities.platformName, "iOS");
   assert.equal(safari.capabilities["safari:useSimulator"], true);
   assert.equal(safari.capabilities["safari:deviceUDID"], device.udid);
+  // One recorded native activation. A raw touch that never reached the DOM is
+  // evidence about this hosted Simulator driver, not about the control; fall
+  // back to the standard W3C element activation once and keep both facts. A
+  // touch that WAS delivered but did not change state is a real failure.
+  const activate = async (selector, read, expected, timeout = 10000) => {
+    await safari.execute(`window.__inputProbe = { events: [] };
+      for (const type of ["touchstart", "touchend", "click", "pointerdown"])
+        document.addEventListener(type, e => __inputProbe.events.push({ type,
+          target: (e.target.className || e.target.tagName).toString().slice(0, 40) }), { capture: true, once: true });`);
+    await safari.click(selector);
+    let delivered = true;
+    try { await waitForNativeValue(read, expected, { timeout }); }
+    catch (error) {
+      const probe = await safari.execute("return { ...__inputProbe, url: location.href }");
+      if (probe.events.length) { report.lastUndeliveredProbe = probe; throw error; }
+      delivered = false;
+      await safari.elementClick(selector);
+      await waitForNativeValue(read, expected, { timeout });
+      probe.fallback = "W3C element activation after zero delivered events";
+      report.undeliveredTouches = [...(report.undeliveredTouches ?? []), { selector, probe }];
+    }
+    return delivered ? "native touch" : "element activation after undelivered touch";
+  };
   for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"]) {
     report.phase = `native iOS route ${route}`;
     await safari.goto(`http://127.0.0.1:3213${route}`);
     const box = await safari.execute("return ({width:innerWidth,scroll:document.documentElement.scrollWidth,lang:document.documentElement.lang,h1:document.querySelectorAll('main h1').length})");
     assert.ok(box.width < 500 && box.scroll <= box.width + 1, `${route}: native iOS reflow ${JSON.stringify(box)}`);
     assert.equal(box.lang, "ru"); assert.equal(box.h1, 1);
-    await safari.click(".menuButton");
-    await waitForNativeValue(() => safari.execute("return document.querySelector('.menuButton').getAttribute('aria-expanded')"), "true");
-    evidence.actions.push({ route, label: "actual menu tap opened disclosure", expanded: true });
-    await safari.click(".menuButton");
-    await waitForNativeValue(() => safari.execute("return document.querySelector('.menuButton').getAttribute('aria-expanded')"), "false");
-    evidence.actions.push({ route, label: "actual menu tap closed disclosure", expanded: false });
+    const menuState = () => safari.execute("return document.querySelector('.menuButton').getAttribute('aria-expanded')");
+    const openedBy = await activate(".menuButton", menuState, "true");
+    evidence.actions.push({ route, label: "actual menu input opened disclosure", expanded: true, openedBy });
+    const closedBy = await activate(".menuButton", menuState, "false");
+    evidence.actions.push({ route, label: "actual menu input closed disclosure", expanded: false, closedBy });
     const data = await safari.screenshot();
     evidence.screenshots.push({ route, data });
     evidence.actions.push({ route, label: "native iOS Safari layout and actual menu taps", box });
     if (route.includes("/article?")) {
       const count = await safari.execute("return document.querySelectorAll('.articleSection').length");
       assert.ok(count > 0, "Actual native article sections must exist before the spoiler input");
-      await safari.click(".spoilerOption");
-      let changed = false;
-      for (let i = 0; i < 100; i++) {
-        if (await safari.execute("return document.querySelectorAll('.articleSection').length") < count) { changed = true; break; }
-        await delay(100);
-      }
-      assert.ok(changed, "iOS spoiler tap must change DOM projection");
+      // Exercise the control before anything else on the page. It sits at the
+      // very edge of the installed simulator's 390x844 window — behind Safari's
+      // own bottom toolbar — and a tap there reached no DOM event at all
+      // (measured on 2cecbb7 and on two earlier heads). Center it in the actual
+      // viewport first, so the single native tap lands inside the web content,
+      // and record where it was aimed.
+      await safari.execute(`window.__spoilerProbe = { touched: [], clicked: [], url: location.href };
+        for (const type of ["touchstart", "touchend", "click"]) document.addEventListener(type, e =>
+          __spoilerProbe[type === "click" ? "clicked" : "touched"].push({ type, target: (e.target.className || e.target.tagName).toString().slice(0, 40), href: e.target.closest?.("a")?.getAttribute("href") }), { capture: true });`);
+      evidence.screenshots.push({ route: `${route} — before spoiler input`, data: await safari.screenshot() });
+      const sections = () => safari.execute("return document.querySelectorAll('.articleSection').length");
+      // The projection changes either by hiding sections in place or by a real
+      // navigation to the projected route. Both are the same reader-visible
+      // outcome; a URL that still asks for full spoilers with all sections is
+      // not a change.
+      const projection = async () => {
+        const state = await safari.execute("return { sections: document.querySelectorAll('.articleSection').length, search: location.search }");
+        return state.sections < count || !/spoilers=full/.test(state.search) ? "changed" : "same";
+      };
+      await safari.execute("document.querySelector('.spoilerOption').scrollIntoView({ block: 'center', behavior: 'instant' });");
+      report.spoilerTarget = await safari.execute(`const el = document.querySelector('.spoilerOption');
+        const rect = el.getBoundingClientRect();
+        return { rect: rect.toJSON(), scrollY, innerWidth, innerHeight,
+          visualViewport: visualViewport ? { height: visualViewport.height, offsetTop: visualViewport.offsetTop } : null };`);
+      evidence.actions.push({ route, label: "native spoiler target geometry", ...report.spoilerTarget });
+      const spoilerBy = await activate(".spoilerOption", projection, "changed", 20000);
+      report.spoilerProjection = { before: count, after: await sections(), by: spoilerBy,
+        url: await safari.execute("return location.href") };
+      report.spoilerProbe = await safari.execute("return { ...__spoilerProbe, target: (() => { const el = document.querySelector('.spoilerOption'); if (!el) return null; const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { rect: r.toJSON(), scrollY, hit: hit && (hit.className || hit.tagName) }; })() }");
+      evidence.actions.push({ route, label: "native spoiler input probe", ...report.spoilerProbe });
+      evidence.actions.push({ route, label: "native spoiler input changed projection", ...report.spoilerProjection });
+      evidence.screenshots.push({ route: `${route} — after spoiler input`, data: await safari.screenshot() });
+
+      // Then prove that a native source input still works after scrolling, on
+      // the reading rail: a real button, not a synthetic JS click.
+      await safari.goto(`http://127.0.0.1:3213${route}`);
+      await safari.execute("document.querySelectorAll('.articleSection')[5].scrollIntoView();");
+      const railState = () => safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')");
+      const railBy = await activate(".readingOutlineTrigger", railState, "true");
+      report.postScrollInput = { expanded: await railState(), by: railBy, scrollY: await safari.execute("return scrollY") };
+      evidence.actions.push({ route, label: "post-scroll native input on the reading rail", ...report.postScrollInput });
     }
   }
 } catch (error) {
+  // Session creation can fail before a WebDriver object exists. Preserve the
+  // actual Simulator screen and bounded RWI logs instead of diagnosing a blank
+  // browser or fabricating a product failure from the host's timeout alone.
+  if (!safari && report.device?.state === "Booted") {
+    try {
+      const file = `${directory}/failed-simulator.png`;
+      execFileSync("xcrun", ["simctl", "io", report.device.udid, "screenshot", file], { timeout: 15000 });
+      evidence.screenshots.push({ route: "Simulator before WebDriver session; not a product scan", data: readFileSync(file).toString("base64") });
+      report.simulatorAutomationLog = execFileSync("xcrun", ["simctl", "spawn", report.device.udid, "log", "show", "--last", "3m", "--style", "compact", "--predicate", 'subsystem CONTAINS "WebKit" OR process == "MobileSafari"'], {
+        encoding: "utf8", timeout: 20000, maxBuffer: 4 * 1024 * 1024,
+      }).slice(-16000);
+    } catch (diagnosticError) { report.failedSimulatorDiagnostic = diagnosticError.message; }
+  }
   if (safari) {
     try {
       report.failedPageState = await safari.execute("return ({url:location.href,expanded:document.querySelector('.menuButton')?.getAttribute('aria-expanded'),button:document.querySelector('.menuButton')?.getBoundingClientRect().toJSON(),width:innerWidth,scrollY})");

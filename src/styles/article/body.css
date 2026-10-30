@@ -12,6 +12,7 @@
 }
 
 .articleHeader {
+  max-width: 67.5rem;
   display: grid;
   gap: var(--space-4);
   padding-top: clamp(var(--space-8), 8vw, var(--space-10));
@@ -50,10 +51,10 @@
 }
 
 .articleSpoilerBar {
-  display: flex;
-  justify-content: flex-end;
-  padding-block: var(--space-5);
+  width: 100%;
+  padding-block: var(--space-3);
 }
+
 
 .articleOutline {
   display: grid;
@@ -90,12 +91,16 @@
 }
 
 .articleSection {
+  max-width: 67.5rem;
   display: grid;
   gap: var(--space-5);
   border-top: 1px solid var(--stroke-subtle);
 }
 
 .articleSectionHead {
+  width: 100%;
+  max-width: 80ch;
+  margin-inline: auto;
   display: grid;
   gap: var(--space-3);
 }
@@ -126,7 +131,7 @@
   display: inline-flex;
   align-items: baseline;
   gap: 0.6rem;
-  min-height: 42px;
+  min-height: 2.625rem;
   padding: 0.5rem 0;
   font-family: var(--font-meta);
   font-size: var(--type-meta);
@@ -145,9 +150,10 @@
 
 .articleBody {
   min-inline-size: 0;
-  display: grid;
-  gap: var(--space-5);
-  max-width: var(--reading-max);
+  display: flow-root;
+  width: 100%;
+  max-width: 80ch;
+  margin-inline: auto;
 }
 
 .articleParagraph {
@@ -165,40 +171,32 @@
   border-top: 1px solid var(--stroke-warm);
 }
 
-.articleIllustration {
-  margin: var(--space-7) 0;
-  display: grid;
-  gap: var(--space-2);
+.articleBody > * + * { margin-block-start: var(--space-5); }
+
+.articleBody > :not(.articleParagraph):not(.articleIllustration[data-layout="inset"]) {
+  clear: both;
 }
+
+.articleIllustration { margin: var(--space-5) 0; }
 
 .articleIllustration img {
+  display: block;
   width: 100%;
   height: auto;
-  border: 1px solid var(--stroke-default);
-  background: var(--surface-1);
 }
 
-.articleIllustration figcaption {
-  color: var(--ink-4);
-  max-width: 70ch;
-}
-
-/* A vignette, not a spread: the text keeps the column, the picture steps aside. */
+/* The paragraph follows the picture's contour, rather than a vacant grid cell. */
 .articleIllustration[data-layout="inset"] {
-  justify-self: end;
-  width: min(100%, 430px);
-  margin-block: var(--space-3);
+  float: inline-end;
+  width: min(44%, 340px);
+  margin: 0 0 var(--space-4) var(--space-5);
 }
 
-.articleIllustration[data-layout="inset"] figcaption {
-  font-size: 0.94em;
-  line-height: 1.45;
-}
-
-@media (max-width: 720px) {
+@media (max-width: 45em) {
   .articleIllustration[data-layout="inset"] {
-    justify-self: stretch;
+    float: none;
     width: 100%;
+    margin: var(--space-5) 0;
   }
 }
 
@@ -335,11 +333,12 @@
   line-height: 1.62;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 45em) {
   .articleTimeline li {
     grid-template-columns: 1fr;
     gap: var(--space-1);
   }
+
 
   .articleByline > span + span::before {
     content: none;
@@ -347,3 +346,87 @@
   }
 }
 
+
+/* The proof under an anchor. It sits in the label column's grid so the timecode
+   stays the first thing in the row and the basis reads as a footnote to it. */
+.articleTimelineBasis {
+  grid-column: 2;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.articleTimelineBasisLabel {
+  color: var(--ink-3);
+  font-size: var(--type-meta);
+  line-height: 1.45;
+}
+
+.articleTimelineBasis .evidenceBasis {
+  margin: 0;
+}
+
+/* Below the split layout the row has one column, so the basis must live in it.
+   Pinned to column 2 there it created an implicit second track: the auto track
+   took the evidence digest's width, the explicit 1fr track kept only a
+   character, and the timecode, the still and its caption were laid out in that
+   character — at 390px the timecode stacked five lines high and the credit ran
+   to eighty-two. Keeping the basis in the single explicit column removes the
+   implicit track entirely. This block follows the pinned rule on purpose: same
+   specificity, so it has to come later to win. */
+@media (max-width: 45em) {
+  .articleTimelineBasis {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Paragraph supports stay folded: the proof must be one click away, not in the
+   reader's way. */
+.articleSupport {
+  margin: 0 0 var(--space-3);
+  color: var(--ink-3);
+  font-size: var(--type-meta);
+}
+
+.articleSupport summary {
+  cursor: pointer;
+  color: var(--ink-4);
+  font-family: var(--font-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.articleSupport summary:hover {
+  color: var(--ink-2);
+}
+
+.articleSupport summary:focus-visible {
+  outline: 2px solid var(--accent-restoration);
+  outline-offset: 3px;
+}
+
+.articleSupport ul {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.articleSupport li {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+  padding-block: 0.35rem;
+  border-top: 1px solid var(--stroke-subtle);
+}
+
+.articleSupport li p {
+  margin: 0;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+.articleSupport .evidenceBasis {
+  margin: 0.2rem 0 0;
+}

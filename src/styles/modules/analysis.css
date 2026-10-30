@@ -114,7 +114,7 @@
 .filmObservationGrid p,
 .filmCraftGrid p,
 .filmSignalList p,
-.filmDecision p {
+.filmDecision :where(p) {
   color: var(--ink-3);
 }
 
@@ -132,7 +132,7 @@
   margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--stroke-default);
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 .filmCounterevidence strong {
@@ -215,7 +215,8 @@
 }
 
 .filmDecisionOptions > article[data-available="false"] {
-  opacity: 0.52;
+  background: var(--surface-2);
+  border-inline-start: 2px solid var(--stroke-strong);
 }
 
 .filmDecisionOptions strong {

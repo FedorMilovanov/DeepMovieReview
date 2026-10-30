@@ -37,13 +37,11 @@
 
 .siteHeader[data-scrolled] {
   border-bottom-color: var(--stroke-default);
-  /* Fallback first: an engine without colour-mix drops the second declaration
-     and keeps an opaque bar, which is legible; without the fallback it would
-     drop the background entirely and the menu would sit on top of the text. */
+  /* Opaque by design: a translucent blur let scrolled meta text show through
+     at 3.6:1 and made small labels unreadable at the bar's lower edge. A solid
+     canvas keeps the reading surface legible and avoids a live backdrop blur
+     on mobile Safari. */
   background: var(--surface-canvas);
-  background: color-mix(in srgb, var(--surface-canvas) 86%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
 .brand {

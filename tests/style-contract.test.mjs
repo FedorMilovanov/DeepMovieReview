@@ -86,7 +86,7 @@ rejects("film data cannot bypass styles with inline declarations", ({ write }) =
 
 test("import reader preserves declarations in cascade order", () => fixture(({ root }) => {
   const surface = readStylesheet(join(root, "src/styles/film-article.css"));
-  const expected = ["body", "tables", "entry", "production", "reading"]
+  const expected = ["body", "tables", "entry", "production", "reading", "duel", "outline"]
     .map((name) => readFileSync(join(root, `src/styles/article/${name}.css`), "utf8")).join("");
   const rules = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s/g, "");
   assert.equal(rules(surface), rules(expected));
@@ -383,6 +383,15 @@ test("contrast background isolation preserves color/currentColor paint and resto
 });
 
 
+test("contrast coverage does not demand a line box that draws nothing", async () => {
+  const { missingRangeIds } = await import("../scripts/lib/rendered-contrast.mjs");
+  const measurements = new Map([["0:0:1", {}]]);
+  // A wrapped trailing space produces a zero-area line box: nothing is painted
+  // there, so it can never be sampled and must not read as uncovered text.
+  assert.deepEqual([...missingRangeIds([{ id: 0, connected: true, version: 0, lines: 2, emptyLines: [0] }], measurements)], []);
+  assert.deepEqual([...missingRangeIds([{ id: 0, connected: true, version: 0, lines: 2 }], measurements)], [0]);
+});
+
 test("contrast coverage rejects a disappearing target even after prior measurements", async () => {
   const { missingRangeIds } = await import("../scripts/lib/rendered-contrast.mjs");
   const measurements = new Map([["0:0:0", {}], ["1:0:0", {}], ["2:0:0", {}], ["3:0:0", {}]]);
@@ -500,4 +509,149 @@ test("native UI observation waits without replaying input and fails a persistent
   assert.equal(await waitForNativeValue(async () => ++reads < 3 ? "true" : "false", "false", { now: () => clock++, pause: async () => {}, timeout: 10 }), "false");
   assert.equal(reads, 3);
   await assert.rejects(waitForNativeValue(async () => "true", "false", { now: () => clock++, pause: async () => {}, timeout: 3 }), /Native UI state/);
+});
+
+test("reading layout wraps inset artwork and preserves accessible navigation", () => {
+  const css = readStylesheet("src/styles/film-article.css");
+  assert.match(css, /display:\s*flow-root/);
+  assert.match(css, /float:\s*inline-end/);
+  assert.doesNotMatch(css, /border-top:\s*1px solid var\(--stroke-warm\);\s*padding-top:\s*var\(--space-2\)/);
+  const view = readFileSync("src/components/film-article/article-view.tsx", "utf8");
+  assert.match(view, /<noscript>/);
+  assert.match(view, /Авторская иллюстрация, не кадр из фильма/);
+  assert.doesNotMatch(view, /<figcaption>\{block.caption\}/);
+  const outline = readFileSync("src/components/film-article/reading-outline.tsx", "utf8");
+  assert.match(outline, /aria-expanded=\{open\}/);
+  assert.match(outline, /hidden=\{!open\}/);
+  assert.match(outline, /observer.disconnect/);
+  assert.match(outline, /event.key === "Escape"/);
+});
+
+test("unavailable decision alternatives remain readable rather than opacity-disabled", () => {
+  const css = postcss.parse(readStylesheet("src/styles/modules/analysis.css"));
+  let found = false;
+  css.walkRules(rule => {
+    if (!rule.selector.includes('[data-available="false"]')) return;
+    found = true;
+    rule.walkDecls("opacity", decl => assert.equal(Number(decl.value), 1));
+    assert.ok(rule.nodes.some(node => node.prop === "background"));
+  });
+  assert.ok(found, "unavailable state still has a visual distinction alongside its explicit label");
+});
+
+
+test("disclosure touch policy is scoped to controls, not article selection", () => {
+  const css = postcss.parse(readStylesheet("src/styles/primitives.css"));
+  let found = false;
+  css.walkRules(rule => {
+    if (rule.selector !== "button[aria-expanded]") return;
+    found = true;
+    assert.ok(rule.nodes.some(node => node.prop === "touch-action" && node.value === "manipulation"));
+    assert.ok(rule.nodes.some(node => node.prop === "-webkit-user-select" && node.value === "none"));
+  });
+  assert.ok(found);
+});
+
+test("counterevidence retains high-contrast secondary text", () => {
+  const css = postcss.parse(readStylesheet("src/styles/modules/analysis.css"));
+  const rule = css.nodes.find(node => node.type === "rule" && node.selector === ".filmCounterevidence");
+  assert.ok(rule?.nodes.some(node => node.prop === "color" && node.value === "var(--ink-2)"));
+});
+
+test("native touch waits for a stable hit target without repeating the gesture", async () => {
+  const { waitForStableNativeTarget } = await import('../scripts/lib/native-safari.mjs');
+  let clock = 0, reads = 0;
+  const states = [null, { ready: false }, { ready: true, point: { x: 4, y: 10 } }, { ready: true, point: { x: 4, y: 20 } }];
+  const target = await waitForStableNativeTarget(async () => states[Math.min(reads++, states.length - 1)], {
+    now: () => clock, pause: async () => { clock += 100; }, timeout: 1000,
+  });
+  assert.deepEqual(target, { ready: true, point: { x: 4, y: 20 } });
+  assert.equal(reads, 6);
+  await assert.rejects(waitForStableNativeTarget(async () => ({ ready: false }), {
+    now: () => clock, pause: async () => { clock += 100; }, timeout: 300,
+  }), /remained occluded/);
+});
+
+test("quaternary meta text clears AA on the lightest elevated surface", () => {
+  const css = readStylesheet("src/styles/tokens.css");
+  const token = name => css.match(new RegExp(`${name}\\s*:\\s*(#[0-9a-fA-F]{6})`))?.[1];
+  const luminance = hex => {
+    const channels = hex.slice(1).match(/../g).map(part => parseInt(part, 16) / 255)
+      .map(value => value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  };
+  const ratio = (a, b) => {
+    const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (light + 0.05) / (dark + 0.05);
+  };
+  // #2c2b2a is the lightest composited surface measured by CI contrast scans.
+  assert.ok(ratio(token("--ink-4") || "#000", "#2c2b2a") >= 4.5, `--ink-4 fails AA: ${token("--ink-4")}`);
+  assert.ok(luminance(token("--ink-3")) > luminance(token("--ink-4")), "ink-3 stays above ink-4");
+  assert.ok(luminance(token("--ink-2")) > luminance(token("--ink-3")), "ink-2 stays above ink-3");
+});
+
+test("sticky header is opaque so meta text never blends through it", () => {
+  const base = postcss.parse(readStylesheet("src/styles/primitives.css"));
+  const header = base.nodes.find(node => node.type === "rule" && node.selector === ".siteHeader");
+  assert.ok(header?.nodes.some(node => node.prop === "background" && node.value === "var(--surface-canvas)"));
+  assert.ok(!header.nodes.some(node => node.prop === "background" && /color-mix/.test(node.value)));
+  assert.ok(!header.nodes.some(node => node.prop === "backdrop-filter"));
+  assert.ok(!base.toString().includes("backdrop-filter: blur(18px)"), "no header blur remains");
+  const scrolled = readStylesheet("src/styles/shell/header.css");
+  const rule = scrolled.slice(scrolled.indexOf(".siteHeader[data-scrolled]"));
+  assert.ok(!/backdrop-filter|color-mix/.test(rule.slice(0, rule.indexOf("}"))));
+});
+
+test("rendered contrast keeps the longest fully exposed band, not header paint", async () => {
+  const { exposedRows } = await import("../scripts/lib/rendered-contrast.mjs");
+  // A 17px line box whose top 2 rows sit under the sticky bar.
+  assert.deepEqual(exposedRows(17, row => row < 2), [2, 17]);
+  // No reader-visible row: the line is excluded rather than measured as bar paint.
+  assert.equal(exposedRows(17, () => true), null);
+  // A gap keeps the longer contiguous run; a sliver is not preferred to it.
+  assert.deepEqual(exposedRows(20, row => row >= 3 && row < 12), [12, 20]);
+  assert.equal(exposedRows(0, () => false), null);
+});
+
+test("contrast sampling snaps to whole exposed pixel rows", async () => {
+  const { exposedRows } = await import("../scripts/lib/rendered-contrast.mjs");
+  // Rect top 63.86 in a viewport whose 64th row belongs to the sticky bar.
+  const rowOrigin = Math.floor(63.86), rowEnd = Math.ceil(63.86 + 14);
+  const rows = Array.from({ length: rowEnd - rowOrigin }, (_, row) => rowOrigin + row + 0.5 < 64);
+  const band = exposedRows(rows.length, row => rows[row]);
+  assert.deepEqual([rowOrigin + band[0], rowOrigin + band[1]], [64, 78]);
+});
+
+test("renderer mask fallback hides only visible text owners, never moves boxes", async () => {
+  const { hardMaskTextPaint } = await import("../scripts/lib/rendered-contrast.mjs");
+  const calls = [];
+  const state = {
+    visibleIds: new Set([1]),
+    records: [
+      { id: 1, element: { style: { setProperty: (property, value) => calls.push([property, value]) } } },
+      { id: 2, element: { style: { setProperty: () => { throw new Error("invisible record touched"); } } } },
+    ],
+  };
+  hardMaskTextPaint(state);
+  assert.deepEqual(calls, [["visibility", "hidden"]]);
+  assert.equal(state.usedHardMask, true);
+});
+
+test("a text-coloured background is a contrast failure, not a lost mask", async () => {
+  const { samePaintedColor } = await import("../scripts/lib/rendered-contrast.mjs");
+  assert.equal(samePaintedColor([255, 255, 255, 1], [255, 255, 255, 1]), true);
+  assert.equal(samePaintedColor([155, 151, 143, 1], [154, 151, 146, 1]), true);
+  assert.equal(samePaintedColor([0, 0, 0, 1], [255, 255, 255, 1]), false);
+  assert.equal(samePaintedColor([155, 151, 143, 0.5], [155, 151, 143, 1]), false);
+});
+
+test("page-serialised probes never reference module-scope helpers", async () => {
+  const lib = await import("../scripts/lib/rendered-contrast.mjs");
+  // Playwright serialises these functions into the browser, where imports do not exist.
+  for (const name of ["snapshotTextPaint", "maskTextPaint", "restoreTextPaint", "refreshTextRanges", "hardMaskTextPaint"]) {
+    const source = lib[name].toString();
+    for (const helper of ["samePaintedColor", "exposedRows", "rectangleContrast", "missingRangeIds"]) {
+      assert.ok(!source.includes(`${helper}(`), `${name} must not call ${helper}`);
+    }
+  }
 });

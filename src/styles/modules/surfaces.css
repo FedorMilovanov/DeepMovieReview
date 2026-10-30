@@ -1,0 +1,182 @@
+/* Claim-to-proof surfaces.
+   Shared by every film package: character cards that show their own anchors,
+   and the measured scene table. No film identity, no per-article overrides. */
+
+.characterCardHead h3 {
+  margin: 0;
+}
+
+.characterThesis {
+  margin: 0.8rem 0 1.4rem;
+  color: var(--ink-1);
+  font-size: 1.02rem;
+  line-height: 1.5;
+}
+
+.characterAnchors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.characterAnchors a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--stroke-subtle);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-family: var(--font-meta);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.characterAnchors a:hover,
+.characterAnchors a:focus-visible {
+  border-color: var(--stroke-strong);
+  color: var(--ink-1);
+  transform: translateY(-1px);
+}
+
+.characterAnchors li[data-counter] a {
+  border-color: var(--stroke-warm);
+}
+
+.characterAnchorTime {
+  color: var(--accent-restoration);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.characterDetails {
+  border-top: 1px solid var(--stroke-subtle);
+}
+
+.characterDetails summary {
+  padding: 0.85rem 0;
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.characterDetails summary:hover,
+.characterDetails[open] summary {
+  color: var(--ink-1);
+}
+
+.filmSceneTableWrap {
+  margin-top: 2rem;
+  overflow-x: auto;
+  border: 1px solid var(--stroke-default);
+}
+
+.filmSceneTable table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.filmSceneTable thead th {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--stroke-default);
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.filmSceneTable tbody th,
+.filmSceneTable tbody td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--stroke-subtle);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.filmSceneTable tbody th {
+  color: var(--ink-1);
+  font-weight: 400;
+}
+
+.filmSceneTable tbody tr:hover {
+  background: var(--surface-1);
+}
+
+.filmSceneIndex,
+.filmSceneTime,
+.filmSceneSupports {
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.filmSceneSupports {
+  text-align: right;
+}
+
+/* A 390px screen cannot hold five columns of padded table: the shell clips, the
+   reader loses the last column, and the audit sees content wider than its box.
+   Below the tablet breakpoint the cells wrap instead of holding a line, and the
+   padding shrinks — the table stays a table, it just stops pretending to be wide. */
+@media (max-width: 760px) {
+  .filmSceneTable thead th,
+  .filmSceneTable tbody th,
+  .filmSceneTable tbody td {
+    padding: 0.55rem 0.5rem;
+  }
+
+  .filmSceneIndex,
+  .filmSceneTime,
+  .filmSceneSupports,
+  .filmSceneState {
+    white-space: normal;
+  }
+
+  .filmSceneTable tbody th,
+  .filmSceneTable tbody td {
+    overflow-wrap: anywhere;
+  }
+}
+
+.filmSceneState {
+  font-family: var(--font-meta);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.filmSceneState[data-state="verified"] {
+  color: var(--accent-restoration);
+}
+
+.filmSceneState[data-state="draft"] {
+  color: var(--accent-fracture-bright);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .characterAnchors a {
+    transition: none;
+  }
+
+  .characterAnchors a:hover,
+  .characterAnchors a:focus-visible {
+    transform: none;
+  }
+}

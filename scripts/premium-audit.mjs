@@ -257,8 +257,10 @@ check("LA", "LA05", "текстовая колонка уже контейнер
 });
 
 check("LA", "LA06", "врезки-инсеты ограничены по ширине", () => {
-  const width = Number(/\[data-layout="inset"\][\s\S]{0,120}?width:\s*min\(100%,\s*(\d+)px\)/.exec(articleCss)?.[1]);
-  return (width > 0 && width <= 460) || String(width);
+  const match = /\[data-layout="inset"\][\s\S]{0,120}?width:\s*min\(([\d.]+)%,\s*(\d+)px\)/.exec(articleCss);
+  const share = Number(match?.[1]);
+  const width = Number(match?.[2]);
+  return (share > 0 && share <= 50 && width > 0 && width <= 460) || `share=${share}%, width=${width}px`;
 });
 
 check("LA", "LA07", "мобильные кегли переопределены явно", () => {
@@ -514,10 +516,11 @@ if (base) {
     return unlabelled.length === 0 || `${unlabelled.length} навигаций без имени`;
   });
 
-  check("SE", "SE11", "врезки оформлены figure + figcaption", () => {
+  check("SE", "SE11", "врезки семантичны: подпись данных или честный alt рисунка", () => {
     const figures = (doc.match(/<figure\b/g) ?? []).length;
-    const captions = (doc.match(/<figcaption\b/g) ?? []).length;
-    return figures >= 13 && captions >= figures || `figure: ${figures}, figcaption: ${captions}`;
+    const described = [...doc.matchAll(/<figure\b[^>]*>([\s\S]*?)<\/figure>/g)]
+      .filter((match) => /<figcaption\b/.test(match[1]) || /alt="Авторская иллюстрация, не кадр из фильма\./.test(match[1])).length;
+    return figures >= 13 && described === figures || `figure: ${figures}, described: ${described}`;
   });
 
   check("SE", "SE12", "картинки отдаются через picture с AVIF", () => {
@@ -750,6 +753,10 @@ check("CR", "CR11", "нет мёртвых стилей: каждый класс
     read("src/app/films/[slug]/page.tsx"),
     read("src/app/films/[slug]/article/page.tsx"),
     read("src/app/films/[slug]/making/page.tsx"),
+    // Shared with the film page: the article renders the same basis line, so the
+    // classes it styles are article markup even though the file lives elsewhere.
+    read("src/components/evidence-basis.tsx"),
+    read("src/components/film-modules/evidence-map.tsx"),
   ].join("\n");
   const classes = [...new Set([...articleCss.matchAll(/\.([a-zA-Z][a-zA-Z0-9]+)/g)].map((m) => m[1]))];
   const orphans = classes.filter((name) => !components.includes(name));

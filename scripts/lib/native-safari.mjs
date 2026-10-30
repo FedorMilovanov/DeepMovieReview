@@ -25,7 +25,23 @@ export async function waitForNativeValue(read, expected, { timeout = 10000, now 
   assert.equal(actual, expected, "Native UI state did not reach the expected value before its deadline");
 }
 
-export async function nativeSafari(capabilities = {}, { beforeSession = async () => {} } = {}) {
+// Observe scrolling, font and visual-viewport completion before ONE native input.
+// Never replay a gesture because its postcondition failed.
+export async function waitForStableNativeTarget(read, { timeout = 10000, now = Date.now, pause = () => delay(100) } = {}) {
+  const deadline = now() + timeout;
+  let previous, stable = 0;
+  while (now() < deadline) {
+    const target = await read();
+    const key = target?.ready ? JSON.stringify(target) : undefined;
+    stable = key && key === previous ? stable + 1 : 0;
+    previous = key;
+    if (stable >= 2) return target;
+    await pause();
+  }
+  throw new Error("Native touch target did not settle or remained occluded before input");
+}
+
+export async function nativeSafari(capabilities = {}, { beforeSession = async () => {}, retrySetup = async () => {} } = {}) {
   // Never attach iOS to a desktop driver's leftover fixed-port listener.
   const reservation = createServer().listen(0, "127.0.0.1");
   await once(reservation, "listening");
@@ -48,6 +64,7 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
   });
   driver.on("error", error => { lastError = error; });
   let session;
+  const inputs = [];
   async function request(path, body, method = body === undefined ? "GET" : "POST") {
     try {
       const response = await fetch(`http://127.0.0.1:${port}${path}`, {
@@ -85,28 +102,66 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       cleanupPids = [...new Set([...safariDriverPids(processes, driver.pid), ...safariListenerPids(listeners, processes)])];
       diagnosticPids = [...new Set([...cleanupPids, ...safariHttpServicePids(listeners, processes)])];
     } catch (error) { diagnostics += `\nDriver process snapshot unavailable: ${error.message}`; }
-    await beforeSession();
-    const result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari", ...capabilities } } });
+    // Host-level session setup on a cold Simulator can time out while the
+    // browser's RWI service is still starting. Retry SESSION CREATION once with
+    // a real relaunch; product gestures are never replayed.
+    let result;
+    for (let attempt = 1; !result; attempt++) {
+      await beforeSession();
+      try {
+        result = await request("/session", { capabilities: { alwaysMatch: { browserName: "safari", ...capabilities } } });
+      } catch (error) {
+        if (attempt >= 2) throw error;
+        diagnostics += `\nSession attempt ${attempt} failed: ${error.message}`;
+        await retrySetup();
+      }
+    }
     session = result.sessionId;
     const path = `/session/${session}`;
     return {
       version: result.capabilities.browserVersion,
       capabilities: result.capabilities,
+      inputs,
       async click(selector) {
         const element = await request(`${path}/element`, { using: "css selector", value: selector });
         if (capabilities.platformName?.toLowerCase() === "ios") {
           // Mobile Safari element/click can deliver a move without a tap.
           // Use a real W3C touch gesture; release is required to dispatch up.
-          const point = await request(`${path}/execute/sync`, {
-            script: "arguments[0].scrollIntoView({block:'center',behavior:'instant'});const r=arguments[0].getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)}", args: [element],
+          await request(`${path}/execute/sync`, {
+            script: "arguments[0].scrollIntoView({block:'center',behavior:'instant'})", args: [element],
           });
+          const point = await waitForStableNativeTarget(() => request(`${path}/execute/sync`, {
+            script: `const el=arguments[0],r=el.getBoundingClientRect(),v=visualViewport;
+              const point={x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)};
+              const hit=document.elementFromPoint(point.x,point.y);
+              // The gesture now uses the element as its W3C origin, so the
+              // driver resolves the centre itself. Readiness waits for a stable
+              // box in a settled document; the hit-test is recorded, not used as
+              // a precondition on coordinates this driver does not honour.
+              return {ready:el.isConnected&&document.readyState==='complete'&&document.fonts.status==='loaded'&&
+                point.x>=0&&point.x<innerWidth&&point.y>=0&&point.y<innerHeight,
+                point,hitContained:!!hit&&el.contains(hit),rect:r.toJSON(),scroll:{x:scrollX,y:scrollY},
+                viewport:v?{x:v.offsetLeft,y:v.offsetTop,width:v.width,height:v.height,scale:v.scale}:null};`,
+            args: [element],
+          }));
+          inputs.push({ selector, ...point, gesture: "single native touch after stable hit-test" });
           try {
+            // Absolute viewport coordinates from this driver landed on a
+            // different element (measured: a touch aimed at y=32 reached
+            // appShell). Give the driver the element itself as the W3C origin
+            // so it resolves its own centre; still one native touch.
             return await request(`${path}/actions`, { actions: [{ type: "pointer", id: "finger", parameters: { pointerType: "touch" }, actions: [
-              { type: "pointerMove", duration: 0, ...point }, { type: "pointerDown", button: 0 },
+              { type: "pointerMove", duration: 0, origin: element, x: 0, y: 0 }, { type: "pointerDown", button: 0 },
               { type: "pause", duration: 80 }, { type: "pointerUp", button: 0 },
             ] }] });
           } finally { await request(`${path}/actions`, undefined, "DELETE"); }
         }
+        return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
+      },
+      // Standard W3C element activation, used only when a delivered touch is
+      // proven absent by a DOM event probe. Never a JS .click() substitute.
+      async elementClick(selector) {
+        const element = await request(`${path}/element`, { using: "css selector", value: selector });
         return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
       },
       execute: script => request(`${path}/execute/sync`, { script, args: [] }),

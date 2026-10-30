@@ -7,6 +7,50 @@ export type Confidence = "HIGH" | "MEDIUM" | "LOW";
  * Canonical evidence is stored once at package level. Interpretive claims point to
  * these records instead of copying observations into each module independently.
  */
+/**
+ * What a verification actually covered.
+ *
+ * `VERIFIED` on its own is a promise, not a description: it does not say whether
+ * anyone looked at the picture, listened to the track, or what part of the film
+ * was in front of them. The basis is derived from the verification ledger — it is
+ * never typed next to a claim — so a reader can see the size of the check behind
+ * an evidence record instead of taking the word for it.
+ */
+export type EvidenceReviewBasis = {
+  /** The material that was actually examined. */
+  material: "frames" | "subtitle-track";
+  /**
+   * Seconds of the master the examination covered: the first and the last
+   * observation in the ledger. Absent when the ledger records no times.
+   */
+  window?: { from: number; to: number };
+  /** How many separate observations the ledger lists. */
+  observations: number;
+  /**
+   * What the check concluded. `pending` means the check exists for the compound
+   * record, but nothing was recorded at this record's own second — the honest
+   * state of a half that inherited its parent's review.
+   */
+  outcome: "seen" | "heard" | "refused" | "pending";
+  /**
+   * Fields the ledger does not record. Reported, not guessed: an empty list means
+   * the basis is complete, and a non-empty one is shown to the reader as-is.
+   */
+  unrecorded?: ("reviewer" | "date")[];
+  /**
+   * Research record this one was split from. The check was performed once, on the
+   * compound record, so a half may only claim the parent's window when its own
+   * second actually falls inside it.
+   */
+  inheritedFrom?: string;
+  /**
+   * Research record this one replaces. It is set only when the ledger refused the
+   * original formulation, so the card can say that a check said no — a map that
+   * shows only successes is a brochure, not evidence.
+   */
+  refusedAncestor?: string;
+};
+
 export type EvidenceRecord = {
   id: string;
   label: string;
@@ -18,6 +62,8 @@ export type EvidenceRecord = {
   timestampSeconds?: number;
   sourceIds?: string[];
   spoilerLevel: SpoilerLevel;
+  /** Derived from the verification ledger, when the edition has one. */
+  basis?: EvidenceReviewBasis;
 };
 
 export type FilmSceneVerificationState = "DRAFT" | "VERIFIED";
@@ -482,12 +528,31 @@ export type ArticleMeasurementRef = {
   id: string;
 };
 
+/** A small editorial quotation from the measured master, never generated artwork. */
+export type ArticleSceneStill = {
+  src: string;
+  avifSrc: string;
+  avifSha256: string;
+  width: number;
+  height: number;
+  alt: string;
+  /** Nominal output-grid time; not the selected source frame PTS. */
+  sampleTimeSeconds: number;
+  samplingIntervalSeconds: 30;
+  sourceId: string;
+  masterDigest: string;
+  imageSha256: string;
+  credit: string;
+  use: "critical-review";
+};
+
 export type ArticleTimelineItem = {
   id: string;
   /** Must equal the cited evidence record's timestampSeconds. */
   timestampSeconds: number;
   label: string;
   evidenceId: string;
+  still?: ArticleSceneStill;
 };
 
 export type ArticleCorrectionRow = {
@@ -505,6 +570,15 @@ export type ArticleCorrectionRow = {
    * Such a row must not cite evidence for something it claims is absent.
    */
   absentFromMaster?: boolean;
+};
+
+export type ArticleDuelSide = {
+  id: string;
+  /** Whose reading this is, e.g. «Что слышит Труман». */
+  label: string;
+  reading: string;
+  /** Every side needs its own proof; there is no unsupported side. */
+  evidenceIds: string[];
 };
 
 export type ArticleTableRow = {
@@ -608,6 +682,26 @@ export type ArticleBlock =
       id: string;
       caption: string;
       rows: ArticleCorrectionRow[];
+    }
+  | {
+      /**
+       * Two or three readings of the same moment, side by side.
+       *
+       * This is the article's comparison surface, and it is built to make a
+       * fight impossible: every side must cite evidence, no side is scored, and
+       * the block cannot exist without an explicit statement of what the film
+       * leaves open. A «who wins» panel is exactly the kind of confident effect
+       * that outruns the master, so the type refuses to express one.
+       */
+      kind: "duel";
+      id: string;
+      /** Small label above the question, e.g. «Дуэль 01 · адресат». */
+      label: string;
+      /** The single question both sides answer differently. */
+      question: string;
+      sides: ArticleDuelSide[];
+      /** What the evidence cannot settle. Required: the panel never declares a winner. */
+      open: string;
     };
 
 export type ArticleSection = {

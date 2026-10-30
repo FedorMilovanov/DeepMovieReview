@@ -80,6 +80,7 @@ function blockIds(section: ArticleSection): string[] {
     if (block.kind === "timeline") ids.push(...block.items.map((item) => item.id));
     if (block.kind === "measurement-table") ids.push(...block.rows.map((row) => row.id));
     if (block.kind === "corrections") ids.push(...block.rows.map((row) => row.id));
+    if (block.kind === "duel") ids.push(...block.sides.map((side) => side.id));
   }
   return ids;
 }
@@ -100,6 +101,8 @@ function blockText(block: ArticleBlock): string {
       return block.caption;
     case "corrections":
       return block.caption;
+    case "duel":
+      return [block.question, ...block.sides.map((side) => side.reading), block.open].join(" ");
   }
 }
 
@@ -303,7 +306,7 @@ function checkBlock(
       }
       if (asset.sourceKind !== "generated") {
         errors.push(
-          `${path}: "${block.assetId}" is not an original illustration; the site does not publish stills.`,
+          `${path}: "${block.assetId}" is not an original illustration; stills require the scene-quotation path.`,
         );
       }
       if (isBlank(asset.alt)) errors.push(`${path}: "${block.assetId}" has no alternative text.`);
@@ -334,6 +337,27 @@ function checkBlock(
         } else if (scene.verificationState !== "VERIFIED") {
           errors.push(`${itemPath}: evidence "${item.evidenceId}" belongs to unverified scene "${scene.id}".`);
         }
+        if (item.still) {
+          const frame = item.still;
+          if (context.edition?.state !== "LOCKED" || frame.sourceId !== context.edition.sourceId ||
+              String(frame.masterDigest).toLowerCase() !== context.edition.masterDigest?.toLowerCase()) {
+            errors.push(`${itemPath}: still must belong to the locked master.`);
+          }
+          if (!/^\/film-stills\/[a-z0-9-]+\.jpg$/.test(frame.src) || !/^[a-f0-9]{64}$/.test(frame.imageSha256) ||
+              frame.avifSrc !== frame.src.replace(/\.jpg$/, ".avif") || !/^[a-f0-9]{64}$/.test(frame.avifSha256)) {
+            errors.push(`${itemPath}: still needs a local JPEG and SHA-256.`);
+          }
+          if (!Number.isFinite(frame.sampleTimeSeconds) || !scene || scene.endTimestampSeconds === undefined ||
+              frame.sampleTimeSeconds - 15 < scene.startTimestampSeconds || frame.sampleTimeSeconds + 15 > scene.endTimestampSeconds ||
+              Math.abs(frame.sampleTimeSeconds - item.timestampSeconds) > 15) {
+            errors.push(`${itemPath}: still must show the cited scene near its anchor; disclose its nominal grid time.`);
+          }
+          if (!Number.isInteger(frame.width) || !Number.isInteger(frame.height) || frame.width < 1 ||
+              frame.height < 1 || frame.samplingIntervalSeconds !== 30 || frame.sampleTimeSeconds % 30 !== 0 || frame.width > 1280 || frame.height > 720 ||
+              isBlank(frame.alt) || isBlank(frame.credit) || frame.use !== "critical-review") {
+            errors.push(`${itemPath}: still needs bounded dimensions, alt, credit, declared 30s sampling and critical-review use.`);
+          }
+        }
         if (context.realFilm && !canRevealSpoiler(sectionLevel, evidence.spoilerLevel)) {
           errors.push(
             `${itemPath}: evidence "${item.evidenceId}" spoiler level "${evidence.spoilerLevel}" exceeds section level "${sectionLevel}".`,
@@ -359,6 +383,26 @@ function checkBlock(
         if (isBlank(row.label)) errors.push(`${rowPath}: label is required.`);
         checkMeasurementRef(row.measurement, `${rowPath}/measurement`, context, errors);
       }
+      return;
+    }
+    case "duel": {
+      if (isBlank(block.label)) errors.push(`${path}: a duel needs a label.`);
+      if (block.sides.length < 2) errors.push(`${path}: a duel needs at least two sides.`);
+      if (isBlank(block.open)) {
+        errors.push(`${path}: a duel must state what the film leaves open; a comparison without it is a verdict.`);
+      }
+      for (const id of duplicates(block.sides.map((side) => side.id))) {
+        errors.push(`${path}: duplicate duel side id "${id}".`);
+      }
+      for (const side of block.sides) {
+        const sidePath = `${path}/${side.id}`;
+        if (isBlank(side.label)) errors.push(`${sidePath}: label is required.`);
+        if (isBlank(side.reading)) errors.push(`${sidePath}: reading is required.`);
+        checkProse(side.reading, sidePath, context, errors);
+        checkSupport({ evidenceIds: side.evidenceIds }, sidePath, sectionLevel, context, errors, true);
+      }
+      checkProse(block.question, `${path}/question`, context, errors);
+      checkProse(block.open, `${path}/open`, context, errors);
       return;
     }
     case "corrections": {

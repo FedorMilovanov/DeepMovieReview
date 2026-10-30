@@ -208,3 +208,48 @@ instead of silently re-pointing a claim at the wrong second of the film.
   contradicted record states that it may not be promoted.
 
 If any of those drift, CI fails before the edition can be promoted.
+
+## 8. Second pass: the rain retraction (2026-10-30)
+
+Section 5 recorded the localized-rain beat as absent and section 7 froze that
+reading into CI. Both were wrong, and the correction is documented here rather
+than quietly edited out.
+
+**What the first pass did.** It sampled three frames — 1790 s, 1800 s and 1960 s —
+inside `truman-sc-paranoia` (chapter 08, 1769.225–2218.215 s), saw dry streets,
+and wrote «the localized-rain beat is NOT present in chapter 08». That sentence
+was true. The sentences built on top of it were not: the article's corrections
+table, the evidence-file header and the scene note all escalated «not in this
+chapter» into «does not exist in the film». The subtitle argument was a category
+error on top of that: the beat is nearly wordless, so the absence of the word
+*rain* in the track could never settle the question.
+
+**What the second pass found.** A review of the master's 12:41–13:06 window
+(761–786 s, in `truman-sc-memories-of-dad`, chapter 06) shows a narrow stream of
+rain falling on the seated Truman; he steps out from under it and the stream
+stays where it was; he returns to it; the rain then widens over the whole scene.
+
+**What changed in the data.**
+
+- `truman-ev-raincloud` stays `CONTRADICTED` in the ledger — the record as
+  written failed on placement and on staging — but its note now states both
+  failures and the fact that the subject survives, instead of claiming absence.
+- The retired research record is *rewritten*, not re-added: `truman-ev-rain`
+  (761 s, `truman-sc-memories-of-dad`, MINOR) carries the observed description
+  and names the «dome failure» reading as interpretation. The summary keeps the
+  lineage in `rewritten`.
+- The scene notes now say where the beat is instead of where it is not, and the
+  TV Tropes locator no longer claims the source describes an episode the source
+  in fact describes.
+- The article's corrections table cites `truman-ev-rain`; no row declares a
+  beat absent any more, and the caption records the earlier error in public.
+
+**What changed in CI.** The `absentFromMaster` count is now asserted at zero and
+the rain row is asserted to cite evidence and to contain no absence wording. The
+contradicted-set assertion is unchanged: the record still may not be promoted as
+written.
+
+**What is still not checked.** These frames were read from extracted still
+sequences, not from the master on this machine, and no audio was reviewed.
+Anything that depends on who says a line — including the Marlon repetition in
+section 5 — stays marked as a transcript observation, not an established cause.

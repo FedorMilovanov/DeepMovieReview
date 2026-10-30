@@ -54,6 +54,17 @@ for (const name of selected) {
 
           // Scan the whole document, not just main. Preserve every axe result.
           const scan = async (state, scope = "document") => {
+            // Axe samples computed colors at one instant. A disclosure that is
+            // still fading in would be judged mid-transition at ~1.9:1. Wait for
+            // finite entrance animations to finish, never for infinite ones and
+            // never by forcing styles; the settled colors are the real ones.
+            await page.waitForFunction(root => {
+              const element = root === "document" ? document.documentElement : document.querySelector(root);
+              if (!element) return true;
+              const running = element.getAnimations({ subtree: true }).filter(animation =>
+                animation.playState === "running" && Number.isFinite(animation.effect?.getComputedTiming().endTime));
+              return running.length === 0;
+            }, scope, { timeout: 5000 }).catch(() => {});
             await page.addScriptTag({ content: axe.source });
             const result = await page.evaluate(async scope => window.axe.run(scope === "document" ? document : document.querySelector(scope), {
               runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] },
@@ -123,6 +134,102 @@ for (const name of selected) {
           if (route.includes("/article?")) {
             const sectionCount = await page.locator(".articleSection").count();
             const hiddenId = await page.locator(".articleSection").last().getAttribute("id");
+            const outline = page.getByRole("button", { name: "Оглавление статьи" });
+            assert.ok(await page.evaluate(() => {
+              const title = document.querySelector('.articleTitle');
+              const controls = document.querySelector('.articleSpoilerBar');
+              return Boolean(title.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING);
+            }), "reading opens with the title, not five spoiler buttons");
+            // Check both directions across long sections, not a forced active state.
+            for (const index of [sectionCount - 1, 0]) {
+              const section = page.locator('.articleSection').nth(index);
+              const id = await section.getAttribute('id');
+              await section.evaluate(el => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
+              await page.waitForFunction(id => document.querySelector(`.readingOutlinePanel a[href="#${id}"]`)?.getAttribute('aria-current') === 'location', id);
+            }
+            if (width === 1440) {
+              await page.setViewportSize({ width: 900, height: 320 });
+              for (const index of [sectionCount - 1, Math.floor(sectionCount / 2), 0]) {
+                const section = page.locator('.articleSection').nth(index);
+                const id = await section.getAttribute('id');
+                await section.evaluate(el => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
+                await page.waitForFunction(id => document.querySelector(`.readingOutlinePanel a[href="#${id}"]`)?.getAttribute('aria-current') === 'location', id);
+              }
+              await outline.focus(); await page.keyboard.press('Enter');
+              await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
+              assert.ok(await page.locator('.readingOutlinePanel').evaluate(el => {
+                const r = el.getBoundingClientRect();
+                return r.x >= 0 && r.y >= document.querySelector(".siteHeader").getBoundingClientRect().bottom && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
+              }), "landscape contents panel fits the viewport");
+              await page.screenshot({ path: `${out}/${id}-landscape-outline.png` });
+              await page.keyboard.press('Escape');
+              await page.setViewportSize({ width, height: 900 });
+            }
+            const analysis = page.locator('.articleAnalysis');
+            if (await analysis.count()) {
+              await analysis.locator('summary').focus();
+              await page.keyboard.press('Enter');
+              assert.ok(await analysis.evaluate(el => el.open), "canonical decision map opens natively");
+              assert.ok(await analysis.locator('.filmDecisionOptions article').count());
+              const counter = analysis.locator('.filmCounterevidence');
+              if (await counter.count()) {
+                assert.equal(await counter.evaluate(el => getComputedStyle(el).color),
+                  await page.locator('.articleStandfirst').evaluate(el => getComputedStyle(el).color),
+                  'counterevidence computed ink-2 survives the module paragraph cascade');
+              }
+              await scan('decision-open', '.articleAnalysis');
+              await page.keyboard.press('Enter');
+              assert.equal(await analysis.evaluate(el => el.open), false);
+            }
+            const context = page.locator('#article-verdict .articleVerdictContext');
+            if (await context.count()) {
+              await context.locator('summary').focus();
+              await page.keyboard.press('Enter');
+              assert.ok(await context.evaluate(el => el.open), "native qualifications disclosure opens by keyboard");
+              assert.ok(await context.locator('li').count(), "canonical qualifications rendered");
+              await page.keyboard.press('Enter');
+              assert.equal(await context.evaluate(el => el.open), false);
+            }
+            await page.locator('.articleSection').last().evaluate(el => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
+            await page.waitForFunction(() => document.querySelector('.readingOutlinePanel a:last-child')?.getAttribute('aria-current') === 'location');
+            const readingPosition = await page.evaluate(() => scrollY);
+            await outline.focus(); await page.keyboard.press('Enter');
+            await page.waitForFunction(() => {
+              const panel = document.querySelector('.readingOutlinePanel');
+              const item = panel.querySelector('[aria-current="location"]');
+              const heading = panel.querySelector('.readingOutlineHeading');
+              return !panel.hidden && item.getBoundingClientRect().top >= heading.getBoundingClientRect().bottom - 1 &&
+                item.getBoundingClientRect().bottom <= panel.getBoundingClientRect().bottom + 1;
+            });
+            assert.equal(await page.evaluate(() => scrollY), readingPosition, 'opening contents does not move the article');
+            await page.keyboard.press('Escape');
+            await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+
+            if (width === 1440) {
+              // Escape correctly restores keyboard focus. Move it naturally
+              // before testing mouse-only dismissal; focused contents stay open.
+              await page.keyboard.press("Tab");
+              assert.ok(await outline.evaluate(el => !el.closest(".readingOutline").contains(document.activeElement)));
+              await outline.hover();
+              await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
+              await page.mouse.move(1, 100);
+              await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'false');
+            }
+            await outline.focus();
+            await page.keyboard.press("Enter");
+            await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
+            assert.equal(await outline.getAttribute("aria-expanded"), "true");
+            await page.keyboard.press("Escape");
+            await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'false');
+            assert.equal(await outline.getAttribute("aria-expanded"), "false");
+            assert.ok(await outline.evaluate(el => el === document.activeElement), "outline focus restored");
+            await page.keyboard.press("Enter");
+            await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
+            assert.ok(await page.locator('.readingOutlinePanel').evaluate(el => {
+              const rect = el.getBoundingClientRect();
+              return rect.left >= 0 && rect.right <= innerWidth + 1 && rect.top >= 0 && rect.bottom <= innerHeight + 1;
+            }), "open outline fits the actual viewport");
+            await scan("outline-open", ".readingOutline");
             const link = page.locator(".articleOutline a").first();
             await link.focus();
             await page.keyboard.press("Enter");

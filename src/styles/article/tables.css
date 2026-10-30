@@ -73,6 +73,19 @@
   white-space: normal;
 }
 
+/* The measured span and per-minute rate live under the row's label: they belong to
+   the figure, not to a tooltip, and a reader should not have to divide. */
+.articleTableNote {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--ink-3);
+  font-family: var(--font-meta);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  white-space: normal;
+}
+
 @media print {
   .articleTableViewport {
     overflow: visible;

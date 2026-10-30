@@ -3,12 +3,12 @@ import type { VisualAssetManifest } from "../lib/visual-assets";
 /**
  * Illustrations that sit inside the readable layer.
  *
- * Separate from `film-share-assets.ts` on purpose. A share card is artwork for a
- * metadata tag; an illustration is part of the argument and carries a caption in
- * the text. The two are validated differently: a card only has to have the right
- * shape, while an illustration must be *generated* — the site does not publish
- * frames of a film, so an asset that started life as a still cannot become one of
- * these no matter how it is cropped.
+ * Separate from `film-share-assets.ts` and from scene-still evidence. A share
+ * card supplies metadata; an original illustration supplies a visual argument.
+ * Illustration captions remain provenance in the model, not visible prose under
+ * the picture. This registry accepts only generated drawings: a real frame must
+ * use the separately validated ArticleSceneStill path and cannot be relabelled
+ * as an original illustration, however it is cropped.
  *
  * Every entry is an original drawing commissioned for the article. Where an image
  * quotes a scene, it quotes it the way a caricature quotes a face: recognisably,

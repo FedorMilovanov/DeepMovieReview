@@ -14,7 +14,7 @@ export function maskTextPaint(s) {
   for (const element of elements) for (let parent = element; parent; parent = parent.parentElement) {
     if (getComputedStyle(parent).textDecorationLine !== "none") decorations.add(parent);
   }
-  s.saved = [...new Set([...elements, ...decorations])].map(element => ({ element, properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color"].map(name => ({ name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
+  s.saved = [...new Set([...elements, ...decorations])].map(element => ({ element, properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color", "visibility"].map(name => ({ name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
   for (const { element } of s.saved) {
     if (decorations.has(element)) element.style.setProperty("text-decoration-color", "transparent");
     if (!elements.has(element)) continue;
@@ -28,6 +28,22 @@ export function restoreTextPaint(s) {
     if (value) element.style.setProperty(name, value, priority); else element.style.removeProperty(name);
   }
   s.saved = [];
+}
+
+// A text-coloured background is a real contrast failure, not a failed mask.
+// Only call the mask lost when no opaque ancestor paints that same colour.
+export function samePaintedColor(a, b, tolerance = 12) {
+  if (!a || !b || a.length < 3 || b.length < 3) return false;
+  if ((a[3] ?? 1) < 1 || (b[3] ?? 1) < 1) return false;
+  return [0, 1, 2].every(index => Math.abs(a[index] - b[index]) <= tolerance);
+}
+
+// WebKit can keep a promoted panel's glyphs in a stale layer even when the
+// computed fill is transparent. Hiding the paint owner with visibility keeps
+// every box exactly where it is, so the captured background is the real one.
+export function hardMaskTextPaint(s) {
+  for (const record of s.records) if (s.visibleIds.has(record.id)) record.element.style.setProperty("visibility", "hidden");
+  s.usedHardMask = true;
 }
 
 // Updating Text.nodeValue collapses existing DOM Range offsets in WebKit.
@@ -45,8 +61,34 @@ export function refreshTextRanges(s) {
 }
 
 export function missingRangeIds(expected, measurements) {
-  return new Set(expected.filter(record => !record.connected || record.lines === 0 ||
-    Array.from({ length: record.lines }, (_, line) => `${record.id}:${record.version ?? 0}:${line}`).some(key => !measurements.has(key))).map(record => record.id));
+  return new Set(expected.filter(record => {
+    if (!record.connected || record.lines === 0) return true;
+    // A zero-area line box draws nothing and can never be sampled. Requiring it
+    // would report a permanently uncovered owner for text that paints no glyphs —
+    // a wrapped trailing space, not a reading risk.
+    const empty = new Set(record.emptyLines ?? []);
+    return Array.from({ length: record.lines }, (_, line) => line).filter(line => !empty.has(line))
+      .some(line => !measurements.has(`${record.id}:${record.version ?? 0}:${line}`));
+  }).map(record => record.id));
+}
+
+
+// A line box can straddle the sticky header's bottom edge. Pixels inside the
+// bar paint the bar, not the text background, and the glyphs there are not
+// visible at all. Keep the longest fully exposed band of rows: a finite bound
+// over what a reader can actually see, never a waiver for ordinary overlaps.
+export function exposedRows(height, isOverlay) {
+  const rows = Math.max(0, Math.ceil(height));
+  let best = null, start = null;
+  for (let row = 0; row <= rows; row++) {
+    const blocked = row < rows && isOverlay(row);
+    if (!blocked && start === null) start = row;
+    if ((blocked || row === rows) && start !== null) {
+      if (!best || row - start > best[1] - best[0]) best = [start, row];
+      start = null;
+    }
+  }
+  return best && best[1] > best[0] ? best : null;
 }
 
 export function snapshotTextPaint(s) {
@@ -99,11 +141,36 @@ export function snapshotTextPaint(s) {
       }
     }
     if (unpainted) continue;
+    // Walk real ancestors for an opaque background colour equal to the glyphs.
+    // Inline comparison: this function is serialised into the page, so it may
+    // not reference module-scope helpers.
+    const samePainted = (a, b, tolerance = 12) => (a[3] ?? 1) >= 1 && (b[3] ?? 1) >= 1 &&
+      [0, 1, 2].every(index => Math.abs(a[index] - b[index]) <= tolerance);
+    let backgroundExplainable = false;
+    for (let element = record.element; element; element = element.parentElement) {
+      const painted = rgba(getComputedStyle(element).backgroundColor);
+      if (samePainted(painted, foreground)) { backgroundExplainable = true; break; }
+    }
     const threshold = parseFloat(style.fontSize) >= 24 || (parseFloat(style.fontWeight) >= 700 && parseFloat(style.fontSize) >= 14 * 4 / 3) ? 3 : 4.5;
     [...record.range.getClientRects()].forEach((rect, line) => {
-      if (rect.width > 0 && rect.height > 0 && exposed(record.element, rect, innerWidth, innerHeight, (x, y) => document.elementFromPoint(x, y))) {
-        boxes.push({ id: record.id, version: record.version, line, rect: rect.toJSON(), foreground, color, threshold, issue, settling });
-      }
+      if (!(rect.width > 0 && rect.height > 0 && exposed(record.element, rect, innerWidth, innerHeight, (x, y) => document.elementFromPoint(x, y)))) return;
+      const overlayAt = (x, y) => {
+        const top = document.elementFromPoint(x, y);
+        if (!top) return true;
+        for (let overlay = top; overlay; overlay = overlay.parentElement) {
+          if (["fixed", "sticky"].includes(getComputedStyle(overlay).position) &&
+              !(overlay === record.element || record.element.contains(overlay) || overlay.contains(record.element))) return true;
+        }
+        return false;
+      };
+      const inset = Math.min(0.5, rect.width / 2);
+      // Sample whole device pixels, not fractional font boxes: a line box that
+      // starts 0.14px above the sticky bar would otherwise drag the bar's last
+      // painted row into the bound.
+      const rowOrigin = Math.floor(rect.top), rowEnd = Math.ceil(rect.bottom);
+      const occluded = Array.from({ length: Math.max(0, rowEnd - rowOrigin) }, (_, row) =>
+        overlayAt(rect.left + inset, rowOrigin + row + 0.5) || overlayAt(rect.right - inset, rowOrigin + row + 0.5));
+      boxes.push({ id: record.id, version: record.version, line, rect: rect.toJSON(), rowOrigin, occluded, foreground, color, threshold, issue, settling, backgroundExplainable });
     });
   }
   s.visibleIds = new Set(boxes.map(box => box.id));
@@ -138,97 +205,256 @@ export async function renderedContrast(page, nodes, directory, id) {
     return { records, owners, saved: [], textChanges: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
   }, nodes.map(node => node.target));
   const previousScroll = await page.evaluate(() => scrollY);
-  const measurements = new Map(), frames = [], deferred = [];
+  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [];
   let tileLimit = false;
   try {
-    let top = 0, revisiting = false;
-    const revisited = new Set();
-    for (let tile = 0; tile < 250; tile++) {
-      await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), top);
-      await page.waitForTimeout(100);
-      // Let actual IntersectionObserver/reveal animation settle; never force opacity.
-      let snapshot;
-      for (let attempt = 0; attempt < 25; attempt++) {
-        await page.evaluate(refreshTextRanges, state);
-        snapshot = await page.evaluate(snapshotTextPaint, state);
-        if (!snapshot.boxes.some(box => box.settling)) break;
+    let top = 0, revisiting = false, tile = 0;
+    // Coverage is measured against the layout as it is, and a record can re-wrap
+    // after its visit: an element that measured one line can be two lines by the
+    // time the pass ends. Each record may therefore be revisited a bounded number
+    // of times, and coverage is re-checked after the traversal.
+    const revisitAttempts = new Map(), coverageRounds = [];
+    for (let round = 0; round < 3; round++) {
+      for (; tile < 250; tile++) {
+        await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), top);
         await page.waitForTimeout(100);
-      }
-      for (const box of snapshot.boxes.filter(box => box.settling)) deferred.push({ id: box.id, line: box.line, tile, reason: box.issue });
-      snapshot.boxes = snapshot.boxes.filter(box => !box.settling);
-      await page.evaluate(({ s, boxes }) => {
-        s.currentBoxes = boxes; s.visibleIds = new Set(boxes.map(box => box.id));
-      }, { s: state, boxes: snapshot.boxes });
-      const original = await page.screenshot();
-      let background;
-      try {
-        await page.evaluate(maskTextPaint, state);
-        const invalidMask = await page.evaluate(s => {
-          const moved = s.currentBoxes.filter(box => {
-            const current = s.records[box.id].range.getClientRects()[box.line];
-            return !current || ["x", "y", "width", "height"].some(key => current[key] !== box.rect[key]);
-          }).map(box => box.id);
-          return [...moved, ...s.records.filter(record => s.visibleIds.has(record.id)).filter(record => {
-            const style = getComputedStyle(record.element);
-            const color = record.element.namespaceURI === "http://www.w3.org/2000/svg" ? style.fill : style.webkitTextFillColor || style.color;
-            s.ctx.clearRect(0, 0, 1, 1); s.ctx.fillStyle = color; s.ctx.fillRect(0, 0, 1, 1);
-            return s.ctx.getImageData(0, 0, 1, 1).data[3] !== 0;
-          }).map(record => record.id)];
-        }, state);
-        for (const box of snapshot.boxes) if (invalidMask.includes(box.id)) box.issue = "Text mask did not remove foreground";
-        background = await page.screenshot();
-      } finally {
-        await page.evaluate(restoreTextPaint, state);
-      }
-      const image = PNG.sync.read(background);
-      if (image.width !== snapshot.width || image.height !== snapshot.height) throw new Error("Pixel/viewport scale mismatch; do not emulate DPR as contrast evidence");
-      const name = `${id}-${tile}`;
-      writeFileSync(`${directory}/${name}-original.png`, original);
-      writeFileSync(`${directory}/${name}-background.png`, background);
-      const hash = bytes => createHash("sha256").update(bytes).digest("hex");
-      frames.push({ tile, scroll: snapshot.scroll, original: `${name}-original.png`, originalSha256: hash(original), background: `${name}-background.png`, backgroundSha256: hash(background) });
-      for (const box of snapshot.boxes) {
-        const key = `${box.id}:${box.version}:${box.line}`;
-        const measurement = measurements.get(key) ?? { id: box.id, version: box.version, line: box.line, threshold: box.threshold, height: Math.ceil(box.rect.height), intervals: [], minimum: Infinity, issues: [] };
-        measurement.threshold = Math.max(measurement.threshold, box.threshold);
-        measurement.height = Math.max(measurement.height, Math.ceil(box.rect.height));
-        measurement.intervals.push([Math.max(0, Math.floor(-box.rect.y)), Math.min(measurement.height, Math.ceil(snapshot.height - box.rect.y))]);
-        if (box.rect.x < 0 || box.rect.right > snapshot.width) box.issue = "Text range extends outside horizontal viewport";
-        if (box.issue) {
-          if (!measurement.issues.includes(box.issue)) measurement.issues.push(box.issue);
-        } else {
-          const bound = rectangleContrast(image, box.rect, box.foreground);
-          if (bound.minimum !== null && bound.minimum < measurement.minimum) {
-            Object.assign(measurement, { minimum: bound.minimum, worstBackground: bound.worstBackground, foreground: box.foreground, color: box.color, tile });
-          }
+        // Let actual IntersectionObserver/reveal animation settle; never force opacity.
+        let snapshot;
+        for (let attempt = 0; attempt < 25; attempt++) {
+          await page.evaluate(refreshTextRanges, state);
+          snapshot = await page.evaluate(snapshotTextPaint, state);
+          if (!snapshot.boxes.some(box => box.settling)) break;
+          await page.waitForTimeout(100);
         }
-        measurements.set(key, measurement);
-      }
-      revisiting ||= snapshot.end;
-      if (revisiting) {
-        // Revisit only missing coverage, never discard a low bound in favour of
-        // a later, prettier frame. Ordinary centered scrolling lets late reveal
-        // animations settle and moves missed text away from sticky overlays.
-        await page.evaluate(refreshTextRanges, state);
-        const candidate = await page.evaluate(({ s, measured, revisited }) => {
-          for (const record of s.records) {
-            if (revisited.includes(record.id) || !record.element.isConnected) continue;
-            const rects = [...record.range.getClientRects()];
-            if (!rects.some((_, line) => !measured.includes(`${record.id}:${record.version ?? 0}:${line}`))) continue;
-            const rect = record.range.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) return { id: record.id, top: scrollY + rect.top - Math.max(0, (innerHeight - rect.height) / 2) };
+        for (const box of snapshot.boxes.filter(box => box.settling)) deferred.push({ id: box.id, line: box.line, tile, reason: box.issue });
+        snapshot.boxes = snapshot.boxes.filter(box => !box.settling).flatMap(box => {
+          const band = exposedRows(box.occluded.length, row => box.occluded[row]);
+          if (!band) return [];
+          const top = box.rowOrigin + band[0], bottom = box.rowOrigin + band[1];
+          return [{ ...box, sample: { x: box.rect.x, y: top, width: box.rect.width, height: bottom - top } }];
+        });
+        await page.evaluate(({ s, boxes }) => {
+          s.currentBoxes = boxes; s.visibleIds = new Set(boxes.map(box => box.id));
+        }, { s: state, boxes: snapshot.boxes });
+        const original = await page.screenshot();
+        // A reveal animation can start after the settle probe and repaint the page
+        // while the masked frame is captured. Wait for native animation completion
+        // and a stable pair of animation frames before masking; never force styles.
+        let background;
+        // Two native frames settle a same-tick repaint without polling every
+        // running animation on the page: an infinite ambient animation would
+        // otherwise burn the job's whole budget.
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        try {
+          await page.evaluate(maskTextPaint, state);
+          const invalidMask = await page.evaluate(s => {
+            const moved = s.currentBoxes.filter(box => {
+              const current = s.records[box.id].range.getClientRects()[box.line];
+              return !current || ["x", "y", "width", "height"].some(key => current[key] !== box.rect[key]);
+            }).map(box => box.id);
+            return [...moved, ...s.records.filter(record => s.visibleIds.has(record.id)).filter(record => {
+              const style = getComputedStyle(record.element);
+              const color = record.element.namespaceURI === "http://www.w3.org/2000/svg" ? style.fill : style.webkitTextFillColor || style.color;
+              s.ctx.clearRect(0, 0, 1, 1); s.ctx.fillStyle = color; s.ctx.fillRect(0, 0, 1, 1);
+              return s.ctx.getImageData(0, 0, 1, 1).data[3] !== 0;
+            }).map(record => record.id)];
+          }, state);
+          for (const box of snapshot.boxes) if (invalidMask.includes(box.id)) box.issue = "Text mask did not remove foreground";
+          // Let the masked paint commit before capture: a promoted layer can keep
+          // the previous frame for one tick.
+          await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+          background = await page.screenshot();
+          // Prove the capture is a real background, not the glyphs. If a sampled
+          // band is (almost) exactly the text colour, the compositor kept the text
+          // paint; hide the paint owner instead (visibility keeps every box in
+          // place) and capture again. Both facts are recorded, never papered over.
+          const leaked = (image, boxes) => boxes.filter(box => !box.issue && !box.backgroundExplainable &&
+            rectangleContrast(image, box.sample, box.foreground).minimum < 1.05).map(box => box.id);
+          if (leaked(PNG.sync.read(background), snapshot.boxes).length) {
+            await page.evaluate(hardMaskTextPaint, state);
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+            background = await page.screenshot();
+            let still = leaked(PNG.sync.read(background), snapshot.boxes);
+            if (still.length) {
+              // WebKit can serve a cached composite of a fixed layer. Nudging the
+              // scroll by one pixel and restoring it forces a real recomposite
+              // without touching the product's styles or layout.
+              await page.evaluate(() => { const y = scrollY; scrollTo({ top: y + 1, behavior: "instant" });
+                scrollTo({ top: y, behavior: "instant" }); });
+              await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+              background = await page.screenshot();
+              still = leaked(PNG.sync.read(background), snapshot.boxes);
+            }
+            maskEscalations.push({ tile, escalated: snapshot.boxes.map(box => box.id), unresolved: still });
+            for (const box of snapshot.boxes) if (still.includes(box.id)) box.issue = "Text paint survived both masks";
           }
-          return null;
-        }, { s: state, measured: [...measurements.keys()], revisited: [...revisited] });
-        if (!candidate) break;
-        revisited.add(candidate.id); top = Math.max(0, candidate.top);
-      } else top = snapshot.scroll + Math.floor(snapshot.height * 0.75);
-      if (tile === 249) tileLimit = true;
+        } finally {
+          await page.evaluate(restoreTextPaint, state);
+        }
+        const image = PNG.sync.read(background);
+        if (image.width !== snapshot.width || image.height !== snapshot.height) throw new Error("Pixel/viewport scale mismatch; do not emulate DPR as contrast evidence");
+        const name = `${id}-${tile}`;
+        writeFileSync(`${directory}/${name}-original.png`, original);
+        writeFileSync(`${directory}/${name}-background.png`, background);
+        const hash = bytes => createHash("sha256").update(bytes).digest("hex");
+        frames.push({ tile, scroll: snapshot.scroll, original: `${name}-original.png`, originalSha256: hash(original), background: `${name}-background.png`, backgroundSha256: hash(background) });
+        // Bounds are computed before they are recorded so that every below-threshold
+        // box can be verified against a capture with only its own glyph paint
+        // removed. A real failure keeps failing there; a compositor leak does not.
+        const bounds = new Map();
+        for (const box of snapshot.boxes) {
+          if (box.rect.x < 0 || box.rect.right > snapshot.width) { box.issue = "Text range extends outside horizontal viewport"; continue; }
+          if (box.issue) continue;
+          bounds.set(box, rectangleContrast(image, box.sample, box.foreground));
+        }
+        const suspects = snapshot.boxes.filter(box => bounds.get(box)?.minimum != null && bounds.get(box).minimum < box.threshold);
+        if (suspects.length) {
+          const ids = [...new Set(suspects.map(box => box.id))];
+          const before = suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum }));
+          const captures = [];
+          try {
+            // Two ways to remove the measured glyphs, chosen per element:
+            //
+            // - An element that paints no background of its own is hidden with
+            //   `visibility`, which also forces a promoted layer to repaint even
+            //   when a transparent text fill did not (measured in WebKit on a fixed
+            //   panel).
+            // - An element that paints its own background keeps it: the text fill
+            //   is masked instead, because `visibility` would remove that
+            //   background and turn the calibration's `currentColor` fixture into
+            //   white text on the black body — a better bound than the truth.
+            //
+            // Neither branch touches `color`, so `currentColor` backgrounds and
+            // borders resolve exactly as the reader sees them.
+            await page.evaluate(({ s, ids }) => {
+              const elements = new Set(s.records.filter(record => ids.includes(record.id)).map(record => record.element));
+              const paintsOwnBackground = element => {
+                const color = getComputedStyle(element).backgroundColor;
+                return Boolean(color) && color !== "transparent" && !/^rgba\(0, 0, 0, 0\)$|^rgb\(0 0 0 \/ 0\)$/.test(color);
+              };
+              s.saved = [...elements].map(element => ({
+                element,
+                hidden: !paintsOwnBackground(element),
+                properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color", "visibility"].map(name => ({
+                  name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })),
+              }));
+              for (const { element, hidden } of s.saved) {
+                if (hidden) { element.style.setProperty("visibility", "hidden"); continue; }
+                element.style.setProperty("-webkit-text-fill-color", "transparent");
+                element.style.setProperty("text-shadow", "none");
+                if (element.namespaceURI === "http://www.w3.org/2000/svg") element.style.setProperty("fill", "transparent");
+              }
+            }, { s: state, ids });
+            for (const pass of [0, 1]) {
+              // A promoted layer can keep the previous frame even after a transparent
+              // fill. The second pass nudges the scroll by one pixel and restores it,
+              // which forces a real recomposite without touching styles or layout.
+              if (pass === 1) await page.evaluate(() => { const y = scrollY; scrollTo({ top: y + 1, behavior: "instant" });
+                scrollTo({ top: y, behavior: "instant" }); });
+              await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+              captures.push(await page.screenshot());
+            }
+          } finally {
+            await page.evaluate(restoreTextPaint, state);
+          }
+          const read = (bytes, name) => {
+            const png = PNG.sync.read(bytes);
+            if (png.width !== snapshot.width || png.height !== snapshot.height) throw new Error("Pixel/viewport scale mismatch in a verification capture");
+            writeFileSync(`${directory}/${name}-verified.png`, bytes);
+            return new Map(suspects.map(box => [box, rectangleContrast(png, box.sample, box.foreground)]));
+          };
+          const passes = captures.map((bytes, index) => read(bytes, `${name}-${index}`));
+          // Keep the highest of the two: a capture that still contains the glyphs can
+          // only measure lower than the same capture without them.
+          const applied = [];
+          for (const box of suspects) {
+            const best = passes.map(pass => pass.get(box)).reduce((a, b) =>
+              (b.minimum ?? 0) > (a.minimum ?? 0) ? b : a);
+            // Below 1.02 the capture is the glyph paint itself, not a background.
+            // Then the original bound stands: the failure is kept, never waived.
+            if (best.minimum != null && best.minimum >= 1.02) { bounds.set(box, best); applied.push(box.id); }
+          }
+          verifications.push({ tile, ids, captures: captures.map((_, index) => `${name}-${index}-verified.png`), before, applied,
+            after: suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum })) });
+        }
+        for (const box of snapshot.boxes) {
+          const key = `${box.id}:${box.version}:${box.line}`;
+          const measurement = measurements.get(key) ?? { id: box.id, version: box.version, line: box.line, threshold: box.threshold, height: Math.ceil(box.rect.height), intervals: [], minimum: Infinity, issues: [] };
+          measurement.threshold = Math.max(measurement.threshold, box.threshold);
+          measurement.height = Math.max(measurement.height, Math.ceil(box.rect.height));
+          measurement.intervals.push([Math.max(0, Math.floor(-box.sample.y)), Math.min(measurement.height, Math.ceil(snapshot.height - box.sample.y))]);
+          if (box.issue) {
+            if (!measurement.issues.includes(box.issue)) measurement.issues.push(box.issue);
+          } else {
+            const bound = bounds.get(box);
+            if (bound && bound.minimum !== null && bound.minimum < measurement.minimum) {
+              Object.assign(measurement, { minimum: bound.minimum, worstBackground: bound.worstBackground, foreground: box.foreground, color: box.color, tile });
+            }
+          }
+          measurements.set(key, measurement);
+        }
+        revisiting ||= snapshot.end;
+        if (revisiting) {
+          // Revisit only missing coverage, never discard a low bound in favour of
+          // a later, prettier frame. Ordinary centered scrolling lets late reveal
+          // animations settle and moves missed text away from sticky overlays.
+          await page.evaluate(refreshTextRanges, state);
+          const candidate = await page.evaluate(({ s, measured, attempts, limit }) => {
+            for (const record of s.records) {
+              if ((attempts[record.id] ?? 0) >= limit || !record.element.isConnected) continue;
+              const rects = [...record.range.getClientRects()];
+              if (!rects.some((_, line) => !measured.includes(`${record.id}:${record.version ?? 0}:${line}`))) continue;
+              const rect = record.range.getBoundingClientRect();
+              if (rect.width > 0 && rect.height > 0) return { id: record.id, top: scrollY + rect.top - Math.max(0, (innerHeight - rect.height) / 2) };
+            }
+            return null;
+          }, { s: state, measured: [...measurements.keys()], attempts: Object.fromEntries(revisitAttempts), limit: 3 });
+          if (!candidate) break;
+          revisitAttempts.set(candidate.id, (revisitAttempts.get(candidate.id) ?? 0) + 1);
+          top = Math.max(0, candidate.top);
+        } else top = snapshot.scroll + Math.floor(snapshot.height * 0.75);
+        if (tile === 249) tileLimit = true;
+      }
+      // Re-check the coverage the pass actually achieved, against the layout the
+      // reader is looking at now. Resume only for a record with attempts left, and
+      // only once the whole document has been traversed.
+      await page.evaluate(refreshTextRanges, state);
+      const expectedNow = await page.evaluate(s => s.records.map(record => {
+        const rects = [...record.range.getClientRects()];
+        return { id: record.id, version: record.version,
+          connected: record.element.isConnected && record.range.startContainer.isConnected, lines: rects.length,
+          emptyLines: rects.map((rect, line) => (rect.width > 0 && rect.height > 0 ? -1 : line)).filter(line => line >= 0) };
+      }), state);
+      const absentNow = [...missingRangeIds(expectedNow, measurements)];
+      coverageRounds.push({ round, absent: absentNow.length });
+      if (!absentNow.length || !revisiting || tile >= 250) break;
+      // Aim at the line box that is actually unmeasured, not at the record's
+      // bounding box: a line at the wrap boundary can sit outside the frame the
+      // whole record would be centred in.
+      const resume = await page.evaluate(({ s, absent, attempts, limit, measured }) => {
+        for (const id of absent) {
+          const record = s.records[id];
+          if (!record || (attempts[id] ?? 0) >= limit || !record.element.isConnected) continue;
+          const rects = [...record.range.getClientRects()];
+          const line = rects.findIndex((rect, index) => rect.width > 0 && rect.height > 0 &&
+            !measured.includes(`${record.id}:${record.version ?? 0}:${index}`));
+          const rect = line >= 0 ? rects[line] : record.range.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) return { id, line, top: scrollY + rect.top - Math.max(0, (innerHeight - rect.height) / 2) };
+        }
+        return null;
+      }, { s: state, absent: absentNow, attempts: Object.fromEntries(revisitAttempts), limit: 3, measured: [...measurements.keys()] });
+      if (!resume) break;
+      revisitAttempts.set(resume.id, (revisitAttempts.get(resume.id) ?? 0) + 1);
+      top = Math.max(0, resume.top);
     }
     const owners = await page.evaluate(s => s.owners, state);
     await page.evaluate(refreshTextRanges, state);
     const textChanges = await page.evaluate(s => s.textChanges, state);
-    const expected = await page.evaluate(s => s.records.map(record => ({ id: record.id, version: record.version, connected: record.element.isConnected && record.range.startContainer.isConnected, lines: record.range.getClientRects().length })), state);
+    const expected = await page.evaluate(s => s.records.map(record => {
+      const rects = [...record.range.getClientRects()];
+      return { id: record.id, version: record.version, connected: record.element.isConnected && record.range.startContainer.isConnected,
+        lines: rects.length, emptyLines: rects.map((rect, line) => (rect.width > 0 && rect.height > 0 ? -1 : line)).filter(line => line >= 0) };
+    }), state);
     const ranges = [...measurements.values()].map(record => {
       let covered = 0;
       for (const [start, end] of record.intervals.toSorted((a, b) => a[0] - b[0])) {
@@ -242,8 +468,26 @@ export async function renderedContrast(page, nodes, directory, id) {
     });
     const absent = missingRangeIds(expected, measurements);
     const missing = owners.filter(owner => owner.error || owner.ids.some(id => absent.has(id)));
+    // An owner that stays uncovered has to explain itself: the live line boxes,
+    // where they sit, and what is on top of them. A failed gate should arrive
+    // with the reason attached, not with a count.
+    const uncovered = absent.size ? await page.evaluate(({ s, absent }) => absent.map(id => {
+      const record = s.records[id];
+      if (!record) return { id, error: "record absent" };
+      const rects = [...record.range.getClientRects()];
+      return { id, connected: record.element.isConnected, lines: rects.length, scrollY, innerWidth, innerHeight,
+        rects: rects.slice(0, 6).map(rect => ({
+          x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height),
+          hit: (() => {
+            const x = Math.min(innerWidth - 0.5, Math.max(0.5, rect.left + rect.width / 2));
+            const y = Math.min(innerHeight - 0.5, Math.max(0.5, rect.top + rect.height / 2));
+            const top = document.elementFromPoint(x, y);
+            return top ? String(top.className || top.tagName).slice(0, 40) : null;
+          })(),
+        })) };
+    }), { s: state, absent: [...absent] }) : [];
     const failed = ranges.filter(range => !range.pass);
-    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames", owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
+    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
       missing, tileLimit, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);

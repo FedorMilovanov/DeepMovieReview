@@ -7,7 +7,7 @@ import { AutopsyExamine } from "@/components/home/autopsy-examine";
 import { PipelineSpy } from "@/components/home/pipeline-spy";
 import { SpoilerLadder } from "@/components/home/spoiler-ladder";
 import type { NarrativePermissionState } from "@/lib/content";
-import { getFilmPackageBySlug, requireFilmPackageBySlug } from "@/data/film-registry";
+import { filmPackages, getFilmPackageBySlug, requireFilmPackageBySlug } from "@/data/film-registry";
 import { pluralRu } from "@/lib/plural-ru";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { projectHomepage, type HomepageViewModel } from "@/lib/homepage-projection";
@@ -263,9 +263,9 @@ function LensStage() {
             <LivingFrame
               art={lensMaster}
               alt="Фигура спиной перед светящимся дверным проёмом в тёмном коридоре"
-              metaLeft="Кадр · 0002"
+              metaLeft="Иллюстрация"
               metaRight="2.39:1"
-              label="Живой кадр: шесть линз прочтения"
+              label="Иллюстрация: шесть линз прочтения, не кадр фильма"
               className="lensFrame"
               sizes="(max-width: 1020px) 100vw, 58vw"
             >
@@ -355,11 +355,11 @@ function PlatformLanding({ preview }: { preview: boolean }) {
             art={heroMaster}
             alt="Пустой кинозал: луч проектора режет темноту, две фигуры в проходе"
             priority
-            metaLeft="Кадр · 0001"
+            metaLeft="Иллюстрация"
             metaRight="2.39:1"
             captionTitle="Доказательства раньше вердикта"
             captionNote="Публичная страница показывает метод. Незавершённые разборы остаются в редакции."
-            label="Живой кадр «Глубокие воды»"
+            label="Иллюстрация «Глубокие воды», не кадр фильма"
             sizes="(max-width: 900px) 100vw, 52vw"
             tilt
           />
@@ -623,18 +623,25 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
           <p className="lede">{featuredFilm.thesisQuestion}</p>
           <div className="heroActions">
             <Link className="buttonPrimary" href={`/films/${featuredFilm.slug}`}>Открыть разбор</Link>
+            {featuredFilmPackage.article ? (
+              <Link className="buttonGhost" href={`/films/${featuredFilm.slug}/article`}>
+                Читать текст
+              </Link>
+            ) : null}
             <Link className="buttonGhost" href="/methodology">Методология</Link>
           </div>
         </div>
+        {/* The cover is a generated illustration, and docs/54 §7 says so. Calling it
+            a frame of the film would be the one caption this site may not print. */}
         <LivingFrame
           art={heroMaster}
-          alt={`Кадр фильма ${featuredFilm.title}`}
+          alt={`Иллюстрация к разбору «${featuredFilm.title}», не кадр фильма`}
           priority
-          metaLeft="Кадр · 0001"
+          metaLeft="Иллюстрация"
           metaRight="2.39:1"
           captionTitle={featuredFilm.title}
           captionNote={featuredFilm.premise}
-          label={`Кадр фильма ${featuredFilm.title}`}
+          label={`Иллюстрация к разбору «${featuredFilm.title}»: рисунок, не кадр фильма`}
           sizes="(max-width: 900px) 100vw, 52vw"
           tilt
         />
@@ -689,21 +696,23 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
             </article>
           ))}
         </div>
-        <div className="relationshipPanel" role="group" aria-labelledby="stand-relationship-title">
-          <div>
-            <span className="microLabel">Обсерватория отношений</span>
-            <h3 id="stand-relationship-title">{data.relationship.label}</h3>
-            <p>{data.relationship.summary}</p>
+        {data.relationship ? (
+          <div className="relationshipPanel" role="group" aria-labelledby="stand-relationship-title">
+            <div>
+              <span className="microLabel">Обсерватория отношений</span>
+              <h3 id="stand-relationship-title">{data.relationship.label}</h3>
+              <p>{data.relationship.summary}</p>
+            </div>
+            <ol className="relationshipTrace">
+              {data.relationship.events.map((event) => (
+                <li className={`traceEvent trace-${event.tone}`} key={event.id}>
+                  <span className="traceDot" aria-hidden="true" />
+                  <div><strong>{event.label}</strong><p>{event.change}</p></div>
+                </li>
+              ))}
+            </ol>
           </div>
-          <ol className="relationshipTrace">
-            {data.relationship.events.map((event) => (
-              <li className={`traceEvent trace-${event.tone}`} key={event.id}>
-                <span className="traceDot" aria-hidden="true" />
-                <div><strong>{event.label}</strong><p>{event.change}</p></div>
-              </li>
-            ))}
-          </ol>
-        </div>
+        ) : null}
       </section>
 
       {data.familyYouth ? (
@@ -723,6 +732,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
         </section>
       ) : null}
 
+      {data.meaning ? (
       <section className="sectionShell sectionRule meaningSection" aria-labelledby="stand-meaning-title">
         <div className="sectionIndex">{label} 04 / Смысл</div>
         <p className="microLabel">Вопрос</p>
@@ -734,7 +744,9 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
           <div><span>Уверенность</span><strong>{confidenceLabels[data.meaning.confidence]}</strong></div>
         </div>
       </section>
+      ) : null}
 
+      {data.permissions.length > 0 ? (
       <section className="sectionShell sectionRule" aria-labelledby="stand-permission-title">
         <div className="sectionIndex">{label} 05 / Нарративное разрешение</div>
         <h2 id="stand-permission-title">Что фильм делает дорогим, нормальным или вознаграждённым?</h2>
@@ -748,7 +760,9 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
           ))}
         </div>
       </section>
+      ) : null}
 
+      {data.craft.length > 0 ? (
       <section className="sectionShell sectionRule splitSection" aria-labelledby="stand-craft-title">
         <div>
           <div className="sectionIndex">{label} 06 / Форма</div>
@@ -760,6 +774,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
           ))}
         </div>
       </section>
+      ) : null}
 
       {data.sceneAutopsy ? (
         <section className="sectionShell sectionRule autopsySection" aria-labelledby="stand-autopsy-title">
@@ -829,6 +844,63 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
   );
 }
 
+/**
+ * The finished edition, named on the homepage without pretending it is published.
+ *
+ * The front page features a structural fixture, so the real analysis — 22 scenes,
+ * 47 evidence records, a full article — is reachable only by someone who already
+ * knows the URL. Featuring a draft as if it were live would be the opposite error;
+ * naming it, printing what is actually inside and saying plainly why it is not
+ * indexed is the honest middle. Every number is read from the package.
+ */
+function EditionEntry() {
+  // Only a locked edition that is *not* public yet: once it is published, the hero
+  // above speaks for it and a second entry would be duplication.
+  const edition = filmPackages.find(
+    (filmPackage) =>
+      filmPackage.film.status === "draft" && filmPackage.ingest?.edition?.state === "LOCKED",
+  );
+  if (!edition) return null;
+
+  const scenes = edition.scenes?.length ?? 0;
+  const evidence = edition.evidence?.length ?? 0;
+  const sections = edition.article?.sections.length ?? 0;
+
+  return (
+    <section className="sectionShell editionEntry" aria-labelledby="edition-entry-title">
+      <div className="sectionIndex">FILM 001 · залоченное издание, черновик</div>
+      <h2 id="edition-entry-title">{edition.film.title}</h2>
+      <p className="sectionIntro">{edition.film.thesisQuestion}</p>
+      <dl className="editionEntryCounts">
+        <div>
+          <dt>Сцены</dt>
+          <dd>{scenes}</dd>
+        </div>
+        <div>
+          <dt>Записи доказательств</dt>
+          <dd>{evidence}</dd>
+        </div>
+        <div>
+          <dt>Разделы разбора</dt>
+          <dd>{sections}</dd>
+        </div>
+      </dl>
+      <div className="heroActions">
+        <Link className="buttonPrimary" href={`/films/${edition.film.slug}`}>
+          Открыть разбор
+        </Link>
+        <Link className="buttonGhost" href={`/films/${edition.film.slug}/article`}>
+          Читать текст
+        </Link>
+      </div>
+      <p className="heroPreviewNote">
+        Не опубликовано: мастер заблокирован, страница закрыта от индексации и открыта только в
+        режиме предпросмотра. Черновик не считается публикацией.
+      </p>
+    </section>
+  );
+}
+
 export default function HomePage() {
   const previewContentEnabled = isPreviewContentEnabled();
   const isPublished = featuredFilmPackage.film.status === "published";
@@ -852,6 +924,7 @@ export default function HomePage() {
   return (
     <>
       <PlatformLanding preview />
+      <EditionEntry />
       <DataSections data={data} published={false} />
     </>
   );

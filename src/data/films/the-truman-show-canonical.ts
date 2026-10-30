@@ -1,6 +1,14 @@
-import type { FilmPackage } from "@/lib/film-package";
+import type { EvidenceRecord, FilmPackage } from "@/lib/film-package";
+import { reviewBasis } from "../../lib/evidence-review";
 import { trumanMasterSegmentation } from "./the-truman-show-master-segmentation";
-import { trumanCanonicalEvidence } from "./the-truman-show-canonical-evidence";
+import {
+  trumanCanonicalEvidence,
+  trumanCanonicalEvidenceSummary,
+} from "./the-truman-show-canonical-evidence";
+import {
+  trumanPostLockEvidenceVerifications,
+  trumanVisualVerifications,
+} from "./the-truman-show-visual-verification";
 import { trumanCanonicalScenes } from "./the-truman-show-scene-inventory";
 import { theTrumanShowArticle } from "./the-truman-show-article";
 
@@ -12,13 +20,89 @@ import { theTrumanShowArticle } from "./the-truman-show-article";
  * (SHA-256 E8543F61…B3B575, 6177.792 s) and every evidence record cites that
  * master as its provenance.
  *
- * The film is still `status: "draft"`. Locking the edition is an *evidence*
- * milestone, not a publication decision: the publication gate in
- * `src/lib/site-publication-policy.ts` remains closed.
+ * The edition is `status: "published"` as of 2026-10-30: the editorial decision
+ * follows the evidence lock, and the reader can now reach the page without a
+ * preview flag. Indexing stays a separate switch — `canIndexSite()` still requires
+ * the deploy to ask for it (`DMR_SITE_INDEXING_ENABLED`) and to run without
+ * preview content, so publication and crawling are not the same decision.
  *
  * See docs/47-FILM-001-VISUAL-VERIFICATION.md for how each observation was
  * verified and docs/48-FILM-001-EDITION-LOCK.md for the promotion ledger.
  */
+/**
+ * The verification ledger is the only thing that knows *how* a record was
+ * checked. Attaching its summary to the record keeps that knowledge next to the
+ * claim, so «VERIFIED» on a card can be read as «subtitle track, two lines,
+ * reviewer unknown» instead of an unqualified promise.
+ *
+ * Records written after the lock (the rain rewrite) have no research-era ledger
+ * entry to inherit from, so they carry their basis in the record itself.
+ */
+const verificationById = new Map(
+  [...trumanVisualVerifications, ...trumanPostLockEvidenceVerifications].map((record) => [
+    record.evidenceId,
+    record,
+  ]),
+);
+
+/**
+ * A research record split into two scene-accurate halves was checked once: the
+ * ledger keeps one entry, under the research id. Both halves inherit it, and the
+ * window stays the parent's — narrowing it per half would claim a separate check
+ * that never happened.
+ */
+const splitParentById = new Map<string, string>();
+for (const [researchId, replacements] of Object.entries(trumanCanonicalEvidenceSummary.split)) {
+  const entry = verificationById.get(researchId);
+  if (!entry) continue;
+  for (const replacementId of replacements) {
+    verificationById.set(replacementId, entry);
+    splitParentById.set(replacementId, researchId);
+  }
+}
+
+const trumanEvidenceWithReviewBasis: EvidenceRecord[] = trumanCanonicalEvidence.map((record) => {
+  if (record.basis) return record;
+  const basis = reviewBasis(verificationById.get(record.id));
+  if (!basis) return record;
+
+  const parent = splitParentById.get(record.id);
+  if (!parent) return { ...record, basis };
+
+  // A compound record's check covered two places. A half may inherit the fact of
+  // the check, never a window it does not sit inside — and when its own second was
+  // never looked at, the card says so instead of borrowing «verified» from the
+  // parent. This is how the undeclared boat/setting-sail split came to light.
+  const inside =
+    basis.window === undefined ||
+    record.timestampSeconds === undefined ||
+    (record.timestampSeconds >= basis.window.from && record.timestampSeconds <= basis.window.to);
+  return {
+    ...record,
+    basis: inside
+      ? { ...basis, inheritedFrom: parent }
+      : { ...basis, inheritedFrom: parent, window: undefined, outcome: "pending" },
+  };
+});
+
+/**
+ * Rewritten records carry their refusal with them. The ledger's contradicted entry
+ * is not deleted — it is the record of a check that said no — so the replacement
+ * names it and the map can state that the original was refused rather than
+ * quietly showing a success where a refusal happened.
+ */
+const rewrittenAncestorById = new Map<string, string>();
+for (const [researchId, replacements] of Object.entries(trumanCanonicalEvidenceSummary.rewritten)) {
+  if (verificationById.get(researchId)?.status !== "CONTRADICTED") continue;
+  for (const id of replacements) rewrittenAncestorById.set(id, researchId);
+}
+
+const trumanEvidenceWithHistory: EvidenceRecord[] = trumanEvidenceWithReviewBasis.map((record) => {
+  const ancestor = rewrittenAncestorById.get(record.id);
+  if (!ancestor || !record.basis) return record;
+  return { ...record, basis: { ...record.basis, refusedAncestor: ancestor } };
+});
+
 export const theTrumanShowCanonicalPackage: FilmPackage = {
   schemaVersion: 1,
   film: {
@@ -30,10 +114,10 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
     runtime: "103 мин",
     genre: ["драма", "комедия", "антиутопия"],
     premise:
-      "Страховой агент Труман Бёрбанк не знает, что тридцать лет живёт внутри гигантского телешоу: его город — декорация, жена и друг — актёры, а каждый шаг снимают тысячи скрытых камер. Когда в декорациях начинают происходить сбои, Труман выбирается за край собственного мира.",
+      "Страховой агент Труман Бёрбанк не знает, что тридцать лет живёт внутри гигантского телешоу: его город — декорация, жена и друг — актёры, а каждый шаг снимают тысячи скрытых камер. Когда в декорациях начинают происходить сбои, у него впервые появляется повод проверить собственный мир.",
     thesisQuestion:
       "Что дороже: безопасная клетка, где всё устроено, — или истина, за которую придётся заплатить всем, что имеешь?",
-    status: "draft",
+    status: "published",
   },
   ingest: {
     edition: {
@@ -57,7 +141,9 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
     summary: scene.summary,
     startTimestampSeconds: scene.startTimestampSeconds,
     endTimestampSeconds: scene.endTimestampSeconds,
-    verificationState: "VERIFIED" as const,
+    // The inventory decides. A scene it has not checked yet is DRAFT here, so a
+    // future PENDING shows as «черновая» instead of being promoted by this file.
+    verificationState: scene.verificationState === "VERIFIED" ? "VERIFIED" : "DRAFT",
     spoilerLevel:
       scene.endTimestampSeconds >= 5264.092
         ? ("ENDING" as const)
@@ -67,7 +153,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
             ? ("MINOR" as const)
             : ("NONE" as const),
   })),
-  evidence: trumanCanonicalEvidence,
+  evidence: trumanEvidenceWithHistory,
   /**
    * The readable layer of the same edition. Validated against the evidence
    * graph above and the measured timing dataset, so neither a timestamp nor a
@@ -130,7 +216,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-story-collapse",
           label: "Распад семейного контракта",
-          summary: "Срыв Мэрил с рекламной тёркой в руках, «душевный» Марлон по подсказке Кристофа и слёзное «возвращение отца» с амнезией: все линии сюжета лопаются одновременно, и шоу латает их в прямом эфире.",
+          summary: "Срыв Мэрил с рекламными инструментами в руках, «душевный» Марлон по подсказке Кристофа и слёзное «возвращение отца» с амнезией: все линии сюжета лопаются одновременно, и шоу латает их в прямом эфире.",
           spoilerLevel: "MAJOR",
           support: { evidenceIds: ["truman-ev-knife", "truman-ev-fingers", "truman-ev-marlon", "truman-ev-reunion"] },
         },
@@ -202,7 +288,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           profileSpoilerLevel: "MAJOR",
           interpretiveSpoilerLevel: "MAJOR",
           believes: "«Профессионализм» заменил ей совесть: работа есть работа",
-          selfDeception: "Убеждает себя, что фиктивный брак — «всего лишь работа», пока тёрка в руке не выдаёт панику",
+          selfDeception: "Убеждает себя, что фиктивный брак — «всего лишь работа», пока кухонные инструменты в руках не выдают панику",
           arcSummary: "От рекламной улыбки — к срыву «Сделай же что-нибудь!» — и к уходу из проекта",
           unchanged: "Способность играть — и неспособность выйти из роли иначе, чем через срыв.",
           arcCredibility: { level: "HIGH", note: "Перелом укладывается в несколько реплик: рекламная улыбка, раздражение, паника — роль рассыпается ровно там, где от неё требуют настоящего чувства." },
@@ -287,7 +373,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-rel-ad-break",
           label: "Брак как рекламная пауза",
-          change: "Посреди семейной ссоры жена отворачивается к камере и рекламирует какао, а когда Труман требует ответа — поднимает на него кухонную тёрку, ту самую, что в начале фильма дарили в супермаркете",
+          change: "Посреди семейной ссоры жена отворачивается к камере и рекламирует какао, а когда Труман требует ответа — берёт со стола кухонные инструменты «Chef's Pal», те самые, что в начале фильма дарили в супермаркете, и зовёт на помощь не мужа",
           tone: "fracture",
           dimensions: [
             { dimension: "TRUTHFULNESS", before: "Труман верит, что его брак — частная жизнь", after: "Брак оказывается рекламной паузой с реквизитом из магазина" },
@@ -307,7 +393,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-rel-knife",
-          label: "Тёрка и «Сделай же что-нибудь!»",
+          label: "Инструменты и «Сделай же что-нибудь!»",
           change: "Под давлением вопросов Мэрил ломается: роли кончились, дальше — только правда или бегство",
           tone: "fracture",
           dimensions: [
@@ -891,7 +977,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       heading: "Кто и за что в ответе",
       spoilerLevel: "ENDING",
       summary:
-        "Моральная вселенная фильма выстроена жёстко: любой, кто «использует» Трумана, несёт ответственность — от всемогущего создателя до смеющихся в барах зрителей. При этом фильм не превращает героя в святого: тёрка в руке Мэрил в сцене срыва — тоже угроза, и она остаётся угрозой, как бы ни был прав человек, её доведший.",
+        "Моральная вселенная фильма выстроена жёстко: любой, кто «использует» Трумана, несёт ответственность — от всемогущего создателя до смеющихся в барах зрителей. При этом фильм не превращает героя в святого: кухонные инструменты в руке Мэрил в сцене срыва — тоже угроза, и она остаётся угрозой, как бы ни был прав человек, её доведший.",
       summarySupport: { evidenceIds: ["truman-ev-knife", "truman-ev-storm"] },
       events: [
         {
@@ -974,6 +1060,9 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-moral-corp",
+          // The act is institutional, but a published blaming event may not be
+          // anonymous: the person who signs the corporate decision is Кристоф.
+          actorCharacterIds: ["truman-ch-christof"],
           category: "Человек как товар",
           valence: "WRONGDOING",
           act: "Корпорация, владеющая шоу, строит бизнес на человеке, взятом в собственность с рождения: эфир круглосуточно, около пяти тысяч камер, спонсоры в каждом кадре.",
@@ -995,7 +1084,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           actorCharacterIds: ["truman-ch-truman", "truman-ch-meryl"],
           category: "Давление правдой",
           valence: "MIXED",
-          act: "Загнанный в угол тридцатью годами лжи, Труман требует от жены прямого ответа — и доводит её до срыва, в котором она хватает рекламную тёрку и кричит уже не ему, а в пустоту.",
+          act: "Загнанный в угол тридцатью годами лжи, Труман требует от жены прямого ответа — и доводит её до срыва, в котором она берёт со стола кухонные инструменты и кричит уже не ему, а в пустоту.",
           target: "Мэрил",
           motive: "Отчаяние: мирные способы узнать правду исчерпаны.",
           knowledge: "Он требует ответа, зная, что ломает чужую работу и чужую жизнь.",
@@ -1181,7 +1270,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       thesis:
         "«Шоу Трумана» — притча о человеке, отказавшемся быть товаром: кино, которое само работает как идеальная машина развлечения, честно предупреждает о цене такой машины. Фильм ставит зрителя на место скрытой камеры — и в финале не выпускает оттуда без вопроса «что ещё идёте смотреть?».",
       facets: [
-        { key: "CRAFT", label: "Ремесло", value: "Высокое: операторская концепция скрытых камер, дизайн-утопия Сисайда, двойная драматургия «шоу внутри кино» — форма неотделима от тезиса от смысла." },
+        { key: "CRAFT", label: "Ремесло", value: "Высокое: операторская концепция скрытых камер, дизайн-утопия Сисайда, двойная драматургия «шоу внутри кино» — форма неотделима от смысла." },
         { key: "MORAL_CLARITY", label: "Моральная ясность", value: "Редкая для Голливуда: слежка, ложь и патернализм названы злом без оговорок; при этом насилие героя не ретушировано." },
         { key: "DEPICTED_EVIL", label: "Изображённое зло", value: "Показано как система с человеческим лицом: без монстров — только «профессионалы» и довольные зрители; шторм против одного человека — кульминация этой логики." },
         { key: "ROMANTICIZATION", label: "Романтизация", value: "Умеренная: побег подан как триумф; фильм сам чуть не становится тем самым шоу, которым упрекает эпоху, — и вовремя себя ловит." },
@@ -1439,7 +1528,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           label: "TV Tropes — разбор комических сцен",
           kind: "reference",
           researchRole: "tertiary-community",
-          locator: "Плакат с молнией «Это может случиться с вами»; «личный дождь» из источника в фильме отсутствует",
+          locator: "Плакат с молнией «Это может случиться с вами»; эпизод с дождём описан как «личный дождь» и в источнике, и в кадре: узкая струя над одним человеком, затем ливень на всю сцену",
           href: "https://tvtropes.org/pmwiki/pmwiki.php/Funny/TheTrumanShow",
         },
         {
