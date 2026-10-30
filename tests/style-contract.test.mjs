@@ -542,3 +542,9 @@ test("disclosure touch policy is scoped to controls, not article selection", () 
   });
   assert.ok(found);
 });
+
+test("counterevidence retains high-contrast secondary text", () => {
+  const css = postcss.parse(readStylesheet("src/styles/modules/analysis.css"));
+  const rule = css.nodes.find(node => node.type === "rule" && node.selector === ".filmCounterevidence");
+  assert.ok(rule?.nodes.some(node => node.prop === "color" && node.value === "var(--ink-2)"));
+});
