@@ -249,7 +249,11 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--ink-3);
+  /* An inactive tab is still a control the reader has to read. At ink-3 the
+     rendered-contrast audit measured 4.3:1 once the tab's fade was accounted for,
+     under the 4.5:1 floor; ink-2 clears it with margin and keeps the selected tab
+     brighter still. */
+  color: var(--ink-2);
   transition: color var(--duration-fast) var(--ease-standard);
 }
 
