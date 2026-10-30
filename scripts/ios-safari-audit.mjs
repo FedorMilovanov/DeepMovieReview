@@ -110,13 +110,20 @@ try {
     if (route.includes("/article?")) {
       const count = await safari.execute("return document.querySelectorAll('.articleSection').length");
       assert.ok(count > 0, "Actual native article sections must exist before the spoiler input");
+      // Distinguish a dropped native touch from an app-level navigation defect.
+      // The probe only records real events; it never dispatches or replays one.
+      await safari.execute(`window.__nativeInputProbe = { touched: [], clicked: [], url: location.href };
+        document.addEventListener("touchstart", e => __nativeInputProbe.touched.push(e.target.className || e.target.tagName), { capture: true, once: true });
+        document.addEventListener("click", e => __nativeInputProbe.clicked.push(e.target.className || e.target.tagName), { capture: true, once: true });`);
       await safari.click(".spoilerOption");
       let changed = false;
       for (let i = 0; i < 100; i++) {
         if (await safari.execute("return document.querySelectorAll('.articleSection').length") < count) { changed = true; break; }
         await delay(100);
       }
-      assert.ok(changed, "iOS spoiler tap must change DOM projection");
+      report.nativeInputProbe = await safari.execute("return { ...__nativeInputProbe, url: location.href, sections: document.querySelectorAll('.articleSection').length }");
+      evidence.actions.push({ route, label: "native spoiler tap delivery probe", ...report.nativeInputProbe });
+      assert.ok(changed, `iOS spoiler tap must change DOM projection: ${JSON.stringify(report.nativeInputProbe)}`);
     }
   }
 } catch (error) {

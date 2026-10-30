@@ -49,6 +49,25 @@ export function missingRangeIds(expected, measurements) {
     Array.from({ length: record.lines }, (_, line) => `${record.id}:${record.version ?? 0}:${line}`).some(key => !measurements.has(key))).map(record => record.id));
 }
 
+
+// A line box can straddle the sticky header's bottom edge. Pixels inside the
+// bar paint the bar, not the text background, and the glyphs there are not
+// visible at all. Keep the longest fully exposed band of rows: a finite bound
+// over what a reader can actually see, never a waiver for ordinary overlaps.
+export function exposedRows(height, isOverlay) {
+  const rows = Math.max(0, Math.ceil(height));
+  let best = null, start = null;
+  for (let row = 0; row <= rows; row++) {
+    const blocked = row < rows && isOverlay(row);
+    if (!blocked && start === null) start = row;
+    if ((blocked || row === rows) && start !== null) {
+      if (!best || row - start > best[1] - best[0]) best = [start, row];
+      start = null;
+    }
+  }
+  return best && best[1] > best[0] ? best : null;
+}
+
 export function snapshotTextPaint(s) {
   // A fully visible line can be sampled on an overlapping scroll tile. Do not use
   // a fixed header's paint as if it were the background behind an occluded line.
@@ -101,9 +120,24 @@ export function snapshotTextPaint(s) {
     if (unpainted) continue;
     const threshold = parseFloat(style.fontSize) >= 24 || (parseFloat(style.fontWeight) >= 700 && parseFloat(style.fontSize) >= 14 * 4 / 3) ? 3 : 4.5;
     [...record.range.getClientRects()].forEach((rect, line) => {
-      if (rect.width > 0 && rect.height > 0 && exposed(record.element, rect, innerWidth, innerHeight, (x, y) => document.elementFromPoint(x, y))) {
-        boxes.push({ id: record.id, version: record.version, line, rect: rect.toJSON(), foreground, color, threshold, issue, settling });
-      }
+      if (!(rect.width > 0 && rect.height > 0 && exposed(record.element, rect, innerWidth, innerHeight, (x, y) => document.elementFromPoint(x, y)))) return;
+      const overlayAt = (x, y) => {
+        const top = document.elementFromPoint(x, y);
+        if (!top) return true;
+        for (let overlay = top; overlay; overlay = overlay.parentElement) {
+          if (["fixed", "sticky"].includes(getComputedStyle(overlay).position) &&
+              !(overlay === record.element || record.element.contains(overlay) || overlay.contains(record.element))) return true;
+        }
+        return false;
+      };
+      const inset = Math.min(0.5, rect.width / 2);
+      // Sample whole device pixels, not fractional font boxes: a line box that
+      // starts 0.14px above the sticky bar would otherwise drag the bar's last
+      // painted row into the bound.
+      const rowOrigin = Math.floor(rect.top), rowEnd = Math.ceil(rect.bottom);
+      const occluded = Array.from({ length: Math.max(0, rowEnd - rowOrigin) }, (_, row) =>
+        overlayAt(rect.left + inset, rowOrigin + row + 0.5) || overlayAt(rect.right - inset, rowOrigin + row + 0.5));
+      boxes.push({ id: record.id, version: record.version, line, rect: rect.toJSON(), rowOrigin, occluded, foreground, color, threshold, issue, settling });
     });
   }
   s.visibleIds = new Set(boxes.map(box => box.id));
@@ -155,12 +189,29 @@ export async function renderedContrast(page, nodes, directory, id) {
         await page.waitForTimeout(100);
       }
       for (const box of snapshot.boxes.filter(box => box.settling)) deferred.push({ id: box.id, line: box.line, tile, reason: box.issue });
-      snapshot.boxes = snapshot.boxes.filter(box => !box.settling);
+      snapshot.boxes = snapshot.boxes.filter(box => !box.settling).flatMap(box => {
+        const band = exposedRows(box.occluded.length, row => box.occluded[row]);
+        if (!band) return [];
+        const top = box.rowOrigin + band[0], bottom = box.rowOrigin + band[1];
+        return [{ ...box, sample: { x: box.rect.x, y: top, width: box.rect.width, height: bottom - top } }];
+      });
       await page.evaluate(({ s, boxes }) => {
         s.currentBoxes = boxes; s.visibleIds = new Set(boxes.map(box => box.id));
       }, { s: state, boxes: snapshot.boxes });
       const original = await page.screenshot();
+      // A reveal animation can start after the settle probe and repaint the page
+      // while the masked frame is captured. Wait for native animation completion
+      // and a stable pair of animation frames before masking; never force styles.
       let background;
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const running = await page.evaluate(() => {
+          const animations = document.getAnimations ? document.getAnimations() : [];
+          return animations.filter(animation => animation.playState === "running").length;
+        });
+        if (!running) break;
+        await page.waitForTimeout(100);
+      }
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       try {
         await page.evaluate(maskTextPaint, state);
         const invalidMask = await page.evaluate(s => {
@@ -177,6 +228,21 @@ export async function renderedContrast(page, nodes, directory, id) {
         }, state);
         for (const box of snapshot.boxes) if (invalidMask.includes(box.id)) box.issue = "Text mask did not remove foreground";
         background = await page.screenshot();
+        // A late re-render can replace masked text after the style probe.
+        // Verify the captured frame still had transparent foregrounds and that
+        // the recorded elements stayed connected; otherwise mask again, bounded.
+        for (let retry = 0; retry < 3; retry++) {
+          const stillMasked = await page.evaluate(s => s.records.filter(record => s.visibleIds.has(record.id)).every(record => {
+            if (!record.element.isConnected) return false;
+            const style = getComputedStyle(record.element);
+            const color = record.element.namespaceURI === "http://www.w3.org/2000/svg" ? style.fill : style.webkitTextFillColor || style.color;
+            s.ctx.clearRect(0, 0, 1, 1); s.ctx.fillStyle = color; s.ctx.fillRect(0, 0, 1, 1);
+            return s.ctx.getImageData(0, 0, 1, 1).data[3] === 0;
+          }), state);
+          if (stillMasked) break;
+          await page.evaluate(maskTextPaint, state);
+          background = await page.screenshot();
+        }
       } finally {
         await page.evaluate(restoreTextPaint, state);
       }
@@ -192,12 +258,12 @@ export async function renderedContrast(page, nodes, directory, id) {
         const measurement = measurements.get(key) ?? { id: box.id, version: box.version, line: box.line, threshold: box.threshold, height: Math.ceil(box.rect.height), intervals: [], minimum: Infinity, issues: [] };
         measurement.threshold = Math.max(measurement.threshold, box.threshold);
         measurement.height = Math.max(measurement.height, Math.ceil(box.rect.height));
-        measurement.intervals.push([Math.max(0, Math.floor(-box.rect.y)), Math.min(measurement.height, Math.ceil(snapshot.height - box.rect.y))]);
+        measurement.intervals.push([Math.max(0, Math.floor(-box.sample.y)), Math.min(measurement.height, Math.ceil(snapshot.height - box.sample.y))]);
         if (box.rect.x < 0 || box.rect.right > snapshot.width) box.issue = "Text range extends outside horizontal viewport";
         if (box.issue) {
           if (!measurement.issues.includes(box.issue)) measurement.issues.push(box.issue);
         } else {
-          const bound = rectangleContrast(image, box.rect, box.foreground);
+          const bound = rectangleContrast(image, box.sample, box.foreground);
           if (bound.minimum !== null && bound.minimum < measurement.minimum) {
             Object.assign(measurement, { minimum: bound.minimum, worstBackground: bound.worstBackground, foreground: box.foreground, color: box.color, tile });
           }

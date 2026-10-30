@@ -580,3 +580,35 @@ test("quaternary meta text clears AA on the lightest elevated surface", () => {
   assert.ok(luminance(token("--ink-3")) > luminance(token("--ink-4")), "ink-3 stays above ink-4");
   assert.ok(luminance(token("--ink-2")) > luminance(token("--ink-3")), "ink-2 stays above ink-3");
 });
+
+test("sticky header is opaque so meta text never blends through it", () => {
+  const base = postcss.parse(readStylesheet("src/styles/primitives.css"));
+  const header = base.nodes.find(node => node.type === "rule" && node.selector === ".siteHeader");
+  assert.ok(header?.nodes.some(node => node.prop === "background" && node.value === "var(--surface-canvas)"));
+  assert.ok(!header.nodes.some(node => node.prop === "background" && /color-mix/.test(node.value)));
+  assert.ok(!header.nodes.some(node => node.prop === "backdrop-filter"));
+  assert.ok(!base.toString().includes("backdrop-filter: blur(18px)"), "no header blur remains");
+  const scrolled = readStylesheet("src/styles/shell/header.css");
+  const rule = scrolled.slice(scrolled.indexOf(".siteHeader[data-scrolled]"));
+  assert.ok(!/backdrop-filter|color-mix/.test(rule.slice(0, rule.indexOf("}"))));
+});
+
+test("rendered contrast keeps the longest fully exposed band, not header paint", async () => {
+  const { exposedRows } = await import("../scripts/lib/rendered-contrast.mjs");
+  // A 17px line box whose top 2 rows sit under the sticky bar.
+  assert.deepEqual(exposedRows(17, row => row < 2), [2, 17]);
+  // No reader-visible row: the line is excluded rather than measured as bar paint.
+  assert.equal(exposedRows(17, () => true), null);
+  // A gap keeps the longer contiguous run; a sliver is not preferred to it.
+  assert.deepEqual(exposedRows(20, row => row >= 3 && row < 12), [12, 20]);
+  assert.equal(exposedRows(0, () => false), null);
+});
+
+test("contrast sampling snaps to whole exposed pixel rows", async () => {
+  const { exposedRows } = await import("../scripts/lib/rendered-contrast.mjs");
+  // Rect top 63.86 in a viewport whose 64th row belongs to the sticky bar.
+  const rowOrigin = Math.floor(63.86), rowEnd = Math.ceil(63.86 + 14);
+  const rows = Array.from({ length: rowEnd - rowOrigin }, (_, row) => rowOrigin + row + 0.5 < 64);
+  const band = exposedRows(rows.length, row => rows[row]);
+  assert.deepEqual([rowOrigin + band[0], rowOrigin + band[1]], [64, 78]);
+});
