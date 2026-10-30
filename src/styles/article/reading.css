@@ -211,3 +211,28 @@
 .articleVerdict > .articleParagraph { max-width: 80ch; margin-inline: auto; }
 
 @media (max-width: 720px) { .articleVerdictGrid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Native disclosure preserves qualifications without another client widget. */
+.articleVerdictContext {
+  border-block: 1px solid var(--stroke-default);
+  color: var(--ink-2);
+}
+
+.articleVerdictContext summary {
+  min-height: 44px;
+  padding-block: var(--space-4);
+  cursor: pointer;
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-meta);
+}
+
+.articleVerdictContext summary span { margin-inline-start: var(--space-3); }
+.articleVerdictContext summary:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }
+.articleVerdictContext ul { margin: 0; padding: 0 var(--space-5) var(--space-5); }
+.articleVerdictContext li { padding-block: var(--space-2); line-height: var(--leading-body); }
+@media print { .articleVerdictContext::details-content { display: block; } }
+
+.articleAnalysis { background: var(--surface-1); padding-inline: var(--space-4); }
+.articleAnalysis > .filmDecision { width: 100%; padding-block: var(--space-5); border: 0; }

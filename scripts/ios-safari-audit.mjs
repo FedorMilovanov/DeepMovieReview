@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { inspect } from "node:util";
 import { arch, release } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
-import { mkdirSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
@@ -110,6 +110,19 @@ try {
     }
   }
 } catch (error) {
+  // Session creation can fail before a WebDriver object exists. Preserve the
+  // actual Simulator screen and bounded RWI logs instead of diagnosing a blank
+  // browser or fabricating a product failure from the host's timeout alone.
+  if (!safari && report.device?.state === "Booted") {
+    try {
+      const file = `${directory}/failed-simulator.png`;
+      execFileSync("xcrun", ["simctl", "io", report.device.udid, "screenshot", file], { timeout: 15000 });
+      evidence.screenshots.push({ route: "Simulator before WebDriver session; not a product scan", data: readFileSync(file).toString("base64") });
+      report.simulatorAutomationLog = execFileSync("xcrun", ["simctl", "spawn", report.device.udid, "log", "show", "--last", "3m", "--style", "compact", "--predicate", 'subsystem CONTAINS "WebKit" OR process == "MobileSafari"'], {
+        encoding: "utf8", timeout: 20000, maxBuffer: 4 * 1024 * 1024,
+      }).slice(-16000);
+    } catch (diagnosticError) { report.failedSimulatorDiagnostic = diagnosticError.message; }
+  }
   if (safari) {
     try {
       report.failedPageState = await safari.execute("return ({url:location.href,expanded:document.querySelector('.menuButton')?.getAttribute('aria-expanded'),button:document.querySelector('.menuButton')?.getBoundingClientRect().toJSON(),width:innerWidth,scrollY})");

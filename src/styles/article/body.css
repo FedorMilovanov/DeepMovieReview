@@ -51,8 +51,8 @@
 
 .articleSpoilerBar {
   display: flex;
-  justify-content: flex-end;
-  padding-block: var(--space-5);
+  justify-content: flex-start;
+  padding-block: var(--space-3);
 }
 
 .articleOutline {

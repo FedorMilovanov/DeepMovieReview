@@ -1,7 +1,9 @@
+import type { ReactNode } from "react";
+import { DecisionModuleView } from "@/components/film-modules/module-components";
 import { ReadingOutline } from "./reading-outline";
 import { ArticleTable } from "./article-table";
 import Link from "next/link";
-import type { ArticleBlock, ArticleMeasurementRef, FilmArticle, FinalSynthesisModule } from "@/lib/film-package";
+import type { ArticleBlock, ArticleMeasurementRef, FilmArticle, FinalSynthesisModule, DecisionModule } from "@/lib/film-package";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { illustrationView } from "@/data/film-illustrations";
 import type { ArticleMeasurementView, ArticleProjection } from "@/lib/film-article";
@@ -20,6 +22,8 @@ type ArticleViewProps = {
   filmTitle: string;
   projection: ArticleProjection;
   synthesis?: FinalSynthesisModule;
+  controls?: ReactNode;
+  decisions?: DecisionModule[];
   spoilerLevel: SpoilerLevel;
   /** Renders a measurement from the committed dataset, never from prose. */
   describeMeasurement: (ref: ArticleMeasurementRef) => ArticleMeasurementView | undefined;
@@ -202,6 +206,8 @@ export function ArticleView({
   filmTitle,
   projection,
   synthesis,
+  controls,
+  decisions = [],
   spoilerLevel,
   describeMeasurement,
   formatTimecode,
@@ -228,6 +234,7 @@ export function ArticleView({
         <div className="articleHeaderLinks">
           <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
           <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
+          {complete && synthesis ? <a className="microLabel" href="#article-verdict">Редакционная оценка ↓</a> : null}
         </div>
         <div className="sectionIndex">{article.kicker}</div>
         <h1 className="articleTitle">{article.title}</h1>
@@ -242,6 +249,7 @@ export function ArticleView({
           <span>{readingMinutes} мин чтения</span>
           <span>точка зрения: {levelLabels[spoilerLevel]}</span>
         </div>
+        {controls ? <div className="articleSpoilerBar">{controls}</div> : null}
       </header>
 
       <ReadingOutline sections={readingSections} />
@@ -295,6 +303,12 @@ export function ArticleView({
               </div>
             ) : null}
           </div>
+          {decisions.filter(module => section.moduleIds?.includes(module.id)).map(module => (
+            <details className="articleAnalysis articleVerdictContext" key={module.id}>
+              <summary>Карта решения: варианты, знание, давление</summary>
+              <DecisionModuleView module={module} />
+            </details>
+          ))}
           <div className="articleBody">
             {section.blocks.map((block) => (
               <ArticleBlockView
@@ -321,6 +335,12 @@ export function ArticleView({
             ))}
           </dl>
           <p className="articleParagraph">{synthesis.verdict}</p>
+          {synthesis.qualifications.length ? (
+            <details className="articleVerdictContext">
+              <summary>Оговорки к оценке <span>{synthesis.qualifications.length}</span></summary>
+              <ul>{synthesis.qualifications.map(text => <li key={text}>{text}</li>)}</ul>
+            </details>
+          ) : null}
         </section>
       ) : null}
 

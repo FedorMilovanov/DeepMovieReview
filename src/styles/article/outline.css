@@ -42,6 +42,15 @@
   background: var(--ink-4);
 }
 
+.readingOutlineRail i[data-read="true"] { background: var(--ink-3); }
+
+.readingOutlinePosition {
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
 .readingOutlineRail i[data-active="true"] {
   width: var(--space-4);
   background: var(--ink-1);
@@ -66,6 +75,9 @@
 .readingOutlinePanel[hidden] { display: none; }
 
 .readingOutlineHeading {
+  position: sticky;
+  top: 0;
+  background: var(--surface-1);
   display: flex;
   justify-content: space-between;
   gap: var(--space-3);
@@ -84,7 +96,7 @@
   gap: var(--space-3);
   min-height: 44px;
   padding: var(--space-3) var(--space-2);
-  border-top: 1px solid var(--stroke-subtle);
+  border-top: 0;
   color: var(--ink-2);
   text-decoration: none;
   font-size: 0.94rem;
@@ -104,17 +116,17 @@
 .readingOutlineTrigger:focus-visible,
 .readingOutlinePanel a:focus-visible { outline: 2px solid var(--ink-1); outline-offset: calc(-1 * var(--focus-offset)); }
 
-@media (max-width: 720px) {
+@media (max-width: 720px), (max-height: 30rem) {
   .readingOutline { top: auto; bottom: var(--space-4); transform: none; }
   .readingOutlineWord { writing-mode: horizontal-tb; }
-  .readingOutlineRail { display: none; }
+  .readingOutlineRail, .readingOutlinePosition { display: none; }
   .readingOutlinePanel {
     top: auto;
     bottom: calc(100% + var(--space-2));
     inset-inline-end: var(--space-3);
     width: min(380px, calc(100vw - 2 * var(--space-3)));
     transform: none;
-    max-height: 65dvh;
+    max-height: min(65dvh, calc(100dvh - 6rem));
   }
 }
 

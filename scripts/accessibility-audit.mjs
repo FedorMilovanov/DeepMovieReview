@@ -124,6 +124,39 @@ for (const name of selected) {
             const sectionCount = await page.locator(".articleSection").count();
             const hiddenId = await page.locator(".articleSection").last().getAttribute("id");
             const outline = page.getByRole("button", { name: "Оглавление статьи" });
+            assert.ok(await page.evaluate(() => {
+              const title = document.querySelector('.articleTitle');
+              const controls = document.querySelector('.articleSpoilerBar');
+              return Boolean(title.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING);
+            }), "reading opens with the title, not five spoiler buttons");
+            // Check both directions across long sections, not a forced active state.
+            for (const index of [sectionCount - 1, 0]) {
+              const section = page.locator('.articleSection').nth(index);
+              const id = await section.getAttribute('id');
+              await section.evaluate(el => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
+              await page.waitForFunction(id => document.querySelector(`.readingOutlinePanel a[href="#${id}"]`)?.getAttribute('aria-current') === 'location', id);
+            }
+            const analysis = page.locator('.articleAnalysis');
+            if (await analysis.count()) {
+              await analysis.locator('summary').focus();
+              await page.keyboard.press('Enter');
+              assert.ok(await analysis.evaluate(el => el.open), "canonical decision map opens natively");
+              assert.ok(await analysis.locator('.filmDecisionOptions article').count());
+              await scan('decision-open', '.articleAnalysis');
+              await page.keyboard.press('Enter');
+              assert.equal(await analysis.evaluate(el => el.open), false);
+            }
+            const context = page.locator('#article-verdict .articleVerdictContext');
+            if (await context.count()) {
+              await context.locator('summary').focus();
+              await page.keyboard.press('Enter');
+              assert.ok(await context.evaluate(el => el.open), "native qualifications disclosure opens by keyboard");
+              assert.ok(await context.locator('li').count(), "canonical qualifications rendered");
+              await page.keyboard.press('Enter');
+              assert.equal(await context.evaluate(el => el.open), false);
+            }
+            await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
+
             if (width === 1440) {
               await outline.hover();
               await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');

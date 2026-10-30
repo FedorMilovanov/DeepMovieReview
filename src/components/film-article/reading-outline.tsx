@@ -13,16 +13,33 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
   const trigger = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      const current = entries.filter((entry) => entry.isIntersecting)
-        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-      if (current) setActive(current.target.id);
-    }, { rootMargin: "-15% 0px -65% 0px" });
-    sections.forEach(({ id }) => {
-      const section = document.getElementById(id);
-      if (section) observer.observe(section);
-    });
-    return () => observer.disconnect();
+    // Read the section boundaries, not just the most recent observer batch.
+    // A section can span several screens; reverse scroll and hash jumps must
+    // still identify the last section that crossed the reading line.
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const line = Math.min(window.innerHeight * 0.28, 240);
+      let current = sections[0]?.id ?? "";
+      for (const { id } of sections) {
+        const section = document.getElementById(id);
+        if (section && section.getBoundingClientRect().top <= line) current = id;
+      }
+      setActive(current);
+    };
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    const observer = new ResizeObserver(schedule);
+    const article = root.current?.closest("article");
+    if (article) observer.observe(article);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
   }, [sections]);
 
   useEffect(() => {
@@ -38,6 +55,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
   }, [open]);
 
   if (!sections.length) return null;
+  const activeIndex = Math.max(0, sections.findIndex(section => section.id === active));
   return (
     <div
       className="readingOutline"
@@ -74,11 +92,12 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
       >
         <span className="readingOutlineWord">Разделы</span>
         <span className="readingOutlineRail" aria-hidden="true">
-          {sections.map(({ id }) => <i key={id} data-active={id === active} />)}
+          {sections.map(({ id }, index) => <i key={id} data-active={id === active} data-read={index < activeIndex} />)}
         </span>
+        <span className="readingOutlinePosition" aria-hidden="true">{String(activeIndex + 1).padStart(2, "0")}</span>
       </button>
       <nav id="reading-outline-panel" className="articleOutline readingOutlinePanel" hidden={!open} aria-label="Разделы статьи">
-        <div className="readingOutlineHeading">В этом разборе <span>{sections.length}</span></div>
+        <div className="readingOutlineHeading">В этом разборе <span>{activeIndex + 1} / {sections.length}</span></div>
         {sections.map(({ id, number, heading }) => (
           <a
             key={id}

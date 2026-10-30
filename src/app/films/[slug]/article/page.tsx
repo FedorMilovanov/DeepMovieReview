@@ -71,6 +71,10 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
   const projection = projectArticleSections(filmPackage.article, spoilerLevel);
   const finalModule = filmPackage.modules.find(module => module.kind === "final-synthesis");
   const finalProjection = finalModule ? projectFilmModule(finalModule, spoilerLevel) : null;
+  const decisions = filmPackage.modules
+    .filter(module => module.kind === "decision")
+    .map(module => projectFilmModule(module, spoilerLevel))
+    .filter(module => module?.kind === "decision");
   const pathname = `/films/${filmPackage.film.slug}/article`;
 
   // Structured data for the trail the page already shows. It is derived from the
@@ -105,14 +109,13 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <SpoilerDeepLinkGuard spoilerLevel={spoilerLevel} />
-      <div className="sectionShell articleSpoilerBar">
-        <SpoilerLevelControl pathname={pathname} current={spoilerLevel} />
-      </div>
       <ArticleView
+        controls={<SpoilerLevelControl pathname={pathname} current={spoilerLevel} />}
         article={filmPackage.article}
         filmSlug={filmPackage.film.slug}
         filmTitle={filmPackage.film.title}
         projection={projection}
+        decisions={decisions}
         synthesis={finalProjection?.kind === "final-synthesis" ? finalProjection : undefined}
         spoilerLevel={spoilerLevel}
         describeMeasurement={measurements.describe}
