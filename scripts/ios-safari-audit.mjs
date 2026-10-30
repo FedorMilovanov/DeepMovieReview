@@ -115,6 +115,20 @@ try {
       await safari.execute(`window.__nativeInputProbe = { touched: [], clicked: [], url: location.href };
         document.addEventListener("touchstart", e => __nativeInputProbe.touched.push(e.target.className || e.target.tagName), { capture: true, once: true });
         document.addEventListener("click", e => __nativeInputProbe.clicked.push(e.target.className || e.target.tagName), { capture: true, once: true });`);
+      // Control: does any native input reach the DOM after scrolling? The
+      // outline trigger is a button at the same scroll position. This separates
+      // driver delivery from one link's navigation.
+      await safari.click(".readingOutlineTrigger");
+      await waitForNativeValue(() => safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')"), "true").catch(() => {});
+      report.postScrollInput = {
+        expanded: await safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')"),
+        scrollY: await safari.execute("return scrollY"),
+      };
+      evidence.actions.push({ route, label: "post-scroll native input control", ...report.postScrollInput });
+      if (report.postScrollInput.expanded === "true") {
+        await safari.click(".readingOutlineTrigger");
+        await waitForNativeValue(() => safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')"), "false");
+      }
       await safari.click(".spoilerOption");
       let changed = false;
       for (let i = 0; i < 100; i++) {
@@ -135,6 +149,7 @@ try {
         report.nativeElementFallback = { used: true, changed,
           sections: await safari.execute("return document.querySelectorAll('.articleSection').length") };
         evidence.actions.push({ route, label: "native element activation after undelivered touch", ...report.nativeElementFallback });
+        evidence.screenshots.push({ route, data: await safari.screenshot() });
       }
       assert.ok(changed, `iOS spoiler tap must change DOM projection: ${JSON.stringify(report.nativeInputProbe)}`);
     }
