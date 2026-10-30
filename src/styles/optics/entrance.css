@@ -1,12 +1,18 @@
 /* ── Scroll reveals (view-timeline only; static otherwise) ─────────────────── */
 
+/* The reveal is a rise, not a fade.
+   A scroll-linked opacity is a function of scroll position, not of time: a section
+   caught mid-entry sits at whatever fraction the scroll dictates, and that fraction
+   is painted. At entry 28% the section was at 0.65 opacity, which turns ink-3 into
+   4.3:1 — under the floor — on text the reader is already looking at. The same
+   never-settling value also leaves the contrast audit unable to attribute the line,
+   so «4 ranges, 4 missing owners» and a red job. Movement keeps the effect; the
+   fade was the part that made text unreadable. */
 @keyframes dmrSectionReveal {
   from {
-    opacity: 0.001;
     transform: translateY(34px);
   }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }

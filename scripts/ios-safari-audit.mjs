@@ -54,7 +54,11 @@ try {
   safari = await nativeSafari({ platformName: "iOS", "safari:useSimulator": true, "safari:deviceUDID": device.udid }, {
     beforeSession: async () => {
       report.phase = "booting iPhone Simulator after host driver readiness";
-      if (device.state !== "Booted") execFileSync("xcrun", ["simctl", "boot", device.udid], { stdio: "inherit" });
+      // `bootstatus -b` boots the device when it is not booted and waits for it.
+      // A separate `boot` races CoreSimulator's own start-up: the state read from
+      // `simctl list` two seconds earlier says Shutdown while the device is already
+      // booting, and `boot` then exits non-zero with «Unable to boot in current
+      // state», which is exactly how this job failed on two consecutive heads.
       // Bring up the device frontend while SpringBoard is booting, not after
       // waiting for a headless cold boot that may never finish on hosted Intel.
       execFileSync("open", ["-a", simulatorApp, "--args", "-CurrentDeviceUDID", device.udid], { stdio: "inherit", timeout: 30000 });

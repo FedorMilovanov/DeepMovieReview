@@ -249,10 +249,9 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  /* An inactive tab is still a control the reader has to read. At ink-3 the
-     rendered-contrast audit measured 4.3:1 once the tab's fade was accounted for,
-     under the 4.5:1 floor; ink-2 clears it with margin and keeps the selected tab
-     brighter still. */
+  /* An inactive tab is still a control the reader has to read. ink-3 measured
+     4.3:1 in the rendered-contrast audit; ink-2 clears the floor with margin and
+     keeps the selected tab brighter still. */
   color: var(--ink-2);
   transition: color var(--duration-fast) var(--ease-standard);
 }
@@ -260,7 +259,9 @@
 .lensTabIndex {
   font-family: var(--font-meta);
   font-size: 0.58rem;
-  color: var(--ink-3);
+  /* Part of the tab's label, so it reads at the label's weight: at 0.58rem the
+     index has neither size nor colour to spare, and axe measured it at 4.3:1. */
+  color: var(--ink-2);
   letter-spacing: var(--tracking-meta);
 }
 
