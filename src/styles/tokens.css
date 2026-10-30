@@ -72,6 +72,8 @@
 
   /* Layout */
   --container-max: 1440px;
+  --radius-control: 0.5rem;
+  --radius-panel: 0.75rem;
   --content-max: 760px;
   --reading-max: 68ch;
   --gutter: clamp(1.1rem, 3vw, 3rem);

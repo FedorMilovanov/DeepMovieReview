@@ -257,8 +257,10 @@ check("LA", "LA05", "текстовая колонка уже контейнер
 });
 
 check("LA", "LA06", "врезки-инсеты ограничены по ширине", () => {
-  const width = Number(/\[data-layout="inset"\][\s\S]{0,120}?width:\s*min\(100%,\s*(\d+)px\)/.exec(articleCss)?.[1]);
-  return (width > 0 && width <= 460) || String(width);
+  const match = /\[data-layout="inset"\][\s\S]{0,120}?width:\s*min\(([\d.]+)%,\s*(\d+)px\)/.exec(articleCss);
+  const share = Number(match?.[1]);
+  const width = Number(match?.[2]);
+  return (share > 0 && share <= 50 && width > 0 && width <= 460) || `share=${share}%, width=${width}px`;
 });
 
 check("LA", "LA07", "мобильные кегли переопределены явно", () => {

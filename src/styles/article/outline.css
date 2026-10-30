@@ -13,10 +13,10 @@
   gap: var(--space-3);
   min-width: 44px;
   min-height: 44px;
-  padding: var(--space-3) 10px;
+  padding: var(--space-3) var(--space-2);
   border: 1px solid var(--stroke-default);
   border-inline-end: 0;
-  border-radius: 8px 0 0 8px;
+  border-radius: var(--radius-control) 0 0 var(--radius-control);
   background: var(--surface-1);
   color: var(--ink-2);
   cursor: pointer;
@@ -32,18 +32,18 @@
 
 .readingOutlineRail {
   display: grid;
-  gap: 5px;
+  gap: var(--space-1);
 }
 
 .readingOutlineRail i {
   display: block;
-  width: 12px;
+  width: var(--space-3);
   height: 2px;
   background: var(--ink-4);
 }
 
 .readingOutlineRail i[data-active="true"] {
-  width: 20px;
+  width: var(--space-4);
   background: var(--ink-1);
 }
 
@@ -58,7 +58,7 @@
   overscroll-behavior: contain;
   padding: var(--space-4);
   border: 1px solid var(--stroke-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-panel);
   background: var(--surface-1);
   box-shadow: 0 16px 60px rgb(0 0 0 / 0.45);
 }
@@ -102,7 +102,7 @@
 .readingOutlinePanel a:hover { color: var(--ink-1); background: var(--surface-2); }
 
 .readingOutlineTrigger:focus-visible,
-.readingOutlinePanel a:focus-visible { outline: 2px solid var(--ink-1); outline-offset: -3px; }
+.readingOutlinePanel a:focus-visible { outline: 2px solid var(--ink-1); outline-offset: calc(-1 * var(--focus-offset)); }
 
 @media (max-width: 720px) {
   .readingOutline { top: auto; bottom: var(--space-4); transform: none; }
@@ -110,9 +110,9 @@
   .readingOutlineRail { display: none; }
   .readingOutlinePanel {
     top: auto;
-    bottom: calc(100% + 8px);
-    inset-inline-end: 12px;
-    width: min(380px, calc(100vw - 24px));
+    bottom: calc(100% + var(--space-2));
+    inset-inline-end: var(--space-3);
+    width: min(380px, calc(100vw - 2 * var(--space-3)));
     transform: none;
     max-height: 65dvh;
   }

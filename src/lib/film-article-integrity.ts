@@ -343,15 +343,15 @@ function checkBlock(
           if (!/^\/film-stills\/[a-z0-9-]+\.jpg$/.test(frame.src) || !/^[a-f0-9]{64}$/.test(frame.imageSha256)) {
             errors.push(`${itemPath}: still needs a local JPEG and SHA-256.`);
           }
-          if (!Number.isFinite(frame.capturedAtSeconds) || !scene || scene.endTimestampSeconds === undefined ||
-              frame.capturedAtSeconds < scene.startTimestampSeconds || frame.capturedAtSeconds > scene.endTimestampSeconds ||
-              Math.abs(frame.capturedAtSeconds - item.timestampSeconds) > 15) {
-            errors.push(`${itemPath}: still must show the cited scene near its anchor; keep its own exact time.`);
+          if (!Number.isFinite(frame.sampleTimeSeconds) || !scene || scene.endTimestampSeconds === undefined ||
+              frame.sampleTimeSeconds - 15 < scene.startTimestampSeconds || frame.sampleTimeSeconds + 15 > scene.endTimestampSeconds ||
+              Math.abs(frame.sampleTimeSeconds - item.timestampSeconds) > 15) {
+            errors.push(`${itemPath}: still must show the cited scene near its anchor; disclose its nominal grid time.`);
           }
           if (!Number.isInteger(frame.width) || !Number.isInteger(frame.height) || frame.width < 1 ||
-              frame.height < 1 || frame.width > 1280 || frame.height > 720 ||
+              frame.height < 1 || frame.samplingIntervalSeconds !== 30 || frame.sampleTimeSeconds % 30 !== 0 || frame.width > 1280 || frame.height > 720 ||
               isBlank(frame.alt) || isBlank(frame.credit) || frame.use !== "critical-review") {
-            errors.push(`${itemPath}: still needs bounded dimensions, alt, credit and critical-review use.`);
+            errors.push(`${itemPath}: still needs bounded dimensions, alt, credit, declared 30s sampling and critical-review use.`);
           }
         }
         if (context.realFilm && !canRevealSpoiler(sectionLevel, evidence.spoilerLevel)) {

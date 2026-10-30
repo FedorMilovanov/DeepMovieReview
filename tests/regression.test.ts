@@ -5735,17 +5735,19 @@ test("scene quotations are exact-master stills, not generated artwork or substit
   for (const item of items) {
     const still = item.still!;
     assert.equal(createHash("sha256").update(readFileSync(`public${still.src}`)).digest("hex"), still.imageSha256);
-    assert.ok(Math.abs(still.capturedAtSeconds - item.timestampSeconds) <= 15);
+    assert.ok(Math.abs(still.sampleTimeSeconds - item.timestampSeconds) <= 15);
     assert.equal(still.use, "critical-review");
   }
   for (const [override, expected] of [
     [{ masterDigest: "sha256:" + "0".repeat(64) }, /locked master/],
     [{ sourceId: "other-edition" }, /locked master/],
-    [{ capturedAtSeconds: -1 }, /cited scene/],
-    [{ capturedAtSeconds: items[0].timestampSeconds + 120 }, /cited scene/],
+    [{ sampleTimeSeconds: -1 }, /cited scene/],
+    [{ sampleTimeSeconds: items[0].timestampSeconds + 120 }, /cited scene/],
     [{ src: "/film-stills/../private.jpg" }, /local JPEG/],
     [{ imageSha256: "invalid" }, /SHA-256/],
     [{ width: 1920 }, /bounded dimensions/],
+    [{ samplingIntervalSeconds: 0 }, /sampling/],
+    [{ sampleTimeSeconds: 211 }, /sampling/],
     [{ credit: "" }, /credit/],
     [{ alt: "" }, /alt/],
     [{ use: "decoration" }, /critical-review/],

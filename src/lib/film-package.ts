@@ -488,7 +488,9 @@ export type ArticleSceneStill = {
   width: number;
   height: number;
   alt: string;
-  capturedAtSeconds: number;
+  /** Nominal output-grid time; not the selected source frame PTS. */
+  sampleTimeSeconds: number;
+  samplingIntervalSeconds: 30;
   sourceId: string;
   masterDigest: string;
   imageSha256: string;

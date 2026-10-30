@@ -1288,17 +1288,17 @@ try {
         const link = document.querySelector('.articleOutline a');
         const section = document.getElementById(link.hash.slice(1));
         const heading = document.getElementById(section.getAttribute('aria-labelledby'));
-        return { hashMatches: location.hash === link.hash,
+        return { hashMatches: location.hash === link.hash, focusMatches: document.activeElement === heading,
           headingTop: heading.getBoundingClientRect().top,
           headerBottom: document.querySelector('.siteHeader').getBoundingClientRect().bottom,
           viewportHeight: innerHeight };
       })())`));
-      if (anchorState.hashMatches && anchorState.headingTop >= anchorState.headerBottom - 1
+      if (anchorState.hashMatches && anchorState.focusMatches && anchorState.headingTop >= anchorState.headerBottom - 1
         && anchorState.headingTop < anchorState.viewportHeight) break;
       await sleep(100); // Wait for native smooth scrolling, do not disable motion.
     }
     assertCheck(`article navigation ${label}: Enter reaches heading below sticky header`,
-      anchorState.hashMatches && anchorState.headingTop >= anchorState.headerBottom - 1
+      anchorState.hashMatches && anchorState.focusMatches && anchorState.headingTop >= anchorState.headerBottom - 1
         && anchorState.headingTop < anchorState.viewportHeight, anchorState);
 
     // Synthetic authoring stress: mutate only text, never styles or sizes.
