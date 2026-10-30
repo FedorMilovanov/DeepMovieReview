@@ -110,48 +110,33 @@ try {
     if (route.includes("/article?")) {
       const count = await safari.execute("return document.querySelectorAll('.articleSection').length");
       assert.ok(count > 0, "Actual native article sections must exist before the spoiler input");
-      // Distinguish a dropped native touch from an app-level navigation defect.
-      // The probe only records real events; it never dispatches or replays one.
-      await safari.execute(`window.__nativeInputProbe = { touched: [], clicked: [], url: location.href };
-        document.addEventListener("touchstart", e => __nativeInputProbe.touched.push(e.target.className || e.target.tagName), { capture: true, once: true });
-        document.addEventListener("click", e => __nativeInputProbe.clicked.push(e.target.className || e.target.tagName), { capture: true, once: true });`);
-      // Control: does any native input reach the DOM after scrolling? The
-      // outline trigger is a button at the same scroll position. This separates
-      // driver delivery from one link's navigation.
-      await safari.click(".readingOutlineTrigger");
-      await waitForNativeValue(() => safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')"), "true").catch(() => {});
-      report.postScrollInput = {
-        expanded: await safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')"),
-        scrollY: await safari.execute("return scrollY"),
-      };
-      evidence.actions.push({ route, label: "post-scroll native input control", ...report.postScrollInput });
-      if (report.postScrollInput.expanded === "true") {
-        await safari.click(".readingOutlineTrigger");
-        await waitForNativeValue(() => safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')"), "false");
-      }
+      // Exercise the control first, at the document's natural top, where this
+      // driver's touch coordinates are proven by the menu taps above. After a
+      // scroll, the driver delivered a touch at the requested point to a
+      // different element, so a scrolled tap would measure the driver rather
+      // than the control.
       await safari.click(".spoilerOption");
       let changed = false;
       for (let i = 0; i < 100; i++) {
         if (await safari.execute("return document.querySelectorAll('.articleSection').length") < count) { changed = true; break; }
         await delay(100);
       }
-      report.nativeInputProbe = await safari.execute("return { ...__nativeInputProbe, url: location.href, sections: document.querySelectorAll('.articleSection').length }");
-      evidence.actions.push({ route, label: "native spoiler tap delivery probe", ...report.nativeInputProbe });
-      if (!changed && !report.nativeInputProbe.touched.length && !report.nativeInputProbe.clicked.length) {
-        // The W3C touch never reached the document. That is a driver delivery
-        // fact, not evidence about the control. Use the standard element
-        // activation once and record both attempts honestly.
-        await safari.elementClick(".spoilerOption");
-        for (let i = 0; i < 100; i++) {
-          if (await safari.execute("return document.querySelectorAll('.articleSection').length") < count) { changed = true; break; }
-          await delay(100);
-        }
-        report.nativeElementFallback = { used: true, changed,
-          sections: await safari.execute("return document.querySelectorAll('.articleSection').length") };
-        evidence.actions.push({ route, label: "native element activation after undelivered touch", ...report.nativeElementFallback });
-        evidence.screenshots.push({ route, data: await safari.screenshot() });
-      }
-      assert.ok(changed, `iOS spoiler tap must change DOM projection: ${JSON.stringify(report.nativeInputProbe)}`);
+      report.spoilerProjection = { before: count,
+        after: await safari.execute("return document.querySelectorAll('.articleSection').length"),
+        url: await safari.execute("return location.href") };
+      evidence.actions.push({ route, label: "native spoiler tap changed projection", ...report.spoilerProjection });
+      assert.ok(changed, `iOS spoiler tap must change DOM projection: ${JSON.stringify(report.spoilerProjection)}`);
+      evidence.screenshots.push({ route: `${route} — after spoiler tap`, data: await safari.screenshot() });
+
+      // Then prove that a native source input still works after scrolling, on
+      // the reading rail: a real button, not a synthetic JS click.
+      await safari.goto(`http://127.0.0.1:3213${route}`);
+      await safari.execute("document.querySelectorAll('.articleSection')[5].scrollIntoView();");
+      await safari.click(".readingOutlineTrigger");
+      await waitForNativeValue(() => safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')"), "true");
+      report.postScrollInput = { expanded: await safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')"),
+        scrollY: await safari.execute("return scrollY") };
+      evidence.actions.push({ route, label: "post-scroll native input on the reading rail", ...report.postScrollInput });
     }
   }
 } catch (error) {
