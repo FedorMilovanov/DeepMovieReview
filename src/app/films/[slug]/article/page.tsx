@@ -5,7 +5,7 @@ import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { getArticleMeasurementBundle } from "@/data/article-measurements";
-import { isPreviewContentEnabled } from "@/data/site-config";
+import { filmStillsServable, isPreviewContentEnabled } from "@/data/site-config";
 import { getFilmShareAsset } from "@/data/film-share-assets";
 import { projectFilmModule } from "@/lib/film-module-projection";
 import { projectArticleSections } from "@/lib/film-article";
@@ -68,7 +68,11 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
   if (!measurements) notFound();
 
   const spoilerLevel = parseSpoilerLevel(query.spoilers);
-  const projection = projectArticleSections(filmPackage.article, spoilerLevel);
+  // Stills follow the rights switch, not the publication status: publishing the
+  // analysis did not clear the right to reproduce frames of the film.
+  const projection = projectArticleSections(filmPackage.article, spoilerLevel, {
+    stills: filmStillsServable(),
+  });
   const finalModule = filmPackage.modules.find(module => module.kind === "final-synthesis");
   const finalProjection = finalModule ? projectFilmModule(finalModule, spoilerLevel) : null;
   const decisions = filmPackage.modules

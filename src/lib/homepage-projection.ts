@@ -7,20 +7,30 @@ export type HomepageViewModel = {
   lenses: Array<{ key: LensKey; label: string; prompt: string }>;
   storyBeats: Array<{ label: string; summary: string; spoilerSafe: boolean }>;
   characters: Array<{ id: string; name: string; wants: string; fears: string; contradiction: string }>;
+  /**
+   * Null when the relationship module sits above the homepage's spoiler budget.
+   * The homepage stops at NONE, and a film whose relationship module is MAJOR has
+   * no spoiler-safe relationship panel to show — an absent panel is the honest
+   * result, not a reason to lift the budget.
+   */
   relationship: {
     id: string;
     label: string;
     summary: string;
     events: Array<{ id: string; label: string; change: string; tone: "trust" | "fracture" | "pressure" | "repair" }>;
-  };
+  } | null;
   familyYouth: Array<{ label: string; observation: string }> | null;
+  /**
+   * Null when the meaning module has nothing left at the homepage's spoiler level.
+   * The homepage projects at NONE and never lifts that to fill a slot.
+   */
   meaning: {
     theme: string;
     question: string;
     apparentClaim: string;
     counterevidence: string;
     confidence: Confidence;
-  };
+  } | null;
   permissions: Array<{ subject: string; state: NarrativePermissionState; rationale: string }>;
   craft: Array<{ device: string; effect: string }>;
   sceneAutopsy: { label: string; act: string; motive: string; knowledge: string; pressure: string; consequence: string } | null;
@@ -68,11 +78,11 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
 
   const story = moduleOfKind(homepagePackage, "story");
   const characters = moduleOfKind(homepagePackage, "characters");
-  const relationship = moduleOfKind(homepagePackage, "relationship");
+  const relationship = optionalModuleOfKind(homepagePackage, "relationship");
   const familyYouth = optionalModuleOfKind(homepagePackage, "family-youth");
-  const meaning = moduleOfKind(homepagePackage, "meaning");
-  const permission = moduleOfKind(homepagePackage, "permission");
-  const craft = moduleOfKind(homepagePackage, "craft");
+  const meaning = optionalModuleOfKind(homepagePackage, "meaning");
+  const permission = optionalModuleOfKind(homepagePackage, "permission");
+  const craft = optionalModuleOfKind(homepagePackage, "craft");
   const autopsy = optionalModuleOfKind(homepagePackage, "autopsy");
   const decision = optionalModuleOfKind(homepagePackage, "decision");
   const biblical = optionalModuleOfKind(homepagePackage, "biblical-synthesis");
@@ -100,22 +110,30 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
       spoilerSafe: beat.spoilerLevel === "NONE",
     })),
     characters: characters.characters.map(({ id, name, wants, fears, contradiction }) => ({ id, name, wants, fears, contradiction })),
-    relationship: {
-      id: relationship.id,
-      label: relationship.label,
-      summary: relationship.summary,
-      events: relationship.events.map(({ id, label, change, tone }) => ({ id, label, change, tone })),
-    },
+    relationship: relationship
+      ? {
+          id: relationship.id,
+          label: relationship.label,
+          summary: relationship.summary,
+          events: relationship.events.map(({ id, label, change, tone }) => ({ id, label, change, tone })),
+        }
+      : null,
     familyYouth: familyYouthItems.length > 0 ? familyYouthItems : null,
-    meaning: {
-      theme: meaning.theme,
-      question: meaning.question,
-      apparentClaim: meaning.apparentClaim,
-      counterevidence: meaning.counterevidence,
-      confidence: meaning.confidence,
-    },
-    permissions: permission.assessments.map(({ subject, state, rationale }) => ({ subject, state, rationale })),
-    craft: craft.observations.map((item) => ({ device: item.observation, effect: item.interpretiveEffect })),
+    meaning: meaning
+      ? {
+          theme: meaning.theme,
+          question: meaning.question,
+          apparentClaim: meaning.apparentClaim,
+          counterevidence: meaning.counterevidence,
+          confidence: meaning.confidence,
+        }
+      : null,
+    permissions: permission
+      ? permission.assessments.map(({ subject, state, rationale }) => ({ subject, state, rationale }))
+      : [],
+    craft: craft
+      ? craft.observations.map((item) => ({ device: item.observation, effect: item.interpretiveEffect }))
+      : [],
     sceneAutopsy: autopsy
       ? {
           label: autopsy.sceneLabel,

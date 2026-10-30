@@ -35,10 +35,32 @@ export type ArticleProjection = {
 export function projectArticleSections(
   article: FilmArticle,
   current: SpoilerLevel,
+  options: { stills?: boolean } = {},
 ): ArticleProjection {
-  const visibleSections = article.sections.filter((section) =>
-    canRevealSpoiler(current, section.spoilerLevel),
-  );
+  const visibleSections = article.sections
+    .filter((section) => canRevealSpoiler(current, section.spoilerLevel))
+    .map((section) =>
+      options.stills === false
+        ? {
+            ...section,
+            blocks: section.blocks.map((block) =>
+              block.kind === "timeline"
+                ? {
+                    ...block,
+                    // The anchor stays, the picture goes: a timecode is a claim the
+                    // edition can support, a frame is a right it may not hold.
+                    items: block.items.map((item) => ({
+                      id: item.id,
+                      timestampSeconds: item.timestampSeconds,
+                      label: item.label,
+                      evidenceId: item.evidenceId,
+                    })),
+                  }
+                : block,
+            ),
+          }
+        : section,
+    );
   const hidden = article.sections.slice(visibleSections.length);
   return {
     visibleSections,

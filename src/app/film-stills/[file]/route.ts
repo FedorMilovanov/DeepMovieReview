@@ -1,15 +1,16 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { isPreviewContentEnabled } from "@/data/site-config";
+import { filmStillsServable } from "@/data/site-config";
 
 /**
  * Film stills are served through the app, not from `public`.
  *
  * A file in `public` is a public URL: it is reachable whether or not the page
- * that cites it is closed, so a draft edition would still hand out frames of the
- * film — including the final shot — to anyone who guessed the name. These four
- * stills exist only for a preview build, so the route answers with the same gate
- * the article page uses and with the same cache policy.
+ * that cites it is closed, so a closed edition would still hand out frames of the
+ * film — including the final shot — to anyone who guessed the name. The edition is
+ * published now, but publishing an analysis is not a rights clearance for the
+ * frames themselves: the route answers with `filmStillsServable()` and the article
+ * drops the pictures it cannot serve.
  */
 
 const STILL_NAME = /^[a-z0-9-]+\.(?:jpg|avif)$/;
@@ -24,7 +25,7 @@ export async function GET(
   { params }: { params: Promise<{ file: string }> },
 ) {
   const { file } = await params;
-  if (!STILL_NAME.test(file) || !isPreviewContentEnabled()) {
+  if (!STILL_NAME.test(file) || !filmStillsServable()) {
     return new Response("Not found", { status: 404 });
   }
 

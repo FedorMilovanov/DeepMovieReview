@@ -13,6 +13,7 @@ const { readStylesheet } = createRequire(`${process.cwd()}/package.json`)(
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmModule } from "../src/lib/film-module-projection";
+import { publishedFilmStillsEnabled } from "../src/data/site-config";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
 import {
@@ -4037,13 +4038,15 @@ test("Film 001 canonical package satisfies the full integrity graph", () => {
   assert.deepEqual(errors, [], `canonical package errors:\n${errors.join("\n")}`);
 });
 
-test("Film 001 canonical package is LOCKED, draft, and free of the research tier", () => {
+test("Film 001 canonical package is LOCKED, published, and free of the research tier", () => {
   const edition = theTrumanShowCanonicalPackage.ingest?.edition;
   assert.ok(edition);
   assert.equal(edition.state, "LOCKED");
   assert.equal(edition.sourceId, TRUMAN_LOCKED_EDITION_SOURCE_ID);
   assert.equal(theTrumanShowCanonicalPackage.research, undefined);
-  assert.equal(theTrumanShowCanonicalPackage.film.status, "draft");
+  // Published is an editorial decision taken on top of the evidence lock; the lock
+  // itself is what the rest of this test holds.
+  assert.equal(theTrumanShowCanonicalPackage.film.status, "published");
 
   const scenes = theTrumanShowCanonicalPackage.scenes ?? [];
   assert.equal(scenes.length, trumanCanonicalScenes.length);
@@ -4794,7 +4797,13 @@ test("Film 001 page metadata describes the page, not the site, and cannot spoil 
   assert.equal(filmPage.title, "Шоу Трумана");
   assert.equal(filmPage.openGraph.url, "/films/the-truman-show");
   assert.equal(filmPage.openGraph.type, "article");
-  assert.match(filmPage.description, /публикация ещё не открыта/);
+  assert.equal(
+    filmPage.description,
+    `Шоу Трумана (1998) — ${theTrumanShowCanonicalPackage.film.premise}`,
+  );
+  // A published description may not carry the ending: the premise stops at the first
+  // anomaly, before the sea, the wall and the door.
+  assert.doesNotMatch(filmPage.description, /финал|дверь|стен|море|уходит|выбирается/i);
   assert.equal(filmPage.twitter.title, filmPage.openGraph.title);
   // A page-level openGraph replaces the layout's object, images included: the
   // card must still carry artwork, or shares go out with no picture at all.
@@ -5705,7 +5714,7 @@ test("the homepage is complete without scripting", () => {
 
 test("film index distinguishes an existing article from secondary-source research", () => {
   assert.ok(theTrumanShowCanonicalPackage.article);
-  assert.equal(filmIndexStatusLabel(theTrumanShowCanonicalPackage), "статья · предпросмотр");
+  assert.equal(filmIndexStatusLabel(theTrumanShowCanonicalPackage), "опубликовано");
   const research = theFastAndTheFuriousDraftPackage;
   assert.equal(research.article, undefined);
   assert.equal(research.research?.state, "SECONDARY_SOURCES");
@@ -5860,6 +5869,48 @@ test("Film 001 every evidence anchor on the film page resolves", () => {
   for (const record of filmPackage.evidence ?? []) {
     assert.ok(ids.has(record.id), `${record.id}: every record needs a target for its anchor`);
   }
+});
+
+test("Homepage projection keeps the spoiler budget instead of filling the page", () => {
+  // The homepage projects at NONE. The published film's relationship, permission,
+  // meaning and craft modules carry higher levels, so their panels are absent —
+  // the projection returns null/empty rather than a module that would spoil the
+  // film, and the page renders what is left without inventing a placeholder.
+  const projection = projectHomepage(theTrumanShowCanonicalPackage);
+  assert.equal(projection.relationship, null);
+  assert.deepEqual(projection.permissions, []);
+  assert.deepEqual(projection.craft, []);
+  assert.ok(projection.storyBeats.length > 0, "the safe tier still carries the story");
+  assert.ok(projection.characters.length > 0, "and the people");
+  for (const beat of projection.storyBeats) {
+    assert.equal(beat.spoilerSafe, true, `${beat.label}: homepage beats must be spoiler-safe`);
+  }
+});
+
+test("Film 001 is published, and the frames stay behind the rights switch", () => {
+  // Publication and rights are two decisions. The edition is published, so the pages
+  // stand without a preview flag; the frames of the film are not cleared, so the
+  // article keeps the timecodes and loses the pictures until the switch flips.
+  assert.equal(theTrumanShowCanonicalPackage.film.status, "published");
+  assert.equal(publishedFilmStillsEnabled, false);
+
+  const withFrames = projectArticleSections(theTrumanShowCanonicalPackage.article!, "FULL", { stills: true });
+  const withoutFrames = projectArticleSections(theTrumanShowCanonicalPackage.article!, "FULL", { stills: false });
+
+  const stillsOf = (projection: ReturnType<typeof projectArticleSections>) =>
+    projection.visibleSections.flatMap((section) =>
+      section.blocks.flatMap((block) => (block.kind === "timeline" ? block.items.filter((item) => item.still) : [])),
+    );
+
+  assert.ok(stillsOf(withFrames).length > 0, "the edition does hold stills");
+  assert.equal(stillsOf(withoutFrames).length, 0, "a page without rights must not cite a frame");
+
+  // Dropping the picture must not drop the anchor: the reader still gets the second.
+  const anchorsOf = (projection: ReturnType<typeof projectArticleSections>) =>
+    projection.visibleSections.flatMap((section) =>
+      section.blocks.flatMap((block) => (block.kind === "timeline" ? block.items.map((item) => item.id) : [])),
+    );
+  assert.deepEqual(anchorsOf(withoutFrames), anchorsOf(withFrames));
 });
 
 test("Homepage never presents a generated illustration as a film frame", () => {

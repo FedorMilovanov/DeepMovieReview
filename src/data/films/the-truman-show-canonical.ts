@@ -20,9 +20,11 @@ import { theTrumanShowArticle } from "./the-truman-show-article";
  * (SHA-256 E8543F61…B3B575, 6177.792 s) and every evidence record cites that
  * master as its provenance.
  *
- * The film is still `status: "draft"`. Locking the edition is an *evidence*
- * milestone, not a publication decision: the publication gate in
- * `src/lib/site-publication-policy.ts` remains closed.
+ * The edition is `status: "published"` as of 2026-10-30: the editorial decision
+ * follows the evidence lock, and the reader can now reach the page without a
+ * preview flag. Indexing stays a separate switch — `canIndexSite()` still requires
+ * the deploy to ask for it (`DMR_SITE_INDEXING_ENABLED`) and to run without
+ * preview content, so publication and crawling are not the same decision.
  *
  * See docs/47-FILM-001-VISUAL-VERIFICATION.md for how each observation was
  * verified and docs/48-FILM-001-EDITION-LOCK.md for the promotion ledger.
@@ -115,7 +117,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       "Страховой агент Труман Бёрбанк не знает, что тридцать лет живёт внутри гигантского телешоу: его город — декорация, жена и друг — актёры, а каждый шаг снимают тысячи скрытых камер. Когда в декорациях начинают происходить сбои, у него впервые появляется повод проверить собственный мир.",
     thesisQuestion:
       "Что дороже: безопасная клетка, где всё устроено, — или истина, за которую придётся заплатить всем, что имеешь?",
-    status: "draft",
+    status: "published",
   },
   ingest: {
     edition: {
@@ -1056,6 +1058,9 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-moral-corp",
+          // The act is institutional, but a published blaming event may not be
+          // anonymous: the person who signs the corporate decision is Кристоф.
+          actorCharacterIds: ["truman-ch-christof"],
           category: "Человек как товар",
           valence: "WRONGDOING",
           act: "Корпорация, владеющая шоу, строит бизнес на человеке, взятом в собственность с рождения: эфир круглосуточно, около пяти тысяч камер, спонсоры в каждом кадре.",

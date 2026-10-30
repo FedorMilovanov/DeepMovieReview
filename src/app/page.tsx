@@ -691,21 +691,23 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
             </article>
           ))}
         </div>
-        <div className="relationshipPanel" role="group" aria-labelledby="stand-relationship-title">
-          <div>
-            <span className="microLabel">Обсерватория отношений</span>
-            <h3 id="stand-relationship-title">{data.relationship.label}</h3>
-            <p>{data.relationship.summary}</p>
+        {data.relationship ? (
+          <div className="relationshipPanel" role="group" aria-labelledby="stand-relationship-title">
+            <div>
+              <span className="microLabel">Обсерватория отношений</span>
+              <h3 id="stand-relationship-title">{data.relationship.label}</h3>
+              <p>{data.relationship.summary}</p>
+            </div>
+            <ol className="relationshipTrace">
+              {data.relationship.events.map((event) => (
+                <li className={`traceEvent trace-${event.tone}`} key={event.id}>
+                  <span className="traceDot" aria-hidden="true" />
+                  <div><strong>{event.label}</strong><p>{event.change}</p></div>
+                </li>
+              ))}
+            </ol>
           </div>
-          <ol className="relationshipTrace">
-            {data.relationship.events.map((event) => (
-              <li className={`traceEvent trace-${event.tone}`} key={event.id}>
-                <span className="traceDot" aria-hidden="true" />
-                <div><strong>{event.label}</strong><p>{event.change}</p></div>
-              </li>
-            ))}
-          </ol>
-        </div>
+        ) : null}
       </section>
 
       {data.familyYouth ? (
@@ -725,6 +727,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
         </section>
       ) : null}
 
+      {data.meaning ? (
       <section className="sectionShell sectionRule meaningSection" aria-labelledby="stand-meaning-title">
         <div className="sectionIndex">{label} 04 / Смысл</div>
         <p className="microLabel">Вопрос</p>
@@ -736,7 +739,9 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
           <div><span>Уверенность</span><strong>{confidenceLabels[data.meaning.confidence]}</strong></div>
         </div>
       </section>
+      ) : null}
 
+      {data.permissions.length > 0 ? (
       <section className="sectionShell sectionRule" aria-labelledby="stand-permission-title">
         <div className="sectionIndex">{label} 05 / Нарративное разрешение</div>
         <h2 id="stand-permission-title">Что фильм делает дорогим, нормальным или вознаграждённым?</h2>
@@ -750,7 +755,9 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
           ))}
         </div>
       </section>
+      ) : null}
 
+      {data.craft.length > 0 ? (
       <section className="sectionShell sectionRule splitSection" aria-labelledby="stand-craft-title">
         <div>
           <div className="sectionIndex">{label} 06 / Форма</div>
@@ -762,6 +769,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
           ))}
         </div>
       </section>
+      ) : null}
 
       {data.sceneAutopsy ? (
         <section className="sectionShell sectionRule autopsySection" aria-labelledby="stand-autopsy-title">
@@ -841,9 +849,11 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
  * indexed is the honest middle. Every number is read from the package.
  */
 function EditionEntry() {
+  // Only a locked edition that is *not* public yet: once it is published, the hero
+  // above speaks for it and a second entry would be duplication.
   const edition = filmPackages.find(
     (filmPackage) =>
-      filmPackage.film.status !== "fixture" && filmPackage.ingest?.edition?.state === "LOCKED",
+      filmPackage.film.status === "draft" && filmPackage.ingest?.edition?.state === "LOCKED",
   );
   if (!edition) return null;
 
