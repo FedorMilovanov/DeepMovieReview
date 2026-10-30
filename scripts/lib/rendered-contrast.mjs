@@ -306,15 +306,33 @@ export async function renderedContrast(page, nodes, directory, id) {
           const before = suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum }));
           const captures = [];
           try {
-            // Text-only mask: it must not disturb the element's own background. A
-            // `currentColor` background resolves from `color`, which this never
-            // touches, so the calibration fixture keeps failing as it should.
+            // Two ways to remove the measured glyphs, chosen per element:
+            //
+            // - An element that paints no background of its own is hidden with
+            //   `visibility`, which also forces a promoted layer to repaint even
+            //   when a transparent text fill did not (measured in WebKit on a fixed
+            //   panel).
+            // - An element that paints its own background keeps it: the text fill
+            //   is masked instead, because `visibility` would remove that
+            //   background and turn the calibration's `currentColor` fixture into
+            //   white text on the black body — a better bound than the truth.
+            //
+            // Neither branch touches `color`, so `currentColor` backgrounds and
+            // borders resolve exactly as the reader sees them.
             await page.evaluate(({ s, ids }) => {
               const elements = new Set(s.records.filter(record => ids.includes(record.id)).map(record => record.element));
-              s.saved = [...elements].map(element => ({ element,
-                properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color"].map(name => ({
-                  name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })) }));
-              for (const element of elements) {
+              const paintsOwnBackground = element => {
+                const color = getComputedStyle(element).backgroundColor;
+                return Boolean(color) && color !== "transparent" && !/^rgba\(0, 0, 0, 0\)$|^rgb\(0 0 0 \/ 0\)$/.test(color);
+              };
+              s.saved = [...elements].map(element => ({
+                element,
+                hidden: !paintsOwnBackground(element),
+                properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color", "visibility"].map(name => ({
+                  name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })),
+              }));
+              for (const { element, hidden } of s.saved) {
+                if (hidden) { element.style.setProperty("visibility", "hidden"); continue; }
                 element.style.setProperty("-webkit-text-fill-color", "transparent");
                 element.style.setProperty("text-shadow", "none");
                 if (element.namespaceURI === "http://www.w3.org/2000/svg") element.style.setProperty("fill", "transparent");
