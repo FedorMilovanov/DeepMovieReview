@@ -22,9 +22,20 @@
 .articleHeaderLinks {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
   align-items: baseline;
 }
+
+/* Secondary navigation stays easy to hit, not a tiny meta-text target. */
+.articleHeaderLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-block: var(--space-2);
+  border-bottom: 1px solid var(--stroke-subtle);
+}
+
+.articleHeaderLinks a:hover { color: var(--ink-1); border-bottom-color: var(--stroke-strong); }
 
 .productionShell .articleSectionHead {
   max-width: var(--reading-max);
@@ -99,7 +110,7 @@
 .productionTimeline li {
   display: grid;
   grid-template-columns: 6.5rem 1fr;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
   align-items: baseline;
   padding-left: var(--space-4);
   border-left: 1px solid var(--stroke-default);

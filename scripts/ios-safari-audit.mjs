@@ -88,6 +88,7 @@ try {
     },
   });
   report.capabilities = safari.capabilities;
+  report.nativeInputs = safari.inputs;
   assert.equal(safari.capabilities.platformName, "iOS");
   assert.equal(safari.capabilities["safari:useSimulator"], true);
   assert.equal(safari.capabilities["safari:deviceUDID"], device.udid);

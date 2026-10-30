@@ -12,6 +12,7 @@
 }
 
 .articleHeader {
+  max-width: 1080px;
   display: grid;
   gap: var(--space-4);
   padding-top: clamp(var(--space-8), 8vw, var(--space-10));
@@ -52,8 +53,11 @@
 .articleSpoilerBar {
   display: flex;
   justify-content: flex-start;
+  width: 100%;
   padding-block: var(--space-3);
 }
+
+.articleSpoilerBar > .spoilerControl { width: 100%; }
 
 .articleOutline {
   display: grid;

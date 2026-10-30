@@ -59,6 +59,20 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
     return () => document.removeEventListener("pointerdown", dismiss);
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const panel = root.current?.querySelector<HTMLElement>('.readingOutlinePanel');
+    const current = panel?.querySelector<HTMLElement>('[aria-current="location"]');
+    const heading = panel?.querySelector<HTMLElement>('.readingOutlineHeading');
+    if (!panel || !current || !heading) return;
+    // Scroll only the contents panel, never the document being read.
+    const item = current.getBoundingClientRect();
+    const top = heading.getBoundingClientRect().bottom;
+    const bottom = panel.getBoundingClientRect().bottom - parseFloat(getComputedStyle(panel).paddingBottom);
+    if (item.top < top) panel.scrollTop -= top - item.top;
+    else if (item.bottom > bottom) panel.scrollTop += item.bottom - bottom;
+  }, [open, active]);
+
   if (!sections.length) return null;
   const activeIndex = Math.max(0, sections.findIndex(section => section.id === active));
   return (

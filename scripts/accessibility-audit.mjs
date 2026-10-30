@@ -148,7 +148,7 @@ for (const name of selected) {
               await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
               assert.ok(await page.locator('.readingOutlinePanel').evaluate(el => {
                 const r = el.getBoundingClientRect();
-                return r.x >= 0 && r.y >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
+                return r.x >= 0 && r.y >= document.querySelector(".siteHeader").getBoundingClientRect().bottom && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
               }), "landscape contents panel fits the viewport");
               await page.screenshot({ path: `${out}/${id}-landscape-outline.png` });
               await page.keyboard.press('Escape');
@@ -160,6 +160,12 @@ for (const name of selected) {
               await page.keyboard.press('Enter');
               assert.ok(await analysis.evaluate(el => el.open), "canonical decision map opens natively");
               assert.ok(await analysis.locator('.filmDecisionOptions article').count());
+              const counter = analysis.locator('.filmCounterevidence');
+              if (await counter.count()) {
+                assert.equal(await counter.evaluate(el => getComputedStyle(el).color),
+                  await page.locator('.articleStandfirst').evaluate(el => getComputedStyle(el).color),
+                  'counterevidence computed ink-2 survives the module paragraph cascade');
+              }
               await scan('decision-open', '.articleAnalysis');
               await page.keyboard.press('Enter');
               assert.equal(await analysis.evaluate(el => el.open), false);
@@ -173,6 +179,19 @@ for (const name of selected) {
               await page.keyboard.press('Enter');
               assert.equal(await context.evaluate(el => el.open), false);
             }
+            await page.locator('.articleSection').last().evaluate(el => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
+            await page.waitForFunction(() => document.querySelector('.readingOutlinePanel a:last-child')?.getAttribute('aria-current') === 'location');
+            const readingPosition = await page.evaluate(() => scrollY);
+            await outline.focus(); await page.keyboard.press('Enter');
+            await page.waitForFunction(() => {
+              const panel = document.querySelector('.readingOutlinePanel');
+              const item = panel.querySelector('[aria-current="location"]');
+              const heading = panel.querySelector('.readingOutlineHeading');
+              return !panel.hidden && item.getBoundingClientRect().top >= heading.getBoundingClientRect().bottom - 1 &&
+                item.getBoundingClientRect().bottom <= panel.getBoundingClientRect().bottom + 1;
+            });
+            assert.equal(await page.evaluate(() => scrollY), readingPosition, 'opening contents does not move the article');
+            await page.keyboard.press('Escape');
             await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
 
             if (width === 1440) {

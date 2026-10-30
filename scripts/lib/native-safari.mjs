@@ -25,6 +25,22 @@ export async function waitForNativeValue(read, expected, { timeout = 10000, now 
   assert.equal(actual, expected, "Native UI state did not reach the expected value before its deadline");
 }
 
+// Observe scrolling, font and visual-viewport completion before ONE native input.
+// Never replay a gesture because its postcondition failed.
+export async function waitForStableNativeTarget(read, { timeout = 10000, now = Date.now, pause = () => delay(100) } = {}) {
+  const deadline = now() + timeout;
+  let previous, stable = 0;
+  while (now() < deadline) {
+    const target = await read();
+    const key = target?.ready ? JSON.stringify(target) : undefined;
+    stable = key && key === previous ? stable + 1 : 0;
+    previous = key;
+    if (stable >= 2) return target.point;
+    await pause();
+  }
+  throw new Error("Native touch target did not settle or remained occluded before input");
+}
+
 export async function nativeSafari(capabilities = {}, { beforeSession = async () => {} } = {}) {
   // Never attach iOS to a desktop driver's leftover fixed-port listener.
   const reservation = createServer().listen(0, "127.0.0.1");
@@ -48,6 +64,7 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
   });
   driver.on("error", error => { lastError = error; });
   let session;
+  const inputs = [];
   async function request(path, body, method = body === undefined ? "GET" : "POST") {
     try {
       const response = await fetch(`http://127.0.0.1:${port}${path}`, {
@@ -92,14 +109,26 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
     return {
       version: result.capabilities.browserVersion,
       capabilities: result.capabilities,
+      inputs,
       async click(selector) {
         const element = await request(`${path}/element`, { using: "css selector", value: selector });
         if (capabilities.platformName?.toLowerCase() === "ios") {
           // Mobile Safari element/click can deliver a move without a tap.
           // Use a real W3C touch gesture; release is required to dispatch up.
-          const point = await request(`${path}/execute/sync`, {
-            script: "arguments[0].scrollIntoView({block:'center',behavior:'instant'});const r=arguments[0].getBoundingClientRect();return {x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)}", args: [element],
+          await request(`${path}/execute/sync`, {
+            script: "arguments[0].scrollIntoView({block:'center',behavior:'instant'})", args: [element],
           });
+          const point = await waitForStableNativeTarget(() => request(`${path}/execute/sync`, {
+            script: `const el=arguments[0],r=el.getBoundingClientRect(),v=visualViewport;
+              const point={x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)};
+              const hit=document.elementFromPoint(point.x,point.y);
+              return {ready:el.isConnected&&document.readyState==='complete'&&document.fonts.status==='loaded'&&
+                point.x>=0&&point.x<innerWidth&&point.y>=0&&point.y<innerHeight&&!!hit&&el.contains(hit),
+                point,rect:r.toJSON(),scroll:{x:scrollX,y:scrollY},
+                viewport:v?{x:v.offsetLeft,y:v.offsetTop,width:v.width,height:v.height,scale:v.scale}:null};`,
+            args: [element],
+          }));
+          inputs.push({ selector, point, gesture: "single native touch after stable hit-test" });
           try {
             return await request(`${path}/actions`, { actions: [{ type: "pointer", id: "finger", parameters: { pointerType: "touch" }, actions: [
               { type: "pointerMove", duration: 0, ...point }, { type: "pointerDown", button: 0 },

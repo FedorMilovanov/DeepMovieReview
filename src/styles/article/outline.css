@@ -117,7 +117,7 @@
 .readingOutlinePanel a:focus-visible { outline: 2px solid var(--ink-1); outline-offset: calc(-1 * var(--focus-offset)); }
 
 @media (max-width: 720px), (max-height: 30rem) {
-  .readingOutline { top: auto; bottom: var(--space-4); transform: none; }
+  .readingOutline { top: auto; bottom: max(var(--space-4), env(safe-area-inset-bottom)); transform: none; }
   .readingOutlineWord { writing-mode: horizontal-tb; }
   .readingOutlineRail, .readingOutlinePosition { display: none; }
   .readingOutlinePanel {
@@ -126,7 +126,7 @@
     inset-inline-end: var(--space-3);
     width: min(380px, calc(100vw - 2 * var(--space-3)));
     transform: none;
-    max-height: min(65dvh, calc(100dvh - 6rem));
+    max-height: min(65dvh, calc(100dvh - 10rem - env(safe-area-inset-bottom)));
   }
 }
 

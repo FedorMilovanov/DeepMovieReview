@@ -231,11 +231,7 @@ export function ArticleView({
             { label: "Разбор" },
           ]}
         />
-        <div className="articleHeaderLinks">
-          <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
-          <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
-          {complete && synthesis ? <a className="microLabel" href="#article-verdict">Редакционная оценка ↓</a> : null}
-        </div>
+
         <div className="sectionIndex">{article.kicker}</div>
         <h1 className="articleTitle">{article.title}</h1>
         <p className="articleStandfirst">{article.standfirst}</p>
@@ -248,6 +244,11 @@ export function ArticleView({
           </span>
           <span>{readingMinutes} мин чтения</span>
           <span>точка зрения: {levelLabels[spoilerLevel]}</span>
+        </div>
+        <div className="articleHeaderLinks">
+          <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
+          <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
+          {complete && synthesis ? <a className="microLabel" href="#article-verdict">Редакционная оценка ↓</a> : null}
         </div>
         {controls ? <div className="articleSpoilerBar">{controls}</div> : null}
       </header>
