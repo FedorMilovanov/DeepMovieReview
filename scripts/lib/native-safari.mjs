@@ -138,6 +138,12 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
         }
         return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
       },
+      // Standard W3C element activation, used only when a delivered touch is
+      // proven absent by a DOM event probe. Never a JS .click() substitute.
+      async elementClick(selector) {
+        const element = await request(`${path}/element`, { using: "css selector", value: selector });
+        return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
+      },
       execute: script => request(`${path}/execute/sync`, { script, args: [] }),
       goto: url => request(`${path}/url`, { url }),
       screenshot: () => request(`${path}/screenshot`),

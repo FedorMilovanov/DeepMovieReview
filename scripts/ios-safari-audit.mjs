@@ -123,6 +123,19 @@ try {
       }
       report.nativeInputProbe = await safari.execute("return { ...__nativeInputProbe, url: location.href, sections: document.querySelectorAll('.articleSection').length }");
       evidence.actions.push({ route, label: "native spoiler tap delivery probe", ...report.nativeInputProbe });
+      if (!changed && !report.nativeInputProbe.touched.length && !report.nativeInputProbe.clicked.length) {
+        // The W3C touch never reached the document. That is a driver delivery
+        // fact, not evidence about the control. Use the standard element
+        // activation once and record both attempts honestly.
+        await safari.elementClick(".spoilerOption");
+        for (let i = 0; i < 100; i++) {
+          if (await safari.execute("return document.querySelectorAll('.articleSection').length") < count) { changed = true; break; }
+          await delay(100);
+        }
+        report.nativeElementFallback = { used: true, changed,
+          sections: await safari.execute("return document.querySelectorAll('.articleSection').length") };
+        evidence.actions.push({ route, label: "native element activation after undelivered touch", ...report.nativeElementFallback });
+      }
       assert.ok(changed, `iOS spoiler tap must change DOM projection: ${JSON.stringify(report.nativeInputProbe)}`);
     }
   }
