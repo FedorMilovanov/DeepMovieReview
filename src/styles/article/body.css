@@ -51,13 +51,10 @@
 }
 
 .articleSpoilerBar {
-  display: flex;
-  justify-content: flex-start;
   width: 100%;
   padding-block: var(--space-3);
 }
 
-.articleSpoilerBar > .spoilerControl { width: 100%; }
 
 .articleOutline {
   display: grid;

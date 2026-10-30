@@ -195,6 +195,10 @@ for (const name of selected) {
             await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
 
             if (width === 1440) {
+              // Escape correctly restores keyboard focus. Move it naturally
+              // before testing mouse-only dismissal; focused contents stay open.
+              await page.keyboard.press("Tab");
+              assert.ok(await outline.evaluate(el => !el.closest(".readingOutline").contains(document.activeElement)));
               await outline.hover();
               await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
               await page.mouse.move(1, 100);
