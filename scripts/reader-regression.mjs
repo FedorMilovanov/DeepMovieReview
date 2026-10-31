@@ -91,6 +91,14 @@ for (const engine of requested) {
                 }
               }
               if (!route) {
+                const paths = await page.locator('.filmReadingPaths a[href*="#"]').evaluateAll((links) =>
+                  links.map((link) => link.getAttribute("href")),
+                );
+                assert.ok(paths.length >= 1, "quick paths must lead to visible sections");
+                for (const href of paths) {
+                  assert.equal(await page.locator(`[id="${href.split("#")[1]}"]`).count(), 1, `path ${href} has no unique visible target`);
+                  if (level !== "NONE") assert.ok(href.includes(`spoilers=${level.toLowerCase()}`), `${href} loses the spoiler level`);
+                }
                 const shouldReveal = level === "ENDING" || level === "FULL";
                 const raw = await response.text();
                 assert.equal(raw.includes("Он отвечает привычным приветствием"), shouldReveal, "ending data must not appear in lower-level HTML or RSC payload");
@@ -146,6 +154,47 @@ for (const engine of requested) {
             await target.waitFor({ state: "visible" });
             await target.locator("summary").click();
             assert.ok(await target.locator(".evidenceBasis").isVisible());
+          });
+          await check(`${engine} no-js reading time follows the visible article`, page, async () => {
+            const byline = async (level) => {
+              await page.goto(`${base}/films/the-truman-show/article?spoilers=${level}`, { waitUntil: "load" });
+              return page.locator(".articleByline").innerText();
+            };
+            const none = await byline("NONE");
+            const full = await byline("FULL");
+            assert.match(none, /≈ \d+ мин основного текста · видимая часть/i);
+            assert.match(full, /≈ \d+ мин основного текста/i);
+            assert.doesNotMatch(full, /видимая часть/i);
+            assert.ok(Number(/≈ (\d+)/.exec(none)?.[1]) < Number(/≈ (\d+)/.exec(full)?.[1]));
+          });
+          await check(`${engine} no-js scene to evidence and back`, page, async () => {
+            await page.goto(`${base}/films/the-truman-show?spoilers=NONE`, { waitUntil: "load" });
+            const scene = page.locator("#scene-truman-sc-day-10909");
+            const disclosure = scene.locator(".filmSceneSupports details");
+            await disclosure.locator("summary").click();
+            const link = disclosure.locator('a[href="#evidence-truman-ev-light"]');
+            assert.ok(await link.isVisible());
+            await link.click();
+            await page.waitForURL('**/films/the-truman-show?spoilers=NONE#evidence-truman-ev-light');
+            const record = page.locator("#evidence-truman-ev-light");
+            await record.waitFor({ state: "visible" });
+            await record.locator("summary").click();
+            assert.match(await record.locator(".evidenceBasis").innerText(), /номинальн|точный PTS/i);
+            await record.locator('a[href="#scene-truman-sc-day-10909"]').click();
+            await page.waitForURL('**/films/the-truman-show?spoilers=NONE#scene-truman-sc-day-10909');
+            assert.ok(await scene.isVisible());
+          });
+          await check(`${engine} no-js duel reaches the exact subtitle record`, page, async () => {
+            await page.goto(`${base}/films/the-truman-show/article?spoilers=MAJOR`, { waitUntil: "load" });
+            const link = page.locator('.articleDuelEvidence a[href*="#evidence-truman-ev-marlon"]').first();
+            const href = await link.getAttribute("href");
+            assert.match(href ?? "", /spoilers=major#evidence-truman-ev-marlon/);
+            await link.click();
+            await page.waitForURL(`${base}${href}`);
+            const row = page.locator(`[id="${href.split("#")[1]}"]`);
+            await row.waitFor({ state: "visible" });
+            await row.locator("summary").click();
+            assert.match(await row.locator(".evidenceBasis").innerText(), /субтитр.*эта основа не проверяет звук и интонацию/i);
           });
           await check(`${engine} no-js article evidence link and detailed basis`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
@@ -237,6 +286,24 @@ for (const engine of requested) {
     });
     await check(`${engine} production dossier source anchor`, page, async () => {
       await page.goto(`${base}/films/the-truman-show/making`, { waitUntil: "domcontentloaded" });
+      assert.ok(await page.locator(".productionSpoilerNote").isVisible());
+      const refs = await page.locator('.productionRefs a[href^="#source-"]').evaluateAll((links) =>
+        links.map((link) => {
+          const href = link.getAttribute("href");
+          const target = document.getElementById(href.slice(1));
+          return { href, text: link.textContent, aria: link.getAttribute("aria-label"), heading: target?.querySelector("h4")?.textContent };
+        }),
+      );
+      assert.ok(refs.length > 0);
+      for (const ref of refs) {
+        const number = /·\s*(\d+)\s*$/.exec(ref.text ?? "")?.[1];
+        assert.ok(number && ref.heading?.startsWith(`${number}.`), `reference and registry number differ: ${JSON.stringify(ref)}`);
+        assert.ok(ref.aria?.startsWith(`Источник ${number}:`) && ref.aria.includes(ref.heading.slice(number.length + 1).trim()),
+          `source title must be in the accessible name: ${JSON.stringify(ref)}`);
+      }
+      const wiki = refs.filter((ref) => ref.text?.startsWith("Wikipedia ·"));
+      assert.ok(new Set(wiki.map((ref) => ref.href)).size >= 2, "distinct Wikipedia sources must be reachable");
+      assert.ok(new Set(wiki.map((ref) => ref.text)).size >= 2, "distinct sources from one publisher need distinct visible labels");
       const firstLink = page.locator('a[href^="#source-"]').first();
       assert.ok(await firstLink.count());
       const parentDisclosure = firstLink.locator("xpath=ancestor::details[1]");

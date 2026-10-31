@@ -85,6 +85,10 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
   );
   const hiddenModuleCount = modules.length - visibleModules.length;
   const outlineBase = withSpoilerQuery(pathname, spoilerLevel);
+  const characters = visibleModules.find((module) => module.kind === "characters");
+  const decision = visibleModules.find((module) => module.kind === "decision");
+  const hasVisibleScenes = (filmPackage.scenes ?? []).some((scene) => canRevealSpoiler(spoilerLevel, scene.spoilerLevel));
+  const hasVisibleEvidence = (filmPackage.evidence ?? []).some((record) => canRevealSpoiler(spoilerLevel, record.spoilerLevel));
   const moduleContext = {
     evidenceById: new Map((filmPackage.evidence ?? []).map((record) => [record.id, record])),
     formatTimecode,
@@ -143,6 +147,16 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         <div>
           <div className="sectionIndex">Фильм / План</div>
           <h2 id="film-outline-title">Адресный разбор, отфильтрованный под ваш уровень спойлеров.</h2>
+          {filmPackage.article || characters || decision || hasVisibleScenes || hasVisibleEvidence ? (
+            <nav className="filmReadingPaths" aria-label="Быстрые маршруты чтения">
+              <p>Начать с интересующего</p>
+              {filmPackage.article ? <Link href={withSpoilerQuery(`/films/${film.slug}/article`, spoilerLevel)}>Текст целиком</Link> : null}
+              {characters ? <Link href={`${outlineBase}#${characters.id}`}>По героям</Link> : null}
+              {decision ? <Link href={`${outlineBase}#${decision.id}`}>По решениям</Link> : null}
+              {hasVisibleScenes ? <Link href={`${outlineBase}#film-scene-table-title`}>По сценам</Link> : null}
+              {hasVisibleEvidence ? <Link href={`${outlineBase}#evidence-register-title`}>По опорам</Link> : null}
+            </nav>
+          ) : null}
         </div>
         <nav className="filmOutline" aria-label={`${film.title}: разделы разбора`}>
           {comparison ? <Link href={`${outlineBase}#${comparison.id}`}><span>↗</span><strong>Battle / Сравнение</strong><small>{comparison.heading}</small></Link> : null}

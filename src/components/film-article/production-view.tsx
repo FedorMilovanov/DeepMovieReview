@@ -30,6 +30,7 @@ function formatDate(iso: string): string {
 type ProductionLookup = {
   claims: Map<string, ProductionClaim>;
   sources: Map<string, ProductionSource>;
+  sourceNumbers: Map<string, number>;
 };
 
 function SourceRefs({ ids, lookup }: { ids: string[]; lookup: ProductionLookup }) {
@@ -38,8 +39,13 @@ function SourceRefs({ ids, lookup }: { ids: string[]; lookup: ProductionLookup }
     <span className="productionRefs" role="group" aria-label="Источники в реестре">
       {ids.map((id) => {
         const source = lookup.sources.get(id);
-        if (!source) return null;
-        return <a key={id} href={`#source-${id}`} aria-label={`Источник: ${source.label}, ${source.publisher}`}>{source.publisher}</a>;
+        const number = lookup.sourceNumbers.get(id);
+        if (!source || number === undefined) return null;
+        return (
+          <a key={id} href={`#source-${id}`} aria-label={`Источник ${number}: ${source.label}, ${source.publisher}`}>
+            {source.publisher} · {number}
+          </a>
+        );
       })}
     </span>
   );
@@ -154,6 +160,7 @@ export function ProductionDossierView({
   const lookup: ProductionLookup = {
     claims: new Map(dossier.claims.map((claim) => [claim.id, claim])),
     sources: new Map(dossier.sources.map((source) => [source.id, source])),
+    sourceNumbers: new Map(dossier.sources.map((source, index) => [source.id, index + 1])),
   };
 
   return (
@@ -275,7 +282,7 @@ export function ProductionDossierView({
                 {sources.map((source) => (
                   <li key={source.id} id={`source-${source.id}`}>
                     <div className="productionSourceEntry">
-                      <h4>{source.label}</h4>
+                      <h4><span className="productionSourceNumber">{lookup.sourceNumbers.get(source.id)}.</span> {source.label}</h4>
                       <small>{source.publisher} · проверено <time dateTime={source.checkedOn}>{formatDate(source.checkedOn)}</time></small>
                       <p>{source.supports}</p>
                       <a href={source.url} rel="noreferrer noopener" target="_blank">

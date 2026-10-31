@@ -36,6 +36,7 @@ export function EvidenceBasisLine({ basis }: { basis?: EvidenceReviewBasis }) {
     >
       <span>Основа проверки</span>
       {evidenceBasisMaterialLabels[basis.material]} · {evidenceBasisOutcomeLabels[basis.outcome]}
+      {basis.material === "subtitle-track" ? " · эта основа не проверяет звук и интонацию" : " · не непрерывный просмотр"}
       {window ? ` · наблюдения ${basis.windowApproximate ? "≈ " : ""}${window}` : ""} · {basis.observations}{" "}
       {pluralRu(basis.observations, "наблюдение", "наблюдения", "наблюдений")}
       {basis.unrecorded?.length

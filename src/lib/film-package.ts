@@ -35,7 +35,7 @@ export type EvidenceReviewBasis = {
    * record, but nothing was recorded at this record's own second — the honest
    * state of a half that inherited its parent's review.
    */
-  outcome: "seen" | "heard" | "refused" | "pending";
+  outcome: "seen" | "subtitle" | "refused" | "pending";
   /**
    * Fields the ledger does not record. Reported, not guessed: an empty list means
    * the basis is complete, and a non-empty one is shown to the reader as-is.

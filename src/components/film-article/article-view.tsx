@@ -124,10 +124,14 @@ function MeasurementFigure({ view, text }: { view: ArticleMeasurementView; text:
 function ArticleDuel({
   block,
   evidenceById,
+  filmSlug,
+  spoilerLevel,
   formatTimecode,
 }: {
   block: Extract<ArticleBlock, { kind: "duel" }>;
   evidenceById?: ReadonlyMap<string, EvidenceRecord>;
+  filmSlug: string;
+  spoilerLevel: SpoilerLevel;
   formatTimecode: (seconds: number) => string;
 }) {
   return (
@@ -145,10 +149,12 @@ function ArticleDuel({
                 if (!record) return null;
                 return (
                   <li key={id}>
-                    {record.timestampSeconds !== undefined ? (
-                      <span className="articleDuelTime">{formatTimecode(record.timestampSeconds)}</span>
-                    ) : null}
-                    <span>{record.label}</span>
+                    <a href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>
+                      {record.timestampSeconds !== undefined ? (
+                        <span className="articleDuelTime">{formatTimecode(record.timestampSeconds)} · </span>
+                      ) : null}
+                      {record.label}
+                    </a>
                   </li>
                 );
               })}
@@ -183,7 +189,7 @@ function ArticleBlockView({
 }) {
   switch (block.kind) {
     case "duel":
-      return <ArticleDuel block={block} evidenceById={evidenceById} formatTimecode={formatTimecode} />;
+      return <ArticleDuel block={block} evidenceById={evidenceById} filmSlug={filmSlug} spoilerLevel={spoilerLevel} formatTimecode={formatTimecode} />;
     case "paragraph": {
       const supports = (block.support?.evidenceIds ?? []).flatMap((id) => {
         const record = evidenceById?.get(id);
@@ -208,8 +214,8 @@ function ArticleBlockView({
                 {supports.length === 1 ? "Опора этого абзаца" : `Опоры этого абзаца · ${supports.length}`}
               </summary>
               <ul>
-                {supports.map((record) => (
-                  <li key={record.id}>
+                {supports.map((record, index) => (
+                  <li key={index}>
                     <span>{record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}</span>
                     <a href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>
                       {record.label}
@@ -245,8 +251,8 @@ function ArticleBlockView({
     case "timeline":
       return (
         <ol className="articleTimeline" aria-label="Опорные точки разбора">
-          {block.items.map((item) => (
-            <li key={item.id}>
+          {block.items.map((item, index) => (
+            <li key={index}>
               <span className="articleTimecode">{formatTimecode(item.timestampSeconds)}</span>
               <p>{item.label}</p>
               {(() => {
@@ -366,7 +372,7 @@ export function ArticleView({
   moduleHeadings,
 }: ArticleViewProps) {
   const { visibleSections, hiddenSections, nextHiddenLevel } = projection;
-  const readingMinutes = articleReadingMinutes(article);
+  const readingMinutes = articleReadingMinutes(article, projection);
   const complete = hiddenSections === 0;
   const readingSections = [
     ...visibleSections.map(({ id, number, heading }) => ({ id, number, heading })),
@@ -394,7 +400,7 @@ export function ArticleView({
               ? `редакция ${article.byline.editorialRevision} · ${formatSignatureDate(article.byline.reviewedAt)}`
               : `черновик · ${article.byline.editorialRevision}`}
           </span>
-          <span>{readingMinutes} мин чтения</span>
+          <span>≈ {readingMinutes} мин основного текста{complete ? "" : " · видимая часть"}</span>
           <span>точка зрения: {levelLabels[spoilerLevel]}</span>
         </div>
         <div className="articleHeaderLinks">
@@ -463,9 +469,11 @@ export function ArticleView({
             </details>
           ))}
           <div className="articleBody">
-            {section.blocks.map((block) => (
+            {/* Projection keeps every block in its original section order; the
+                compact position key avoids serializing long editorial IDs twice. */}
+            {section.blocks.map((block, index) => (
               <ArticleBlockView
-                key={block.id}
+                key={index}
                 block={block}
                 filmSlug={filmSlug}
                 spoilerLevel={spoilerLevel}

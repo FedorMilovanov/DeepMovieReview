@@ -111,10 +111,9 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
     status: "VISUAL_CONFIRMED",
     sceneId: "truman-sc-day-10909",
     frames: [
-      frame(210, "A studio lamp rig lies on the pavement; its housing is stencilled «SIRIUS (9 CANIS MAJOR)»."),
-      frame(230.943, "Radio explains the debris as aircraft parts."),
+      frame(210, "Grid file f_00008 shows a close-up of the lamp; «Sirius» is visible, but the rest of the label is obscured."),
     ],
-    note: "Both the physical prop marking and the cover story are master-grounded.",
+    note: "The grid time is nominal, not a verified master PTS. The cover story is a separate subtitle-track record, not a visual finding.",
   },
   {
     evidenceId: "truman-ev-radio",
@@ -269,14 +268,13 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   },
   {
     evidenceId: "truman-ev-marlon",
-    status: "VISUAL_CONFIRMED",
+    status: "TRANSCRIPT_CONFIRMED",
     sceneId: "truman-sc-father-and-son-reunion",
     frames: [
-      frame(3430, "Marlon at night on the bridge, close enough to read his face."),
-      frame(3464.272, "«The last thing I would ever do...»"),
-      frame(3469.903, "«...is lie to you.»"),
+      frame(3464.272, "Subtitle text: «The last thing I would ever do...»"),
+      frame(3469.903, "Subtitle text: «...is lie to you.»"),
     ],
-    note: "Staging and line are confirmed; the earpiece prompting remains a separate craft observation.",
+    note: "The words are recorded in subtitles; neither audio nor the speaker of the repetition was independently verified.",
   },
   {
     evidenceId: "truman-ev-reunion",
@@ -480,6 +478,13 @@ export const trumanVisualVerificationSummary = {
  * as visual review of a prop, a gesture or a set.
  */
 export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
+  {
+    evidenceId: "truman-ev-light-explanation",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-day-10909",
+    frames: [frame(230.943, "Subtitle text describes falling aircraft parts; the audio was not reviewed.")],
+    note: "Split from the mixed light record: the subtitle cue does not verify the pictured lamp or identify the speaker.",
+  },
   {
     evidenceId: "truman-ev-manufactured-limits",
     status: "TRANSCRIPT_CONFIRMED",

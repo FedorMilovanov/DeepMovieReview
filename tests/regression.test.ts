@@ -102,7 +102,7 @@ import {
   trumanMasterWindows,
   trumanMeasuredDigitStrings,
 } from "../src/data/films/the-truman-show-master-windows";
-import { projectArticleSections, articleReadingMinutes } from "../src/lib/film-article";
+import { projectArticleSections, articleReadingMinutes, countArticleWords } from "../src/lib/film-article";
 import {
   trumanEvidenceMigrationWave1,
   trumanEvidenceMigrationWave2,
@@ -4455,6 +4455,25 @@ test("Film 001 article spoiler gating hides a suffix, never a hole", () => {
   assert.ok(articleReadingMinutes(theTrumanShowArticle) >= 5);
 });
 
+test("article reading estimate measures only projected main prose", () => {
+  const article = structuredClone(theTrumanShowArticle);
+  const none = projectArticleSections(article, "NONE");
+  const full = projectArticleSections(article, "FULL");
+  const visibleWords = countArticleWords(article, none);
+  assert.ok(visibleWords > 0 && visibleWords < countArticleWords(article, full));
+  assert.ok(articleReadingMinutes(article, none) < articleReadingMinutes(article, full));
+  assert.equal(countArticleWords(article, full), countArticleWords(article));
+
+  // Changing hidden prose and the closing must not change the NONE estimate.
+  const hidden = article.sections.find((section) => section.spoilerLevel !== "NONE");
+  assert.ok(hidden);
+  hidden.blocks.push({ kind: "paragraph", id: "test-hidden-prose", text: "hidden ".repeat(1000) });
+  assert.ok(article.closing);
+  article.closing.text = "hidden ".repeat(1000);
+  assert.equal(countArticleWords(article, projectArticleSections(article, "NONE")), visibleWords);
+  assert.ok(countArticleWords(article, projectArticleSections(article, "FULL")) > countArticleWords(theTrumanShowArticle));
+});
+
 test("Film 001 article prose carries no claim the module audit refuted", () => {
   const prose: string[] = [];
   for (const section of theTrumanShowArticle.sections) {
@@ -6128,6 +6147,33 @@ test("Film 001 spoilers=NONE renders no scene from the last act", () => {
   assert.match(noneHtml, /скрыто до выбранного уровня спойлеров/);
 });
 
+test("scene navigation counts only visible evidence and always reaches a register", () => {
+  const film = theTrumanShowCanonicalPackage;
+  const safe = film.evidence?.find((record) => record.id === "truman-ev-light");
+  assert.ok(safe?.sceneId);
+  const scene = film.scenes?.find((item) => item.id === safe.sceneId);
+  assert.ok(scene && scene.spoilerLevel === "NONE");
+  const hidden = { ...safe, id: "test-hidden-evidence", label: "HIDDEN EVIDENCE SENTINEL", spoilerLevel: "FULL" as const };
+  const evidence = [safe, hidden];
+  const table = renderToStaticMarkup(createElement(FilmSceneTable, {
+    evidence, scenes: [scene], researchDraft: false, spoilerLevel: "NONE",
+  }));
+  assert.match(table, new RegExp(`id="scene-${scene.id}"`));
+  assert.match(table, /Опоры сцены[^>]*: 1/);
+  assert.match(table, new RegExp(`href="#evidence-${safe.id}"`));
+  assert.doesNotMatch(table, /HIDDEN EVIDENCE SENTINEL|test-hidden-evidence/);
+
+  // A package can have records but no module claims. The scene link must still
+  // land on the one canonical register row, and that row links back to the scene.
+  const register = renderToStaticMarkup(createElement(FilmEvidenceMap, {
+    modules: [], evidence, scenes: [scene], sources: [], researchDraft: false, spoilerLevel: "NONE",
+  }));
+  assert.match(register, new RegExp(`id="evidence-${safe.id}"`));
+  assert.match(register, new RegExp(`href="#scene-${scene.id}"`));
+  assert.doesNotMatch(register, /HIDDEN EVIDENCE SENTINEL|test-hidden-evidence/);
+  assert.equal((register.match(new RegExp(`id="evidence-${safe.id}"`, "g")) ?? []).length, 1);
+});
+
 test("Homepage projection keeps the spoiler budget instead of filling the page", () => {
   // The homepage projects at NONE. The published film's relationship, permission,
   // meaning and craft modules carry higher levels, so their panels are absent —
@@ -6272,7 +6318,7 @@ test("Film 001 every evidence card states the basis of its own verification", ()
   const records = theTrumanShowCanonicalPackage.evidence ?? [];
   assert.equal(tally.records, records.length);
   assert.equal(
-    tally.seen + tally.heard + tally.refused + tally.pending + tally.unrecorded,
+    tally.seen + tally.subtitle + tally.refused + tally.pending + tally.unrecorded,
     tally.records,
     "every record lands in exactly one bucket",
   );
@@ -6314,7 +6360,7 @@ test("review basis never upgrades a record the ledger did not confirm", () => {
   const transcript = reviewBasis({ status: "TRANSCRIPT_CONFIRMED", frames: [frame(3459.2), frame(3464.3)] });
   assert.ok(transcript);
   assert.equal(transcript.material, "subtitle-track");
-  assert.equal(transcript.outcome, "heard");
+  assert.equal(transcript.outcome, "subtitle");
   assert.equal(transcript.observations, 2);
 });
 
@@ -6468,6 +6514,43 @@ test("scene clip findings distinguish sampled evidence from the original master"
     "the packaging still cannot illustrate the later tools-in-hand moment");
 });
 
+test("light, subtitles and friendship keep observations separate from interpretation", () => {
+  const records = theTrumanShowCanonicalPackage.evidence ?? [];
+  const byId = (id: string) => {
+    const record = records.find((item) => item.id === id);
+    assert.ok(record, `${id} is required`);
+    return record;
+  };
+  const light = byId("truman-ev-light");
+  assert.match(light.observation, /крупном плане.*Sirius.*закрыто/i);
+  assert.equal(light.basis?.material, "frames");
+  assert.equal(light.basis?.windowApproximate, true);
+  assert.match(trumanArticleStills.light.alt, /Sirius.*продолжение закрыто/i);
+  assert.match(trumanArticleStills.light.caption, /Крупный план/);
+  for (const id of ["truman-ev-light-explanation", "truman-ev-marlon", "truman-ev-marlon-retake"]) {
+    assert.equal(byId(id).basis?.material, "subtitle-track");
+    assert.equal(byId(id).basis?.outcome, "subtitle");
+  }
+  const friendship = theTrumanShowCanonicalPackage.modules.find((module) => module.id === "truman-mod-friendship");
+  assert.ok(friendship && friendship.kind === "relationship");
+  assert.match(friendship.summary, /не позволяют установить чувства/i);
+  const autopsy = theTrumanShowCanonicalPackage.modules.find((module) => module.kind === "autopsy");
+  assert.ok(autopsy && autopsy.kind === "autopsy");
+  assert.match(autopsy.counterevidence ?? "", /фильм не доказывает/i);
+  const blocks = theTrumanShowArticle.sections.flatMap((section) => section.blocks);
+  for (const id of ["truman-article-machine-rain", "truman-article-rain-form", "truman-article-rain-meaning", "truman-article-rain-limits"]) {
+    const block = blocks.find((item) => item.id === id);
+    assert.ok(block && block.kind === "paragraph" && block.support?.evidenceIds.includes("truman-ev-rain"));
+  }
+  const camera = blocks.find((block) => block.id === "truman-article-camera-show");
+  assert.ok(camera && camera.kind === "paragraph");
+  assert.match(camera.text, /не устанавливает расположение конкретной камеры/);
+  assert.ok(camera.support?.evidenceIds.includes("truman-ev-meryl-held"));
+  const duel = blocks.find((block) => block.id === "truman-article-duel-promise");
+  assert.ok(duel && duel.kind === "duel");
+  assert.doesNotMatch(JSON.stringify(duel), /Что слышит Труман|между записями показана аппаратная/);
+});
+
 test("published methodology does not turn supplied metadata into a viewing or audio claim", () => {
   const sources = theTrumanShowCanonicalPackage.modules.find((module) => module.kind === "sources-method");
   assert.ok(sources && sources.kind === "sources-method");
@@ -6478,7 +6561,7 @@ test("published methodology does not turn supplied metadata into a viewing or au
   const master = sources.sources.find((source) => source.kind === "film-edition");
   assert.match(master?.locator ?? "", /не прослушана/i);
   assert.equal(evidenceBasisMaterialLabels.frames, "отдельные кадры");
-  assert.match(evidenceBasisOutcomeLabels.heard, /субтитрам/);
+  assert.match(evidenceBasisOutcomeLabels.subtitle, /тексту субтитров/);
 
   const verdict = theTrumanShowCanonicalPackage.modules.find((module) => module.kind === "final-synthesis");
   assert.ok(verdict && verdict.kind === "final-synthesis");

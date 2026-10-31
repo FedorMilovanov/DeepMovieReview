@@ -131,6 +131,19 @@
   text-align: right;
 }
 
+.filmSceneSupports summary { cursor: pointer; }
+.filmSceneSupports ul {
+  max-width: 16rem;
+  margin: 0.6rem 0 0;
+  padding-left: 1rem;
+  text-align: left;
+  white-space: normal;
+}
+.filmSceneSupports li + li { margin-top: 0.45rem; }
+.filmSceneSupports a { color: var(--ink-2); text-decoration: underline; }
+.filmSceneTable tbody tr { scroll-margin-top: 6rem; }
+.filmSceneTable tbody tr:target { background: var(--surface-2); }
+
 /* Keep words and timecodes intact. The focusable wrapper scrolls, not the page. */
 .filmSceneTableWrap:focus-visible {
   outline: 2px solid var(--focus-color);

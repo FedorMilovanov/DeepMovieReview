@@ -203,7 +203,7 @@ export const evidenceBasisMaterialLabels: Record<EvidenceReviewBasis["material"]
 
 export const evidenceBasisOutcomeLabels: Record<EvidenceReviewBasis["outcome"], string> = {
   seen: "наблюдение подтверждено",
-  heard: "подтверждено по субтитрам",
+  subtitle: "подтверждено по тексту субтитров",
   refused: "запись не подтвердилась",
   pending: "на этом таймкоде проверка не записана",
 };

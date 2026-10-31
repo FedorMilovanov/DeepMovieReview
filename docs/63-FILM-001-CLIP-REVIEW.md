@@ -24,3 +24,9 @@ Three further stills were taken from the supplied MP4s, independently of that gr
 | `truman-reunion-3591.jpg` | `07-father-reunion.mp4` | 6 s | ~3591 s | Truman and Kirk embracing by bridge railings |
 
 The registry records the SHA-256 of both image formats, each clip hash and its manifest range. None of this independently verifies the absent master or establishes intentions, dialogue, or a licence. For an auditable precise timing or dialogue claim, obtain the original master, map the source PTS, and review the relevant continuous picture and audio.
+
+## Re-check of the light still
+
+On 2026-10-31 the supplied `film001-frames.zip` was downloaded again: its SHA-256 is `5692a8b824b95bf8e0e13134961904f5446fb6b226158a785cdcf7292b1994ab`. Its `05-frames/f_00008.jpg` is byte-identical to `assets/film-stills/truman-light-210.jpg` (SHA-256 `14cbc377b9a506e47cdf023fba2ae648fe50b171070db6d7c0751e7b10bc96e6`). The file actually displays a close-up of the blue lamp with Truman in front of it: “Sirius” is visible, while the continuation of the label is obscured. The alt and caption now describe this image, not a presumed wide shot or the complete label.
+
+The supplied grid calls this the nominal 210-second image; it does not establish the image's exact master PTS. An independently extracted exact 03:30 frame may therefore differ. Without the original master and a verified PTS mapping, this comparison cannot establish which image belongs at precisely 03:30. The picture observation and the separate subtitle cue explaining the debris are distinct records; neither verifies the sound.

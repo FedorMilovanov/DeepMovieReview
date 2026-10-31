@@ -95,13 +95,32 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "NONE",
     "Соседи, собака и приветствия повторяются в одном и том же порядке, а мир вокруг героя движется по заранее расставленным точкам.",
   ),
+  {
+    ...record(
+      "truman-ev-light",
+      "Прожектор «Сириус»",
+      "truman-sc-day-10909",
+      210,
+      "NONE",
+      "На крупном плане синего осветительного прибора видна надпись «Sirius»; продолжение наклейки закрыто головой Трумана. Номинальная отметка кадра приблизительна.",
+    ),
+    basis: {
+      material: "frames",
+      window: { from: 210, to: 210 },
+      windowApproximate: true,
+      observations: 1,
+      outcome: "seen",
+      unrecorded: ["reviewer", "date"],
+      note: "Проверен файл f_00008 из сетки с номинальной отметкой 210 с; точный PTS исходного мастера не установлен.",
+    },
+  },
   record(
-    "truman-ev-light",
-    "Прожектор «Сириус»",
+    "truman-ev-light-explanation",
+    "Объяснение по радио в тексте субтитров",
     "truman-sc-day-10909",
-    210,
+    230.943,
     "NONE",
-    "На тротуаре лежит студийный прибор с трафаретной надписью «SIRIUS (9 CANIS MAJOR)».",
+    "В тексте английских субтитров обломки объясняются деталями самолёта; звук и говорящий по этой записи не проверены.",
   ),
   record(
     "truman-ev-kaiser",
@@ -316,11 +335,11 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
   ),
   record(
     "truman-ev-marlon",
-    "«Последнее, что я стал бы делать — врать тебе»",
+    "Обещание в субтитрах к разговору на мосту",
     "truman-sc-father-and-son-reunion",
     3464.272,
     "MAJOR",
-    "Ночью на мосту Марлон говорит: «Последнее, что я стал бы делать, — это врать тебе».",
+    "В субтитрах записано: «Последнее, что я стал бы делать, — это врать тебе». По тексту нельзя надёжно установить повторяющего слова или их интонацию.",
   ),
   {
     ...record(
@@ -535,6 +554,7 @@ export const trumanCanonicalEvidenceSummary = {
   },
   /** Canonical records that have no research-era counterpart. */
   added: [
+    "truman-ev-light-explanation",
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",
     "truman-ev-seahaven-design",
@@ -548,6 +568,7 @@ export const trumanCanonicalEvidenceSummary = {
    * `the-truman-show-visual-verification.ts` and docs/50.
    */
   postLock: [
+    "truman-ev-light-explanation",
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",
     "truman-ev-seahaven-design",

@@ -633,7 +633,7 @@ jobs:
       - name: Install the actual engine under assessment
         run: npx playwright-core install --with-deps ${{ matrix.browser }}
       - run: npm run build
-      - name: Assess configured contrast states (film page comparison only)
+      - name: Assess configured contrast states (film page comparison and scoped navigation)
         run: node scripts/run-contrast-audit.mjs
       - name: Publish measured bounds without relabeling incomplete as pass
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)

@@ -32,8 +32,8 @@ export const trumanArticleStills = {
     avifSrc: "/film-stills/truman-light-210.avif",
     avifSha256: "e09c5914034f83cfc8f581feb0b14c95ad012ea07565e8395d30bfb7106ab096",
     sampleTimeSeconds: 210,
-    alt: "Труман рассматривает упавший осветительный прибор с маркировкой Sirius.",
-    caption: "Первый сбой: осветительный прибор на улице Сихейвена.",
+    alt: "Труман со спины перед синим осветительным прибором; на наклейке видна надпись Sirius, её продолжение закрыто.",
+    caption: "Крупный план прибора: видна часть надписи Sirius.",
   },
   rain: {
     ...grid,

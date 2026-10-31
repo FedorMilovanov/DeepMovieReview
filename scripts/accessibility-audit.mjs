@@ -104,6 +104,35 @@ for (const name of selected) {
           await scan("page");
           await page.screenshot({ path: `${out}/${id}.png` });
 
+          if (route.includes("/films/the-truman-show?")) {
+            // These newly navigable controls lie outside the comparison-only
+            // rendered assessment of the long film page. Audit their real,
+            // keyboard-open state separately, without claiming the whole page.
+            await scan("reading-paths", ".filmReadingPaths");
+            const wrap = page.locator(".filmSceneTableWrap");
+            await wrap.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+            const row = page.locator("#scene-truman-sc-day-10909");
+            const disclosure = row.locator(".filmSceneSupports details");
+            await disclosure.locator("summary").focus();
+            await page.keyboard.press("Enter");
+            assert.ok(await disclosure.evaluate(el => el.open), "scene evidence opens by keyboard");
+            assert.ok(await disclosure.locator("a").first().isVisible(), "visible scene has a reachable evidence link");
+            await scan("scene-links-open", "#scene-truman-sc-day-10909");
+            await disclosure.locator("summary").focus();
+            await page.keyboard.press("Enter");
+            await wrap.evaluate(el => { el.scrollLeft = 0; });
+          }
+          if (route.endsWith("/making")) {
+            const claims = page.locator(".productionParagraphClaims").first();
+            await claims.locator("summary").focus();
+            await page.keyboard.press("Enter");
+            assert.ok(await claims.evaluate(el => el.open), "paragraph sources open by keyboard");
+            assert.ok(await claims.locator("a").first().isVisible(), "claim has a reachable source");
+            await scan("production-claim-open", ".productionParagraphClaims");
+            await claims.locator("summary").focus();
+            await page.keyboard.press("Enter");
+          }
+
           if (width === 390 && route === "/") {
             for (const lens of ["story", "people", "relationships", "ideas", "moral-world", "craft"]) {
               await page.locator(`label[for="lens-radio-${lens}"]`).click();

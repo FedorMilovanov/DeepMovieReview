@@ -256,5 +256,6 @@
 .productionParagraphClaims li small { display: block; color: var(--ink-3); }
 .productionRefs { font-size: 0.8em; }
 .productionRefs a { margin: 0.2rem 0.4rem 0.2rem 0; }
-.productionSourceEntry h4 { margin: 0; font-size: 1rem; }
+.productionSourceEntry h4 { display: block; margin: 0; font-size: 1rem; }
+.productionSourceNumber { color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .productionSourceGroup li { scroll-margin-top: 5rem; }
