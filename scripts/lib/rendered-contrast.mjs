@@ -247,10 +247,10 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
     return { records, owners, saved: [], textChanges: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
   }, nodes.map(node => node.target));
   const previousScroll = await page.evaluate(() => scrollY);
-  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [], maskValidation = [], geometryWaits = [], screenshotWarmups = [];
-  // WebKit's first screenshot can resynchronise styles and shift the scroll
-  // anchor. Warm the actual capture path before taking the geometry snapshot;
-  // the subsequent pair is still independently checked for any movement.
+  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [], maskValidation = [], geometryWaits = [], screenshotWarmups = [], captureTrace = [];
+  // WebKit's first paired capture has coincided with a scroll-anchor shift;
+  // its cause is not established. Warm the actual capture path before taking
+  // the geometry snapshot, then independently check every measured frame.
   const warmupFirstCapture = options.warmupFirstCapture ?? (page.context().browser()?.browserType().name() === "webkit");
   let tileLimit = false;
   try {
@@ -308,9 +308,16 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
           s.currentBoxes = boxes; s.visibleIds = new Set(boxes.map(box => box.id));
         }, { s: state, boxes: snapshot.boxes });
         const original = await page.screenshot();
-        // A reveal animation can start after the settle probe and repaint the page
-        // while the masked frame is captured. Wait for native animation completion
-        // and a stable pair of animation frames before masking; never force styles.
+        const movedAfterOriginal = await page.evaluate(changedTextGeometry, state);
+        captureTrace.push({ tile, phase: "original", scroll: await page.evaluate(() => scrollY), moved: movedAfterOriginal.length });
+        if (movedAfterOriginal.length) {
+          maskValidation.push({ tile, phase: "after-original-capture", moved: movedAfterOriginal });
+          for (const box of snapshot.boxes) if (movedAfterOriginal.some(record => record.id === box.id && record.line === box.line)) {
+            box.issue = "Text geometry changed during original capture";
+          }
+        }
+        // A reveal animation can start after the settle probe and repaint the
+        // page. Observe two frames before masking; do not force styles.
         let background;
         // Two native frames settle a same-tick repaint without polling every
         // running animation on the page: an infinite ambient animation would
@@ -372,6 +379,7 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
             for (const box of snapshot.boxes) if (still.includes(box.id)) box.issue = "Text paint survived both masks";
           }
           const movedAfterCapture = await page.evaluate(changedTextGeometry, state);
+          captureTrace.push({ tile, phase: "background", scroll: await page.evaluate(() => scrollY), moved: movedAfterCapture.length });
           if (movedAfterCapture.length) {
             maskValidation.push({ tile, phase: "after-background-capture", moved: movedAfterCapture });
             for (const box of snapshot.boxes) if (movedAfterCapture.some(record => record.id === box.id && record.line === box.line)) {
@@ -422,6 +430,7 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
               await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
               captures.push(await page.screenshot());
               const moved = await page.evaluate(changedTextGeometry, state);
+              captureTrace.push({ tile, phase: `verification-${pass}`, scroll: await page.evaluate(() => scrollY), moved: moved.length });
               if (moved.length) {
                 maskValidation.push({ tile, phase: `after-verification-${pass}`, moved });
                 for (const box of suspects) if (moved.some(record => record.id === box.id && record.line === box.line)) {
@@ -567,7 +576,7 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
     }), { s: state, absent: [...absent] }) : [];
     const failed = ranges.filter(range => !range.pass);
     return { restrictedToTargetBounds: Boolean(extent), method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
-      missing, tileLimit, maskValidation, geometryWaits, screenshotWarmups, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
+      missing, tileLimit, maskValidation, geometryWaits, screenshotWarmups, captureTrace, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);
     await state.dispose();

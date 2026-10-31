@@ -6577,7 +6577,7 @@ test("published methodology does not turn supplied metadata into a viewing or au
     .find((block) => block.id === "prod-met-4");
   assert.ok(productionLimits?.kind === "paragraph");
   assert.match(productionLimits.text, /не заменяет повторной проверки исходного файла/i);
-  assert.match(productionLimits.text, /отмечено его отсутствие/i);
+  assert.match(productionLimits.text, /отмечено, что он не записан/i);
   assert.doesNotMatch(productionLimits.text, /каждая сцена привязана к мастеру/i);
   const articleLimits = theTrumanShowArticle.sections.flatMap((section) => section.blocks)
     .find((block) => block.id === "truman-article-method-4");
