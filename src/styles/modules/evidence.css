@@ -293,23 +293,10 @@
   font-size: 0.82rem;
 }
 
-/* 40rem of minimum width is a desktop floor. On a phone it is a horizontal
-   scrollbar inside a page that forbids one, so the floor comes off and the cells
-   wrap; the caption still names the table for a screen reader. */
-@media (max-width: 760px) {
-  .evidenceRegisterWrap table {
-    min-width: 0;
-  }
-
-  .evidenceRegisterWrap th,
-  .evidenceRegisterWrap td {
-    padding: 0.45rem 0.4rem;
-    overflow-wrap: anywhere;
-  }
-
-  .evidenceRegisterTime {
-    white-space: normal;
-  }
+/* Preserve readable columns and use the focusable horizontal viewport. */
+.evidenceRegisterWrap:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
 }
 
 .evidenceRegisterWrap th,
@@ -344,6 +331,10 @@
   font-size: 0.72rem;
   white-space: nowrap;
 }
+
+.evidenceRegisterBasis summary { cursor: pointer; text-decoration: underline; text-underline-offset: 0.15em; }
+.evidenceRegisterBasis summary:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }
+.evidenceRegisterBasis .evidenceBasis { margin-top: var(--space-2); min-width: 14rem; }
 
 .evidenceRegisterWrap tr[data-outcome="refused"] td,
 .evidenceRegisterWrap tr[data-outcome="refused"] th {

@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import { chromium, firefox, webkit } from "playwright-core";
 import axe from "axe-core";
 import { calibrateRenderedContrast } from "./lib/contrast-calibration.mjs";
-import { renderedContrast } from "./lib/rendered-contrast.mjs";
+import { renderedContrast, restrictContrastToTargets } from "./lib/rendered-contrast.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
 const require = createRequire(import.meta.url);
@@ -13,7 +13,7 @@ const base = process.env.BASE_URL ?? "http://127.0.0.1:3212";
 const out = "a11y-report";
 const engines = { chromium, firefox, webkit };
 const selected = (process.env.A11Y_BROWSERS ?? "chromium,firefox,webkit").split(",");
-const routes = ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"];
+const routes = ["/", "/films", "/films/the-truman-show?spoilers=ENDING", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"];
 const report = { requestedBrowsers: selected, revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), axe: axe.version,
   playwright: require("playwright-core/package.json").version, results: [], failures: [] };
 mkdirSync(out, { recursive: true });
@@ -48,6 +48,11 @@ for (const name of selected) {
           assert.ok(response?.ok(), `${route}: HTTP ${response?.status()}`);
           await page.waitForLoadState("networkidle");
           await page.evaluate(() => document.fonts.ready);
+          if (route.includes("/films/the-truman-show?")) {
+            // Audit the settled interactive state; the no-script fallback is
+            // independently exercised by reader-regression.mjs.
+            await page.waitForFunction(() => !document.querySelector('#truman-comparison input[type="radio"]')?.disabled);
+          }
           assert.equal(await page.locator("main h1").count(), 1, "one main heading");
           assert.equal(await page.locator("html").getAttribute("lang"), "ru");
           assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "page reflow");
@@ -76,18 +81,60 @@ for (const name of selected) {
               violations: result.violations.length, review, file: `${id}-${state}.json` });
             for (const rule of result.violations) failure(`${id}/${state}: ${rule.id}: ${JSON.stringify(rule.nodes.map(node => ({ target: node.target, summary: node.failureSummary })))}`);
             if (process.env.A11Y_RENDERED_CONTRAST === "true") {
-              const nodes = result.incomplete.filter(rule => rule.id === "color-contrast").flatMap(rule => rule.nodes);
+              const comparisonOnly = route.includes("/films/the-truman-show?") && scope === "document";
+              // The full film page is axe-scanned above. Its additional rendered
+              // assessment is explicitly limited to the new comparison so a
+              // multi-hour full-page sweep is not misreported as completed.
+              const contrastResult = comparisonOnly ? await page.evaluate(async () => window.axe.run(document.querySelector("#truman-comparison"), {
+                runOnly: { type: "rule", values: ["color-contrast"] },
+              })) : result;
+              if (comparisonOnly) writeFileSync(`${out}/${id}-${state}-comparison-axe.json`, JSON.stringify(contrastResult, null, 2));
+              const nodes = contrastResult.incomplete.filter(rule => rule.id === "color-contrast").flatMap(rule => rule.nodes);
               if (nodes.length) {
-                const assessment = await renderedContrast(page, nodes, `${out}/paint-pairs`, `${id}-${state}`);
+                const bounded = restrictContrastToTargets(scope, comparisonOnly);
+                const assessment = await renderedContrast(page, nodes, `${out}/paint-pairs`, `${id}-${state}`, { restrictToTargetBounds: bounded });
                 const file = `${id}-${state}-rendered.json`;
                 writeFileSync(`${out}/${file}`, JSON.stringify({ violations: [], incomplete: [], actions: [{ label: "finite rendered contrast assessment", assessment }] }, null, 2));
-                report.results.push({ browser: name, version: browser.version(), width, route, state: `${state}-rendered-contrast`, scope: "paired native renderer text-range backgrounds", file, needsReview: !assessment.pass });
+                const coverage = comparisonOnly ? "comparison section only" : scope === "document" ? "whole-document targets" : `${scope} only`;
+                report.results.push({ browser: name, version: browser.version(), width, route, state: `${state}-rendered-contrast`, scope: `${coverage}: paired native renderer text-range backgrounds`, file, needsReview: !assessment.pass });
                 if (!assessment.pass) failure(`${id}/${state}: rendered contrast requires review: ${assessment.ranges.filter(range => !range.pass).length} ranges, ${assessment.missing.length} missing owners, tileLimit=${assessment.tileLimit}`);
               }
             }
           };
           await scan("page");
           await page.screenshot({ path: `${out}/${id}.png` });
+
+          if (route.includes("/films/the-truman-show?")) {
+            // These newly navigable controls lie outside the comparison-only
+            // rendered assessment of the long film page. Audit their real,
+            // keyboard-open state separately, without claiming the whole page.
+            await scan("reading-paths", ".filmReadingPaths");
+            const wrap = page.locator(".filmSceneTableWrap");
+            await wrap.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+            const row = page.locator("#scene-truman-sc-day-10909");
+            const disclosure = row.locator(".filmSceneSupports details");
+            await disclosure.locator("summary").focus();
+            await page.keyboard.press("Enter");
+            assert.ok(await disclosure.evaluate(el => el.open), "scene evidence opens by keyboard");
+            assert.ok(await disclosure.locator("a").first().isVisible(), "visible scene has a reachable evidence link");
+            // The table scrolls horizontally. At the right edge the row header
+            // is offscreen, so assess the newly exposed evidence cell itself;
+            // do not claim the rest of the row was measured in this state.
+            await scan("scene-links-open", "#scene-truman-sc-day-10909 .filmSceneSupports");
+            await disclosure.locator("summary").focus();
+            await page.keyboard.press("Enter");
+            await wrap.evaluate(el => { el.scrollLeft = 0; });
+          }
+          if (route.endsWith("/making")) {
+            const claims = page.locator(".productionParagraphClaims").first();
+            await claims.locator("summary").focus();
+            await page.keyboard.press("Enter");
+            assert.ok(await claims.evaluate(el => el.open), "paragraph sources open by keyboard");
+            assert.ok(await claims.locator("a").first().isVisible(), "claim has a reachable source");
+            await scan("production-claim-open", ".productionParagraphClaims");
+            await claims.locator("summary").focus();
+            await page.keyboard.press("Enter");
+          }
 
           if (width === 390 && route === "/") {
             for (const lens of ["story", "people", "relationships", "ideas", "moral-world", "craft"]) {

@@ -18,12 +18,16 @@ export type Confidence = "HIGH" | "MEDIUM" | "LOW";
  */
 export type EvidenceReviewBasis = {
   /** The material that was actually examined. */
-  material: "frames" | "subtitle-track";
+  material: "frames" | "clip-frames" | "subtitle-track";
   /**
    * Seconds of the master the examination covered: the first and the last
    * observation in the ledger. Absent when the ledger records no times.
    */
   window?: { from: number; to: number };
+  /** A derived clip's manifest supplies an approximate master-time mapping. */
+  windowApproximate?: boolean;
+  /** Provenance and limits of a post-lock observation, when recorded. */
+  note?: string;
   /** How many separate observations the ledger lists. */
   observations: number;
   /**
@@ -31,7 +35,7 @@ export type EvidenceReviewBasis = {
    * record, but nothing was recorded at this record's own second — the honest
    * state of a half that inherited its parent's review.
    */
-  outcome: "seen" | "heard" | "refused" | "pending";
+  outcome: "seen" | "subtitle" | "refused" | "pending";
   /**
    * Fields the ledger does not record. Reported, not guessed: an empty list means
    * the basis is complete, and a non-empty one is shown to the reader as-is.
@@ -265,6 +269,10 @@ export type CharactersModule = FilmModuleBase & {
     /** Whether the arc reads as psychologically credible, with the reason. */
     arcCredibility?: { level: ArcCredibility; note: string };
     roleInArgument?: string;
+    /** A limit or counter-reading, supported by interpretiveSupport. */
+    counterpoint?: string;
+    /** A registered generated illustration, separately spoiler-scoped. */
+    visual?: { assetId: string; spoilerLevel: SpoilerLevel; caption: string };
     /** Evidence for the spoiler-safe/base profile fields. */
     profileSupport?: ClaimSupport;
     /** Evidence for believes/self-deception/arc/argument interpretation. */
@@ -314,6 +322,8 @@ export type MeaningModule = FilmModuleBase & {
   question: string;
   apparentClaim: string;
   counterevidence: string;
+  /** Optional ending-specific reading and its own evidence; projected server-side. */
+  additionalReading?: { text: string; spoilerLevel: SpoilerLevel; support: ClaimSupport };
   confidence: Confidence;
   support?: ClaimSupport;
 };
@@ -504,9 +514,14 @@ export type SourcesMethodModule = FilmModuleBase & {
     kind: "film-edition" | "scripture" | "reference" | "editorial-note";
     /** Editorial role of a secondary research reference; not a numeric quality score. */
     researchRole?: ResearchSourceRole;
+    /** A source title, URL or locator can itself reveal the plot. Unreviewed
+     * sources default to FULL in the server projection. */
+    spoilerLevel?: SpoilerLevel;
     locator?: string;
     href?: string;
   }>;
+  /** Projection-only count; the original package is never modified. */
+  hiddenSourceCount?: number;
 };
 
 /* ------------------------------------------------------------------------- *
@@ -528,7 +543,7 @@ export type ArticleMeasurementRef = {
   id: string;
 };
 
-/** A small editorial quotation from the measured master, never generated artwork. */
+/** A small editorial quotation from supplied film imagery, never generated artwork. */
 export type ArticleSceneStill = {
   src: string;
   avifSrc: string;
@@ -536,15 +551,35 @@ export type ArticleSceneStill = {
   width: number;
   height: number;
   alt: string;
-  /** Nominal output-grid time; not the selected source frame PTS. */
+  caption: string;
+  /** Nominal grid time or estimated master time from the clip manifest, not source PTS. */
   sampleTimeSeconds: number;
-  samplingIntervalSeconds: 30;
   sourceId: string;
+  /** The edition named by the supplied material; not independent proof of its origin. */
   masterDigest: string;
   imageSha256: string;
   credit: string;
   use: "critical-review";
-};
+} & (
+  | {
+      samplingKind: "grid";
+      samplingIntervalSeconds: 30;
+      clip?: never;
+    }
+  | {
+      samplingKind: "clip";
+      samplingIntervalSeconds?: never;
+      clip: {
+        file: string;
+        sha256: string;
+        /** These offsets are stated in the supplied clip archive's manifest. */
+        sourceStartSeconds: number;
+        sourceEndSeconds: number;
+        /** Requested position within the transcoded clip, not verified master PTS. */
+        offsetSeconds: number;
+      };
+    }
+);
 
 export type ArticleTimelineItem = {
   id: string;
@@ -595,6 +630,8 @@ export type ArticleBlock =
       id: string;
       text: string;
       support?: ClaimSupport;
+      /** IDs in this film's production source register; context, not film evidence. */
+      contextSourceIds?: string[];
       /**
        * Scripture references that appear verbatim in `text`. Declared so the
        * validator can tell «Деяния 17:26» from a film timecode: prose may not
@@ -876,6 +913,28 @@ export type FilmModule =
   | FinalSynthesisModule
   | SourcesMethodModule;
 
+export const COMPARISON_DIMENSIONS = ["knowledge", "pressure", "options", "decision", "cost", "consequences", "counterpoint"] as const;
+export type ComparisonDimension = (typeof COMPARISON_DIMENSIONS)[number];
+
+/** A comparison is a sourced editorial argument, not a score or a verdict. */
+export type FilmComparison = {
+  id: string;
+  heading: string;
+  spoilerLevel: SpoilerLevel;
+  introduction: string;
+  limitation: string;
+  sources: Array<{ id: string; label: string; url: string; scope: string }>;
+  sides: Array<{
+    id: string;
+    name: string;
+    kind: "FICTIONAL" | "HISTORICAL";
+    /** Fictional sides resolve to the package's canonical character registry. */
+    characterId?: string;
+    context: string;
+    cells: Record<ComparisonDimension, { text: string; evidenceIds?: string[]; sourceIds?: string[] }>;
+  }>;
+};
+
 export type FilmPackage = {
   schemaVersion: 1;
   film: ShellFilm;
@@ -902,6 +961,8 @@ export type FilmPackage = {
   scenes?: FilmSceneRecord[];
   /** Stable evidence graph shared by every analytical module. */
   evidence?: EvidenceRecord[];
+  /** Optional, server-projected comparison of decisions; never an automatic verdict. */
+  comparison?: FilmComparison;
   modules: FilmModule[];
 };
 

@@ -2,7 +2,7 @@
 
 **DeepMovieReview** is an interactive platform for deep analysis of cinema as stories about people. It combines plot and story structure, characters and psychology, relationships, family/youth/social formation, themes and worldview claims, narrative teaching signals, filmmaking craft, scene-level moral analysis, difficult decisions, biblical principles, editorial synthesis and — later — a clearly separate audience/community layer.
 
-The repository is now in **Film 001 vertical-slice production**. The reusable shell is hardened, and **The Truman Show (1998)** is served from a **`LOCKED` canonical edition**: 21 chapter-verified scenes, 41 canonical evidence records citing the exact viewing master, and the research tier retired. The film itself is still `draft` and unindexed — locking the edition is an evidence milestone, not a publication decision. Structural fixture content remains separate and is still not a published film judgment.
+The repository is now in **Film 001 vertical-slice production**. **The Truman Show (1998)** is marked `published` and uses a **`LOCKED` canonical edition**. Its evidence register distinguishes transcript, frame and pending checks; the recorded master identity does not imply that every scene has been independently rewatched with sound. Search indexing depends on the deployment policy and is disabled for previews. Structural fixture content remains separate and is not a published film judgment.
 
 ## Core thesis
 
@@ -39,7 +39,9 @@ npm ci
 npm run dev
 ```
 
-For the full local quality gate, run:
+For the full local quality gate, install **FFmpeg and ffprobe** on your PATH;
+`npm test` uses them to exercise evidence-bundle tooling with synthetic media
+(no film master is required). Then run:
 
 ```bash
 npm test
@@ -73,7 +75,7 @@ The shell now proves the main architectural boundaries that Film 001 will depend
 - structured Story, Characters, Relationships, Family/Youth, Meaning, Teaching Signals, Narrative Permission, Craft, Scene Autopsy, Decision, Moral Analysis, Biblical Synthesis, Final Synthesis and Sources/Method modules;
 - one spoiler projection stage that removes forbidden nested data **before** presentation; the projected module array is shared by outline and renderer, and real featured-film homepage data is reduced to spoiler-safe `NONE` content before composition;
 - spoiler-aware deep-link cleanup when a hash targets content hidden by a lower spoiler level;
-- fixture/draft `noindex`, permanent `/labs/*` `noindex`, a fail-closed launch gate that opens by itself on a real host (`DMR_SITE_URL` or the platform production host, never on a preview deployment) and still requires a published configured homepage feature **with preview mode disabled**; `DMR_SITE_INDEXING_ENABLED` remains an explicit override in either direction except on a preview deployment, which it cannot open, and a separate `DMR_PREVIEW_CONTENT_ENABLED=true` gate before non-published film routes exist in production; when preview mode is disabled, the public prelaunch homepage does not project fixture/draft film data at all;
+- fixture/draft `noindex`, permanent `/labs/*` `noindex`, and a launch gate that defaults open when a host is configured (`DMR_SITE_URL` or the platform production host) and the featured film is published **with preview content disabled**. A Vercel preview is always closed, even if `DMR_SITE_INDEXING_ENABLED=true`; on other hosts that flag overrides the default in either direction. For non-Vercel previews without preview content, explicitly set `DMR_SITE_INDEXING_ENABLED=false` so a configured preview URL is not indexed. `DMR_PREVIEW_CONTENT_ENABLED=true` also closes indexing and separately gates non-published film routes; when preview content is disabled, the public prelaunch homepage does not project fixture/draft film data at all;
 - adaptive experience runtime with Auto/Lite mode, reduced-motion control, document/offscreen awareness, renderer-backend reporting and measured quality downgrades;
 - WebGPU-oriented Verdict Core with WebGL2/static fallback behavior and no semantic content trapped in canvas;
 - visual asset manifest types with focal points, safe zones, depth maps, masks, provenance, responsive/DPR-aware variant selection and a fail-closed validated asset registry;
@@ -121,6 +123,9 @@ Implementation-state documents:
 - [`docs/28-PILOT-FILM-SELECTION.md`](docs/28-PILOT-FILM-SELECTION.md) — Film 001 selection and research boundary.
 - [`docs/29-FILM-001-INGEST-STATUS.md`](docs/29-FILM-001-INGEST-STATUS.md) — active edition/evidence ingest gate.
 - [`docs/30-FILM-001-SECONDARY-RESEARCH.md`](docs/30-FILM-001-SECONDARY-RESEARCH.md) — production/craft/development context kept separate from canonical film evidence.
+- [`docs/61-POST-MERGE-AUDIT.md`](docs/61-POST-MERGE-AUDIT.md) — independent audit of the previous main revision.
+- [`docs/63-FILM-001-CLIP-REVIEW.md`](docs/63-FILM-001-CLIP-REVIEW.md) — selected-frame provenance, findings and limits.
+- [`docs/64-MERGE-READINESS.md`](docs/64-MERGE-READINESS.md) — local verification matrix and remaining merge gates.
 
 [`docs/10-OPEN-QUESTIONS.md`](docs/10-OPEN-QUESTIONS.md) remains the backlog of unresolved product/methodology decisions rather than a statement of implemented behavior.
 
@@ -165,17 +170,13 @@ Community data is deliberately a later phase, but its separation is already an a
 
 ## Current phase and next work
 
-Current phase: **Phase 1 — Film 001 / The Truman Show canonical ingest and evidence build**.
+Current phase: **Phase 1 — Film 001 / The Truman Show published vertical slice and ongoing evidence review**.
 
-The immediate next steps are:
+The package has a LOCKED edition, scene/evidence registry and published analysis. Continue to:
 
-- lock the exact Film 001 editorial master / region and timestamp convention;
-- build stable scene IDs and a canonical evidence ledger from that locked master;
-- author spoiler-safe Story, Characters, Relationships and Craft before deeper synthesis;
-- add Teaching Signals / Narrative Permission, Decision / Knowledge Fog and Scene Autopsy only as evidence is verified;
-- produce Film 001 art-directed masters using the selected Living Frame B/C architecture;
-- independently review biblical and final synthesis before publication;
-- calibrate the first real editorial rubric against the methodology before publishing numeric aggregates;
-- evolve the current TypeScript contracts into persistent database/API schemas only after the Film 001 vertical slice proves which entities are truly required.
+- verify the original master and relevant continuous picture and audio when they are available; keep sampled frames, subtitles and pending observations distinct;
+- deepen the analysis and counter-readings without exceeding the evidence or spoiler scope;
+- complete current-head cross-browser, native assistive-technology and iOS checks before merging;
+- calibrate any future numerical rubric and evolve persistence only after the vertical slice proves what is needed.
 
-Do **not** begin by building a giant movie database or social network. The next meaningful milestone is one production-quality film vertical slice that proves both the analytical method and the signature visual system.
+Do **not** begin by building a giant movie database or social network. Depth, verifiability and a usable reading experience come first.

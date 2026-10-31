@@ -4,6 +4,13 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { rectangleContrast } from "./contrast-pixels.mjs";
 
+// Scoped axe scans only need tiles intersecting their own live text ranges.
+// Whole-document scans still traverse the document, except the explicitly
+// reported comparison-only assessment. Coverage remains checked independently.
+export function restrictContrastToTargets(scope, comparisonOnly = false) {
+  return comparisonOnly || scope !== "document";
+}
+
 // Mask text foreground paint only. Changing CSS color would also change currentColor
 // backgrounds/borders/icons and could manufacture an apparently better bound.
 export function maskTextPaint(s) {
@@ -38,11 +45,36 @@ export function samePaintedColor(a, b, tolerance = 12) {
   return [0, 1, 2].every(index => Math.abs(a[index] - b[index]) <= tolerance);
 }
 
-// WebKit can keep a promoted panel's glyphs in a stale layer even when the
-// computed fill is transparent. Hiding the paint owner with visibility keeps
-// every box exactly where it is, so the captured background is the real one.
+// Visibility is only a valid second mask when hiding the text owner cannot
+// remove any of the background being measured. A gradient, pseudo-element,
+// border, shadow, SVG or descendant might paint behind the glyphs. In that case
+// retain the foreground-only mask; if it still leaks, report an incomplete/fail.
+// This function is serialised into the page and must remain self-contained.
 export function hardMaskTextPaint(s) {
-  for (const record of s.records) if (s.visibleIds.has(record.id)) record.element.style.setProperty("visibility", "hidden");
+  const protectedIds = [];
+  for (const record of s.records) {
+    if (!s.visibleIds.has(record.id)) continue;
+    const element = record.element;
+    const style = getComputedStyle(element);
+    const hasPaint = value => Boolean(value && value !== "none" && value !== "normal");
+    const transparent = value => !value || value === "transparent" || value === "rgba(0, 0, 0, 0)";
+    const generated = ["::before", "::after"].some(pseudo => {
+      const part = getComputedStyle(element, pseudo);
+      return part.display !== "none" && part.visibility !== "hidden" &&
+        part.content && part.content !== "none" && part.content !== "normal";
+    });
+    const ownsPaint = element.namespaceURI === "http://www.w3.org/2000/svg" ||
+      (element.children?.length ?? 0) > 0 || generated ||
+      !transparent(style.backgroundColor) || hasPaint(style.backgroundImage) ||
+      hasPaint(style.boxShadow) || hasPaint(style.borderImageSource) ||
+      hasPaint(style.maskImage) || hasPaint(style.webkitMaskImage) ||
+      ["Top", "Right", "Bottom", "Left"].some(side =>
+        parseFloat(style[`border${side}Width`] || "0") > 0 &&
+        style[`border${side}Style`] !== "none");
+    if (ownsPaint) protectedIds.push(record.id);
+    else element.style.setProperty("visibility", "hidden");
+  }
+  s.protectedMaskIds = protectedIds;
   s.usedHardMask = true;
 }
 
@@ -178,7 +210,17 @@ export function snapshotTextPaint(s) {
   return { boxes, scroll: scrollY, width: innerWidth, height: innerHeight, end: scrollY + innerHeight >= document.documentElement.scrollHeight };
 }
 
-export async function renderedContrast(page, nodes, directory, id) {
+// This is serialised into the page. Validate after each capture as well as
+// after applying the mask: an engine may move the viewport during a screenshot.
+export function changedTextGeometry(s) {
+  return s.currentBoxes.flatMap(box => {
+    const current = s.records[box.id].range.getClientRects()[box.line];
+    if (current && ["x", "y", "width", "height"].every(key => current[key] === box.rect[key])) return [];
+    return [{ id: box.id, line: box.line, before: box.rect, after: current?.toJSON() ?? null }];
+  });
+}
+
+export async function renderedContrast(page, nodes, directory, id, options = {}) {
   mkdirSync(directory, { recursive: true });
   const state = await page.evaluateHandle(targets => {
     const records = [], owners = [], byText = new Map();
@@ -205,10 +247,23 @@ export async function renderedContrast(page, nodes, directory, id) {
     return { records, owners, saved: [], textChanges: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
   }, nodes.map(node => node.target));
   const previousScroll = await page.evaluate(() => scrollY);
-  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [];
+  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [], maskValidation = [], geometryWaits = [], screenshotWarmups = [], captureTrace = [];
+  // WebKit's first paired capture has coincided with a scroll-anchor shift;
+  // its cause is not established. Warm the actual capture path before taking
+  // the geometry snapshot, then independently check every measured frame.
+  const warmupFirstCapture = options.warmupFirstCapture ?? (page.context().browser()?.browserType().name() === "webkit");
   let tileLimit = false;
   try {
-    let top = 0, revisiting = false, tile = 0;
+    // An explicitly scoped audit (e.g. the comparison far down a long film
+    // page) need not capture every unrelated viewport. Coverage is still
+    // rechecked against live ranges below; anything missed is revisited or
+    // fails closed. Ordinary whole-document scans keep their original traversal.
+    const extent = options.restrictToTargetBounds ? await page.evaluate(s => {
+      const rects = s.records.flatMap(record => [...record.range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0));
+      return rects.length ? { top: Math.max(0, Math.min(...rects.map(rect => rect.top + scrollY)) - innerHeight * 0.25),
+        bottom: Math.max(...rects.map(rect => rect.bottom + scrollY)) } : { top: 0, bottom: 0 };
+    }, state) : null;
+    let top = extent?.top ?? 0, revisiting = false, tile = 0;
     // Coverage is measured against the layout as it is, and a record can re-wrap
     // after its visit: an element that measured one line can be two lines by the
     // time the pass ends. Each record may therefore be revisited a bounded number
@@ -218,14 +273,30 @@ export async function renderedContrast(page, nodes, directory, id) {
       for (; tile < 250; tile++) {
         await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), top);
         await page.waitForTimeout(100);
-        // Let actual IntersectionObserver/reveal animation settle; never force opacity.
-        let snapshot;
-        for (let attempt = 0; attempt < 25; attempt++) {
-          await page.evaluate(refreshTextRanges, state);
-          snapshot = await page.evaluate(snapshotTextPaint, state);
-          if (!snapshot.boxes.some(box => box.settling)) break;
+        if (tile === 0 && warmupFirstCapture) {
+          const before = await page.evaluate(() => scrollY);
+          await page.screenshot(); // Discarded; it is never a measured frame.
+          const after = await page.evaluate(() => scrollY);
+          screenshotWarmups.push({ tile, before, after });
           await page.waitForTimeout(100);
         }
+        // A scroll-linked reveal can move text while opacity and filter already
+        // look settled. Pair screenshots only after the actual scroll position
+        // and every visible range have matched across three observations; never
+        // force styles, round away movement, or waive a permanently moving box.
+        let snapshot, previousGeometry, stable = 0, attempts = 0;
+        for (; attempts < 30; attempts++) {
+          await page.evaluate(refreshTextRanges, state);
+          snapshot = await page.evaluate(snapshotTextPaint, state);
+          const geometry = JSON.stringify({ scroll: snapshot.scroll, boxes: snapshot.boxes.map(box =>
+            [box.id, box.version, box.line, box.rect.x, box.rect.y, box.rect.width, box.rect.height]) });
+          stable = !snapshot.boxes.some(box => box.settling) && geometry === previousGeometry ? stable + 1 : 0;
+          previousGeometry = geometry;
+          if (stable >= 2) break;
+          await page.waitForTimeout(100);
+        }
+        geometryWaits.push({ tile, observations: Math.min(attempts + 1, 30), settled: stable >= 2 });
+        if (stable < 2) for (const box of snapshot.boxes) box.issue = "Text geometry did not settle before capture";
         for (const box of snapshot.boxes.filter(box => box.settling)) deferred.push({ id: box.id, line: box.line, tile, reason: box.issue });
         snapshot.boxes = snapshot.boxes.filter(box => !box.settling).flatMap(box => {
           const band = exposedRows(box.occluded.length, row => box.occluded[row]);
@@ -237,9 +308,16 @@ export async function renderedContrast(page, nodes, directory, id) {
           s.currentBoxes = boxes; s.visibleIds = new Set(boxes.map(box => box.id));
         }, { s: state, boxes: snapshot.boxes });
         const original = await page.screenshot();
-        // A reveal animation can start after the settle probe and repaint the page
-        // while the masked frame is captured. Wait for native animation completion
-        // and a stable pair of animation frames before masking; never force styles.
+        const movedAfterOriginal = await page.evaluate(changedTextGeometry, state);
+        captureTrace.push({ tile, phase: "original", scroll: await page.evaluate(() => scrollY), moved: movedAfterOriginal.length });
+        if (movedAfterOriginal.length) {
+          maskValidation.push({ tile, phase: "after-original-capture", moved: movedAfterOriginal });
+          for (const box of snapshot.boxes) if (movedAfterOriginal.some(record => record.id === box.id && record.line === box.line)) {
+            box.issue = "Text geometry changed during original capture";
+          }
+        }
+        // A reveal animation can start after the settle probe and repaint the
+        // page. Observe two frames before masking; do not force styles.
         let background;
         // Two native frames settle a same-tick repaint without polling every
         // running animation on the page: an infinite ambient animation would
@@ -247,19 +325,30 @@ export async function renderedContrast(page, nodes, directory, id) {
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         try {
           await page.evaluate(maskTextPaint, state);
+          // A CSS transition can leave the computed text-fill colour at its
+          // previous value for the current task even with reduced motion. Do
+          // not call the mask invalid until its actual paint has committed.
+          await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
           const invalidMask = await page.evaluate(s => {
-            const moved = s.currentBoxes.filter(box => {
+            const moved = s.currentBoxes.flatMap(box => {
               const current = s.records[box.id].range.getClientRects()[box.line];
-              return !current || ["x", "y", "width", "height"].some(key => current[key] !== box.rect[key]);
-            }).map(box => box.id);
-            return [...moved, ...s.records.filter(record => s.visibleIds.has(record.id)).filter(record => {
+              if (current && ["x", "y", "width", "height"].every(key => current[key] === box.rect[key])) return [];
+              return [{ id: box.id, line: box.line, before: box.rect, after: current?.toJSON() ?? null }];
+            });
+            const unmasked = s.records.filter(record => s.visibleIds.has(record.id)).flatMap(record => {
               const style = getComputedStyle(record.element);
               const color = record.element.namespaceURI === "http://www.w3.org/2000/svg" ? style.fill : style.webkitTextFillColor || style.color;
               s.ctx.clearRect(0, 0, 1, 1); s.ctx.fillStyle = color; s.ctx.fillRect(0, 0, 1, 1);
-              return s.ctx.getImageData(0, 0, 1, 1).data[3] !== 0;
-            }).map(record => record.id)];
+              const alpha = s.ctx.getImageData(0, 0, 1, 1).data[3];
+              return alpha ? [{ id: record.id, color, alpha }] : [];
+            });
+            return { moved, unmasked, scroll: scrollY };
           }, state);
-          for (const box of snapshot.boxes) if (invalidMask.includes(box.id)) box.issue = "Text mask did not remove foreground";
+          if (invalidMask.moved.length || invalidMask.unmasked.length) maskValidation.push({ tile, phase: "before-background-capture", ...invalidMask });
+          for (const box of snapshot.boxes) {
+            if (invalidMask.moved.some(record => record.id === box.id && record.line === box.line)) box.issue = "Text geometry changed during masked capture";
+            else if (invalidMask.unmasked.some(record => record.id === box.id)) box.issue = "Text mask did not remove foreground";
+          }
           // Let the masked paint commit before capture: a promoted layer can keep
           // the previous frame for one tick.
           await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -285,8 +374,17 @@ export async function renderedContrast(page, nodes, directory, id) {
               background = await page.screenshot();
               still = leaked(PNG.sync.read(background), snapshot.boxes);
             }
-            maskEscalations.push({ tile, escalated: snapshot.boxes.map(box => box.id), unresolved: still });
+            const protectedIds = await page.evaluate(s => s.protectedMaskIds, state);
+            maskEscalations.push({ tile, escalated: snapshot.boxes.map(box => box.id), protectedIds, unresolved: still });
             for (const box of snapshot.boxes) if (still.includes(box.id)) box.issue = "Text paint survived both masks";
+          }
+          const movedAfterCapture = await page.evaluate(changedTextGeometry, state);
+          captureTrace.push({ tile, phase: "background", scroll: await page.evaluate(() => scrollY), moved: movedAfterCapture.length });
+          if (movedAfterCapture.length) {
+            maskValidation.push({ tile, phase: "after-background-capture", moved: movedAfterCapture });
+            for (const box of snapshot.boxes) if (movedAfterCapture.some(record => record.id === box.id && record.line === box.line)) {
+              box.issue = "Text geometry changed during background capture";
+            }
           }
         } finally {
           await page.evaluate(restoreTextPaint, state);
@@ -313,38 +411,16 @@ export async function renderedContrast(page, nodes, directory, id) {
           const before = suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum }));
           const captures = [];
           try {
-            // Two ways to remove the measured glyphs, chosen per element:
-            //
-            // - An element that paints no background of its own is hidden with
-            //   `visibility`, which also forces a promoted layer to repaint even
-            //   when a transparent text fill did not (measured in WebKit on a fixed
-            //   panel).
-            // - An element that paints its own background keeps it: the text fill
-            //   is masked instead, because `visibility` would remove that
-            //   background and turn the calibration's `currentColor` fixture into
-            //   white text on the black body — a better bound than the truth.
-            //
-            // Neither branch touches `color`, so `currentColor` backgrounds and
-            // borders resolve exactly as the reader sees them.
+            // Reuse the same conservative mask as the first capture. Hide only
+            // owners proven not to paint their own background/pseudo-elements;
+            // otherwise a better-looking verification could be fabricated by
+            // erasing the surface we are trying to measure.
             await page.evaluate(({ s, ids }) => {
-              const elements = new Set(s.records.filter(record => ids.includes(record.id)).map(record => record.element));
-              const paintsOwnBackground = element => {
-                const color = getComputedStyle(element).backgroundColor;
-                return Boolean(color) && color !== "transparent" && !/^rgba\(0, 0, 0, 0\)$|^rgb\(0 0 0 \/ 0\)$/.test(color);
-              };
-              s.saved = [...elements].map(element => ({
-                element,
-                hidden: !paintsOwnBackground(element),
-                properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color", "visibility"].map(name => ({
-                  name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })),
-              }));
-              for (const { element, hidden } of s.saved) {
-                if (hidden) { element.style.setProperty("visibility", "hidden"); continue; }
-                element.style.setProperty("-webkit-text-fill-color", "transparent");
-                element.style.setProperty("text-shadow", "none");
-                if (element.namespaceURI === "http://www.w3.org/2000/svg") element.style.setProperty("fill", "transparent");
-              }
+              s.beforeVerificationVisibleIds = s.visibleIds;
+              s.visibleIds = new Set(ids);
             }, { s: state, ids });
+            await page.evaluate(maskTextPaint, state);
+            await page.evaluate(hardMaskTextPaint, state);
             for (const pass of [0, 1]) {
               // A promoted layer can keep the previous frame even after a transparent
               // fill. The second pass nudges the scroll by one pixel and restores it,
@@ -353,9 +429,21 @@ export async function renderedContrast(page, nodes, directory, id) {
                 scrollTo({ top: y, behavior: "instant" }); });
               await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
               captures.push(await page.screenshot());
+              const moved = await page.evaluate(changedTextGeometry, state);
+              captureTrace.push({ tile, phase: `verification-${pass}`, scroll: await page.evaluate(() => scrollY), moved: moved.length });
+              if (moved.length) {
+                maskValidation.push({ tile, phase: `after-verification-${pass}`, moved });
+                for (const box of suspects) if (moved.some(record => record.id === box.id && record.line === box.line)) {
+                  box.issue = "Text geometry changed during verification capture";
+                }
+              }
             }
           } finally {
             await page.evaluate(restoreTextPaint, state);
+            await page.evaluate(s => {
+              if (s.beforeVerificationVisibleIds) s.visibleIds = s.beforeVerificationVisibleIds;
+              delete s.beforeVerificationVisibleIds;
+            }, state);
           }
           const read = (bytes, name) => {
             const png = PNG.sync.read(bytes);
@@ -393,7 +481,7 @@ export async function renderedContrast(page, nodes, directory, id) {
           }
           measurements.set(key, measurement);
         }
-        revisiting ||= snapshot.end;
+        revisiting ||= snapshot.end || Boolean(extent && snapshot.scroll + snapshot.height >= extent.bottom);
         if (revisiting) {
           // Revisit only missing coverage, never discard a low bound in favour of
           // a later, prettier frame. Ordinary centered scrolling lets late reveal
@@ -487,8 +575,8 @@ export async function renderedContrast(page, nodes, directory, id) {
         })) };
     }), { s: state, absent: [...absent] }) : [];
     const failed = ranges.filter(range => !range.pass);
-    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
-      missing, tileLimit, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
+    return { restrictedToTargetBounds: Boolean(extent), method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
+      missing, tileLimit, maskValidation, geometryWaits, screenshotWarmups, captureTrace, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);
     await state.dispose();

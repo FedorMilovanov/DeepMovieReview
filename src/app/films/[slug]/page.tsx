@@ -5,6 +5,8 @@ import { FilmMediaFrame } from "@/components/film-media-frame";
 import { FilmEvidenceMap } from "@/components/film-modules/evidence-map";
 import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
 import { FilmSceneTable } from "@/components/film-modules/scene-table";
+import { FilmComparisonView } from "@/components/film-comparison";
+import { projectFilmComparison } from "@/lib/film-module-projection";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
@@ -16,7 +18,7 @@ import { pluralRu } from "@/lib/plural-ru";
 import { formatTimecode } from "@/lib/timecode";
 import { filmPageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
 import { siteIndexingEnabled } from "@/lib/site-indexing";
-import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
+import { canRevealSpoiler, parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
 type FilmPageProps = {
   params: Promise<{ slug: string }>;
@@ -70,12 +72,23 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
 
   const { film, modules } = filmPackage;
   const researchDraft = filmPackage.research?.state === "SECONDARY_SOURCES";
-  const sourceRecords = modules.flatMap((module) => module.kind === "sources-method" ? module.sources : []);
   const spoilerLevel = parseSpoilerLevel(query.spoilers);
   const pathname = `/films/${film.slug}`;
   const visibleModules = getVisibleFilmModules(modules, spoilerLevel);
+  const sourceRecords = visibleModules.flatMap((module) => module.kind === "sources-method" ? module.sources : []);
+  const comparison = projectFilmComparison(filmPackage.comparison, spoilerLevel);
+  const comparisonEvidenceIds = new Set(comparison?.sides.flatMap((side) =>
+    Object.values(side.cells).flatMap((cell) => cell.evidenceIds ?? []),
+  ) ?? []);
+  const comparisonEvidence = (filmPackage.evidence ?? []).filter((record) =>
+    comparisonEvidenceIds.has(record.id) && canRevealSpoiler(spoilerLevel, record.spoilerLevel),
+  );
   const hiddenModuleCount = modules.length - visibleModules.length;
   const outlineBase = withSpoilerQuery(pathname, spoilerLevel);
+  const characters = visibleModules.find((module) => module.kind === "characters");
+  const decision = visibleModules.find((module) => module.kind === "decision");
+  const hasVisibleScenes = (filmPackage.scenes ?? []).some((scene) => canRevealSpoiler(spoilerLevel, scene.spoilerLevel));
+  const hasVisibleEvidence = (filmPackage.evidence ?? []).some((record) => canRevealSpoiler(spoilerLevel, record.spoilerLevel));
   const moduleContext = {
     evidenceById: new Map((filmPackage.evidence ?? []).map((record) => [record.id, record])),
     formatTimecode,
@@ -133,9 +146,20 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
       <section className="sectionShell sectionRule filmOutlineSection" aria-labelledby="film-outline-title">
         <div>
           <div className="sectionIndex">Фильм / План</div>
-          <h2 id="film-outline-title">Адресный разбор, отфильтрованный под ваш уровень спойлеров.</h2>
+          <h2 id="film-outline-title">Как читать разбор</h2>
+          {filmPackage.article || characters || decision || hasVisibleScenes || hasVisibleEvidence ? (
+            <nav className="filmReadingPaths" aria-label="Быстрые маршруты чтения">
+              <p>Начать с интересующего</p>
+              {filmPackage.article ? <Link href={withSpoilerQuery(`/films/${film.slug}/article`, spoilerLevel)}>Текст целиком</Link> : null}
+              {characters ? <Link href={`${outlineBase}#${characters.id}`}>По героям</Link> : null}
+              {decision ? <Link href={`${outlineBase}#${decision.id}`}>По решениям</Link> : null}
+              {hasVisibleScenes ? <Link href={`${outlineBase}#film-scene-table-title`}>По сценам</Link> : null}
+              {hasVisibleEvidence ? <Link href={`${outlineBase}#evidence-register-title`}>По опорам</Link> : null}
+            </nav>
+          ) : null}
         </div>
         <nav className="filmOutline" aria-label={`${film.title}: разделы разбора`}>
+          {comparison ? <Link href={`${outlineBase}#${comparison.id}`}><span>↗</span><strong>Battle / Сравнение</strong><small>{comparison.heading}</small></Link> : null}
           {visibleModules.map((filmModule, index) => (
             <Link key={filmModule.id} href={`${outlineBase}#${filmModule.id}`} scroll>
               <span>{String(index + 1).padStart(2, "0")}</span>
@@ -161,6 +185,17 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
           <p className="spoilerOmissionNotice" aria-live="polite">Сейчас видны все модули разбора.</p>
         )}
       </section>
+
+      {comparison ? (
+        <FilmComparisonView comparison={comparison} evidence={comparisonEvidence} />
+      ) : filmPackage.comparison ? (
+        <section className="sectionShell sectionRule" aria-labelledby="comparison-locked-title">
+          <div className="sectionIndex">Battle / Сравнение решений</div>
+          <h2 id="comparison-locked-title">Сопоставить выборы после просмотра</h2>
+          <p className="sectionIntro">Матрица раскрывает финал фильма. Она появится при выборе уровня «Финал» или «Всё».</p>
+          <Link href={withSpoilerQuery(pathname, filmPackage.comparison.spoilerLevel)}>Открыть сравнение со спойлерами к финалу →</Link>
+        </section>
+      ) : null}
 
       <FilmSceneTable
         evidence={filmPackage.evidence ?? []}

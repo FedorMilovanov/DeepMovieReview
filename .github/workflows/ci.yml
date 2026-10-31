@@ -16,7 +16,9 @@ concurrency:
 jobs:
   app-shell:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Three real reader engines, the full browser audit, axe, and a second
+    # public build share this job. Leave time to publish failure evidence too.
+    timeout-minutes: 40
     permissions:
       contents: read
       actions: read
@@ -60,6 +62,19 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Install and verify FFmpeg for evidence regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Hosted images do not promise FFmpeg/ffprobe, and npm lifecycle scripts
+          # remain disabled for ffmpeg-static. Install the OS package explicitly.
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
+          ffmpeg -version
+          ffprobe -version
 
       - name: Domain regression tests
         run: npm test
@@ -215,6 +230,20 @@ jobs:
             echo "Published film route must advertise its canonical public URL."
             exit 1
           fi
+          # Each route can override the layout's metadata independently. In
+          # particular, the production dossier once silently dropped noindex.
+          for suffix in article making; do
+            preview_film_page="/tmp/truman-preview-${suffix}.html"
+            curl --fail --silent --show-error "http://127.0.0.1:3210/films/the-truman-show/${suffix}" > "$preview_film_page"
+            if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' "$preview_film_page"; then
+              echo "Published film ${suffix} route must remain noindex/nofollow in a preview build."
+              exit 1
+            fi
+            if ! grep -Eq "rel=\"canonical\"[^>]*href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"|href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"[^>]*rel=\"canonical\"" "$preview_film_page"; then
+              echo "Published film ${suffix} route must advertise its canonical public URL."
+              exit 1
+            fi
+          done
           if grep -Eiq 'rel="canonical"' /tmp/fast-draft.html; then
             echo "Research draft must not advertise a canonical public film URL."
             exit 1
@@ -282,8 +311,24 @@ jobs:
             exit 1
           fi
 
+          echo '::notice title=CI progress::Starting three-engine reader regression'
+          for engine in chromium firefox webkit; do
+            echo "::notice title=Reader engine::Starting $engine (8 minute deadline)"
+            set +e
+            timeout 8m env BASE_URL=http://127.0.0.1:3212 READER_BROWSERS="$engine" READER_AUDIT_DIR="browser-audit/reader-$engine" node scripts/reader-regression.mjs
+            status=$?
+            set -e
+            if [[ "$status" -ne 0 ]]; then
+              echo "::error title=Reader engine::$engine failed or exceeded its deadline (exit $status)"
+              exit "$status"
+            fi
+            echo "::notice title=Reader engine::Completed $engine"
+          done
+          echo '::notice title=CI progress::Reader regression finished; starting browser audit'
           BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs
+          echo '::notice title=CI progress::Browser audit finished; starting axe scans'
           BASE_URL=http://127.0.0.1:3212 npm run test:a11y
+          echo '::notice title=CI progress::Browser and accessibility audits finished'
 
       # Historical recovery is informational, never a substitute for current-head tests.
       - name: Recover previous successful accessibility evidence
@@ -447,6 +492,18 @@ jobs:
             exit 1
           fi
           grep -Fq 'Труман Бёрбанк' /tmp/public-truman-route.html
+          for suffix in article making; do
+            public_film_page="/tmp/truman-public-${suffix}.html"
+            curl --fail --silent --show-error "http://127.0.0.1:3211/films/the-truman-show/${suffix}" > "$public_film_page"
+            if grep -Eiq 'name="robots"[^>]*content="noindex|content="noindex[^>]*name="robots"' "$public_film_page"; then
+              echo "Published film ${suffix} route is noindex on a site that allows indexing."
+              exit 1
+            fi
+            if ! grep -Eq "rel=\"canonical\"[^>]*href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"|href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"[^>]*rel=\"canonical\"" "$public_film_page"; then
+              echo "Published film ${suffix} route is missing its canonical URL."
+              exit 1
+            fi
+          done
 
           fast_status=$(curl --silent --output /tmp/public-fast-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/the-fast-and-the-furious)
           if [[ "$fast_status" != "200" && "$fast_status" != "404" ]]; then
@@ -603,7 +660,7 @@ jobs:
       - name: Install the actual engine under assessment
         run: npx playwright-core install --with-deps ${{ matrix.browser }}
       - run: npm run build
-      - name: Assess all current incomplete text-range backgrounds
+      - name: Assess configured contrast states (film page comparison and scoped navigation)
         run: node scripts/run-contrast-audit.mjs
       - name: Publish measured bounds without relabeling incomplete as pass
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)

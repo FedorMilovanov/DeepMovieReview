@@ -33,7 +33,7 @@ export function FilmModuleRenderer({ module, context }: FilmModuleRendererProps)
   switch (module.kind) {
     case "story": return <StoryModuleView module={module} />;
     case "characters": return <CharactersModuleView module={module} context={context} />;
-    case "relationship": return <RelationshipModuleView module={module} />;
+    case "relationship": return <RelationshipModuleView module={module} context={context} />;
     case "family-youth": return <FamilyYouthModuleView module={module} />;
     case "meaning": return <MeaningModuleView module={module} />;
     case "teaching-signals": return <TeachingSignalsModuleView module={module} />;

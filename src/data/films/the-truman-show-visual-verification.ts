@@ -10,10 +10,11 @@
  *
  * Evidence basis
  * --------------
- * Every `frameTimeSeconds` below was read out of the exact viewing master
- * (SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575,
- * measured runtime 6177.792 s) from the derived evidence bundle described in
- * docs/47-FILM-001-VISUAL-VERIFICATION.md.
+ * This is the historical ledger of observations from the derived bundle described
+ * in docs/47. Its manifest names a master with SHA-256 E8543F6…B3B575, but the
+ * later review did not independently hash the absent master or listen to it.
+ * Older frame-grid labels are nominal, not verified source-frame PTS; subsequent
+ * clip observations and corrections are recorded in docs/63-FILM-001-CLIP-REVIEW.md.
  *
  * Verification statuses are deliberately conservative:
  *
@@ -36,9 +37,9 @@ export type TrumanVisualVerificationStatus =
   | "CONTRADICTED";
 
 export type TrumanObservedFrame = {
-  /** Master timestamp the observation is read from. */
+  /** Historical ledger timestamp; old grid frame PTS was not independently checked. */
   frameTimeSeconds: number;
-  /** What is actually visible / audible at that time. */
+  /** Ledger description, which may be based on an image or on a subtitle cue. */
   observation: string;
 };
 
@@ -110,10 +111,9 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
     status: "VISUAL_CONFIRMED",
     sceneId: "truman-sc-day-10909",
     frames: [
-      frame(210, "A studio lamp rig lies on the pavement; its housing is stencilled «SIRIUS (9 CANIS MAJOR)»."),
-      frame(230.943, "Radio explains the debris as aircraft parts."),
+      frame(210, "Grid file f_00008 shows a close-up of the lamp; «Sirius» is visible, but the rest of the label is obscured."),
     ],
-    note: "Both the physical prop marking and the cover story are master-grounded.",
+    note: "The grid time is nominal, not a verified master PTS. The cover story is a separate subtitle-track record, not a visual finding.",
   },
   {
     evidenceId: "truman-ev-radio",
@@ -268,14 +268,13 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   },
   {
     evidenceId: "truman-ev-marlon",
-    status: "VISUAL_CONFIRMED",
+    status: "TRANSCRIPT_CONFIRMED",
     sceneId: "truman-sc-father-and-son-reunion",
     frames: [
-      frame(3430, "Marlon at night on the bridge, close enough to read his face."),
-      frame(3464.272, "«The last thing I would ever do...»"),
-      frame(3469.903, "«...is lie to you.»"),
+      frame(3464.272, "Subtitle text: «The last thing I would ever do...»"),
+      frame(3469.903, "Subtitle text: «...is lie to you.»"),
     ],
-    note: "Staging and line are confirmed; the earpiece prompting remains a separate craft observation.",
+    note: "The words are recorded in subtitles; neither audio nor the speaker of the repetition was independently verified.",
   },
   {
     evidenceId: "truman-ev-reunion",
@@ -286,7 +285,7 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
       frame(3970, "Kirk, the returned father, in close-up."),
     ],
     note:
-      "Both halves of the compound record are now located in picture: the embrace at 3610 s sits in truman-sc-father-and-son-reunion, while the invented «amnesia» explanation and Kirk's re-presentation at 3880–3970 s sit here, 270 s later. The record must be split before promotion, but nothing about it is unverified.",
+      "Historical ledger: the original compound record put the embrace at 3610 s and the later «amnesia» explanation in this scene. A subsequent check of separate clip frames places the embrace by the bridge at approximately 3591 s and on a monitor around 3611 s. The original record was split; the clip offsets come from its manifest and the master PTS was not independently checked.",
   },
   {
     evidenceId: "truman-ev-escape",
@@ -479,6 +478,13 @@ export const trumanVisualVerificationSummary = {
  * as visual review of a prop, a gesture or a set.
  */
 export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
+  {
+    evidenceId: "truman-ev-light-explanation",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-day-10909",
+    frames: [frame(230.943, "Subtitle text describes falling aircraft parts; the audio was not reviewed.")],
+    note: "Split from the mixed light record: the subtitle cue does not verify the pictured lamp or identify the speaker.",
+  },
   {
     evidenceId: "truman-ev-manufactured-limits",
     status: "TRANSCRIPT_CONFIRMED",

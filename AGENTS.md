@@ -14,9 +14,9 @@ Before changing product behavior, data contracts or visual language, read:
 
 ## Current implementation phase
 
-Phase 1 — Film 001 vertical slice / canonical ingest.
+Phase 1 — Film 001 vertical slice / canonical analysis.
 
-The semantic shell, bounded visual R&D, adaptive experience layer and reusable FilmPackage renderer are hardened. Film 001 is **The Truman Show (1998)**. The exact viewing master is identified and measured; the immediate goal is to re-verify the scene/evidence graph against it, transition canonically to LOCKED only after that review, and author reviewed analytical modules without letting secondary sources or memory substitute for the finished film.
+Film 001 is **The Truman Show (1998)**, published in the registry with a LOCKED edition and an evidence graph. Review bases distinguish subtitle records, sampled frames, supplied clip frames and pending checks; the recorded master digest does not by itself establish a new complete viewing or audio review. Continue improving the analysis and its traceability without letting secondary sources or memory substitute for the film.
 
 ## Non-negotiable implementation boundaries
 
@@ -44,7 +44,7 @@ The semantic shell, bounded visual R&D, adaptive experience layer and reusable F
 - Spoilers are a data projection boundary. Filter nested protected content through `src/lib/film-module-projection.ts` before it enters the render tree. Real film data projected onto the homepage is spoiler-safe by default; do not bypass that projection for visual convenience.
 - `ExperienceQualityProvider` owns runtime quality, renderer backend, Lite/reduced-motion preferences and degradation. Do not create a second motion/capability state machine.
 - Motion owns DOM/layout animation; Three/R3F owns GPU/3D. Do not overlap animation ownership for the same element without an explicit architectural reason.
-- `fixture` content is structural test data, never a published moral, psychological or biblical judgment. `/labs/*` remains permanently `noindex`; public indexing requires the explicit launch flag, a published configured homepage feature **and preview content disabled**. Preview builds are never indexable. `noindex` is not access control: production fixture/draft film routes require `DMR_PREVIEW_CONTENT_ENABLED=true`, and a public prelaunch homepage must not project fixture/draft FilmPackage content.
+- `fixture` content is structural test data, never a published moral, psychological or biblical judgment. `/labs/*` remains permanently `noindex`; public indexing requires an indexing request, a published configured homepage feature **and preview content disabled**. On a real deployment host the request defaults to enabled unless explicitly overridden; preview deployments and preview-content builds remain non-indexable. `noindex` is not access control: production fixture/draft film routes require `DMR_PREVIEW_CONTENT_ENABLED=true`, and a public prelaunch homepage must not project fixture/draft FilmPackage content.
 - Preserve `Depiction ≠ Endorsement`, `Explanation ≠ Justification`, `Representation ≠ Prescription`, `Editorial ≠ Crowd`, and `Moral Severity ≠ Film Quality`.
 
 ## Quality gates

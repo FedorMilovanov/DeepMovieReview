@@ -8,6 +8,7 @@ import type {
   SourcesMethodModule,
 } from "@/lib/film-package";
 import { validateFilmArticle } from "./film-article-integrity";
+import { COMPARISON_DIMENSIONS } from "./film-package";
 import { canRevealSpoiler, type SpoilerLevel } from "./spoilers";
 
 const ROUTE_SAFE_FILM_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -139,6 +140,8 @@ export type FilmPackageValidationOptions = {
   resolveArticleMeasurement?: (ref: ArticleMeasurementRef) => boolean;
   /** Digit strings the master measured; prose may not retype them. */
   articleMeasuredValues?: string[];
+  /** Per-film dossier source resolver; avoids treating ideas as film evidence. */
+  resolveArticleContextSources?: (slug: string) => ReadonlySet<string> | undefined;
   /**
    * Looks up a declared illustration by asset id. The registry lives with the
    * image data, not in this schema module, so it is injected; without it an
@@ -587,7 +590,7 @@ export function validateFilmPackage(
             realFilm,
           );
 
-          const hasInterpretiveFields = [item.believes, item.selfDeception, item.arcSummary, item.roleInArgument]
+          const hasInterpretiveFields = [item.believes, item.selfDeception, item.arcSummary, item.roleInArgument, item.counterpoint]
             .some((value) => !isBlank(value));
           checkScopedSupport(
             item.interpretiveSupport,
@@ -595,6 +598,13 @@ export function validateFilmPackage(
             interpretiveLevel,
             realFilm && hasInterpretiveFields,
           );
+
+          if (item.visual) {
+            const visual = options.resolveIllustration?.(item.visual.assetId);
+            if (!visual || visual.role !== "illustration" || visual.sourceKind !== "generated" || isBlank(visual.alt) || isBlank(item.visual.caption) || !/не кадр/i.test(item.visual.caption)) {
+              errors.push(`${filmModule.id}/${item.id}: character visual requires a registered generated illustration with alt and a caption that says it is not a frame.`);
+            }
+          }
 
           if (filmPackage.ingest?.edition?.state === "LOCKED") {
             const required = [
@@ -667,6 +677,9 @@ export function validateFilmPackage(
         break;
       case "meaning":
         checkScopedSupport(filmModule.support, filmModule.id, filmModule.spoilerLevel, realFilm);
+        if (filmModule.additionalReading) {
+          checkScopedSupport(filmModule.additionalReading.support, `${filmModule.id}/additional-reading`, filmModule.additionalReading.spoilerLevel, realFilm);
+        }
         break;
       case "teaching-signals":
         for (const item of filmModule.signals) checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, realFilm);
@@ -859,6 +872,53 @@ export function validateFilmPackage(
     }
   }
 
+  const comparison = filmPackage.comparison;
+  if (comparison) {
+    const path = `comparison/${comparison.id}`;
+    if (!ROUTE_SAFE_FILM_SLUG.test(comparison.id) || isBlank(comparison.heading) ||
+        isBlank(comparison.introduction) || isBlank(comparison.limitation)) {
+      errors.push(`${path}: a route-safe id, heading, introduction and limitation are required.`);
+    }
+    if (comparison.sides.length < 2) errors.push(`${path}: at least two sides are required.`);
+    for (const id of duplicateIds(comparison.sides.map(side => side.id))) errors.push(`${path}: duplicate side "${id}".`);
+    for (const id of duplicateIds(comparison.sources.map(source => source.id))) errors.push(`${path}: duplicate source "${id}".`);
+    const comparisonSources = new Set(comparison.sources.map(source => source.id));
+    const usedComparisonSources = new Set<string>();
+    for (const source of comparison.sources) {
+      if (isBlank(source.label) || isBlank(source.scope) || !source.url.startsWith("https://") || !isSafeSourceHref(source.url)) {
+        errors.push(`${path}/source/${source.id}: label, scope and an absolute HTTPS URL are required.`);
+      }
+    }
+    for (const side of comparison.sides) {
+      const sidePath = `${path}/${side.id}`;
+      if (!ROUTE_SAFE_FILM_SLUG.test(side.id) || isBlank(side.name) || isBlank(side.context)) errors.push(`${sidePath}: id, name and context are required.`);
+      if (side.kind === "FICTIONAL" && (!side.characterId || !characterIds.has(side.characterId))) {
+        errors.push(`${sidePath}: fictional sides must resolve to a canonical character.`);
+      }
+      if (side.kind === "HISTORICAL" && side.characterId) errors.push(`${sidePath}: historical people are not film characters.`);
+      for (const dimension of COMPARISON_DIMENSIONS) {
+        const cell = side.cells[dimension];
+        if (!cell || isBlank(cell.text)) { errors.push(`${sidePath}/${dimension}: a substantive reading is required.`); continue; }
+        if (side.kind === "FICTIONAL" && !(cell.evidenceIds?.length)) errors.push(`${sidePath}/${dimension}: film evidence is required.`);
+        if (side.kind === "HISTORICAL" && !(cell.sourceIds?.length)) errors.push(`${sidePath}/${dimension}: historical sources are required.`);
+        for (const id of cell.evidenceIds ?? []) {
+          const record = evidenceById.get(id);
+          if (!record) errors.push(`${sidePath}/${dimension}: unknown evidence "${id}".`);
+          else if (!canRevealSpoiler(comparison.spoilerLevel, record.spoilerLevel)) {
+            errors.push(`${sidePath}/${dimension}: evidence "${id}" exceeds the comparison spoiler level.`);
+          }
+        }
+        for (const id of cell.sourceIds ?? []) {
+          usedComparisonSources.add(id);
+          if (!comparisonSources.has(id)) errors.push(`${sidePath}/${dimension}: unknown historical source "${id}".`);
+        }
+      }
+    }
+    for (const source of comparison.sources) {
+      if (!usedComparisonSources.has(source.id)) errors.push(`${path}/source/${source.id}: source is not cited.`);
+    }
+  }
+
   errors.push(
     ...validateFilmArticle(filmPackage.article, {
       evidenceById,
@@ -869,6 +929,7 @@ export function validateFilmPackage(
       editorialRevision: sourcesModules[0]?.editorialRevision,
       resolveMeasurement: options.resolveArticleMeasurement,
       measuredValues: options.articleMeasuredValues,
+      contextSourceIds: options.resolveArticleContextSources?.(filmPackage.film.slug),
       moduleLevels: new Map(filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.spoilerLevel])),
       // Illustrations are declared once, in their own registry: the package only
       // points at them by id, so a picture can never be invented inline.

@@ -1,4 +1,4 @@
-﻿import type { NarrativePermissionState } from "@/lib/content";
+import type { NarrativePermissionState } from "@/lib/content";
 import type {
   ArcCredibility,
   CharacterPresentation,
@@ -164,6 +164,13 @@ export const arcCredibilityLabels: Record<ArcCredibility, string> = {
   LOW: "не убедительна",
 };
 
+/** Strength is not certainty: use a different vocabulary for the two. */
+export const pressureStrengthLabels: Record<Confidence, string> = {
+  HIGH: "сильное",
+  MEDIUM: "умеренное",
+  LOW: "слабое",
+};
+
 export const pressureKindLabels = {
   EMPATHY: "эмпатическое",
   IMITATION: "имитационное",
@@ -189,13 +196,14 @@ export const researchSourceRoleLabels: Record<ResearchSourceRole, string> = {
  * card and an article note cannot describe the same basis differently.
  */
 export const evidenceBasisMaterialLabels: Record<EvidenceReviewBasis["material"], string> = {
-  frames: "кадры мастера",
+  frames: "отдельные кадры",
+  "clip-frames": "кадры предоставленного фрагмента",
   "subtitle-track": "встроенные субтитры",
 };
 
 export const evidenceBasisOutcomeLabels: Record<EvidenceReviewBasis["outcome"], string> = {
   seen: "наблюдение подтверждено",
-  heard: "подтверждено по репликам",
+  subtitle: "подтверждено по тексту субтитров",
   refused: "запись не подтвердилась",
   pending: "на этом таймкоде проверка не записана",
 };

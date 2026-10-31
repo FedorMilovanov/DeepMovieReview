@@ -23,7 +23,7 @@
  *                threshold and read as one continuous stretch. Every claim built
  *                on this data must say "detected transition", never "shot".
  *   hold         interval between two consecutive detected transitions.
- *   cue          one embedded English SubRip cue.
+ *   cue          one cue from the selected subtitle track (as recorded by ffprobe).
  *   cue start    a cue belongs to a window when its start lies in
  *                [from, to). Cues that straddle a boundary are not counted.
  *   silence      interval between the end of one cue and the start of the next.
@@ -61,7 +61,8 @@ if (!bundleDir) fail("--bundle <dir> is required (the directory make-evidence-bu
 
 const outFile = arg("out");
 const top = Number(arg("top", "6"));
-const threshold = Number(arg("scene", "0.32"));
+if (!Number.isInteger(top) || top < 1) fail("--top must be a positive integer");
+const requestedThreshold = arg("scene");
 
 const round = (value, digits) => {
   const factor = 10 ** digits;
@@ -83,14 +84,14 @@ function readCuts(file) {
   const text = readFileSync(file, "utf8").replace(/^\uFEFF/, "");
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
   const header = lines.shift()?.toLowerCase() ?? "";
-  if (!header.startsWith("time_s")) fail("04-cuts.csv must start with a time_s header row");
+  if (!/^time_s\s*,\s*score\s*$/.test(header)) fail("04-cuts.csv must start with a time_s,score header row");
   const cuts = [];
   for (const line of lines) {
-    const [rawTime, rawScore] = line.split(",");
+    const [rawTime, rawScore, ...extra] = line.split(",");
     const time = Number(rawTime);
     const score = Number(rawScore);
-    if (!Number.isFinite(time) || time < 0) fail(`bad cut timestamp "${line}"`);
-    cuts.push({ time, score: Number.isFinite(score) ? score : null });
+    if (!rawTime?.trim() || !Number.isFinite(time) || time < 0 || !rawScore?.trim() || !Number.isFinite(score) || score < 0 || score > 1 || extra.length) fail(`bad cut row "${line}"`);
+    cuts.push({ time, score });
   }
   cuts.sort((a, b) => a.time - b.time);
   return cuts;
@@ -117,7 +118,9 @@ function readRuntimeSeconds(manifestFile) {
   const text = readFileSync(manifestFile, "utf8");
   const match = text.match(/^duration_seconds:\s*([0-9.]+)\s*$/m);
   if (!match) fail("00-manifest.txt has no duration_seconds line");
-  return Number(match[1]);
+  const duration = Number(match[1]);
+  if (!Number.isFinite(duration) || duration <= 0) fail("duration_seconds must be positive");
+  return duration;
 }
 
 function readMasterDigest(manifestFile) {
@@ -139,6 +142,38 @@ const NAMED_WINDOWS = [
 const cutsPath = path.join(bundleDir, "04-cuts.csv");
 const cuesPath = path.join(bundleDir, "03-subs-en.srt");
 const manifestPath = path.join(bundleDir, "00-manifest.txt");
+const probePath = path.join(bundleDir, "01-probe.json");
+const manifest = readFileSync(manifestPath, "utf8");
+const manifestValue = (key) => manifest.match(new RegExp(`^${key}:\\s*(.*?)\\s*$`, "m"))?.[1];
+const recordedThreshold = Number(manifestValue("scene_threshold"));
+if (!manifestValue("scene_threshold") || !Number.isFinite(recordedThreshold) || recordedThreshold < 0 || recordedThreshold > 1) {
+  fail("00-manifest.txt must record a valid scene_threshold between 0 and 1");
+}
+const threshold = requestedThreshold === undefined ? recordedThreshold : Number(requestedThreshold);
+if (!Number.isFinite(threshold) || threshold !== recordedThreshold) {
+  fail(`--scene ${requestedThreshold} does not match the bundle scan threshold ${recordedThreshold}; re-scan the master at the requested threshold`);
+}
+if (manifestValue("scene_scan_status") && manifestValue("scene_scan_status") !== "complete") {
+  fail(`scene scan was ${manifestValue("scene_scan_status")}; produce a complete scan before measuring`);
+}
+if (manifestValue("subtitle_extraction_status") && manifestValue("subtitle_extraction_status") !== "complete") {
+  fail("subtitle extraction was not complete; choose a valid subtitle map and regenerate the bundle");
+}
+let probe;
+try { probe = JSON.parse(readFileSync(probePath, "utf8")); }
+catch { fail("01-probe.json is missing or unreadable; cannot establish the selected subtitle track"); }
+const subtitleMap = manifestValue("subtitle_map") ?? "";
+const relative = subtitleMap.match(/^0:s:(\d+)$/);
+const absolute = subtitleMap.match(/^0:(\d+)$/);
+const subtitleStreams = (probe.streams ?? []).filter(stream => stream.codec_type === "subtitle");
+const subtitle = relative ? subtitleStreams[Number(relative[1])] : absolute
+  ? subtitleStreams.find(stream => stream.index === Number(absolute[1])) : undefined;
+if (!subtitle || !Number.isInteger(subtitle.index)) fail(`subtitle_map "${subtitleMap}" does not resolve to a subtitle stream in 01-probe.json`);
+const language = subtitle.tags?.language;
+const codec = subtitle.codec_name === "subrip" ? "SubRip" : (subtitle.codec_name ?? "unknown codec");
+const subtitleTrack = language === "eng" && subtitle.codec_name === "subrip"
+  ? `Embedded English SubRip (stream ${subtitle.index})`
+  : `Embedded ${language || "language unspecified"} ${codec} (stream ${subtitle.index})`;
 
 const cuts = readCuts(cutsPath);
 const cues = readCues(cuesPath);
@@ -183,7 +218,7 @@ const report = {
     sceneScoreThreshold: threshold,
     cutsCsvSha256: digest(cutsPath),
     subtitleSrtSha256: digest(cuesPath),
-    subtitleTrack: "Embedded English SubRip (stream 8)",
+    subtitleTrack,
   },
   method: {
     transition: "ffmpeg scene score above threshold on the native-resolution stream; written by make-evidence-bundle.mjs",
@@ -195,9 +230,9 @@ const report = {
   totals: {
     detectedTransitions: cuts.length,
     subtitleCues: cues.length,
-    meanSecondsBetweenTransitions: round(runtimeSeconds / cuts.length, 2),
-    firstTransitionSeconds: round(cuts[0]?.time ?? 0, 3),
-    lastTransitionSeconds: round(cuts.at(-1)?.time ?? 0, 3),
+    meanSecondsBetweenTransitions: cuts.length ? round(runtimeSeconds / cuts.length, 2) : null,
+    firstTransitionSeconds: cuts.length ? round(cuts[0].time, 3) : null,
+    lastTransitionSeconds: cuts.length ? round(cuts.at(-1).time, 3) : null,
     lastCueEndSeconds: round(cues.at(-1)?.to ?? 0, 3),
     tailAfterLastCueSeconds: round(runtimeSeconds - (cues.at(-1)?.to ?? 0), 3),
   },
@@ -210,7 +245,7 @@ const report = {
     .slice()
     .sort((a, b) => b.durationSeconds - a.durationSeconds)
     .slice(0, top),
-  windows: NAMED_WINDOWS.map((window) => ({
+  windows: NAMED_WINDOWS.filter((window) => window.to <= runtimeSeconds).map((window) => ({
     id: window.id,
     label: window.key,
     from: window.from,

@@ -1,0 +1,103 @@
+{
+  "environment": {
+    "browser": "Chromium 153.0.8010.0",
+    "playwrightCore": "1.64.1",
+    "sameDependenciesAndBrowser": true
+  },
+  "baselineCommit": "0187a678f3b8f6354441a45d8cd1e920eda0d767",
+  "auditedCommit": "8f72e9a3e89844687fa6912744ab0275f53e0b1d",
+  "before": [
+    {
+      "name": "control-color",
+      "expected": false,
+      "actual": false,
+      "initialMinimum": null,
+      "finalMinimum": 1.1602304710270739,
+      "threshold": 4.5,
+      "maskEscalations": 0
+    },
+    {
+      "name": "own-solid-gradient",
+      "expected": false,
+      "actual": false,
+      "initialMinimum": null,
+      "finalMinimum": 1.1602304710270739,
+      "threshold": 4.5,
+      "maskEscalations": 0
+    },
+    {
+      "name": "own-white-gradient",
+      "expected": false,
+      "actual": false,
+      "initialMinimum": null,
+      "finalMinimum": 1,
+      "threshold": 4.5,
+      "maskEscalations": 0
+    },
+    {
+      "name": "parent-gradient",
+      "expected": false,
+      "actual": false,
+      "initialMinimum": null,
+      "finalMinimum": 1.1602304710270739,
+      "threshold": 4.5,
+      "maskEscalations": 0
+    },
+    {
+      "name": "high-contrast",
+      "expected": true,
+      "actual": true,
+      "initialMinimum": null,
+      "finalMinimum": 21,
+      "threshold": 4.5,
+      "maskEscalations": 0
+    }
+  ],
+  "after": [
+    {
+      "name": "control-color",
+      "expected": false,
+      "actual": false,
+      "initialMinimum": 1.1602304710270739,
+      "finalMinimum": 1.1602304710270739,
+      "threshold": 4.5,
+      "maskEscalations": 0
+    },
+    {
+      "name": "own-solid-gradient",
+      "expected": false,
+      "actual": true,
+      "initialMinimum": 1.1602304710270739,
+      "finalMinimum": 21,
+      "threshold": 4.5,
+      "maskEscalations": 0
+    },
+    {
+      "name": "own-white-gradient",
+      "expected": false,
+      "actual": true,
+      "initialMinimum": null,
+      "finalMinimum": 21,
+      "threshold": 4.5,
+      "maskEscalations": 1
+    },
+    {
+      "name": "parent-gradient",
+      "expected": false,
+      "actual": false,
+      "initialMinimum": 1.1602304710270739,
+      "finalMinimum": 1.1602304710270739,
+      "threshold": 4.5,
+      "maskEscalations": 0
+    },
+    {
+      "name": "high-contrast",
+      "expected": true,
+      "actual": true,
+      "initialMinimum": null,
+      "finalMinimum": 21,
+      "threshold": 4.5,
+      "maskEscalations": 0
+    }
+  ]
+}

@@ -119,6 +119,8 @@ export type ArticleIntegrityContext = {
   resolveMeasurement?: (ref: ArticleMeasurementRef) => boolean;
   /** Spoiler level of every module in the package, keyed by module id. */
   moduleLevels?: Map<string, SpoilerLevel>;
+  /** Historical/idea sources are distinct from canonical film evidence. */
+  contextSourceIds?: ReadonlySet<string>;
   /**
    * Digit strings the master measured (1019, 6177.792, 124.75 …). Prose may not
    * contain any of them: measured numbers are rendered from the dataset so they
@@ -263,6 +265,15 @@ function checkBlock(
   context: ArticleIntegrityContext,
   errors: string[],
 ) {
+  if (block.kind === "paragraph" && block.contextSourceIds?.length) {
+    if (!context.contextSourceIds) errors.push(`${path}: context source registry is required.`);
+    for (const id of duplicates(block.contextSourceIds)) errors.push(`${path}: duplicate context source id "${id}".`);
+    for (const id of block.contextSourceIds) {
+      if (!id.trim()) errors.push(`${path}: context source id must not be blank.`);
+      else if (context.contextSourceIds && !context.contextSourceIds.has(id)) errors.push(`${path}: unknown context source id "${id}".`);
+    }
+  }
+
   if (proseKinds.has(block.kind)) {
     checkProse(
       blockText(block),
@@ -341,7 +352,7 @@ function checkBlock(
           const frame = item.still;
           if (context.edition?.state !== "LOCKED" || frame.sourceId !== context.edition.sourceId ||
               String(frame.masterDigest).toLowerCase() !== context.edition.masterDigest?.toLowerCase()) {
-            errors.push(`${itemPath}: still must belong to the locked master.`);
+            errors.push(`${itemPath}: still must reference the locked edition metadata.`);
           }
           if (!/^\/film-stills\/[a-z0-9-]+\.jpg$/.test(frame.src) || !/^[a-f0-9]{64}$/.test(frame.imageSha256) ||
               frame.avifSrc !== frame.src.replace(/\.jpg$/, ".avif") || !/^[a-f0-9]{64}$/.test(frame.avifSha256)) {
@@ -350,12 +361,30 @@ function checkBlock(
           if (!Number.isFinite(frame.sampleTimeSeconds) || !scene || scene.endTimestampSeconds === undefined ||
               frame.sampleTimeSeconds - 15 < scene.startTimestampSeconds || frame.sampleTimeSeconds + 15 > scene.endTimestampSeconds ||
               Math.abs(frame.sampleTimeSeconds - item.timestampSeconds) > 15) {
-            errors.push(`${itemPath}: still must show the cited scene near its anchor; disclose its nominal grid time.`);
+            errors.push(`${itemPath}: still must show the cited scene near its anchor; disclose its approximate time.`);
           }
           if (!Number.isInteger(frame.width) || !Number.isInteger(frame.height) || frame.width < 1 ||
-              frame.height < 1 || frame.samplingIntervalSeconds !== 30 || frame.sampleTimeSeconds % 30 !== 0 || frame.width > 1280 || frame.height > 720 ||
-              isBlank(frame.alt) || isBlank(frame.credit) || frame.use !== "critical-review") {
-            errors.push(`${itemPath}: still needs bounded dimensions, alt, credit, declared 30s sampling and critical-review use.`);
+              frame.height < 1 || frame.width > 1280 || frame.height > 720 ||
+              isBlank(frame.alt) || isBlank(frame.caption) || isBlank(frame.credit) || frame.use !== "critical-review") {
+            errors.push(`${itemPath}: still needs bounded dimensions, alt, caption, credit and critical-review use.`);
+          }
+          if (frame.samplingKind === "grid") {
+            if (frame.samplingIntervalSeconds !== 30 || frame.sampleTimeSeconds % 30 !== 0 || frame.clip !== undefined) {
+              errors.push(`${itemPath}: grid still needs declared 30s sampling and a nominal grid time.`);
+            }
+          } else if (frame.samplingKind === "clip") {
+            const clip = frame.clip;
+            if (!clip || frame.samplingIntervalSeconds !== undefined ||
+                !/^[a-z0-9-]+\.mp4$/.test(clip.file) || !/^[a-f0-9]{64}$/.test(clip.sha256) ||
+                !Number.isFinite(clip.sourceStartSeconds) || clip.sourceStartSeconds < 0 ||
+                !Number.isFinite(clip.sourceEndSeconds) || clip.sourceEndSeconds <= clip.sourceStartSeconds ||
+                !Number.isFinite(clip.offsetSeconds) || clip.offsetSeconds < 0 ||
+                clip.sourceStartSeconds + clip.offsetSeconds >= clip.sourceEndSeconds ||
+                Math.abs(frame.sampleTimeSeconds - (clip.sourceStartSeconds + clip.offsetSeconds)) > 0.001) {
+              errors.push(`${itemPath}: clip still needs a file, SHA-256, valid manifest range and matching approximate offset.`);
+            }
+          } else {
+            errors.push(`${itemPath}: still needs a declared sampling kind.`);
           }
         }
         if (context.realFilm && !canRevealSpoiler(sectionLevel, evidence.spoilerLevel)) {

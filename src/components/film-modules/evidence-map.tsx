@@ -63,6 +63,7 @@ function collectModuleSupports(module: FilmModule): SupportEntry[] {
       break;
     case "meaning":
       addSupport(entries, `${module.id}-meaning`, module.apparentClaim, module.support);
+      if (module.additionalReading) addSupport(entries, `${module.id}-additional`, "После просмотра: зрелище и освобождение", module.additionalReading.support);
       break;
     case "teaching-signals":
       for (const signal of module.signals) addSupport(entries, `${module.id}-${signal.id}`, signal.subject, signal.support);
@@ -183,10 +184,15 @@ export function FilmEvidenceMap({
   spoilerLevel,
 }: FilmEvidenceMapProps) {
   const entries = modules.flatMap(collectModuleSupports);
-  if (entries.length === 0) return null;
+  const registerRecords = evidence.filter((record) =>
+    canRevealSpoiler(spoilerLevel, record.spoilerLevel),
+  );
+  if (entries.length === 0 && registerRecords.length === 0) return null;
 
-  const evidenceById = new Map(evidence.map((record) => [record.id, record]));
-  const scenesById = new Map(scenes.map((scene) => [scene.id, scene]));
+  const evidenceById = new Map(registerRecords.map((record) => [record.id, record]));
+  const scenesById = new Map(scenes
+    .filter((scene) => canRevealSpoiler(spoilerLevel, scene.spoilerLevel))
+    .map((scene) => [scene.id, scene]));
   const sourcesById = new Map(sources.map((source) => [source.id, source]));
 
   // One card per claim–record link, one record per check. A tally over the linked
@@ -199,18 +205,13 @@ export function FilmEvidenceMap({
       links += 1;
     }
   }
-  // The tally describes the whole ledger; the register below cannot. A record whose
-  // own label names the ending is a spoiler even when it is a fact about a check, so
-  // the list is projected by level and says how much of it the reader is not seeing.
-  const registerRecords = evidence.filter((record) =>
-    canRevealSpoiler(spoilerLevel, record.spoilerLevel),
-  );
+  // The register and its tally describe only records visible at this level.
+  // Counts of hidden entries are reported separately, without their labels or basis.
   const hiddenRecordCount = evidence.length - registerRecords.length;
-
-  const tally = tallyReviewBasis(evidence);
+  const tally = tallyReviewBasis(registerRecords);
   const tallyParts = [
     tally.seen > 0 ? `${tally.seen} ${pluralRu(tally.seen, "проверена", "проверены", "проверено")} по кадрам` : undefined,
-    tally.heard > 0 ? `${tally.heard} ${pluralRu(tally.heard, "подтверждена", "подтверждены", "подтверждено")} по репликам` : undefined,
+    tally.subtitle > 0 ? `${tally.subtitle} ${pluralRu(tally.subtitle, "подтверждена", "подтверждены", "подтверждено")} по тексту субтитров` : undefined,
     tally.refused > 0 ? `${tally.refused} ${pluralRu(tally.refused, "не подтвердилась", "не подтвердились", "не подтвердилось")}` : undefined,
     tally.pending > 0 ? `${tally.pending} ${pluralRu(tally.pending, "ждёт проверки", "ждут проверки", "ждут проверки")}` : undefined,
     tally.unrecorded > 0 ? `${tally.unrecorded} без записи в журнале` : undefined,
@@ -226,10 +227,10 @@ export function FilmEvidenceMap({
       <p className="sectionIntro">
         {researchDraft
           ? "Это исследовательский черновик: опоры собраны по вторичным источникам, сцены и таймкоды предварительные. После блокировки точного мастера каждое утверждение должно быть заново воспроизведено и привязано к проверенной сцене."
-          : "Каждое видимое утверждение можно проследить до записи доказательства, сцены, таймкода и источника."}
+          : "Тезисы с привязками можно проследить до записей, сцен и источников. Наличие ссылки само по себе не проверяет каждое слово суждения."}
       </p>
       <p className="evidenceMapTally">
-        {tally.records} {pluralRu(tally.records, "запись", "записи", "записей")} в реестре:{" "}
+        {tally.records} {pluralRu(tally.records, "запись видна", "записи видны", "записей видно")} в реестре:{" "}
         {tallyParts.join(", ")}. {entries.length} {pluralRu(entries.length, "тезис", "тезиса", "тезисов")}{" "}
         ссылаются на {links} {pluralRu(links, "опору", "опоры", "опор")} — это {linkedIds.size}{" "}
         {pluralRu(linkedIds.size, "запись", "записи", "записей")}, потому что одна проверка может
@@ -313,10 +314,12 @@ function EvidenceRegister({
     <div className="evidenceRegister">
       <h3 id="evidence-register-title">Реестр проверок</h3>
       <p className="evidenceRegisterIntro">
-        Все {ordered.length} записей по ходу фильма. «Основа» — то, чем проверяли: кадры мастера или
-        встроенные субтитры; «итог» — что показала проверка.
+        {ordered.length} видимых записей по ходу фильма. «Основа» показывает материал проверки — отдельные кадры,
+        кадры предоставленного фрагмента или субтитры — либо отмечает, что он не записан. Выборочные наблюдения
+        не заменяют непрерывный просмотр со звуком.
       </p>
-      <div className="evidenceRegisterWrap">
+      <p className="microLabel">На узком экране таблицу можно прокрутить по горизонтали.</p>
+      <div className="evidenceRegisterWrap" role="region" aria-label="Реестр проверок, горизонтальная прокрутка" tabIndex={0}>
         <table aria-labelledby="evidence-register-title">
           <caption className="visuallyHidden">
             Реестр проверок: таймкод, сцена, запись, материал и итог проверки
@@ -346,9 +349,16 @@ function EvidenceRegister({
                   <td className="evidenceRegisterTime">
                     {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}
                   </td>
-                  <td>{scene ? scene.shortLabel : "—"}</td>
+                  <td>{scene ? <a href={`#scene-${scene.id}`}>{scene.shortLabel}</a> : "—"}</td>
                   <th scope="row">{record.label}</th>
-                  <td>{record.basis ? evidenceBasisMaterialLabels[record.basis.material] : "не записана"}</td>
+                  <td>
+                    {record.basis ? (
+                      <details className="evidenceRegisterBasis">
+                        <summary>{evidenceBasisMaterialLabels[record.basis.material]}</summary>
+                        <EvidenceBasisLine basis={record.basis} />
+                      </details>
+                    ) : "не записана"}
+                  </td>
                   <td>
                     {record.basis ? evidenceBasisOutcomeLabels[record.basis.outcome] : "нет записи в журнале"}
                     {record.basis?.refusedAncestor ? " · переписана после отказа" : ""}

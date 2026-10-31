@@ -5,6 +5,7 @@ import { FilmMediaFrame } from "@/components/film-media-frame";
 import { FilmTransitionLink } from "@/components/film-transition-link";
 import { filterFilmIndex, type FilmIndexSearchEntry } from "@/lib/film-index";
 import { pluralRu } from "@/lib/plural-ru";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export type FilmIndexEntry = FilmIndexSearchEntry & {
   slug: string;
@@ -18,6 +19,7 @@ export type FilmIndexEntry = FilmIndexSearchEntry & {
  */
 export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
   const [query, setQuery] = useState("");
+  const hydrated = useHydrated();
   const visible = useMemo(() => filterFilmIndex(films, query), [films, query]);
 
   return (
@@ -27,11 +29,14 @@ export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
         <input
           id="film-filter"
           type="search"
+          disabled={!hydrated}
+          aria-describedby={!hydrated ? "film-filter-unavailable" : undefined}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Название, год, статус…"
           autoComplete="off"
         />
+        {!hydrated ? <p id="film-filter-unavailable">Поиск доступен после загрузки скриптов; полный список ниже.</p> : null}
       </div>
       <p className="filmFilterCount" aria-live="polite">
         Показано {visible.length} из {films.length}

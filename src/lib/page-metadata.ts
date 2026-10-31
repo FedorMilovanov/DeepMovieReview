@@ -198,7 +198,7 @@ export function describeFilmPackage(filmPackage: FilmPackage): string {
   const { film } = filmPackage;
   if (film.status === "published") return `${film.title} (${film.year}) — ${film.premise}`;
   if (filmPackage.ingest?.edition.state === "LOCKED") {
-    return `${film.title} — канонический разбор, привязанный к точному просмотренному мастеру (${film.year}); публикация ещё не открыта.`;
+    return `${film.title} (${film.year}) — черновик с изданием LOCKED в реестре; публикация ещё не открыта, материал проверки указан отдельно.`;
   }
   if (filmPackage.research?.state === "SECONDARY_SOURCES") {
     return `${film.title} — исследовательский черновик по вторичным источникам; точный просмотренный мастер ещё не заблокирован.`;

@@ -11,16 +11,10 @@ export const homepageFeaturedFilmSlug = "the-truman-show";
  * explicitly opt into preview content.
  */
 /**
- * Publication of frames of the film.
- *
- * Four stills, 800×450, at a 30-second grid, each carrying its second, the master
- * digest and a SHA-256 of the file: a quotation for a critical reading, not a
- * redistribution of the film. The edition is published and the owner asked for the
- * frames, so they are served. The switch stays here, not in a comment, because the
- * decision is reversible in one line and because a build that cannot serve them must
- * drop the pictures rather than ship broken images.
- *
- * The credit line travels with each still and says whose rights these are.
+ * The editor has chosen to show selected low-resolution frames in the analysis.
+ * Their supplied grid/clip metadata and credits do not establish rights clearance
+ * or independently prove their origin from the absent master. The switch is
+ * reversible; a build with it off must also disable the preview-content bypass.
  */
 export const publishedFilmStillsEnabled = true;
 

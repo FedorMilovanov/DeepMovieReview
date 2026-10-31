@@ -99,3 +99,35 @@
   display: none;
 }
 
+
+/* Native disclosure is the usable server/failed-hydration menu. */
+.siteMenuFallback { display: none; }
+@media (max-width: 720px) {
+  .siteMenuFallback { display: block; }
+  .siteMenuFallback summary {
+    min-height: 44px;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--stroke-default);
+    color: var(--ink-1);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+  }
+  .siteMenuFallback nav {
+    position: absolute;
+    inset: 100% 0 auto;
+    display: grid;
+    background: var(--surface-canvas);
+    border-bottom: 1px solid var(--stroke-default);
+  }
+  .siteMenuFallback nav a {
+    min-height: 52px;
+    padding: 0.9rem var(--gutter);
+    border-top: 1px solid var(--stroke-subtle);
+  }
+  .siteMenuFallback summary:focus-visible {
+    outline: 2px solid var(--focus-color);
+    outline-offset: 2px;
+  }
+}

@@ -17,6 +17,8 @@ import { readStylesheet, listStyles } from "./lib/style-sources.mjs";
  */
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { extractJsonLd, normaliseSpace, stripScripts, stripTags } from "./lib/html-scan.mjs";
+import { measureHtmlSize } from "./lib/html-size.mjs";
+import { checkPageCanonical, checkPageIndexability } from "./lib/page-indexability.mjs";
 
 const args = process.argv.slice(2);
 const baseIndex = args.indexOf("--base");
@@ -462,6 +464,28 @@ if (base) {
   // contains its own closing tokens, and a regex here is both slower and easier
   // to get subtly wrong on edge cases such as an unclosed tag.
   const doc = stripScripts(articleHtml);
+  let robots = "";
+  let sitemap = "";
+  let indexFetchError = "";
+  try {
+    [robots, sitemap] = await Promise.all([fetchPage("/robots.txt"), fetchPage("/sitemap.xml")]);
+  } catch (error) {
+    indexFetchError = error.message;
+  }
+  // A route's metadata can override and silently drop the layout's noindex.
+  // Check each public film surface, not just the article, against the served
+  // policy. Keep individual fetch failures in the corresponding check.
+  const [filmIndexPage, makingIndexPage] = await Promise.all(
+    [filmPath, `${filmPath}/making`].map(async (path) => {
+      try {
+        return { path, html: stripScripts(await fetchPage(path)) };
+      } catch (error) {
+        return { path, error: error.message };
+      }
+    }),
+  );
+  const indexability = (page) => indexFetchError || page.error ||
+    checkPageIndexability(page.html, robots, sitemap, page.path);
 
   check("SE", "SE01", "на странице ровно один h1", () => {
     const count = (doc.match(/<h1[\s>]/g) ?? []).length;
@@ -571,9 +595,12 @@ if (base) {
     return /\.jpe?g$/.test(image) || image;
   });
 
-  check("ME", "ME07", "черновик закрыт от индексации", () => {
-    return /name="robots" content="noindex, nofollow"/.test(doc);
+  check("ME", "ME07", "индексация статьи согласована с robots.txt и sitemap", () => {
+    return indexFetchError || checkPageIndexability(doc, robots, sitemap, "/films/the-truman-show/article");
   });
+
+  check("ME", "ME11", "индексация разбора согласована с robots.txt и sitemap", () => indexability(filmIndexPage));
+  check("ME", "ME12", "индексация досье согласована с robots.txt и sitemap", () => indexability(makingIndexPage));
 
   check("ME", "ME09", "у статьи есть размеченные хлебные крошки в разметке схемы", () => {
     // Scripts are stripped from `doc` on purpose, so the schema is read from the
@@ -619,13 +646,22 @@ if (base) {
     return /<nav[^>]*aria-label="Хлебные крошки"[^>]*>\s*<ol/.test(doc);
   });
 
-  check("ME", "ME08", "у черновика нет канонического адреса, который врёт", () => {
-    const canonical = /rel="canonical" href="([^"]*)"/.exec(doc)?.[1];
-    return !canonical || canonical.includes("/films/the-truman-show");
+  check("ME", "ME08", "canonical опубликованной статьи указывает именно на неё", () => {
+    return checkPageCanonical(doc, "/films/the-truman-show/article");
   });
 
-  check("PE", "PE01", "HTML статьи не тяжелее 300 КБ", () => {
-    return articleHtml.length <= 300 * 1024 || `${Math.round(articleHtml.length / 1024)} КБ`;
+  // Preserve the original string-size guard, but do not call UTF-16 code units
+  // bytes. Measure UTF-8 and a reproducible gzip estimate separately; the latter
+  // is not a real-device transfer or LCP measurement.
+  const htmlSize = measureHtmlSize(articleHtml);
+  check("PE", "PE01", "HTML статьи ≤ 300 Ки кодовых единиц UTF-16", () => {
+    return htmlSize.utf16CodeUnits <= 300 * 1024 || `${Math.round(htmlSize.utf16CodeUnits / 1024)} Ки единиц`;
+  });
+  check("PE", "PE06", "HTML статьи ≤ 450 КиБ в UTF-8", () => {
+    return htmlSize.utf8Bytes <= 450 * 1024 || `${Math.round(htmlSize.utf8Bytes / 1024)} КиБ`;
+  });
+  check("PE", "PE07", "HTML статьи ≤ 100 КиБ в gzip (расчёт)", () => {
+    return htmlSize.gzipBytes <= 100 * 1024 || `${Math.round(htmlSize.gzipBytes / 1024)} КиБ`;
   });
 
   check("PE", "PE02", "картинки статьи в сумме ≤ 2.5 МБ на первый экран", () => {
@@ -724,13 +760,12 @@ check("CR", "CR07", "ни один литеральный цвет не дубл
 });
 
 check("CR", "CR08", "загрузка объявлена там, где идёт стриминг, и есть состояния ошибки", () => {
-  // A `loading.tsx` at the app root wraps *every* route in Suspense — including
-  // the statically prerendered homepage, whose HTML then ships a skeleton and
-  // its real content in a hidden streamed template. Without scripting that is
-  // a blank page. Loading belongs to the segments that actually stream.
+  // Segment-level Suspense also strands film routes without client scripts.
+  // Pending link feedback replaces it while direct responses remain readable.
   return (
-    existsSync("src/app/films/loading.tsx") &&
-    existsSync("src/app/films/[slug]/loading.tsx") &&
+    !existsSync("src/app/films/loading.tsx") &&
+    !existsSync("src/app/films/[slug]/loading.tsx") &&
+    /useLinkStatus/.test(read("src/components/film-transition-link.tsx")) &&
     existsSync("src/app/error.tsx") &&
     existsSync("src/app/not-found.tsx") &&
     !existsSync("src/app/loading.tsx")

@@ -39,9 +39,10 @@ function packageStateLine(slug: string): { status: string; body: string } | unde
   const evidenceLabel = `${evidence} ${pluralRu(evidence, "опора", "опоры", "опор")}`;
   const locked = filmPackage.ingest?.edition?.state === "LOCKED";
   if (locked) {
+    const published = filmPackage.film.status === "published";
     return {
-      status: "мастер заблокирован · в превью",
-      body: `${scenesLabel} и ${evidenceLabel} сверены с точным просмотренным мастером. Публикация откроется отдельным решением редакции: карточка пока черновик, закрытый от индексации.`,
+      status: published ? "издание LOCKED · опубликовано" : "издание LOCKED · черновик",
+      body: `${scenesLabel} и ${evidenceLabel} привязаны к записанному изданию; материал и ограничения каждой проверки указаны в реестре. ${published ? "Индексация зависит от окружения." : "Карточка остаётся черновиком и не индексируется."}`,
     };
   }
   return {
@@ -233,7 +234,7 @@ function HeroStatusStrip({ preview }: { preview: boolean }) {
       <div role="listitem">
         <span className="heroStatusIndex">{preview ? "FILM 001" : "КОРПУС"}</span>
         <strong>{preview ? "«Шоу Трумана» · 1998" : "Материалы готовятся"}</strong>
-        <span>{preview ? "исследовательский черновик собран, кадровая сверка впереди" : "незавершённые разборы остаются в редакции"}</span>
+        <span>{preview ? "состояние издания и ограничения указаны ниже" : "незавершённые разборы остаются в редакции"}</span>
       </div>
       <div role="listitem">
         <span className="heroStatusIndex">МЕТОД</span>
@@ -460,8 +461,8 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           <div className="sectionIndex">06 / Доказательства</div>
           <h2 id="evidence-title">Тезисы привязаны к сценам.</h2>
           <p className="sectionIntro">
-            Каждое интерпретационное утверждение имеет опору: каноническая сцена, таймкод, характер действия. Спорное
-            место фиксируется как контрдоказательство, а не замалчивается.
+            Мы связываем тезисы с записями сцен и временем. В реестре указан материал проверки или отмечено,
+            что он не записан; спорное прочтение можно сопоставить с контрдоводом.
           </p>
         </div>
         <div className="evidenceBody">
@@ -560,8 +561,8 @@ function PlatformLanding({ preview }: { preview: boolean }) {
           <div className="sectionIndex">10 / Статус</div>
           <h2 id="discovery-title">Библиотека строится.</h2>
           <p className="sectionIntro">
-            Мы не показываем счётчики, которых нет. Каждая публикация проходит полный цикл: канонические сцены,
-            таблица доказательств, независимая проверка синтеза.
+            Мы показываем записи сцен, таблицу опор и статус проверки. Независимую сверку материала и вывода
+            нужно подтверждать отдельно, а не предполагать по наличию реестра.
           </p>
         </div>
         <div className="discoveryPanel">
@@ -596,7 +597,7 @@ function PlatformLanding({ preview }: { preview: boolean }) {
             <article className="discoveryCard">
               <span className="microLabel">Публичный корпус · предзапуск</span>
               <strong>Первый проверенный разбор готовится.</strong>
-              <p>Незавершённые фильмы, рабочие гипотезы и вторичные исследовательские записи не выходят на публичную поверхность до блокировки мастера и независимой проверки.</p>
+              <p>Незавершённые фильмы и рабочие гипотезы могут оставаться в предпросмотре; статус публикации и основания каждого разбора указаны отдельно.</p>
             </article>
           )}
           <div className="discoveryLinks">
@@ -894,7 +895,7 @@ function EditionEntry() {
         </Link>
       </div>
       <p className="heroPreviewNote">
-        Не опубликовано: мастер заблокирован, страница закрыта от индексации и открыта только в
+        Не опубликовано: издание отмечено LOCKED в реестре, страница закрыта от индексации и открыта только в
         режиме предпросмотра. Черновик не считается публикацией.
       </p>
     </section>

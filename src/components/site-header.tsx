@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const NAV_LINKS = [
   { href: "/films", label: "Фильмы" },
@@ -16,6 +17,7 @@ const NAV_LINKS = [
  */
 export function SiteHeader() {
   const pathname = usePathname();
+  const hydrated = useHydrated();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPathname, setMenuPathname] = useState(pathname);
@@ -87,7 +89,15 @@ export function SiteHeader() {
           </Link>
         ))}
       </nav>
-      <button
+      {!hydrated ? (
+        <details className="siteMenuFallback">
+          <summary>Меню</summary>
+          <nav aria-label="Меню">
+            {NAV_LINKS.map((link) => <Link key={link.href} href={link.href} {...linkProps(link.href)}>{link.label}</Link>)}
+          </nav>
+        </details>
+      ) : null}
+      {hydrated ? <button
         ref={menuButtonRef}
         type="button"
         className="menuButton"
@@ -96,7 +106,7 @@ export function SiteHeader() {
         onClick={() => setMenuOpen((value) => !value)}
       >
         {menuOpen ? "Закрыть" : "Меню"}
-      </button>
+      </button> : null}
       <nav
         id="site-menu"
         className="siteMenu"

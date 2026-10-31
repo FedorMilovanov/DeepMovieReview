@@ -11,13 +11,9 @@ type FilmSceneTableProps = {
 };
 
 /**
- * The measured spine of the film, on one screen.
- *
- * The site already knows every scene, every boundary and how many evidence
- * records stand inside each one; until this table existed, a reader had to
- * collect that from a dozen cards and could not see the shape of the film at
- * all. Nothing here is editorial: the state column is the record's own
- * verification state, and the counts are computed.
+ * The recorded scene index, not a claim to an exhaustive scene list or a
+ * verified boundary for the whole film. The state column comes from the scene
+ * record; evidence counts are computed after the reader's spoiler projection.
  */
 export function FilmSceneTable({
   scenes,
@@ -32,10 +28,12 @@ export function FilmSceneTable({
   if (visibleScenes.length === 0) return null;
   const hiddenScenes = scenes.length - visibleScenes.length;
 
-  const evidencePerScene = new Map<string, number>();
+  const evidencePerScene = new Map<string, EvidenceRecord[]>();
   for (const item of evidence) {
-    if (!item.sceneId) continue;
-    evidencePerScene.set(item.sceneId, (evidencePerScene.get(item.sceneId) ?? 0) + 1);
+    if (!item.sceneId || !canRevealSpoiler(spoilerLevel, item.spoilerLevel)) continue;
+    const records = evidencePerScene.get(item.sceneId) ?? [];
+    records.push(item);
+    evidencePerScene.set(item.sceneId, records);
   }
 
   const verified = visibleScenes.filter((scene) => scene.verificationState === "VERIFIED").length;
@@ -45,20 +43,21 @@ export function FilmSceneTable({
 
   return (
     <section className="sectionShell sectionRule filmSceneTable" aria-labelledby="film-scene-table-title">
-      <div className="sectionIndex">Фильм / Сцены {researchDraft ? "· черновик" : "· проверено"}</div>
-      <h2 id="film-scene-table-title">Все сцены с таймкодами и опорами.</h2>
+      <div className="sectionIndex">Фильм / Сцены {researchDraft ? "· черновик" : "· статус реестра"}</div>
+      <h2 id="film-scene-table-title">Сцены, таймкоды и опоры.</h2>
       <p className="sectionIntro">
-        {verified} из {visibleScenes.length} сцен проверены по залоченному мастеру; последняя колонка
-        считает записи доказательств внутри сцены. Числа печатаются из пакета, а не набираются
-        руками.
+        {verified} из {visibleScenes.length} сцен отмечены проверенными в реестре. Этот статус не означает
+        непрерывного просмотра со звуком: у опоры в реестре указан материал проверки или отмечено, что он не записан.
+        В последней колонке — видимые на выбранном уровне опоры; раскройте число, чтобы перейти к записи.
         {hiddenScenes > 0
           ? ` Ещё ${hiddenScenes} сцен скрыто до выбранного уровня спойлеров.`
           : ""}
       </p>
-      <div className="filmSceneTableWrap">
+      <p className="microLabel">На узком экране таблицу можно прокрутить по горизонтали.</p>
+      <div className="filmSceneTableWrap" role="region" aria-label="Таблица сцен, горизонтальная прокрутка" tabIndex={0}>
         <table>
           <caption className="visuallyHidden">
-            Сцены фильма: начало, длительность, состояние проверки и число опор
+            Сцены фильма: начало, название, состояние проверки и число опор
           </caption>
           <thead>
             <tr>
@@ -71,9 +70,9 @@ export function FilmSceneTable({
           </thead>
           <tbody>
             {ordered.map((scene) => {
-              const supports = evidencePerScene.get(scene.id) ?? 0;
+              const supports = evidencePerScene.get(scene.id) ?? [];
               return (
-                <tr key={scene.id}>
+                <tr key={scene.id} id={`scene-${scene.id}`}>
                   <td className="filmSceneIndex">{String(scene.sequenceIndex).padStart(2, "0")}</td>
                   <td className="filmSceneTime">{formatTimecode(scene.startTimestampSeconds)}</td>
                   <th scope="row">{scene.shortLabel}</th>
@@ -82,7 +81,18 @@ export function FilmSceneTable({
                       {scene.verificationState === "VERIFIED" ? "проверена" : "черновая"}
                     </span>
                   </td>
-                  <td className="filmSceneSupports">{supports > 0 ? supports : "—"}</td>
+                  <td className="filmSceneSupports">
+                    {supports.length ? (
+                      <details>
+                        <summary aria-label={`Опоры сцены «${scene.shortLabel}»: ${supports.length}`}>{supports.length}</summary>
+                        <ul>
+                          {supports.map((record) => (
+                            <li key={record.id}><a href={`#evidence-${record.id}`}>{record.label}</a></li>
+                          ))}
+                        </ul>
+                      </details>
+                    ) : "—"}
+                  </td>
                 </tr>
               );
             })}

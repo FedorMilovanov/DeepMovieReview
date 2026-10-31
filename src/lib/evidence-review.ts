@@ -21,12 +21,12 @@ const MATERIAL: Record<LedgerEntryLike["status"], EvidenceReviewBasis["material"
 
 const OUTCOME: Record<LedgerEntryLike["status"], EvidenceReviewBasis["outcome"]> = {
   VISUAL_CONFIRMED: "seen",
-  TRANSCRIPT_CONFIRMED: "heard",
+  TRANSCRIPT_CONFIRMED: "subtitle",
   CONTRADICTED: "refused",
   PENDING_LOCAL_REVIEW: "pending",
 };
 
-const TIMED = new Set<EvidenceReviewBasis["material"]>(["frames", "subtitle-track"]);
+const TIMED = new Set<EvidenceReviewBasis["material"]>(["frames", "clip-frames", "subtitle-track"]);
 
 /**
  * Derive the review basis from a ledger entry.
@@ -73,7 +73,7 @@ export function reviewBasis(entry: LedgerEntryLike | undefined): EvidenceReviewB
 export type ReviewTally = {
   records: number;
   seen: number;
-  heard: number;
+  subtitle: number;
   refused: number;
   pending: number;
   unrecorded: number;
@@ -85,7 +85,7 @@ export function tallyReviewBasis(records: { basis?: EvidenceReviewBasis }[]): Re
   const tally: ReviewTally = {
     records: records.length,
     seen: 0,
-    heard: 0,
+    subtitle: 0,
     refused: 0,
     pending: 0,
     unrecorded: 0,

@@ -279,7 +279,7 @@ const span = (from: number, to: number): string =>
   `${formatMasterTimecode(from)}–${formatMasterTimecode(Math.floor(from) + Math.round(to - from))}`;
 
 const WINDOW_LABELS: Record<string, string> = {
-  library: "Библиотека: герой пишет, рядом девушка в красном",
+  library: "Библиотека: Труман, посетители и девушка в красном",
   // The window is 46:29–47:34, inside `truman-sc-lady-flowers-dented-beetle`: the
   // street where the same passers-by and the same dented car come round again. It is
   // not a manhunt, and the label may not say what the scene does not show.
@@ -324,7 +324,7 @@ export function describeTrumanMeasurement(
         hold.id === "hold-01"
           ? "Самый длинный отрезок без обнаруженного перехода"
           : hold.id === "hold-02"
-            ? "Библиотека: герой и девушка в красном"
+            ? "Библиотека: Труман, посетители и девушка в красном"
             : "Без обнаруженного перехода",
       primary: duration(hold.durationSeconds),
       secondary: cuesPhrase(hold.subtitleCueStarts),

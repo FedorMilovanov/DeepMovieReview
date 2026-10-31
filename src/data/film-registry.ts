@@ -6,6 +6,7 @@ import {
   trumanMeasuredDigitStrings,
 } from "@/data/films/the-truman-show-master-windows";
 import { illustrationFacts } from "@/data/film-illustrations";
+import { getProductionDossier } from "@/data/films/production-dossiers";
 import { assertValidFilmRegistry } from "@/lib/film-package-integrity";
 
 const rawFilmPackages = [...fixtureFilmPackages, theTrumanShowCanonicalPackage, theFastAndTheFuriousDraftPackage];
@@ -13,6 +14,10 @@ const rawFilmPackages = [...fixtureFilmPackages, theTrumanShowCanonicalPackage, 
 assertValidFilmRegistry(rawFilmPackages, {
   resolveArticleMeasurement: (ref) => Boolean(resolveTrumanMeasurement(ref)),
   articleMeasuredValues: trumanMeasuredDigitStrings,
+  resolveArticleContextSources: (slug) => {
+    const dossier = getProductionDossier(slug);
+    return dossier ? new Set(dossier.sources.map((source) => source.id)) : undefined;
+  },
   // Pictures placed in an article must exist in the illustration registry and
   // must be original drawings: the build refuses a still.
   resolveIllustration: illustrationFacts,
