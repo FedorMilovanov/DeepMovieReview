@@ -5,6 +5,7 @@ import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { getArticleMeasurementBundle } from "@/data/article-measurements";
+import { getProductionDossier } from "@/data/films/production-dossiers";
 import { filmStillsServable, isPreviewContentEnabled } from "@/data/site-config";
 import { getFilmShareAsset } from "@/data/film-share-assets";
 import { projectFilmModule } from "@/lib/film-module-projection";
@@ -132,6 +133,7 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
         spoilerLevel={spoilerLevel}
         describeMeasurement={measurements.describe}
         evidenceById={new Map((filmPackage.evidence ?? []).map((record) => [record.id, record]))}
+        contextSourcesById={new Map((getProductionDossier(filmPackage.film.slug)?.sources ?? []).map((source) => [source.id, source]))}
         formatTimecode={measurements.formatTimecode}
         moduleHeadings={Object.fromEntries(
           filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.heading]),

@@ -39,9 +39,10 @@ function packageStateLine(slug: string): { status: string; body: string } | unde
   const evidenceLabel = `${evidence} ${pluralRu(evidence, "опора", "опоры", "опор")}`;
   const locked = filmPackage.ingest?.edition?.state === "LOCKED";
   if (locked) {
+    const published = filmPackage.film.status === "published";
     return {
-      status: "мастер заблокирован · в превью",
-      body: `${scenesLabel} и ${evidenceLabel} сверены с точным просмотренным мастером. Публикация откроется отдельным решением редакции: карточка пока черновик, закрытый от индексации.`,
+      status: published ? "издание LOCKED · опубликовано" : "издание LOCKED · черновик",
+      body: `${scenesLabel} и ${evidenceLabel} привязаны к записанному изданию; материал и ограничения каждой проверки указаны в реестре. ${published ? "Индексация зависит от окружения." : "Карточка остаётся черновиком и не индексируется."}`,
     };
   }
   return {
@@ -233,7 +234,7 @@ function HeroStatusStrip({ preview }: { preview: boolean }) {
       <div role="listitem">
         <span className="heroStatusIndex">{preview ? "FILM 001" : "КОРПУС"}</span>
         <strong>{preview ? "«Шоу Трумана» · 1998" : "Материалы готовятся"}</strong>
-        <span>{preview ? "исследовательский черновик собран, кадровая сверка впереди" : "незавершённые разборы остаются в редакции"}</span>
+        <span>{preview ? "состояние издания и ограничения указаны ниже" : "незавершённые разборы остаются в редакции"}</span>
       </div>
       <div role="listitem">
         <span className="heroStatusIndex">МЕТОД</span>

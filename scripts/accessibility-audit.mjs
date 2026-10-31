@@ -13,7 +13,7 @@ const base = process.env.BASE_URL ?? "http://127.0.0.1:3212";
 const out = "a11y-report";
 const engines = { chromium, firefox, webkit };
 const selected = (process.env.A11Y_BROWSERS ?? "chromium,firefox,webkit").split(",");
-const routes = ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"];
+const routes = ["/", "/films", "/films/the-truman-show?spoilers=ENDING", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"];
 const report = { requestedBrowsers: selected, revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), axe: axe.version,
   playwright: require("playwright-core/package.json").version, results: [], failures: [] };
 mkdirSync(out, { recursive: true });
@@ -48,6 +48,11 @@ for (const name of selected) {
           assert.ok(response?.ok(), `${route}: HTTP ${response?.status()}`);
           await page.waitForLoadState("networkidle");
           await page.evaluate(() => document.fonts.ready);
+          if (route.includes("/films/the-truman-show?")) {
+            // Audit the settled interactive state; the no-script fallback is
+            // independently exercised by reader-regression.mjs.
+            await page.waitForFunction(() => !document.querySelector('#truman-comparison input[type="radio"]')?.disabled);
+          }
           assert.equal(await page.locator("main h1").count(), 1, "one main heading");
           assert.equal(await page.locator("html").getAttribute("lang"), "ru");
           assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "page reflow");
@@ -76,12 +81,20 @@ for (const name of selected) {
               violations: result.violations.length, review, file: `${id}-${state}.json` });
             for (const rule of result.violations) failure(`${id}/${state}: ${rule.id}: ${JSON.stringify(rule.nodes.map(node => ({ target: node.target, summary: node.failureSummary })))}`);
             if (process.env.A11Y_RENDERED_CONTRAST === "true") {
-              const nodes = result.incomplete.filter(rule => rule.id === "color-contrast").flatMap(rule => rule.nodes);
+              const comparisonOnly = route.includes("/films/the-truman-show?") && scope === "document";
+              // The full film page is axe-scanned above. Its additional rendered
+              // assessment is explicitly limited to the new comparison so a
+              // multi-hour full-page sweep is not misreported as completed.
+              const contrastResult = comparisonOnly ? await page.evaluate(async () => window.axe.run(document.querySelector("#truman-comparison"), {
+                runOnly: { type: "rule", values: ["color-contrast"] },
+              })) : result;
+              if (comparisonOnly) writeFileSync(`${out}/${id}-${state}-comparison-axe.json`, JSON.stringify(contrastResult, null, 2));
+              const nodes = contrastResult.incomplete.filter(rule => rule.id === "color-contrast").flatMap(rule => rule.nodes);
               if (nodes.length) {
-                const assessment = await renderedContrast(page, nodes, `${out}/paint-pairs`, `${id}-${state}`);
+                const assessment = await renderedContrast(page, nodes, `${out}/paint-pairs`, `${id}-${state}`, { restrictToTargetBounds: comparisonOnly });
                 const file = `${id}-${state}-rendered.json`;
                 writeFileSync(`${out}/${file}`, JSON.stringify({ violations: [], incomplete: [], actions: [{ label: "finite rendered contrast assessment", assessment }] }, null, 2));
-                report.results.push({ browser: name, version: browser.version(), width, route, state: `${state}-rendered-contrast`, scope: "paired native renderer text-range backgrounds", file, needsReview: !assessment.pass });
+                report.results.push({ browser: name, version: browser.version(), width, route, state: `${state}-rendered-contrast`, scope: comparisonOnly ? "comparison section only: paired native renderer text-range backgrounds" : "paired native renderer text-range backgrounds", file, needsReview: !assessment.pass });
                 if (!assessment.pass) failure(`${id}/${state}: rendered contrast requires review: ${assessment.ranges.filter(range => !range.pass).length} ranges, ${assessment.missing.length} missing owners, tileLimit=${assessment.tileLimit}`);
               }
             }

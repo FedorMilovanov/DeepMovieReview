@@ -1,0 +1,99 @@
+.filmComparison { min-inline-size: 0; }
+.filmComparison h2 { max-width: 18ch; }
+.comparisonLimitation {
+  max-width: 72ch;
+  padding: 1rem 1.25rem;
+  border-left: 2px solid var(--accent-restoration);
+  background: var(--surface-1);
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+.comparisonControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 1rem;
+  margin: 2rem 0 1rem;
+}
+.comparisonControls fieldset { flex: 1 1 22rem; min-width: 0; margin: 0; padding: 0; border: 0; }
+.comparisonControls legend { margin-bottom: 0.5rem; color: var(--ink-2); font-size: 0.875rem; }
+.comparisonChoices { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.comparisonChoices label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--stroke-default);
+  background: var(--surface-1);
+  color: var(--ink-1);
+  font-size: 0.875rem;
+}
+.comparisonChoices label:has(input:checked) { border-color: var(--accent-restoration); }
+.comparisonChoices input { margin: 0; accent-color: var(--accent-restoration); }
+.comparisonControls button {
+  min-height: 48px;
+  max-width: 100%;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--stroke-default);
+  border-radius: 0;
+  background: var(--surface-1);
+  color: var(--ink-1);
+  font: inherit;
+  cursor: pointer;
+}
+.comparisonControls :is(input, button):focus-visible,
+.comparisonViewport:focus-visible,
+.comparisonSources summary:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+.comparisonControls :disabled { cursor: not-allowed; }
+.comparisonFallback, .comparisonStatus { color: var(--ink-3); font-size: 0.875rem; }
+.comparisonViewport { max-width: 100%; overflow-x: auto; border: 1px solid var(--stroke-default); }
+.comparisonViewport table { width: 100%; min-width: 46rem; border-collapse: collapse; table-layout: fixed; }
+.comparisonViewport th, .comparisonViewport td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--stroke-subtle);
+  text-align: left;
+  vertical-align: top;
+}
+.comparisonViewport thead th:first-child { width: 8.5rem; }
+.comparisonViewport thead th span,
+.comparisonViewport thead th strong,
+.comparisonViewport thead th small { display: block; }
+.comparisonViewport thead th span { color: var(--ink-3); font-size: 0.72rem; text-transform: uppercase; }
+.comparisonViewport thead th strong { margin: 0.4rem 0; color: var(--ink-1); font-size: 1.2rem; }
+.comparisonViewport thead th small { color: var(--ink-2); line-height: 1.5; font-weight: 400; }
+.comparisonViewport tbody th { color: var(--ink-1); }
+.comparisonCellName { display: none; }
+.comparisonViewport td p { margin: 0; color: var(--ink-2); line-height: 1.6; }
+.comparisonCitations { display: grid; gap: 0.35rem; margin: 0.75rem 0 0; padding: 0; list-style: none; font-size: 0.78rem; }
+.comparisonCitations a, .comparisonSources a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 0.2em; }
+.comparisonSources { margin-top: 1.25rem; color: var(--ink-2); }
+.comparisonSources summary { color: var(--ink-1); cursor: pointer; }
+.comparisonSources li { margin: 0.6rem 0; line-height: 1.5; }
+/* A two-column matrix becomes paired, labelled readings on narrow screens.
+   The native table and explicit roles remain the accessible structure. */
+@media screen and (max-width: 40rem) {
+  .comparisonScrollHint { display: none; }
+  .comparisonViewport { overflow: visible; }
+  .comparisonViewport table, .comparisonViewport tbody, .comparisonViewport tr,
+  .comparisonViewport tbody th, .comparisonViewport td { display: block; width: 100%; }
+  .comparisonViewport table { min-width: 0; }
+  .comparisonViewport thead {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  .comparisonViewport tbody th { padding: 0.9rem 1rem; background: var(--surface-1); }
+  .comparisonViewport td { padding: 1rem; }
+  .comparisonCellName { display: block; margin-bottom: 0.5rem; color: var(--ink-1); }
+}
+@media print {
+  .comparisonControls, .comparisonFallback, .comparisonStatus { display: none; }
+  .comparisonViewport { overflow: visible; }
+  .comparisonViewport table { min-width: 0; }
+  .comparisonViewport thead th:first-child { width: 18%; }
+  .comparisonViewport th, .comparisonViewport td { padding: 0.4rem; overflow-wrap: anywhere; }
+  .comparisonViewport { font-size: 0.75rem; }
+}

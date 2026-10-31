@@ -10,10 +10,11 @@
  *
  * Evidence basis
  * --------------
- * Every `frameTimeSeconds` below was read out of the exact viewing master
- * (SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575,
- * measured runtime 6177.792 s) from the derived evidence bundle described in
- * docs/47-FILM-001-VISUAL-VERIFICATION.md.
+ * This is the historical ledger of observations from the derived bundle described
+ * in docs/47. Its manifest names a master with SHA-256 E8543F6…B3B575, but the
+ * later review did not independently hash the absent master or listen to it.
+ * Older frame-grid labels are nominal, not verified source-frame PTS; subsequent
+ * clip observations and corrections are recorded in docs/63-FILM-001-CLIP-REVIEW.md.
  *
  * Verification statuses are deliberately conservative:
  *
@@ -36,9 +37,9 @@ export type TrumanVisualVerificationStatus =
   | "CONTRADICTED";
 
 export type TrumanObservedFrame = {
-  /** Master timestamp the observation is read from. */
+  /** Historical ledger timestamp; old grid frame PTS was not independently checked. */
   frameTimeSeconds: number;
-  /** What is actually visible / audible at that time. */
+  /** Ledger description, which may be based on an image or on a subtitle cue. */
   observation: string;
 };
 
@@ -286,7 +287,7 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
       frame(3970, "Kirk, the returned father, in close-up."),
     ],
     note:
-      "Both halves of the compound record are now located in picture: the embrace at 3610 s sits in truman-sc-father-and-son-reunion, while the invented «amnesia» explanation and Kirk's re-presentation at 3880–3970 s sit here, 270 s later. The record must be split before promotion, but nothing about it is unverified.",
+      "Historical ledger: the original compound record put the embrace at 3610 s and the later «amnesia» explanation in this scene. A subsequent check of separate clip frames places the embrace by the bridge at approximately 3591 s and on a monitor around 3611 s. The original record was split; the clip offsets come from its manifest and the master PTS was not independently checked.",
   },
   {
     evidenceId: "truman-ev-escape",

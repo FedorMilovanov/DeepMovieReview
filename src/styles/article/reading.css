@@ -187,7 +187,8 @@
   line-height: 1.5;
 }
 
-.articleSceneStill small { font: inherit; color: var(--ink-4); }
+.articleSceneStill figcaption > span { color: var(--ink-2); }
+.articleSceneStill small { font: inherit; color: var(--ink-4); overflow-wrap: anywhere; }
 
 /* Existing editorial facets, not invented numerical ratings or a second review. */
 .articleVerdict {
@@ -236,3 +237,74 @@
 
 .articleAnalysis { background: var(--surface-1); padding-inline: var(--space-4); }
 .articleAnalysis > section { width: 100%; padding-block: var(--space-5); border: 0; }
+
+/* Paragraph supports stay folded: the proof must be one click away, not in the
+   reader's way. */
+.articleSupport {
+  margin: 0 0 var(--space-3);
+  color: var(--ink-3);
+  font-size: var(--type-meta);
+}
+
+.articleSupport summary {
+  cursor: pointer;
+  color: var(--ink-4);
+  font-family: var(--font-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.articleSupport summary:hover {
+  color: var(--ink-2);
+}
+
+.articleSupport summary:focus-visible {
+  outline: 2px solid var(--accent-restoration);
+  outline-offset: 3px;
+}
+
+.articleSupport ul {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.articleSupport li {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+  padding-block: 0.35rem;
+  border-top: 1px solid var(--stroke-subtle);
+}
+
+.articleSupport li > span {
+  color: var(--accent-restoration);
+  font-family: var(--font-meta);
+  font-size: var(--type-meta);
+  letter-spacing: var(--tracking-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.articleSupport a {
+  color: var(--ink-2);
+  line-height: 1.45;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.articleSupport a:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: var(--focus-offset);
+}
+
+.articleContextSources {
+  margin: 0.5rem 0 var(--space-4);
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.articleContextSources a { display: inline-block; max-width: 100%; margin-right: 0.75rem; padding-block: 0.2rem; overflow-wrap: anywhere; text-decoration: underline; }
+.articleContextSources p { margin: 0.25rem 0 0; color: var(--ink-3); }

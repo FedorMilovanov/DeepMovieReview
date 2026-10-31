@@ -63,6 +63,7 @@ function collectModuleSupports(module: FilmModule): SupportEntry[] {
       break;
     case "meaning":
       addSupport(entries, `${module.id}-meaning`, module.apparentClaim, module.support);
+      if (module.additionalReading) addSupport(entries, `${module.id}-additional`, "После просмотра: зрелище и освобождение", module.additionalReading.support);
       break;
     case "teaching-signals":
       for (const signal of module.signals) addSupport(entries, `${module.id}-${signal.id}`, signal.subject, signal.support);
@@ -210,7 +211,7 @@ export function FilmEvidenceMap({
   const tally = tallyReviewBasis(evidence);
   const tallyParts = [
     tally.seen > 0 ? `${tally.seen} ${pluralRu(tally.seen, "проверена", "проверены", "проверено")} по кадрам` : undefined,
-    tally.heard > 0 ? `${tally.heard} ${pluralRu(tally.heard, "подтверждена", "подтверждены", "подтверждено")} по репликам` : undefined,
+    tally.heard > 0 ? `${tally.heard} ${pluralRu(tally.heard, "подтверждена", "подтверждены", "подтверждено")} по субтитрам` : undefined,
     tally.refused > 0 ? `${tally.refused} ${pluralRu(tally.refused, "не подтвердилась", "не подтвердились", "не подтвердилось")}` : undefined,
     tally.pending > 0 ? `${tally.pending} ${pluralRu(tally.pending, "ждёт проверки", "ждут проверки", "ждут проверки")}` : undefined,
     tally.unrecorded > 0 ? `${tally.unrecorded} без записи в журнале` : undefined,
@@ -313,10 +314,11 @@ function EvidenceRegister({
     <div className="evidenceRegister">
       <h3 id="evidence-register-title">Реестр проверок</h3>
       <p className="evidenceRegisterIntro">
-        Все {ordered.length} записей по ходу фильма. «Основа» — то, чем проверяли: кадры мастера или
-        встроенные субтитры; «итог» — что показала проверка.
+        Все {ordered.length} записей по ходу фильма. «Основа» показывает материал проверки: отдельные кадры,
+        кадры предоставленного фрагмента или субтитры. Выборочные наблюдения не заменяют непрерывный просмотр со звуком.
       </p>
-      <div className="evidenceRegisterWrap">
+      <p className="microLabel">На узком экране таблицу можно прокрутить по горизонтали.</p>
+      <div className="evidenceRegisterWrap" role="region" aria-label="Реестр проверок, горизонтальная прокрутка" tabIndex={0}>
         <table aria-labelledby="evidence-register-title">
           <caption className="visuallyHidden">
             Реестр проверок: таймкод, сцена, запись, материал и итог проверки
@@ -348,7 +350,14 @@ function EvidenceRegister({
                   </td>
                   <td>{scene ? scene.shortLabel : "—"}</td>
                   <th scope="row">{record.label}</th>
-                  <td>{record.basis ? evidenceBasisMaterialLabels[record.basis.material] : "не записана"}</td>
+                  <td>
+                    {record.basis ? (
+                      <details className="evidenceRegisterBasis">
+                        <summary>{evidenceBasisMaterialLabels[record.basis.material]}</summary>
+                        <EvidenceBasisLine basis={record.basis} />
+                      </details>
+                    ) : "не записана"}
+                  </td>
                   <td>
                     {record.basis ? evidenceBasisOutcomeLabels[record.basis.outcome] : "нет записи в журнале"}
                     {record.basis?.refusedAncestor ? " · переписана после отказа" : ""}

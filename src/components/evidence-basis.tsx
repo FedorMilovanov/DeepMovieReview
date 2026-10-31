@@ -36,13 +36,14 @@ export function EvidenceBasisLine({ basis }: { basis?: EvidenceReviewBasis }) {
     >
       <span>Основа проверки</span>
       {evidenceBasisMaterialLabels[basis.material]} · {evidenceBasisOutcomeLabels[basis.outcome]}
-      {window ? ` · наблюдения ${window}` : ""} · {basis.observations}{" "}
+      {window ? ` · наблюдения ${basis.windowApproximate ? "≈ " : ""}${window}` : ""} · {basis.observations}{" "}
       {pluralRu(basis.observations, "наблюдение", "наблюдения", "наблюдений")}
       {basis.unrecorded?.length
         ? ` · не записано: ${basis.unrecorded
             .map((field) => (field === "reviewer" ? "кто проверял" : "когда"))
             .join(", ")}`
         : ""}
+      {basis.note ? ` · ${basis.note}` : ""}
       {basis.refusedAncestor ? (
         <span className="evidenceBasisRefusal">
           исходная формулировка отклонена проверкой и переписана

@@ -49,6 +49,7 @@
 }
 
 .filmRow {
+  position: relative;
   display: grid;
   grid-template-columns: 64px minmax(140px, 220px) minmax(0, 1fr) 140px;
   gap: 1rem;
@@ -77,3 +78,14 @@
   color: var(--ink-3);
 }
 
+
+/* A pending client transition has feedback without streaming the server page
+   behind a JavaScript-only suspense replacement. */
+.filmLinkPending:not(:empty) {
+  position: absolute;
+  inset: 0.3rem 0.4rem auto auto;
+  padding: 0.3rem 0.5rem;
+  background: var(--surface-canvas);
+  color: var(--ink-1);
+  font-size: 0.75rem;
+}

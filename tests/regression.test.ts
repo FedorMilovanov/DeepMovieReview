@@ -1,8 +1,10 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ArticleTable } from "../src/components/film-article/article-table";
+import { EvidenceBasisLine } from "../src/components/evidence-basis";
 import { FilmEvidenceMap } from "../src/components/film-modules/evidence-map";
 import { FilmSceneTable } from "../src/components/film-modules/scene-table";
+import { FilmComparisonView } from "../src/components/film-comparison";
 import { theFastAndTheFuriousDraftPackage } from "../src/data/films/the-fast-and-the-furious";
 import { createRequire } from "node:module";
 import test from "node:test";
@@ -14,7 +16,7 @@ const { readStylesheet } = createRequire(`${process.cwd()}/package.json`)(
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { projectFilmModule } from "../src/lib/film-module-projection";
+import { projectFilmComparison, projectFilmModule } from "../src/lib/film-module-projection";
 import { publishedFilmStillsEnabled } from "../src/data/site-config";
 import { trumanArticleStills } from "../src/data/films/the-truman-show-stills";
 import { projectHomepage } from "../src/lib/homepage-projection";
@@ -44,7 +46,7 @@ import {
 } from "../src/lib/presentation-labels";
 import { validateFilmArticle } from "../src/lib/film-article-integrity";
 import { reviewBasis, tallyReviewBasis } from "../src/lib/evidence-review";
-import { evidenceBasisOutcomeLabels } from "../src/lib/presentation-labels";
+import { evidenceBasisMaterialLabels, evidenceBasisOutcomeLabels } from "../src/lib/presentation-labels";
 import {
   canIndexSite,
   resolveIndexingRequest,
@@ -55,7 +57,7 @@ import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experi
 import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
 import { filterFilmIndex, filmIndexStatusLabel } from "../src/lib/film-index";
 import { pluralRu } from "../src/lib/plural-ru";
-import type { FilmPackage, CharactersModule } from "../src/lib/film-package";
+import { COMPARISON_DIMENSIONS, type FilmPackage, type CharactersModule } from "../src/lib/film-package";
 import { theTrumanShowDraftPackage } from "../src/data/films/the-truman-show";
 import {
   TRUMAN_MASTER_RUNTIME_SECONDS,
@@ -4119,6 +4121,7 @@ test("Film 001 canonical package satisfies the full integrity graph", () => {
   const errors = validateFilmPackage(theTrumanShowCanonicalPackage, {
     resolveArticleMeasurement: (ref) => Boolean(resolveTrumanMeasurement(ref)),
     articleMeasuredValues: trumanMeasuredDigitStrings,
+    resolveArticleContextSources: () => new Set(theTrumanShowProductionDossier.sources.map((source) => source.id)),
     resolveIllustration: illustrationFacts,
   });
   assert.deepEqual(errors, [], `canonical package errors:\n${errors.join("\n")}`);
@@ -4249,6 +4252,7 @@ function trumanArticleContext(overrides: Record<string, unknown> = {}) {
       Boolean(resolveTrumanMeasurement(ref)),
     measuredValues: trumanMeasuredDigitStrings,
     moduleLevels: new Map(filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.spoilerLevel])),
+    contextSourceIds: new Set(theTrumanShowProductionDossier.sources.map((source) => source.id)),
     ...overrides,
   };
 }
@@ -4575,7 +4579,7 @@ test("a measured window is described by what was measured, not by the chapter it
     (record) => record.id === "truman-ev-reunion",
   );
   assert.ok(hold && reunion?.timestampSeconds);
-  // The embrace the review cites is at 1:00:10; the longest hold ends at 57:27.
+  // The sampled embrace is approximately at 59:51; the longest hold ends at 57:27.
   // Naming that hold «возвращение отца» was an attribution the data contradicts.
   assert.ok(
     reunion.timestampSeconds > hold.to,
@@ -5121,7 +5125,8 @@ test("Film 001 share art is declared, validated and shaped like a card", () => {
 
 // The days this dossier's sources were actually opened, in order. Adding a
 // source from a new session means adding its date here first.
-const RESEARCH_SITTINGS = ["2026-10-28", "2026-10-29"];
+// Variety, Gutenberg and the current archive page were reopened on 2026-10-30 UTC.
+const RESEARCH_SITTINGS = ["2026-10-28", "2026-10-29", "2026-10-30"];
 
 test("Film 001 production dossier holds its own register", () => {
   const dossier = theTrumanShowProductionDossier;
@@ -5146,7 +5151,7 @@ test("Film 001 production dossier holds its own register", () => {
     assert.equal(url.protocol, "https:");
     hosts.add(url.host);
     assert.equal(/google|bing|duckduckgo|yandex|localhost|127\.0\.0\.1/.test(url.host), false);
-    // Two sittings so far; every entry records the day it was actually opened.
+    // Each entry records the day it was actually opened.
     assert.ok(
       RESEARCH_SITTINGS.includes(source.checkedOn),
       `${source.id} claims a check on ${source.checkedOn}, which is not a recorded sitting`,
@@ -5837,8 +5842,10 @@ test("the homepage is complete without scripting", () => {
     false,
     "a root loading.tsx turns the static homepage into a streamed skeleton",
   );
-  assert.ok(existsSync("src/app/films/loading.tsx"), "the film index still declares its loading state");
-  assert.ok(existsSync("src/app/films/[slug]/loading.tsx"), "a film page still declares its loading state");
+  for (const file of ["src/app/films/loading.tsx", "src/app/films/[slug]/loading.tsx"]) {
+    assert.equal(existsSync(file), false, `${file} would strand direct readers in a streamed fallback`);
+  }
+  assert.match(readFileSync("src/components/film-transition-link.tsx", "utf8"), /useLinkStatus/, "slow client navigation still has a pending state");
 
   // And the entrance choreography starts from opacity 0, so without scripting
   // the hero has to be released explicitly.
@@ -5900,11 +5907,25 @@ test("browser failures retain measured details in escaped workflow annotations",
   assert.ok(workflowError(message).includes('"focused":false'));
 });
 
-test("scene quotations are exact-master stills, not generated artwork or substitute evidence", () => {
+test("scene quotations disclose grid or clip provenance rather than claiming exact master PTS", () => {
   const article = structuredClone(theTrumanShowArticle);
   const items = article.sections.flatMap(section => section.blocks.flatMap(block =>
     block.kind === "timeline" ? block.items.filter(item => item.still) : []));
-  assert.equal(items.length, 4, "a small editorial selection, not a film gallery");
+  assert.deepEqual(items.map((item) => item.evidenceId).sort(), [
+    "truman-ev-exit", "truman-ev-knife", "truman-ev-knife-tools", "truman-ev-light",
+    "truman-ev-marlon-retake", "truman-ev-meryl-held", "truman-ev-radio", "truman-ev-rain", "truman-ev-reunion",
+  ].sort(), "each selected frame should illustrate a distinct evidence anchor");
+  assert.equal(items.filter((item) => item.still?.samplingKind === "grid").length, 6);
+  const clips = items.filter((item) => item.still?.samplingKind === "clip");
+  assert.equal(clips.length, 3);
+  assert.deepEqual(clips.map((item) => {
+    assert.ok(item.still?.samplingKind === "clip");
+    return [item.evidenceId, item.still.clip.file, item.still.clip.sha256, item.still.clip.sourceStartSeconds, item.still.clip.offsetSeconds];
+  }), [
+    ["truman-ev-knife-tools", "04-meryl-kitchen.mp4", "f4adfa6e7ffabeccab4f8d98633f8ed9b5b6715c062f286a8ca457dcc3738b4f", 3205, 60],
+    ["truman-ev-meryl-held", "04-meryl-kitchen.mp4", "f4adfa6e7ffabeccab4f8d98633f8ed9b5b6715c062f286a8ca457dcc3738b4f", 3205, 70],
+    ["truman-ev-reunion", "07-father-reunion.mp4", "5d4d696d6240124b86e287be108aab70bb2938caf064d742af4b8e8abb4dab18", 3585, 6],
+  ]);
   assert.deepEqual(validateFilmArticle(article, trumanArticleContext()), []);
   const { createHash } = createRequire(`${process.cwd()}/package.json`)("node:crypto");
   for (const item of items) {
@@ -5916,11 +5937,16 @@ test("scene quotations are exact-master stills, not generated artwork or substit
     assert.equal(createHash("sha256").update(readFileSync(`assets${still.avifSrc}`)).digest("hex"), still.avifSha256);
     assert.equal(existsSync(`public${still.src}`), false, `${still.src}: a still must not be a public file`);
     assert.ok(Math.abs(still.sampleTimeSeconds - item.timestampSeconds) <= 15);
+    assert.match(still.caption, /\S/);
     assert.equal(still.use, "critical-review");
+    if (still.samplingKind === "clip") {
+      assert.match(still.clip.sha256, /^[a-f0-9]{64}$/);
+      assert.equal(still.sampleTimeSeconds, still.clip.sourceStartSeconds + still.clip.offsetSeconds);
+    }
   }
   for (const [override, expected] of [
-    [{ masterDigest: "sha256:" + "0".repeat(64) }, /locked master/],
-    [{ sourceId: "other-edition" }, /locked master/],
+    [{ masterDigest: "sha256:" + "0".repeat(64) }, /locked edition/],
+    [{ sourceId: "other-edition" }, /locked edition/],
     [{ sampleTimeSeconds: -1 }, /cited scene/],
     [{ sampleTimeSeconds: items[0].timestampSeconds + 120 }, /cited scene/],
     [{ src: "/film-stills/../private.jpg" }, /local JPEG/],
@@ -5930,7 +5956,9 @@ test("scene quotations are exact-master stills, not generated artwork or substit
     [{ width: 1920 }, /bounded dimensions/],
     [{ samplingIntervalSeconds: 0 }, /sampling/],
     [{ sampleTimeSeconds: 211 }, /sampling/],
+    [{ samplingKind: "unknown" }, /sampling kind/],
     [{ credit: "" }, /credit/],
+    [{ caption: "" }, /caption/],
     [{ alt: "" }, /alt/],
     [{ use: "decoration" }, /critical-review/],
   ] as const) {
@@ -5939,6 +5967,19 @@ test("scene quotations are exact-master stills, not generated artwork or substit
       block.kind === "timeline" ? block.items.filter(item => item.still) : []))[0];
     Object.assign(first.still!, override);
     assert.match(validateFilmArticle(copy, trumanArticleContext()).join("\n"), expected);
+  }
+
+  for (const override of [
+    { file: "../private.mp4" }, { sha256: "invalid" }, { sourceStartSeconds: -1 },
+    { sourceEndSeconds: 3205 }, { offsetSeconds: -1 }, { offsetSeconds: 125 },
+    { offsetSeconds: 61 },
+  ]) {
+    const copy = structuredClone(article);
+    const clipItem = copy.sections.flatMap(section => section.blocks.flatMap(block =>
+      block.kind === "timeline" ? block.items : [])).find((item) => item.evidenceId === "truman-ev-knife-tools");
+    assert.ok(clipItem?.still?.samplingKind === "clip");
+    Object.assign(clipItem.still.clip, override);
+    assert.match(validateFilmArticle(copy, trumanArticleContext()).join("\n"), /clip still needs/);
   }
 });
 
@@ -6004,6 +6045,10 @@ test("Film 001 every evidence anchor on the film page resolves", () => {
 
   const idList = [...html.matchAll(/id="evidence-([a-z0-9-]+)"/g)].map((match) => match[1]!);
   const ids = new Set(idList);
+  const toolsRow = /<tr[^>]*id="evidence-truman-ev-knife-tools"[^>]*>[\s\S]*?<\/tr>/.exec(html)?.[0] ?? "";
+  assert.match(toolsRow, /<details class="evidenceRegisterBasis">/);
+  assert.match(toolsRow, /кадры предоставленного фрагмента/);
+  assert.match(toolsRow, /манифеста/, "the article's link must lead to the full review basis");
   // The anchors come from the character cards and the claim cards, which link to
   // `#evidence-<id>`. Rendering the module list here would pull the WebGL verdict
   // component into a CommonJS test build, so the same guarantee is checked against
@@ -6099,15 +6144,15 @@ test("Homepage projection keeps the spoiler budget instead of filling the page",
 });
 
 test("Film 001 is published, and the stills carry their provenance", () => {
-  // Publication and frames are two decisions, kept in two places: the edition is
-  // published, and the four stills are quotations with a second, a master digest and
-  // a per-file SHA-256. A page that cannot serve them drops the picture and keeps
-  // the anchor, which the second half of this test holds.
+  // The editorial switch and the edition's publication are separate. The stills
+  // carry an edition reference, image digests, approximate times and captions;
+  // the supplied material does not independently prove the master association.
+  // A page that cannot serve frames drops the picture and keeps the anchor.
   assert.equal(theTrumanShowCanonicalPackage.film.status, "published");
   assert.equal(publishedFilmStillsEnabled, true);
 
   for (const still of Object.values(trumanArticleStills)) {
-    assert.match(still.credit, /права у правообладателей/, "a still must name whose rights it is");
+    assert.match(still.credit, /Шоу Трумана.*1998.*Питер Уир/, "a still must identify the film and director");
     assert.equal(still.use, "critical-review");
     assert.ok(still.sampleTimeSeconds > 0);
     assert.match(still.imageSha256, /^[a-f0-9]{64}$/);
@@ -6122,8 +6167,16 @@ test("Film 001 is published, and the stills carry their provenance", () => {
       section.blocks.flatMap((block) => (block.kind === "timeline" ? block.items.filter((item) => item.still) : [])),
     );
 
-  assert.ok(stillsOf(withFrames).length > 0, "the edition does hold stills");
-  assert.equal(stillsOf(withoutFrames).length, 0, "a page without rights must not cite a frame");
+  assert.equal(stillsOf(withFrames).length, 9);
+  assert.equal(stillsOf(withoutFrames).length, 0, "a page with stills disabled must not cite a frame");
+  for (const [level, expected] of [
+    ["NONE", ["truman-ev-light"]],
+    ["MINOR", ["truman-ev-light", "truman-ev-rain", "truman-ev-radio"]],
+    ["MAJOR", ["truman-ev-light", "truman-ev-rain", "truman-ev-radio", "truman-ev-marlon-retake", "truman-ev-knife-tools", "truman-ev-meryl-held", "truman-ev-reunion"]],
+  ] as const) {
+    const projected = projectArticleSections(theTrumanShowCanonicalPackage.article!, level, { stills: true });
+    assert.deepEqual(stillsOf(projected).map((item) => item.evidenceId).sort(), [...expected].sort(), `${level}: no higher-spoiler frame may leak`);
+  }
 
   // Dropping the picture must not drop the anchor: the reader still gets the second.
   const anchorsOf = (projection: ReturnType<typeof projectArticleSections>) =>
@@ -6188,7 +6241,13 @@ test("Film 001 every evidence card states the basis of its own verification", ()
 
     const status = ledgerStatus.get(record.id);
     if (status) {
-      assert.equal(record.basis.material, expectedMaterial[status], `${record.id}: material drifted`);
+      if (record.basis.material === "clip-frames") {
+        assert.ok(["truman-ev-knife", "truman-ev-reunion"].includes(record.id), `${record.id}: only a documented new clip check may supersede the ledger`);
+        assert.equal(record.basis.windowApproximate, true);
+        assert.match(record.basis.note ?? "", /предоставленного фрагмента/);
+      } else {
+        assert.equal(record.basis.material, expectedMaterial[status], `${record.id}: material drifted`);
+      }
       assert.equal(record.basis.outcome === "refused", status !== "VISUAL_CONFIRMED" && status !== "TRANSCRIPT_CONFIRMED",
         `${record.id}: a record the ledger refused cannot read as seen`);
     }
@@ -6270,4 +6329,164 @@ test("the phone timeline keeps its basis, stills and captions in the one column"
   assert.ok(phone > pinned, "the phone override follows the pinned rule, so it wins on equal specificity");
   const phoneBlock = css.lastIndexOf("@media (max-width: 45em)", phone);
   assert.ok(phoneBlock >= 0 && !css.slice(phoneBlock, phone).includes("}"), "the override sits inside the phone block");
+});
+
+
+test("comparison is source-bound, symmetric, static without scripts and server-projected", () => {
+  const film = theTrumanShowCanonicalPackage;
+  const comparison = film.comparison;
+  assert.ok(comparison);
+  for (const level of ["NONE", "MINOR", "MAJOR"] as const) assert.equal(projectFilmComparison(comparison, level), null);
+  for (const level of ["ENDING", "FULL"] as const) assert.equal(projectFilmComparison(comparison, level), comparison);
+  for (const side of comparison.sides) {
+    assert.deepEqual(Object.keys(side.cells), [...COMPARISON_DIMENSIONS]);
+    for (const cell of Object.values(side.cells)) {
+      assert.ok(cell.text.length > 50);
+      assert.ok(side.kind === "FICTIONAL" ? cell.evidenceIds?.length : cell.sourceIds?.length);
+    }
+  }
+  const markup = renderToStaticMarkup(createElement(FilmComparisonView, { comparison, evidence: film.evidence ?? [] }));
+  assert.match(markup, /Труман Бёрбанк/);
+  assert.match(markup, /Вацлав Гавел/);
+  assert.match(markup, /Выбор сторон доступен после загрузки скриптов/);
+  assert.match(markup, /Сила бессильных/);
+  assert.equal((markup.match(/scope="row"/g) ?? []).length, 7);
+  assert.match(markup, /id="truman-comparison"/);
+
+  const broken = structuredClone(film);
+  assert.ok(broken.comparison);
+  broken.comparison.sides[0].cells.decision.evidenceIds = ["not-evidence"];
+  broken.comparison.sides[1].cells.counterpoint.sourceIds = ["not-source"];
+  const errors = validateFilmPackage(broken).join("\n");
+  assert.match(errors, /unknown evidence "not-evidence"/);
+  assert.match(errors, /unknown historical source "not-source"/);
+});
+
+test("article context sources resolve separately from film evidence", () => {
+  const article = structuredClone(theTrumanShowArticle);
+  const blocks = article.sections.flatMap((section) => section.blocks).filter((block) => block.kind === "paragraph" && block.contextSourceIds?.length);
+  assert.ok(blocks.length >= 3);
+  for (const block of blocks) {
+    assert.ok(block.kind === "paragraph" && block.support?.evidenceIds?.length);
+    assert.ok(block.contextSourceIds?.every((id) => theTrumanShowProductionDossier.sources.some((source) => source.id === id)));
+  }
+  const block = blocks[0];
+  assert.ok(block.kind === "paragraph");
+  block.contextSourceIds = ["missing-context-source", "missing-context-source"];
+  const errors = validateFilmArticle(article, trumanArticleContext()).join("\n");
+  assert.match(errors, /unknown context source id "missing-context-source"/);
+  assert.match(errors, /duplicate context source id "missing-context-source"/);
+});
+
+test("character art and counter-readings remain registered and spoiler-scoped", () => {
+  const source = theTrumanShowCanonicalPackage.modules.find((module) => module.kind === "characters");
+  assert.ok(source && source.kind === "characters");
+  assert.ok(source.characters.every((character) => character.counterpoint));
+  for (const character of source.characters.filter((item) => item.visual)) {
+    const visual = character.visual;
+    assert.ok(visual);
+    const asset = illustrationFacts(visual.assetId);
+    assert.equal(asset?.sourceKind, "generated");
+    assert.equal(asset?.role, "illustration");
+    assert.match(visual.caption, /не кадр/i);
+  }
+  const none = projectFilmModule(source, "NONE");
+  assert.ok(none && none.kind === "characters");
+  assert.equal(none.characters.find((character) => character.id === "truman-ch-truman")?.counterpoint, undefined);
+  assert.equal(none.characters.some((character) => character.id === "truman-ch-christof"), false);
+  const major = projectFilmModule(source, "MAJOR");
+  assert.ok(major && major.kind === "characters");
+  assert.ok(major.characters.find((character) => character.id === "truman-ch-christof")?.visual);
+  assert.ok(!JSON.stringify(source.characters).includes("вторым дублем"));
+});
+
+test("dossier deal and pending reunion do not overclaim the available records", () => {
+  const dossier = theTrumanShowProductionDossier;
+  assert.match(dossier.standfirst, /сделку.*включала условие о режиссуре/i);
+  assert.doesNotMatch(dossier.seoDescription ?? "", /сценарий купили за миллион/i);
+  const relationships = theTrumanShowCanonicalPackage.modules.filter((module) => module.kind === "relationship");
+  const reunion = relationships.flatMap((module) => module.events).find((event) => event.id === "truman-friend-reunion");
+  assert.ok(reunion);
+  assert.match(reunion.change, /ещё нужно проверить/i);
+  assert.match(reunion.dimensions?.[0].after ?? "", /остаётся на проверке/i);
+});
+
+test("scene clip findings distinguish sampled evidence from the original master", () => {
+  const records = theTrumanShowCanonicalPackage.evidence ?? [];
+  const find = (id: string) => {
+    const record = records.find((item) => item.id === id);
+    assert.ok(record, `${id} is required`);
+    return record;
+  };
+  const packageFrame = find("truman-ev-knife");
+  const tools = find("truman-ev-knife-tools");
+  const holding = find("truman-ev-meryl-held");
+  const reunion = find("truman-ev-reunion");
+  assert.match(packageFrame.observation, /этот кадр.*не показывает/i);
+  assert.match(tools.observation, /инструменты перед собой/i);
+  assert.match(holding.observation, /удерживает Мэрил/i);
+  assert.match(reunion.observation, /ограждения моста/i);
+  assert.doesNotMatch(reunion.observation, /в дверях дома/i);
+  for (const record of [packageFrame, tools, holding, reunion]) {
+    assert.equal(record.basis?.material, "clip-frames");
+    assert.equal(record.basis?.outcome, "seen");
+    assert.equal(record.basis?.windowApproximate, true);
+    assert.match(record.basis?.note ?? "", /манифест/);
+  }
+  const html = renderToStaticMarkup(createElement(EvidenceBasisLine, { basis: reunion.basis }));
+  assert.match(html, /кадры предоставленного фрагмента/);
+  assert.match(html, /наблюдения ≈/);
+  assert.match(html, /исходный мастер независимо не пересчитан/);
+  assert.match(html, /звук не проверен/);
+
+  const blocks = theTrumanShowArticle.sections.flatMap((section) => section.blocks);
+  const block = (id: string) => {
+    const item = blocks.find((candidate) => candidate.id === id);
+    assert.ok(item, `${id} is required`);
+    return item;
+  };
+  const longest = block("truman-article-craft-hold-father");
+  assert.ok(longest.kind === "measurement");
+  assert.match(longest.text, /детектор действительно пропустил смены/i);
+  const library = block("truman-article-craft-hold-library");
+  assert.ok(library.kind === "measurement");
+  assert.match(library.text, /не описание каждого момента/i);
+  const verdict = block("truman-article-verdict-craft");
+  assert.ok(verdict.kind === "paragraph");
+  assert.match(verdict.text, /у моста.*аппаратной.*зрителями/i);
+  const timeline = block("truman-article-bonds-anchors");
+  assert.ok(timeline.kind === "timeline");
+  assert.ok(timeline.items.find((item) => item.evidenceId === tools.id && /приблизительна/.test(item.label)));
+  assert.ok(timeline.items.find((item) => item.evidenceId === holding.id && /приблизительна/.test(item.label)));
+  assert.equal(timeline.items.find((item) => item.still === trumanArticleStills.merylTools)?.evidenceId, tools.id);
+  assert.equal(timeline.items.find((item) => item.still === trumanArticleStills.merylHeld)?.evidenceId, holding.id);
+  assert.equal(timeline.items.find((item) => item.still === trumanArticleStills.reunion)?.evidenceId, reunion.id);
+  const props = block("truman-article-props-anchors");
+  assert.ok(props.kind === "timeline");
+  assert.equal(props.items.find((item) => item.still === trumanArticleStills.kitchen)?.evidenceId, packageFrame.id,
+    "the packaging still cannot illustrate the later tools-in-hand moment");
+});
+
+test("published methodology does not turn supplied metadata into a viewing or audio claim", () => {
+  const sources = theTrumanShowCanonicalPackage.modules.find((module) => module.kind === "sources-method");
+  assert.ok(sources && sources.kind === "sources-method");
+  assert.match(sources.analyzedEdition, /фильм опубликован/i);
+  assert.match(sources.analyzedEdition, /хеш повторно не пересчитан/i);
+  assert.match(sources.analyzedEdition, /не означает, что её прослушали/i);
+  assert.doesNotMatch(sources.analyzedEdition, /remains draft|scene-by-scene|Dialogue basis/i);
+  const master = sources.sources.find((source) => source.kind === "film-edition");
+  assert.match(master?.locator ?? "", /не прослушана/i);
+  assert.equal(evidenceBasisMaterialLabels.frames, "отдельные кадры");
+  assert.match(evidenceBasisOutcomeLabels.heard, /субтитрам/);
+
+  const verdict = theTrumanShowCanonicalPackage.modules.find((module) => module.kind === "final-synthesis");
+  assert.ok(verdict && verdict.kind === "final-synthesis");
+  assert.ok(verdict.qualifications.some((item) => /не заменяют просмотр со звуком/.test(item)));
+  assert.doesNotMatch(verdict.qualifications.join(" "), /фильм при этом остаётся черновиком/);
+  assert.match(theTrumanShowArticle.closing?.text ?? "", /исходный файл здесь повторно не проверялся/i);
+  assert.doesNotMatch(theTrumanShowArticle.standfirst, /на измеренном файле/i);
+  const productionMethod = theTrumanShowProductionDossier.sections.flatMap((section) => section.blocks)
+    .find((block) => block.id === "prod-met-1");
+  assert.ok(productionMethod?.kind === "paragraph");
+  assert.doesNotMatch(productionMethod.text, /просмотренному мастеру/i);
 });

@@ -1,3 +1,4 @@
+import { expectedDocument404Log } from "../scripts/lib/browser-audit-exceptions.mjs";
 import postcss from "postcss";
 import tailwind from "@tailwindcss/postcss";
 import { hasUnprefixedDeclaration } from "../scripts/lib/style-compat.mjs";
@@ -8,8 +9,47 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { readStylesheet } from "../scripts/lib/style-sources.mjs";
+import { measureHtmlSize } from "../scripts/lib/html-size.mjs";
+import { checkPageCanonical, checkPageIndexability } from "../scripts/lib/page-indexability.mjs";
+import { gzipSync } from "node:zlib";
 
 const script = resolve("scripts/style-contract.mjs");
+
+test("HTML budgets distinguish UTF-16 units, UTF-8 bytes and estimated gzip bytes", () => {
+  const html = "А😀";
+  const size = measureHtmlSize(html);
+  assert.equal(size.utf16CodeUnits, 3);
+  assert.equal(size.utf8Bytes, 6);
+  assert.equal(size.gzipBytes, gzipSync(Buffer.from(html, "utf8")).length);
+  assert.throws(() => measureHtmlSize(null), /HTML must be a string/);
+});
+
+test("article metadata audit distinguishes preview and published indexable builds", () => {
+  const pathname = "/films/the-truman-show/article";
+  const canonical = `https://example.test${pathname}`;
+  const html = `<link href="${canonical}" rel="canonical">`;
+  const noindex = `${html}<meta content="noindex, nofollow" name="robots">`;
+  const open = "User-Agent: *\nAllow: /\nDisallow: /labs/\n";
+  const closed = "User-Agent: *\nDisallow: /\n";
+  const empty = "<urlset></urlset>";
+  const listed = `<urlset><url><loc>${canonical}</loc></url></urlset>`;
+  assert.equal(checkPageCanonical(html, pathname), true);
+  assert.equal(checkPageIndexability(noindex, closed, empty, pathname), true);
+  assert.equal(checkPageIndexability(html, open, listed, pathname), true);
+  const home = '<link rel="canonical" href="https://example.test/">';
+  assert.equal(checkPageIndexability(`${home}<meta name="robots" content="noindex, nofollow">`, closed, empty, "/"), true);
+  assert.equal(checkPageIndexability(home, open, '<urlset><loc>https://example.test/</loc></urlset>', "/"), true);
+  assert.notEqual(checkPageIndexability(home, open, '<urlset><loc>https://wrong.test/</loc></urlset>', "/"), true);
+  for (const [page, robots, sitemap] of [
+    [html, closed, empty], [noindex, open, listed], [html, open, empty],
+    [noindex, closed, listed], [noindex, "", empty], [noindex, closed, "broken"],
+    [noindex, closed, `<urlset><loc>https://wrong.test${pathname}</loc></urlset>`],
+    [html, open, `<urlset><loc>https://wrong.test${pathname}</loc></urlset>`],
+  ]) assert.notEqual(checkPageIndexability(page, robots, sitemap, pathname), true);
+  for (const href of ["", "https://example.test/films/the-truman-show", `${canonical}?spoilers=full`, `${canonical}#section`]) {
+    assert.notEqual(checkPageCanonical(`<link rel="canonical" href="${href}">`, pathname), true);
+  }
+});
 
 function fixture(run) {
   const root = mkdtempSync(join(tmpdir(), "dmr-style-contract-"));
@@ -622,18 +662,22 @@ test("contrast sampling snaps to whole exposed pixel rows", async () => {
   assert.deepEqual([rowOrigin + band[0], rowOrigin + band[1]], [64, 78]);
 });
 
-test("renderer mask fallback hides only visible text owners, never moves boxes", async () => {
+test("renderer mask fallback never hides an owner's gradient, pseudo-element or descendants", async () => {
   const { hardMaskTextPaint } = await import("../scripts/lib/rendered-contrast.mjs");
+  const { runInNewContext } = await import("node:vm");
   const calls = [];
-  const state = {
-    visibleIds: new Set([1]),
-    records: [
-      { id: 1, element: { style: { setProperty: (property, value) => calls.push([property, value]) } } },
-      { id: 2, element: { style: { setProperty: () => { throw new Error("invisible record touched"); } } } },
-    ],
-  };
-  hardMaskTextPaint(state);
-  assert.deepEqual(calls, [["visibility", "hidden"]]);
+  const owners = ["plain", "gradient", "pseudo", "child", "solid"].map(name => ({
+    name, namespaceURI: "http://www.w3.org/1999/xhtml", children: name === "child" ? [{}] : [],
+    style: { setProperty: (property, value) => calls.push([name, property, value]) },
+  }));
+  const state = { visibleIds: new Set([0, 1, 2, 3, 4]), records: owners.map((element, id) => ({ id, element })) };
+  const getComputedStyle = (element, pseudo) => pseudo
+    ? { content: element.name === "pseudo" && pseudo === "::before" ? '""' : "none", display: "block", visibility: "visible" }
+    : { backgroundColor: element.name === "solid" ? "rgb(238, 238, 238)" : "rgba(0, 0, 0, 0)",
+        backgroundImage: element.name === "gradient" ? "linear-gradient(rgb(238, 238, 238), rgb(238, 238, 238))" : "none" };
+  runInNewContext(`(${hardMaskTextPaint.toString()})(state)`, { state, getComputedStyle });
+  assert.deepEqual(calls, [["plain", "visibility", "hidden"]]);
+  assert.deepEqual([...state.protectedMaskIds], [1, 2, 3, 4]);
   assert.equal(state.usedHardMask, true);
 });
 
@@ -654,4 +698,16 @@ test("page-serialised probes never reference module-scope helpers", async () => 
       assert.ok(!source.includes(`${helper}(`), `${name} must not call ${helper}`);
     }
   }
+});
+
+
+test("browser audit exempts only the console log correlated to the requested 404 document", () => {
+  const path = "/films/not-a-film";
+  const response = { status: 404, type: "Document", url: `https://example.test${path}`, requestId: "request-1" };
+  const log = { type: "log", source: "network", url: response.url, requestId: "request-1" };
+  assert.equal(expectedDocument404Log(log, [response], path), true);
+  assert.equal(expectedDocument404Log({ ...log, requestId: "missing-asset" }, [response], path), false);
+  assert.equal(expectedDocument404Log({ ...log, source: "javascript" }, [response], path), false);
+  assert.equal(expectedDocument404Log({ ...log, url: "https://example.test/missing.js" }, [response], path), false);
+  assert.equal(expectedDocument404Log(log, [{ ...response, type: "Script" }], path), false);
 });

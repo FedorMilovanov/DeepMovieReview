@@ -84,6 +84,7 @@
 
 .filmSceneTable table {
   width: 100%;
+  min-width: 40rem;
   border-collapse: collapse;
   font-size: 0.92rem;
 }
@@ -130,28 +131,10 @@
   text-align: right;
 }
 
-/* A 390px screen cannot hold five columns of padded table: the shell clips, the
-   reader loses the last column, and the audit sees content wider than its box.
-   Below the tablet breakpoint the cells wrap instead of holding a line, and the
-   padding shrinks — the table stays a table, it just stops pretending to be wide. */
-@media (max-width: 760px) {
-  .filmSceneTable thead th,
-  .filmSceneTable tbody th,
-  .filmSceneTable tbody td {
-    padding: 0.55rem 0.5rem;
-  }
-
-  .filmSceneIndex,
-  .filmSceneTime,
-  .filmSceneSupports,
-  .filmSceneState {
-    white-space: normal;
-  }
-
-  .filmSceneTable tbody th,
-  .filmSceneTable tbody td {
-    overflow-wrap: anywhere;
-  }
+/* Keep words and timecodes intact. The focusable wrapper scrolls, not the page. */
+.filmSceneTableWrap:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
 }
 
 .filmSceneState {
@@ -179,4 +162,13 @@
   .characterAnchors a:focus-visible {
     transform: none;
   }
+}
+
+/* Registered conceptual illustrations, never represented as evidence or stills. */
+.characterVisual { width: min(100%, 17rem); margin: 0 0 1.25rem; }
+.characterVisual img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
+.characterVisual figcaption { margin-top: 0.4rem; color: var(--ink-3); font-size: 0.72rem; line-height: 1.4; }
+@media (min-width: 701px) {
+  .characterCard { display: flow-root; }
+  .characterVisual { float: right; width: 40%; margin: 0 0 1rem 1.25rem; }
 }

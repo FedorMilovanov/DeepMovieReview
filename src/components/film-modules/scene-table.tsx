@@ -48,14 +48,15 @@ export function FilmSceneTable({
       <div className="sectionIndex">Фильм / Сцены {researchDraft ? "· черновик" : "· проверено"}</div>
       <h2 id="film-scene-table-title">Все сцены с таймкодами и опорами.</h2>
       <p className="sectionIntro">
-        {verified} из {visibleScenes.length} сцен проверены по залоченному мастеру; последняя колонка
-        считает записи доказательств внутри сцены. Числа печатаются из пакета, а не набираются
-        руками.
+        {verified} из {visibleScenes.length} сцен отмечены проверенными в реестре. Этот статус не означает
+        непрерывного просмотра со звуком: материал отдельной проверки показан в реестре опор.
+        Последняя колонка считает записи доказательств внутри сцены.
         {hiddenScenes > 0
           ? ` Ещё ${hiddenScenes} сцен скрыто до выбранного уровня спойлеров.`
           : ""}
       </p>
-      <div className="filmSceneTableWrap">
+      <p className="microLabel">На узком экране таблицу можно прокрутить по горизонтали.</p>
+      <div className="filmSceneTableWrap" role="region" aria-label="Таблица сцен, горизонтальная прокрутка" tabIndex={0}>
         <table>
           <caption className="visuallyHidden">
             Сцены фильма: начало, длительность, состояние проверки и число опор

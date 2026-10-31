@@ -38,11 +38,36 @@ export function samePaintedColor(a, b, tolerance = 12) {
   return [0, 1, 2].every(index => Math.abs(a[index] - b[index]) <= tolerance);
 }
 
-// WebKit can keep a promoted panel's glyphs in a stale layer even when the
-// computed fill is transparent. Hiding the paint owner with visibility keeps
-// every box exactly where it is, so the captured background is the real one.
+// Visibility is only a valid second mask when hiding the text owner cannot
+// remove any of the background being measured. A gradient, pseudo-element,
+// border, shadow, SVG or descendant might paint behind the glyphs. In that case
+// retain the foreground-only mask; if it still leaks, report an incomplete/fail.
+// This function is serialised into the page and must remain self-contained.
 export function hardMaskTextPaint(s) {
-  for (const record of s.records) if (s.visibleIds.has(record.id)) record.element.style.setProperty("visibility", "hidden");
+  const protectedIds = [];
+  for (const record of s.records) {
+    if (!s.visibleIds.has(record.id)) continue;
+    const element = record.element;
+    const style = getComputedStyle(element);
+    const hasPaint = value => Boolean(value && value !== "none" && value !== "normal");
+    const transparent = value => !value || value === "transparent" || value === "rgba(0, 0, 0, 0)";
+    const generated = ["::before", "::after"].some(pseudo => {
+      const part = getComputedStyle(element, pseudo);
+      return part.display !== "none" && part.visibility !== "hidden" &&
+        part.content && part.content !== "none" && part.content !== "normal";
+    });
+    const ownsPaint = element.namespaceURI === "http://www.w3.org/2000/svg" ||
+      (element.children?.length ?? 0) > 0 || generated ||
+      !transparent(style.backgroundColor) || hasPaint(style.backgroundImage) ||
+      hasPaint(style.boxShadow) || hasPaint(style.borderImageSource) ||
+      hasPaint(style.maskImage) || hasPaint(style.webkitMaskImage) ||
+      ["Top", "Right", "Bottom", "Left"].some(side =>
+        parseFloat(style[`border${side}Width`] || "0") > 0 &&
+        style[`border${side}Style`] !== "none");
+    if (ownsPaint) protectedIds.push(record.id);
+    else element.style.setProperty("visibility", "hidden");
+  }
+  s.protectedMaskIds = protectedIds;
   s.usedHardMask = true;
 }
 
@@ -178,7 +203,7 @@ export function snapshotTextPaint(s) {
   return { boxes, scroll: scrollY, width: innerWidth, height: innerHeight, end: scrollY + innerHeight >= document.documentElement.scrollHeight };
 }
 
-export async function renderedContrast(page, nodes, directory, id) {
+export async function renderedContrast(page, nodes, directory, id, options = {}) {
   mkdirSync(directory, { recursive: true });
   const state = await page.evaluateHandle(targets => {
     const records = [], owners = [], byText = new Map();
@@ -208,7 +233,16 @@ export async function renderedContrast(page, nodes, directory, id) {
   const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [];
   let tileLimit = false;
   try {
-    let top = 0, revisiting = false, tile = 0;
+    // An explicitly scoped audit (e.g. the comparison far down a long film
+    // page) need not capture every unrelated viewport. Coverage is still
+    // rechecked against live ranges below; anything missed is revisited or
+    // fails closed. Ordinary whole-document scans keep their original traversal.
+    const extent = options.restrictToTargetBounds ? await page.evaluate(s => {
+      const rects = s.records.flatMap(record => [...record.range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0));
+      return rects.length ? { top: Math.max(0, Math.min(...rects.map(rect => rect.top + scrollY)) - innerHeight * 0.25),
+        bottom: Math.max(...rects.map(rect => rect.bottom + scrollY)) } : { top: 0, bottom: 0 };
+    }, state) : null;
+    let top = extent?.top ?? 0, revisiting = false, tile = 0;
     // Coverage is measured against the layout as it is, and a record can re-wrap
     // after its visit: an element that measured one line can be two lines by the
     // time the pass ends. Each record may therefore be revisited a bounded number
@@ -247,6 +281,10 @@ export async function renderedContrast(page, nodes, directory, id) {
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         try {
           await page.evaluate(maskTextPaint, state);
+          // A CSS transition can leave the computed text-fill colour at its
+          // previous value for the current task even with reduced motion. Do
+          // not call the mask invalid until its actual paint has committed.
+          await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
           const invalidMask = await page.evaluate(s => {
             const moved = s.currentBoxes.filter(box => {
               const current = s.records[box.id].range.getClientRects()[box.line];
@@ -285,7 +323,8 @@ export async function renderedContrast(page, nodes, directory, id) {
               background = await page.screenshot();
               still = leaked(PNG.sync.read(background), snapshot.boxes);
             }
-            maskEscalations.push({ tile, escalated: snapshot.boxes.map(box => box.id), unresolved: still });
+            const protectedIds = await page.evaluate(s => s.protectedMaskIds, state);
+            maskEscalations.push({ tile, escalated: snapshot.boxes.map(box => box.id), protectedIds, unresolved: still });
             for (const box of snapshot.boxes) if (still.includes(box.id)) box.issue = "Text paint survived both masks";
           }
         } finally {
@@ -313,38 +352,16 @@ export async function renderedContrast(page, nodes, directory, id) {
           const before = suspects.map(box => ({ id: box.id, line: box.line, minimum: bounds.get(box).minimum }));
           const captures = [];
           try {
-            // Two ways to remove the measured glyphs, chosen per element:
-            //
-            // - An element that paints no background of its own is hidden with
-            //   `visibility`, which also forces a promoted layer to repaint even
-            //   when a transparent text fill did not (measured in WebKit on a fixed
-            //   panel).
-            // - An element that paints its own background keeps it: the text fill
-            //   is masked instead, because `visibility` would remove that
-            //   background and turn the calibration's `currentColor` fixture into
-            //   white text on the black body — a better bound than the truth.
-            //
-            // Neither branch touches `color`, so `currentColor` backgrounds and
-            // borders resolve exactly as the reader sees them.
+            // Reuse the same conservative mask as the first capture. Hide only
+            // owners proven not to paint their own background/pseudo-elements;
+            // otherwise a better-looking verification could be fabricated by
+            // erasing the surface we are trying to measure.
             await page.evaluate(({ s, ids }) => {
-              const elements = new Set(s.records.filter(record => ids.includes(record.id)).map(record => record.element));
-              const paintsOwnBackground = element => {
-                const color = getComputedStyle(element).backgroundColor;
-                return Boolean(color) && color !== "transparent" && !/^rgba\(0, 0, 0, 0\)$|^rgb\(0 0 0 \/ 0\)$/.test(color);
-              };
-              s.saved = [...elements].map(element => ({
-                element,
-                hidden: !paintsOwnBackground(element),
-                properties: ["-webkit-text-fill-color", "text-shadow", "fill", "text-decoration-color", "visibility"].map(name => ({
-                  name, value: element.style.getPropertyValue(name), priority: element.style.getPropertyPriority(name) })),
-              }));
-              for (const { element, hidden } of s.saved) {
-                if (hidden) { element.style.setProperty("visibility", "hidden"); continue; }
-                element.style.setProperty("-webkit-text-fill-color", "transparent");
-                element.style.setProperty("text-shadow", "none");
-                if (element.namespaceURI === "http://www.w3.org/2000/svg") element.style.setProperty("fill", "transparent");
-              }
+              s.beforeVerificationVisibleIds = s.visibleIds;
+              s.visibleIds = new Set(ids);
             }, { s: state, ids });
+            await page.evaluate(maskTextPaint, state);
+            await page.evaluate(hardMaskTextPaint, state);
             for (const pass of [0, 1]) {
               // A promoted layer can keep the previous frame even after a transparent
               // fill. The second pass nudges the scroll by one pixel and restores it,
@@ -356,6 +373,10 @@ export async function renderedContrast(page, nodes, directory, id) {
             }
           } finally {
             await page.evaluate(restoreTextPaint, state);
+            await page.evaluate(s => {
+              if (s.beforeVerificationVisibleIds) s.visibleIds = s.beforeVerificationVisibleIds;
+              delete s.beforeVerificationVisibleIds;
+            }, state);
           }
           const read = (bytes, name) => {
             const png = PNG.sync.read(bytes);
@@ -393,7 +414,7 @@ export async function renderedContrast(page, nodes, directory, id) {
           }
           measurements.set(key, measurement);
         }
-        revisiting ||= snapshot.end;
+        revisiting ||= snapshot.end || Boolean(extent && snapshot.scroll + snapshot.height >= extent.bottom);
         if (revisiting) {
           // Revisit only missing coverage, never discard a low bound in favour of
           // a later, prettier frame. Ordinary centered scrolling lets late reveal
@@ -487,7 +508,7 @@ export async function renderedContrast(page, nodes, directory, id) {
         })) };
     }), { s: state, absent: [...absent] }) : [];
     const failed = ranges.filter(range => !range.pass);
-    return { method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
+    return { restrictedToTargetBounds: Boolean(extent), method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
       missing, tileLimit, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);

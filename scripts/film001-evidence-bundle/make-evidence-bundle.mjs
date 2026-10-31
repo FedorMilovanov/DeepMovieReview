@@ -70,11 +70,16 @@ const SCENE_THRESHOLD = Number(arg("scene", "0.32"));
 const SKIP_HASH = flag("skip-hash");
 const SKIP_SCAN = flag("skip-scan");
 
-const SHEET_CHUNK = SHEET_STEP * 30; // implied sheet length in seconds
+const tileMatch = SHEET_TILE.match(/^(\d+)x(\d+)$/i);
+if (!tileMatch || Number(tileMatch[1]) < 1 || Number(tileMatch[2]) < 1) fail("--tile must be a positive WxH grid");
+const TILES_PER_SHEET = Number(tileMatch[1]) * Number(tileMatch[2]);
+const SHEET_CHUNK = SHEET_STEP * TILES_PER_SHEET; // nominal duration only
 
 if (!INPUT) fail("--input is required");
 if (!Number.isFinite(GRID_STEP) || GRID_STEP <= 0) fail("--grid must be positive");
 if (!Number.isFinite(SHEET_STEP) || SHEET_STEP <= 0) fail("--sheet must be positive");
+if (!Number.isFinite(SCENE_THRESHOLD) || SCENE_THRESHOLD < 0 || SCENE_THRESHOLD > 1) fail("--scene must be between 0 and 1");
+if (![FRAME_W, THUMB_W].every(value => Number.isInteger(value) && value > 0)) fail("--width and --thumb must be positive integers");
 
 const startedAt = Date.now();
 const log = (msg) => console.log(msg);
@@ -209,6 +214,7 @@ async function main() {
     ["-y", "-hide_banner", "-loglevel", "error", "-i", INPUT, "-map", SUB_MAP, "-c:s", "srt", srtPath],
     { allowFailure: true, capture: true },
   );
+  const subtitleStatus = subsResult.status === 0 ? "complete" : "failed";
   if (subsResult.status === 0) {
     const srt = await fs.readFile(srtPath, "utf8");
     // A cue line is a timing line: "00:00:01,000 -> 00:00:03,500". Matching
@@ -233,9 +239,10 @@ async function main() {
 
   // ---------------------------------------------------- 4. shot changes -----
   step(4, "shot-boundary scan -> 04-cuts.csv (full decode)");
+  let scanStatus = SKIP_SCAN ? "skipped" : "complete";
   if (SKIP_SCAN) {
     log("   skipped (--skip-scan)");
-    await fs.writeFile(path.join(OUT, "04-cuts.csv"), "", "utf8");
+    await fs.writeFile(path.join(OUT, "04-cuts.csv"), "time_s,score\n", "utf8");
   } else {
     const scan = run(
       "ffmpeg",
@@ -247,6 +254,7 @@ async function main() {
       ],
       { capture: true, allowFailure: true },
     );
+    if (scan.status !== 0) scanStatus = "failed";
     const rows = [];
     let pendingTime = null;
     for (const line of (scan.stdout ?? "").split(/\r?\n/)) {
@@ -267,21 +275,24 @@ async function main() {
       "utf8",
     );
     log(`   cut candidates: ${rows.length}`);
-    if (rows.length === 0 && scan.status !== 0) {
+    if (scan.status !== 0) {
       log(`   WARNING: scan exit ${scan.status}`);
     }
   }
 
   // ------------------------------------- 5. stills + contact sheets --------
   step(5, `stills every ${GRID_STEP}s + contact sheets ${SHEET_TILE}@${SHEET_STEP}s (single decode)`);
+  // Select source frames rather than fps-filter output frames: fps=1/30 can
+  // label a frame sampled around 15s as t=0. showinfo records each selected PTS
+  // before tile/scale so the index never pretends a nominal grid is exact.
   const filter =
     `[0:v]split=2[g][s];` +
-    `[g]fps=1/${GRID_STEP},scale=${FRAME_W}:-2[grid];` +
-    `[s]fps=1/${SHEET_STEP},scale=${THUMB_W}:-2,tile=${SHEET_TILE}[sheet]`;
+    `[g]select='isnan(prev_selected_t)+gte(t-prev_selected_t,${GRID_STEP})',showinfo@grid,scale=${FRAME_W}:-2[grid];` +
+    `[s]select='isnan(prev_selected_t)+gte(t-prev_selected_t,${SHEET_STEP})',showinfo@sheet,scale=${THUMB_W}:-2,tile=${SHEET_TILE}[sheet]`;
   const framesResult = run(
     "ffmpeg",
     [
-      "-y", "-hide_banner", "-loglevel", "error",
+      "-y", "-hide_banner", "-loglevel", "info",
       "-i", INPUT,
       "-filter_complex", filter,
       "-map", "[grid]", "-q:v", "4", "-fps_mode", "passthrough",
@@ -295,8 +306,21 @@ async function main() {
     log("   WARNING: still extraction failed");
     log(`   ${(framesResult.stderr || "").trim().split(/\r?\n/).slice(-4).join("\n   ")}`);
   }
-  const frameCount = (await fs.readdir(path.join(OUT, "05-frames"))).length;
-  const sheetCount = (await fs.readdir(path.join(OUT, "06-sheets"))).length;
+  const frameCount = (await fs.readdir(path.join(OUT, "05-frames"))).filter(name => /^f_\d+\.jpg$/.test(name)).length;
+  const sheetCount = (await fs.readdir(path.join(OUT, "06-sheets"))).filter(name => /^sheet_\d+\.jpg$/.test(name)).length;
+  const samples = { grid: [], sheet: [] };
+  for (const line of (framesResult.stderr ?? "").split(/\r?\n/)) {
+    const match = line.match(/\[showinfo@(grid|sheet)\s+@[^\]]+\].*?\bn:\s*(\d+)\s+pts:\s*[-\d]+\s+pts_time:\s*([-+\d.eE]+)/);
+    if (match) samples[match[1]].push({ index: Number(match[2]), time: Number(match[3]) });
+  }
+  const frameRows = samples.grid.map(({ index, time }) => `f_${String(index + 1).padStart(5, "0")}.jpg,${time}`);
+  const sheetRows = samples.sheet.map(({ index, time }) =>
+    `sheet_${String(Math.floor(index / TILES_PER_SHEET) + 1).padStart(3, "0")}.jpg,${index % TILES_PER_SHEET},${time}`);
+  await fs.writeFile(path.join(OUT, "05-frame-times.csv"), `file,pts_time_s\n${frameRows.join("\n")}${frameRows.length ? "\n" : ""}`);
+  await fs.writeFile(path.join(OUT, "06-sheet-times.csv"), `file,tile_index,pts_time_s\n${sheetRows.join("\n")}${sheetRows.length ? "\n" : ""}`);
+  const timestampsComplete = framesResult.status === 0 && frameRows.length === frameCount &&
+    Math.ceil(sheetRows.length / TILES_PER_SHEET) === sheetCount && frameCount > 0;
+  if (!timestampsComplete) log("   WARNING: frame timestamp index incomplete; do not use the stills as timed evidence");
   log(`   stills: ${frameCount}`);
   log(`   sheets: ${sheetCount}`);
 
@@ -314,6 +338,9 @@ async function main() {
     `duration_seconds: ${duration.toFixed(3)}`,
     `chapters: ${chapters.length}`,
     `subtitle_map: ${SUB_MAP}`,
+    `subtitle_extraction_status: ${subtitleStatus}`,
+    `scene_scan_status: ${scanStatus}`,
+    `frame_timestamp_status: ${timestampsComplete ? "complete" : "incomplete"}`,
     `grid_step_seconds: ${GRID_STEP}`,
     `sheet_step_seconds: ${SHEET_STEP}`,
     `sheet_tile: ${SHEET_TILE}`,
@@ -324,8 +351,9 @@ async function main() {
     `ffmpeg: ${ffmpegVersion}`,
     `ffprobe: ${ffprobeVersion}`,
     "",
-    `mapping_stills: f_00001.jpg = t=0s, f_0000N.jpg = t=(N-1)*${GRID_STEP}s`,
-    `mapping_sheets: sheet_N tile k (row-major, 0-based) = (N-1)*${SHEET_CHUNK} + k*${SHEET_STEP}s`,
+    `timestamp_convention: selected decoded presentation PTS after ffmpeg input-start normalization; not raw container PTS`,
+    `mapping_stills: 05-frame-times.csv records actual selected PTS, not a nominal grid`,
+    `mapping_sheets: 06-sheet-times.csv records actual selected PTS per row-major tile`,
     "",
   ].join("\n");
   await fs.writeFile(path.join(OUT, "00-manifest.txt"), manifest, "utf8");

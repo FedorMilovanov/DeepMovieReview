@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import type {
   ProductionBlock,
+  ProductionClaim,
   ProductionDossier,
+  ProductionSource,
   ProductionSourceTier,
 } from "@/lib/production-dossier";
 import type { PageHeroImage } from "@/lib/page-metadata";
@@ -25,23 +27,57 @@ function formatDate(iso: string): string {
   return `${day}.${month}.${year}`;
 }
 
-function SourceRefs({ ids }: { ids: string[] }) {
+type ProductionLookup = {
+  claims: Map<string, ProductionClaim>;
+  sources: Map<string, ProductionSource>;
+};
+
+function SourceRefs({ ids, lookup }: { ids: string[]; lookup: ProductionLookup }) {
   if (ids.length === 0) return null;
   return (
-    <sup className="productionRefs" role="group" aria-label="Источники">
-      {ids.map((id) => (
-        <a key={id} href={`#source-${id}`}>
-          {id.replace(/^src-/, "").slice(0, 2)}
-        </a>
-      ))}
-    </sup>
+    <span className="productionRefs" role="group" aria-label="Источники в реестре">
+      {ids.map((id) => {
+        const source = lookup.sources.get(id);
+        if (!source) return null;
+        return <a key={id} href={`#source-${id}`} aria-label={`Источник: ${source.label}, ${source.publisher}`}>{source.publisher}</a>;
+      })}
+    </span>
   );
 }
 
-function ProductionBlockView({ block }: { block: ProductionBlock }) {
+const claimStatusLabels: Record<ProductionClaim["status"], string> = {
+  CONFIRMED: "в реестре: подтверждено",
+  DISPUTED: "в реестре: оспаривается",
+  UNVERIFIED: "в реестре: не проверено",
+};
+
+function ParagraphClaims({ ids, lookup }: { ids?: string[]; lookup: ProductionLookup }) {
+  const claims = (ids ?? []).flatMap((id) => {
+    const claim = lookup.claims.get(id);
+    return claim ? [claim] : [];
+  });
+  if (!claims.length) return null;
+  return (
+    <details className="productionParagraphClaims">
+      <summary>Основания абзаца · {claims.length}</summary>
+      <p>Это привязки к отдельным утверждениям, а не подтверждение каждого слова абзаца. Проверяйте содержание и ограничения источника.</p>
+      <ul>
+        {claims.map((claim) => (
+          <li key={claim.id}>
+            <span>{claim.text}</span>
+            <small>{claimStatusLabels[claim.status]}</small>
+            <SourceRefs ids={claim.sourceIds} lookup={lookup} />
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+function ProductionBlockView({ block, lookup }: { block: ProductionBlock; lookup: ProductionLookup }) {
   switch (block.kind) {
     case "paragraph":
-      return <p className="articleParagraph">{block.text}</p>;
+      return <div className="productionParagraph"><p className="articleParagraph">{block.text}</p><ParagraphClaims ids={block.claimIds} lookup={lookup} /></div>;
     case "subhead":
       return <h3 className="articleSubhead">{block.text}</h3>;
     case "pullquote":
@@ -60,7 +96,7 @@ function ProductionBlockView({ block }: { block: ProductionBlock }) {
                 <dt>{row.label}</dt>
                 <dd>
                   {row.value}
-                  <SourceRefs ids={row.sourceIds} />
+                  <SourceRefs ids={row.sourceIds} lookup={lookup} />
                 </dd>
               </div>
             ))}
@@ -76,7 +112,7 @@ function ProductionBlockView({ block }: { block: ProductionBlock }) {
               <li key={item.id}>
                 <time dateTime={item.date}>{item.date.replace(/-/g, ".")}</time>
                 <span>{item.label}</span>
-                <SourceRefs ids={item.sourceIds} />
+                <SourceRefs ids={item.sourceIds} lookup={lookup} />
               </li>
             ))}
           </ol>
@@ -91,7 +127,7 @@ function ProductionBlockView({ block }: { block: ProductionBlock }) {
               <article key={row.id} className="productionMyth">
                 <h3>{row.claim}</h3>
                 <p>{row.verdict}</p>
-                <SourceRefs ids={row.sourceIds} />
+                <SourceRefs ids={row.sourceIds} lookup={lookup} />
               </article>
             ))}
           </div>
@@ -115,6 +151,10 @@ export function ProductionDossierView({
 }) {
   const byTier = (tier: ProductionSourceTier) =>
     dossier.sources.filter((source) => source.tier === tier);
+  const lookup: ProductionLookup = {
+    claims: new Map(dossier.claims.map((claim) => [claim.id, claim])),
+    sources: new Map(dossier.sources.map((source) => [source.id, source])),
+  };
 
   return (
     <article className="articleShell productionShell">
@@ -166,8 +206,8 @@ export function ProductionDossierView({
           <span>{dossier.sources.length} источников</span>
         </div>
         <p className="productionSpoilerNote">
-          Здесь нет ни одного спойлера: производственная история рассказывается так, чтобы её можно было
-          читать до просмотра. Всё, что касается содержания картины, осталось в разборе.
+          Материал о производстве обсуждает сюжет, отдельные сцены и финал фильма. Если вы ещё не
+          смотрели «Шоу Трумана», вернитесь сюда после просмотра.
         </p>
       </header>
 
@@ -194,7 +234,7 @@ export function ProductionDossierView({
           </div>
           <div className="articleBody">
             {section.blocks.map((block) => (
-              <ProductionBlockView key={block.id} block={block} />
+              <ProductionBlockView key={block.id} block={block} lookup={lookup} />
             ))}
           </div>
         </section>
@@ -217,8 +257,8 @@ export function ProductionDossierView({
           <div className="sectionIndex">Реестр</div>
           <h2 id="production-sources-title">Источники: {dossier.sources.length}</h2>
           <p className="sectionIntro">
-            Каждый источник открывался {formatDate(dossier.sources[0]?.checkedOn ?? dossier.byline.draftedAt)}.
-            Под каждым сказано, что именно он подтверждает, — список без этого бесполезен.
+            Дата последнего обращения указана у каждого источника. Запись объясняет, на какое
+            утверждение он направлен; связь из реестра не заменяет самостоятельной проверки текста.
           </p>
         </div>
 
@@ -234,16 +274,14 @@ export function ProductionDossierView({
               <ol>
                 {sources.map((source) => (
                   <li key={source.id} id={`source-${source.id}`}>
-                    <details>
-                      <summary>
-                        <span>{source.label}</span>
-                        <small>{source.publisher}</small>
-                      </summary>
+                    <div className="productionSourceEntry">
+                      <h4>{source.label}</h4>
+                      <small>{source.publisher} · проверено <time dateTime={source.checkedOn}>{formatDate(source.checkedOn)}</time></small>
                       <p>{source.supports}</p>
                       <a href={source.url} rel="noreferrer noopener" target="_blank">
-                        {source.url}
+                        Открыть источник: {source.publisher} ↗
                       </a>
-                    </details>
+                    </div>
                   </li>
                 ))}
               </ol>

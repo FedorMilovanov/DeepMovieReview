@@ -26,7 +26,7 @@ const OUTCOME: Record<LedgerEntryLike["status"], EvidenceReviewBasis["outcome"]>
   PENDING_LOCAL_REVIEW: "pending",
 };
 
-const TIMED = new Set<EvidenceReviewBasis["material"]>(["frames", "subtitle-track"]);
+const TIMED = new Set<EvidenceReviewBasis["material"]>(["frames", "clip-frames", "subtitle-track"]);
 
 /**
  * Derive the review basis from a ledger entry.
