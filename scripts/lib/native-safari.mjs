@@ -17,12 +17,21 @@ export function safariRequestTimeout(path) {
 // and release it; callers must separately prove that touch and scroll occurred.
 export function viewportSwipeActions({ x, fromY, toY, duration = 700 }) {
   assert.ok([x, fromY, toY, duration].every(Number.isInteger) && x >= 0 && fromY >= 0 && toY >= 0 && duration > 0);
-  return { actions: [{ type: "pointer", id: "finger-scroll", parameters: { pointerType: "touch" }, actions: [
+  // Discrete native pointer moves separated by pauses avoid depending on the
+  // driver's interpolation of one long move. They are still W3C touch input;
+  // the caller must observe real touch delivery and viewport movement.
+  const steps = 5;
+  const actions = [
     { type: "pointerMove", duration: 0, origin: "viewport", x, y: fromY },
     { type: "pointerDown", button: 0 },
-    { type: "pointerMove", duration, origin: "viewport", x, y: toY },
-    { type: "pointerUp", button: 0 },
-  ] }] };
+    { type: "pause", duration: 80 },
+  ];
+  for (let step = 1; step <= steps; step++) {
+    actions.push({ type: "pointerMove", duration: 0, origin: "viewport", x, y: Math.round(fromY + (toY - fromY) * step / steps) });
+    actions.push({ type: "pause", duration: Math.max(1, Math.round(duration / steps)) });
+  }
+  actions.push({ type: "pointerUp", button: 0 });
+  return { actions: [{ type: "pointer", id: "finger-scroll", parameters: { pointerType: "touch" }, actions }] };
 }
 
 export async function performCompletedSwipe(perform, release) {

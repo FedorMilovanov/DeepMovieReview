@@ -299,6 +299,13 @@ try {
     } catch (diagnosticError) { report.failedSimulatorDiagnostic = diagnosticError.message; }
   }
   if (safari) {
+    // A stuck WebDriver cannot capture its own viewport. Preserve the actual
+    // Simulator display independently for diagnosis, never as a passing scan.
+    try {
+      const file = `${directory}/failed-active-simulator.png`;
+      execFileSync("xcrun", ["simctl", "io", report.device.udid, "screenshot", file], { timeout: 15000 });
+      evidence.screenshots.push({ route: "Simulator display after failed native action; diagnostic only", data: readFileSync(file).toString("base64") });
+    } catch (diagnosticError) { report.failedActiveSimulatorDiagnostic = diagnosticError.message; }
     try {
       report.failedPageState = await safari.execute("return ({url:location.href,expanded:document.querySelector('.menuButton')?.getAttribute('aria-expanded'),button:document.querySelector('.menuButton')?.getBoundingClientRect().toJSON(),width:innerWidth,scrollY})");
       evidence.screenshots.push({ route: "failed native state", data: await safari.screenshot() });

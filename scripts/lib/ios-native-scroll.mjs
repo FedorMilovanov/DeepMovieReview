@@ -7,8 +7,8 @@ export async function nativeSwipeAndObserve({ readTarget, readEvents, swipe, att
   before ??= await readTarget();
   const probeBefore = (await readEvents()).length;
   const points = { x: Math.round(before.innerWidth / 2),
-    fromY: Math.round(before.innerHeight * (down ? 0.75 : 0.3)),
-    toY: Math.round(before.innerHeight * (down ? 0.35 : 0.7)) };
+    fromY: Math.round(before.innerHeight * (down ? 0.86 : 0.3)),
+    toY: Math.round(before.innerHeight * (down ? 0.5 : 0.7)) };
   const entry = { before, points }; attempts.push(entry);
   try {
     await swipe(points);

@@ -671,9 +671,12 @@ test("completed native swipe releases with pointerUp and preserves action failur
 test("native UI observation waits without replaying input and fails a persistent state", async () => {
   const { waitForNativeValue, noNativeEventsDelivered, viewportSwipeActions } = await import("../scripts/lib/native-safari.mjs");
   const swipe = viewportSwipeActions({ x: 200, fromY: 500, toY: 240 });
-  assert.deepEqual(swipe.actions[0].actions.map((step) => step.type), ["pointerMove", "pointerDown", "pointerMove", "pointerUp"]);
+  const steps = swipe.actions[0].actions, moves = steps.filter(step => step.type === "pointerMove");
   assert.equal(swipe.actions[0].parameters.pointerType, "touch");
-  assert.equal(swipe.actions[0].actions[2].duration, 700);
+  assert.equal(steps[1].type, "pointerDown"); assert.equal(steps.at(-1).type, "pointerUp");
+  assert.deepEqual(moves.map(move => move.y), [500, 448, 396, 344, 292, 240]);
+  assert.ok(moves.every(move => move.origin === "viewport" && move.duration === 0));
+  assert.equal(steps.filter(step => step.type === "pause").reduce((sum, step) => sum + step.duration, 0), 780);
   assert.throws(() => viewportSwipeActions({ x: -1, fromY: 500, toY: 240 }));
   assert.equal(noNativeEventsDelivered({ events: [] }), true);
   for (const probe of [undefined, {}, { lostAfterNavigation: true, events: [] }, { events: [{ type: "touchstart" }] }]) {
