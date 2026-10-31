@@ -121,18 +121,30 @@ try {
     await safari.execute(`window.__inputProbe = { events: [] };
       for (const type of ["touchstart", "touchend", "click", "pointerdown"])
         document.addEventListener(type, e => __inputProbe.events.push({ type,
-          target: (e.target.className || e.target.tagName).toString().slice(0, 40) }), { capture: true, once: true });`);
+          target: (e.target.className || e.target.tagName).toString().slice(0, 40),
+          href: e.target.closest?.("a")?.getAttribute("href") ?? null,
+          x: Number.isFinite(e.clientX) ? e.clientX : null, y: Number.isFinite(e.clientY) ? e.clientY : null }), { capture: true, once: true });`);
+    const readProbe = () => safari.execute("return window.__inputProbe ? { ...window.__inputProbe, url: location.href } : { lostAfterNavigation: true, url: location.href }");
     await safari.click(selector);
     let delivered = true;
     try { await waitForNativeValue(read, expected, { timeout }); }
     catch (error) {
-      const probe = await safari.execute("return { ...__inputProbe, url: location.href }");
-      if (probe.events.length) { report.lastUndeliveredProbe = probe; throw error; }
+      const probe = await readProbe();
+      const attempt = { selector, touch: probe };
+      report.nativeActivationDiagnostics = [...(report.nativeActivationDiagnostics ?? []), attempt];
+      // A navigation discards the probe; it is not proof of an undelivered touch.
+      if (probe.lostAfterNavigation || probe.events.length) throw error;
       delivered = false;
-      await safari.elementClick(selector);
-      await waitForNativeValue(read, expected, { timeout });
-      probe.fallback = "W3C element activation after zero delivered events";
-      report.undeliveredTouches = [...(report.undeliveredTouches ?? []), { selector, probe }];
+      attempt.fallback = "W3C element activation after zero delivered events";
+      try {
+        await safari.elementClick(selector);
+        await waitForNativeValue(read, expected, { timeout });
+      } finally {
+        // Retain the fallback events and final URL even when its postcondition
+        // fails. A successful command is not itself evidence of activation.
+        try { attempt.afterFallback = await readProbe(); }
+        catch (diagnosticError) { attempt.afterFallback = { diagnosticError: diagnosticError.message }; }
+      }
     }
     return delivered ? "native touch" : "element activation after undelivered touch";
   };
@@ -166,6 +178,7 @@ try {
       const expectedSectionIds = parseArticleSectionIds(await baselineResponse.text());
       assert.ok(expectedSectionIds.length < count && expectedSectionIds.every((id, index) => sectionIds[index] === id) &&
         !expectedSectionIds.includes(lastSectionId), "NONE baseline must be a proper prefix of the full article");
+      report.spoilerBaseline = { fullSectionIds: sectionIds, expectedSectionIds, lastSectionId };
       // Exercise the control before anything else on the page. It sits at the
       // very edge of the installed simulator's 390x844 window — behind Safari's
       // own bottom toolbar — and a tap there reached no DOM event at all
@@ -187,6 +200,7 @@ try {
           noneSelected: document.querySelector('.spoilerOption')?.getAttribute('aria-current') === 'true',
           lastSectionPresent: Boolean(document.getElementById(${JSON.stringify(lastSectionId)}))
         }`);
+        report.spoilerLastObservation = lastObservation;
         return noneArticleProjectionReached(lastObservation, {
           expectedUrl, beforeSections: count, expectedSectionIds,
         }) ? "changed" : "same";

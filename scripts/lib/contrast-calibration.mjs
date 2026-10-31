@@ -9,6 +9,10 @@ export async function calibrateRenderedContrast(browser, directory, name) {
     { name: "bounded-distant-gradient", html: '<div style="height:150000px"></div><p id="target" style="color:white;background-image:linear-gradient(#eee,#eee)">Target far below the fold must fail</p><div style="height:150000px"></div>', pass: false, bounded: true },
     { name: "white-black", html: '<p id="target" style="color:white;background:black">Known text</p>', pass: true },
     { name: "transitioned-text-mask", html: '<p id="target" style="color:white;background:black;transition:all 0.01ms">Deferred text paint must settle</p>', pass: true },
+    { name: "moving-high-contrast", html: '<div style="height:2000px"></div><p id="target" style="color:white;background:black">Moving text must settle before the paired capture</p><script>addEventListener("scroll",()=>document.querySelector("#target").animate([{transform:"translateY(40px)"},{transform:"translateY(0)"}],{duration:700}),{once:true})</script>', pass: true, bounded: true, mustMeasure: true },
+    { name: "moving-low-contrast", html: '<div style="height:2000px"></div><p id="target" style="color:white;background:#eee">Moving text must still fail on a pale background</p><script>addEventListener("scroll",()=>document.querySelector("#target").animate([{transform:"translateY(40px)"},{transform:"translateY(0)"}],{duration:700}),{once:true})</script>', pass: false, bounded: true, mustMeasure: true },
+    { name: "permanently-moving-text", html: '<p id="target" style="color:white;background:black">Unsettled geometry must not pass</p><script>let i=0;setInterval(()=>document.querySelector("#target").style.transform=`translateX(${i++%31}px)`,17)</script>', pass: false },
+    { name: "blocked-text-mask", html: '<style>#target{-webkit-text-fill-color:white!important}</style><p id="target" style="color:white;background:black">An unremovable foreground must not pass as a background</p>', pass: false },
     { name: "white-own-gray", html: '<p id="target" style="color:white;background:#eee">White on pale gray must fail</p>', pass: false },
     { name: "white-own-gray-gradient", html: '<p id="target" style="color:white;background-image:linear-gradient(#eee,#eee)">White on pale gray must fail</p>', pass: false },
     { name: "white-own-white-gradient", html: '<p id="target" style="color:white;background-image:linear-gradient(white,white)">White on white must fail</p>', pass: false },
@@ -35,6 +39,8 @@ export async function calibrateRenderedContrast(browser, directory, name) {
       receipt.actions.push({ label: `Synthetic harness only: ${fixture.name}`, expectedPass: fixture.pass, assessment });
       writeFileSync(file, JSON.stringify(receipt, null, 2));
       assert.equal(assessment.pass, fixture.pass, `${name}: calibration ${fixture.name}`);
+      if (fixture.mustMeasure) assert.ok(assessment.ranges.some(range => Number.isFinite(range.minimum) && !range.issues.length),
+        `${name}: ${fixture.name} must actually measure the settled background`);
       if (fixture.bounded) assert.ok(assessment.frames.length <= 8 && !assessment.tileLimit, `${name}: scoped sweep traversed unrelated page space`);
     } finally { await page.close(); }
   }

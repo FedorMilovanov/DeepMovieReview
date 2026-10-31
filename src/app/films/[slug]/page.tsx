@@ -146,7 +146,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
       <section className="sectionShell sectionRule filmOutlineSection" aria-labelledby="film-outline-title">
         <div>
           <div className="sectionIndex">Фильм / План</div>
-          <h2 id="film-outline-title">Адресный разбор, отфильтрованный под ваш уровень спойлеров.</h2>
+          <h2 id="film-outline-title">Как читать разбор</h2>
           {filmPackage.article || characters || decision || hasVisibleScenes || hasVisibleEvidence ? (
             <nav className="filmReadingPaths" aria-label="Быстрые маршруты чтения">
               <p>Начать с интересующего</p>

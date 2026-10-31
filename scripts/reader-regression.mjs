@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium, firefox, webkit } from "playwright-core";
+import { parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
+import { workflowError } from "./lib/audit-report.mjs";
 
 const engines = { chromium, firefox, webkit };
 const base = (process.env.BASE_URL ?? "http://127.0.0.1:3212").replace(/\/$/, "");
@@ -30,7 +32,8 @@ async function check(name, page, action) {
     failures++;
     const details = String(error?.stack ?? error);
     results.push({ name, pass: false, details });
-    console.error(`FAIL ${name}\n${details}`);
+    const message = `FAIL ${name}\n${details}`;
+    console.error(process.env.GITHUB_ACTIONS === "true" ? workflowError(message) : message);
     try { await page.screenshot({ path: `${dir}/failure-${failures}.png` }); } catch { /* preserve original error */ }
   }
 }
@@ -220,6 +223,19 @@ for (const engine of requested) {
           });
         }
         if (width === 390) {
+          await check(`${engine} ${mode} spoiler control loads projected article`, page, async () => {
+            const article = `${base}/films/the-truman-show/article`;
+            const baseline = await page.request.get(article);
+            assert.equal(baseline.status(), 200);
+            const expectedIds = parseArticleSectionIds(await baseline.text());
+            await page.goto(`${article}?spoilers=FULL`, { waitUntil: "load" });
+            assert.ok(await page.locator(".articleSection").count() > expectedIds.length);
+            await page.locator(".spoilerOption").first().click();
+            await page.waitForURL(article);
+            await page.waitForLoadState("load");
+            assert.deepEqual(await page.locator(".articleSection").evaluateAll((sections) => sections.map((section) => section.id)), expectedIds);
+            assert.equal(await page.locator(".spoilerOption").first().getAttribute("aria-current"), "true");
+          });
           await check(`${engine} ${mode} native mobile menu`, page, async () => {
             const details = page.locator("details.siteMenuFallback");
             assert.ok(await details.isVisible());
@@ -229,12 +245,30 @@ for (const engine of requested) {
         }
         if (mode === "scripts-blocked") assert.ok(blocked > 0, `${engine}: blocked-script scenario did not block scripts`);
         if (mode === "no-js" && width === 320) assert.ok(delayedStyles > 0, `${engine}: slow-CSS scenario did not delay a stylesheet`);
+        console.log(`Reader progress: ${engine} ${mode} ${width}px completed; ${failures} failures so far.`);
         await context.close();
       }
     }
 
     const context = await browser.newContext({ viewport: { width: 390, height: 850 }, reducedMotion: "reduce" });
     const page = await context.newPage();
+    await check(`${engine} spoiler change loads the exact projected document`, page, async () => {
+      const article = `${base}/films/the-truman-show/article`;
+      const baseline = await page.request.get(article);
+      assert.equal(baseline.status(), 200);
+      const expectedIds = parseArticleSectionIds(await baseline.text());
+      await page.goto(`${article}?spoilers=FULL`, { waitUntil: "load" });
+      const fullIds = await page.locator(".articleSection").evaluateAll((sections) => sections.map((section) => section.id));
+      assert.ok(fullIds.length > expectedIds.length);
+      await page.evaluate(() => { window.__spoilerDocumentMarker = true; });
+      await page.locator(".spoilerOption").first().click();
+      await page.waitForURL(article);
+      await page.waitForLoadState("load");
+      assert.deepEqual(await page.locator(".articleSection").evaluateAll((sections) => sections.map((section) => section.id)), expectedIds);
+      assert.equal(await page.locator(".spoilerOption").first().getAttribute("aria-current"), "true");
+      assert.equal(await page.locator(`[id="${fullIds.at(-1)}"]`).count(), 0);
+      assert.equal(await page.evaluate(() => window.__spoilerDocumentMarker), undefined, "a fresh document, not a stale client projection");
+    });
     await check(`${engine} interactive comparison and keyboard`, page, async () => {
       await page.goto(`${base}/films/the-truman-show?spoilers=ENDING`, { waitUntil: "domcontentloaded" });
       const section = page.locator("#truman-comparison");
@@ -310,6 +344,9 @@ for (const engine of requested) {
       if (await parentDisclosure.count() && !(await parentDisclosure.evaluate((el) => el.open))) {
         await parentDisclosure.locator("summary").first().click();
       }
+      const targetSize = await firstLink.boundingBox();
+      assert.ok(targetSize && targetSize.width >= 44 && targetSize.height >= 44,
+        `source link must be a usable touch target: ${JSON.stringify(targetSize)}`);
       const href = await firstLink.getAttribute("href");
       await firstLink.click();
       assert.ok(await page.locator(href).isVisible(), `source target ${href} must not be hidden inside closed details`);

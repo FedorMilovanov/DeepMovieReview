@@ -47,8 +47,8 @@ export function FilmSceneTable({
 
   return (
     <section className="sectionShell sectionRule filmSceneTable" aria-labelledby="film-scene-table-title">
-      <div className="sectionIndex">Фильм / Сцены {researchDraft ? "· черновик" : "· проверено"}</div>
-      <h2 id="film-scene-table-title">Все сцены с таймкодами и опорами.</h2>
+      <div className="sectionIndex">Фильм / Сцены {researchDraft ? "· черновик" : "· статус реестра"}</div>
+      <h2 id="film-scene-table-title">Сцены, таймкоды и опоры.</h2>
       <p className="sectionIntro">
         {verified} из {visibleScenes.length} сцен отмечены проверенными в реестре. Этот статус не означает
         непрерывного просмотра со звуком: материал отдельной проверки показан в реестре опор.

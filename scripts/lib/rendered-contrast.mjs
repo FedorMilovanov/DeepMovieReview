@@ -237,7 +237,7 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
     return { records, owners, saved: [], textChanges: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
   }, nodes.map(node => node.target));
   const previousScroll = await page.evaluate(() => scrollY);
-  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [];
+  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [], maskValidation = [], geometryWaits = [];
   let tileLimit = false;
   try {
     // An explicitly scoped audit (e.g. the comparison far down a long film
@@ -259,14 +259,23 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
       for (; tile < 250; tile++) {
         await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), top);
         await page.waitForTimeout(100);
-        // Let actual IntersectionObserver/reveal animation settle; never force opacity.
-        let snapshot;
-        for (let attempt = 0; attempt < 25; attempt++) {
+        // A scroll-linked reveal can move text while opacity and filter already
+        // look settled. Pair screenshots only after the actual scroll position
+        // and every visible range have matched across three observations; never
+        // force styles, round away movement, or waive a permanently moving box.
+        let snapshot, previousGeometry, stable = 0, attempts = 0;
+        for (; attempts < 30; attempts++) {
           await page.evaluate(refreshTextRanges, state);
           snapshot = await page.evaluate(snapshotTextPaint, state);
-          if (!snapshot.boxes.some(box => box.settling)) break;
+          const geometry = JSON.stringify({ scroll: snapshot.scroll, boxes: snapshot.boxes.map(box =>
+            [box.id, box.version, box.line, box.rect.x, box.rect.y, box.rect.width, box.rect.height]) });
+          stable = !snapshot.boxes.some(box => box.settling) && geometry === previousGeometry ? stable + 1 : 0;
+          previousGeometry = geometry;
+          if (stable >= 2) break;
           await page.waitForTimeout(100);
         }
+        geometryWaits.push({ tile, observations: Math.min(attempts + 1, 30), settled: stable >= 2 });
+        if (stable < 2) for (const box of snapshot.boxes) box.issue = "Text geometry did not settle before capture";
         for (const box of snapshot.boxes.filter(box => box.settling)) deferred.push({ id: box.id, line: box.line, tile, reason: box.issue });
         snapshot.boxes = snapshot.boxes.filter(box => !box.settling).flatMap(box => {
           const band = exposedRows(box.occluded.length, row => box.occluded[row]);
@@ -293,18 +302,25 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
           // not call the mask invalid until its actual paint has committed.
           await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
           const invalidMask = await page.evaluate(s => {
-            const moved = s.currentBoxes.filter(box => {
+            const moved = s.currentBoxes.flatMap(box => {
               const current = s.records[box.id].range.getClientRects()[box.line];
-              return !current || ["x", "y", "width", "height"].some(key => current[key] !== box.rect[key]);
-            }).map(box => box.id);
-            return [...moved, ...s.records.filter(record => s.visibleIds.has(record.id)).filter(record => {
+              if (current && ["x", "y", "width", "height"].every(key => current[key] === box.rect[key])) return [];
+              return [{ id: box.id, line: box.line, before: box.rect, after: current?.toJSON() ?? null }];
+            });
+            const unmasked = s.records.filter(record => s.visibleIds.has(record.id)).flatMap(record => {
               const style = getComputedStyle(record.element);
               const color = record.element.namespaceURI === "http://www.w3.org/2000/svg" ? style.fill : style.webkitTextFillColor || style.color;
               s.ctx.clearRect(0, 0, 1, 1); s.ctx.fillStyle = color; s.ctx.fillRect(0, 0, 1, 1);
-              return s.ctx.getImageData(0, 0, 1, 1).data[3] !== 0;
-            }).map(record => record.id)];
+              const alpha = s.ctx.getImageData(0, 0, 1, 1).data[3];
+              return alpha ? [{ id: record.id, color, alpha }] : [];
+            });
+            return { moved, unmasked, scroll: scrollY };
           }, state);
-          for (const box of snapshot.boxes) if (invalidMask.includes(box.id)) box.issue = "Text mask did not remove foreground";
+          if (invalidMask.moved.length || invalidMask.unmasked.length) maskValidation.push({ tile, ...invalidMask });
+          for (const box of snapshot.boxes) {
+            if (invalidMask.moved.some(record => record.id === box.id && record.line === box.line)) box.issue = "Text geometry changed during masked capture";
+            else if (invalidMask.unmasked.some(record => record.id === box.id)) box.issue = "Text mask did not remove foreground";
+          }
           // Let the masked paint commit before capture: a promoted layer can keep
           // the previous frame for one tick.
           await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -516,7 +532,7 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
     }), { s: state, absent: [...absent] }) : [];
     const failed = ranges.filter(range => !range.pass);
     return { restrictedToTargetBounds: Boolean(extent), method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
-      missing, tileLimit, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
+      missing, tileLimit, maskValidation, geometryWaits, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);
     await state.dispose();

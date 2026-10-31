@@ -159,11 +159,11 @@
 
 .productionRefs a {
   display: inline-flex;
-  min-inline-size: 1.5rem;
-  min-block-size: 1.5rem;
+  min-inline-size: 2.75rem;
+  min-block-size: 2.75rem;
   align-items: center;
   justify-content: center;
-  color: var(--ink-4);
+  color: var(--ink-3);
   text-decoration: none;
   border-bottom: 1px solid var(--stroke-default);
 }
@@ -254,7 +254,7 @@
 .productionParagraphClaims summary:focus-visible { outline: 2px solid var(--focus-color); }
 .productionParagraphClaims ul { display: grid; gap: 0.75rem; padding-left: 1.25rem; }
 .productionParagraphClaims li small { display: block; color: var(--ink-3); }
-.productionRefs { font-size: 0.8em; }
+.productionRefs { font-size: 0.875em; }
 .productionRefs a { margin: 0.2rem 0.4rem 0.2rem 0; }
 .productionSourceEntry h4 { display: block; margin: 0; font-size: 1rem; }
 .productionSourceNumber { color: var(--ink-3); font-variant-numeric: tabular-nums; }
