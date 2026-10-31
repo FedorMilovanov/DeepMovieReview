@@ -72,17 +72,18 @@ for (const engine of requested) {
             await check(`${engine} ${mode} ${width}px ${path}`, page, async () => {
               const response = await page.goto(`${base}${path}`, { waitUntil: "domcontentloaded" });
               assert.equal(response?.status(), 200);
-              assert.ok(await page.locator("main h1").isVisible(), "heading must be visible in the initial response");
-              assert.equal(await page.locator(".routeLoading:visible").count(), 0, "no permanent loading skeleton");
-              assert.ok((await page.locator("main").innerText()).length > 500, "page needs substantive visible content");
-              // With JS disabled, DOMContentLoaded does not guarantee that linked
-              // CSS has arrived. Measure the actual styled layout, but fail if a
-              // stylesheet failed to load rather than treating missing CSS as OK.
+              // The heading must already be in the initial DOM, not inserted by
+              // hydration. Firefox reported it invisible while a delayed sheet
+              // was pending; styled visibility and geometry belong after load.
+              assert.equal(await page.locator("main h1").count(), 1, "initial response must contain one heading");
               await page.waitForLoadState("load");
               const unloadedStyles = await page.locator('link[rel="stylesheet"]').evaluateAll((links) =>
                 links.filter((link) => !link.sheet).map((link) => link.href),
               );
               assert.deepEqual(unloadedStyles, [], `stylesheets failed to load: ${unloadedStyles.join(", ")}`);
+              assert.ok(await page.locator("main h1").isVisible(), "heading must be visible with styles loaded");
+              assert.equal(await page.locator(".routeLoading:visible").count(), 0, "no permanent loading skeleton");
+              assert.ok((await page.locator("main").innerText()).length > 500, "page needs substantive visible content");
               const geometry = await page.evaluate(() => ({ documentWidth: document.documentElement.scrollWidth, viewport: innerWidth }));
               assert.ok(geometry.documentWidth <= geometry.viewport + 1, `global horizontal overflow ${JSON.stringify(geometry)}`);
               if (route === "/article") {
