@@ -26,14 +26,18 @@ export type EvidenceReviewBasis = {
   window?: { from: number; to: number };
   /** A derived clip's manifest supplies an approximate master-time mapping. */
   windowApproximate?: boolean;
+  /** Individual nominal frame times in the ledger, not a continuous viewing. */
+  observationTimes?: number[];
+  /** Relation of the cited second to recorded frame times, not proof of exact master PTS. */
+  anchorRelation?: "listed" | "between" | "outside";
   /** Provenance and limits of a post-lock observation, when recorded. */
   note?: string;
   /** How many separate observations the ledger lists. */
   observations: number;
   /**
    * What the check concluded. `pending` means the check exists for the compound
-   * record, but nothing was recorded at this record's own second — the honest
-   * state of a half that inherited its parent's review.
+   * record, but nothing was recorded at this record's own second — even when
+   * that second lies between, rather than on, two frame observations.
    */
   outcome: "seen" | "subtitle" | "refused" | "pending";
   /**
@@ -43,8 +47,8 @@ export type EvidenceReviewBasis = {
   unrecorded?: ("reviewer" | "date")[];
   /**
    * Research record this one was split from. The check was performed once, on the
-   * compound record, so a half may only claim the parent's window when its own
-   * second actually falls inside it.
+   * compound record. A parent window describes only the observed endpoints, not
+   * every intermediate second or an additional independent check.
    */
   inheritedFrom?: string;
   /**

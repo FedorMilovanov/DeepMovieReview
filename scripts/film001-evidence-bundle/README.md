@@ -137,7 +137,9 @@ record the discrepancy instead of proceeding:
 `measure-master-windows.mjs` reads `04-cuts.csv`, `03-subs-en.srt` and
 `00-manifest.txt`, and `01-probe.json` and emits the timing dataset the public article is allowed to
 quote — total detected transitions, the longest stretches without a detected transition,
-the longest gaps between subtitle cues (not necessarily silence), and named editorial windows:
+internal gaps in the union of subtitle-cue intervals, and named editorial windows.
+A cue is one SRT block, not necessarily one text line or one spoken utterance;
+no subtitle coverage does not imply acoustic silence:
 
 ```
 node measure-master-windows.mjs --bundle <bundle dir> \
@@ -147,9 +149,17 @@ node measure-master-windows.mjs --bundle <bundle dir> \
 The report takes its threshold from the manifest. Passing `--scene` with a
 different value is rejected: a filtered scan cannot recover transitions that
 were not recorded. Skipped or failed scans and failed subtitle extraction also
-fail closed. The subtitle language and absolute stream index come from the
-manifest's actual map and `01-probe.json`; the historical filename
-`03-subs-en.srt` alone does not prove the selected language is English.
+fail closed. FFmpeg's six-decimal metadata is stored in the CSV at four decimals:
+a row is rejected only when its possible two-stage rounding interval cannot be
+above the strict threshold. A rounded score at the threshold can be consistent,
+but does not prove the original value. The
+subtitle language and absolute stream index come from the manifest's actual map
+and `01-probe.json`; the filename `03-subs-en.srt` alone proves neither.
+
+`runtimeSecondsPerDetectedTransition` is file duration / detection count, which
+includes the start and end tails. `meanSecondsBetweenTransitions` is the mean of
+`adjacentTransitionGapCount` successive gaps, or null for fewer than two detections.
+Neither metric is a verified shot duration or a complete editing log.
 
 The committed JSON is that command's output, verbatim. It records the SHA-256 of
 its own inputs, so a different bundle cannot silently produce a different

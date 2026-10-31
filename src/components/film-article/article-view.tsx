@@ -385,7 +385,7 @@ export function ArticleView({
         <Breadcrumbs
           trail={[
             { label: "Фильмы", href: "/films" },
-            { label: filmTitle, href: `/films/${filmSlug}` },
+            { label: filmTitle, href: withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel) },
             { label: "Разбор" },
           ]}
         />
@@ -405,7 +405,7 @@ export function ArticleView({
           <span>точка зрения: {levelLabels[spoilerLevel]}</span>
         </div>
         <div className="articleHeaderLinks">
-          <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
+          <Link className="microLabel" href={withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}>← Разбор фильма</Link>
           <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
           {complete && synthesis ? <a className="microLabel" href="#article-verdict">Редакционная оценка ↓</a> : null}
         </div>

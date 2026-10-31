@@ -25,6 +25,32 @@ const stillsAtLevel = {
 stillsAtLevel.ENDING = [...stillsAtLevel.MAJOR, "truman-kitchen-3240.jpg", "truman-exit-5700.jpg"];
 stillsAtLevel.FULL = stillsAtLevel.ENDING;
 let failures = 0;
+async function waitForCharacterArt(image) {
+  await image.scrollIntoViewIfNeeded();
+  const loaded = await waitForImageResource(() => image.evaluate((element) => ({
+    complete: element.complete, width: element.naturalWidth, height: element.naturalHeight,
+  })));
+  assert.ok(loaded.width > 0 && loaded.height > 0, 'character artwork needs intrinsic pixels');
+  const paint = await waitForImagePaint(() => image.screenshot({ timeout: 15000 }));
+  assert.ok(paint.varied, `character artwork remained a uniform placeholder: ${JSON.stringify(paint)}`);
+}
+
+async function verifyArticleReturnNavigation(page) {
+  const slug = "/films/the-truman-show";
+  for (const level of ["NONE", "MINOR", "MAJOR", "ENDING", "FULL"]) {
+    const target = `${slug}${level === "NONE" ? "" : `?spoilers=${level.toLowerCase()}`}`;
+    for (const selector of [".articleHeader .breadcrumbs a", ".articleHeaderLinks a"]) {
+      await page.goto(`${base}${slug}/article?spoilers=${level}`, { waitUntil: "load" });
+      const link = selector.includes("breadcrumbs") ? page.locator(selector).nth(1) : page.locator(selector).first();
+      assert.equal(await link.getAttribute("href"), target, `${level}: ${selector} loses the reader's choice`);
+      await link.click();
+      await page.waitForURL(`${base}${target}`);
+      await page.locator(`.spoilerOptionActive[href="${target}"]`).waitFor({ state: "visible" });
+      assert.equal(await page.locator('.spoilerOptionActive').getAttribute('aria-current'), 'true');
+    }
+  }
+}
+
 async function check(name, page, action) {
   const trace = process.env.GITHUB_ACTIONS === "true" && name.includes(" no-js ") && !name.includes("px /films/");
   if (trace) console.log(`::notice title=Reader detail::Starting ${name}`);
@@ -96,6 +122,9 @@ for (const engine of requested) {
                   return Boolean(controls && intro && (controls.compareDocumentPosition(intro) & Node.DOCUMENT_POSITION_FOLLOWING));
                 });
                 assert.ok(earlyControls, "spoiler controls must precede the article introduction");
+                const filmHref = `/films/the-truman-show${level === "NONE" ? "" : `?spoilers=${level.toLowerCase()}`}`;
+                assert.equal(await page.locator('.articleHeader .breadcrumbs a').nth(1).getAttribute('href'), filmHref);
+                assert.equal(await page.locator('.articleHeaderLinks a').first().getAttribute('href'), filmHref);
                 assert.ok(await page.locator(".articleSection:visible").count() > 0, "article sections must render without scripts");
                 assert.equal(await page.locator(".articleSceneStill img").count(), stillsAtLevel[level].length);
                 const raw = await response.text();
@@ -130,6 +159,9 @@ for (const engine of requested) {
           assert.equal(await page.locator('link[rel="stylesheet"]').evaluateAll((links) => links.filter((link) => !link.sheet).length), 0);
           assert.ok(await page.locator('.heroCopy .lede').isVisible(), "the premise must remain visible on narrow screens");
           assert.equal(await page.locator('.homePathsGrid a').count(), 4);
+          const footer = await page.locator('.siteFooter .footerMeta').innerText();
+          assert.match(footer, /Опубликовано:\s*\d+\s+разбор/);
+          assert.doesNotMatch(footer, /Предзапуск/, 'do not assert a deployment state the registry does not establish');
           const raw = await response.text();
           assert.doesNotMatch(raw, /Фиджи|Сильви|Край неба и дверь/, "homepage HTML/RSC must not contain later plot");
           assert.ok(await page.locator('.lensEvidenceFigure img').isVisible());
@@ -149,6 +181,9 @@ for (const engine of requested) {
           }
         });
         if (width === 390 && mode === "no-js") {
+          await check(`${engine} no-js article return links preserve all spoiler levels`, page, async () => {
+            await verifyArticleReturnNavigation(page);
+          });
           await check(`${engine} no-js homepage paths do not unlock spoilers`, page, async () => {
             const targets = ['character-truman-ch-truman', 'scene-truman-sc-day-10909', 'spoiler-title', 'comparison-locked-title'];
             for (let index = 0; index < targets.length; index++) {
@@ -317,6 +352,9 @@ for (const engine of requested) {
 
     const context = await browser.newContext({ viewport: { width: 390, height: 850 }, reducedMotion: "reduce" });
     const page = await context.newPage();
+    await check(`${engine} hydrated article return links preserve all spoiler levels`, page, async () => {
+      await verifyArticleReturnNavigation(page);
+    });
     await check(`${engine} homepage lenses work by keyboard`, page, async () => {
       await page.goto(`${base}/`, { waitUntil: 'load' });
       if (!(await page.evaluate(() => CSS.supports('selector(:has(*))')))) return;
@@ -376,8 +414,7 @@ for (const engine of requested) {
       assert.ok(await cards.getByText("Другая перспектива").count() >= 4);
       assert.ok(await cards.getByText("Другая перспектива").first().isVisible(), "the counter-reading must be visible without opening a disclosure");
       const image = cards.locator(".characterVisual img").first();
-      await image.scrollIntoViewIfNeeded();
-      await image.evaluate((element) => element.decode());
+      await waitForCharacterArt(image);
       const dimensions = await image.evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }));
       assert.ok(dimensions.width <= 300 && Math.abs(dimensions.width / dimensions.height - 1.5) < 0.05,
         `mobile character art must not crowd the analysis: ${JSON.stringify(dimensions)}`);
@@ -443,8 +480,7 @@ for (const engine of requested) {
     await check(`${engine} character art leaves room for analysis on desktop`, desktop, async () => {
       await desktop.goto(`${base}/films/the-truman-show?spoilers=MAJOR`, { waitUntil: "domcontentloaded" });
       const image = desktop.locator("#truman-mod-characters .characterVisual img").first();
-      await image.scrollIntoViewIfNeeded();
-      await image.evaluate((element) => element.decode());
+      await waitForCharacterArt(image);
       const dimensions = await image.evaluate((element) => ({ width: element.clientWidth, height: element.clientHeight }));
       assert.ok(dimensions.width <= 300 && Math.abs(dimensions.width / dimensions.height - 1.5) < 0.05,
         `desktop character art must not crowd the analysis: ${JSON.stringify(dimensions)}`);

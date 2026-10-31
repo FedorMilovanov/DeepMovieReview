@@ -12,13 +12,15 @@
     "transition": "ffmpeg scene score above threshold on the native-resolution stream; written by make-evidence-bundle.mjs",
     "hold": "gap between two consecutive detected transitions",
     "cueWindow": "a subtitle cue belongs to a window when its start lies in [from, to)",
-    "silence": "gap between the end of one subtitle cue and the start of the next",
+    "silence": "internal gap between merged subtitle cue intervals; no inference about audio",
     "caveat": "threshold detection is not a shot log: a long dissolve can stay below the threshold"
   },
   "totals": {
     "detectedTransitions": 1019,
     "subtitleCues": 695,
-    "meanSecondsBetweenTransitions": 6.06,
+    "runtimeSecondsPerDetectedTransition": 6.06,
+    "adjacentTransitionGapCount": 1018,
+    "meanSecondsBetweenTransitions": 5.64,
     "firstTransitionSeconds": 19.144,
     "lastTransitionSeconds": 5760.755,
     "lastCueEndSeconds": 5759.375,

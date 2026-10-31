@@ -65,16 +65,17 @@ for (const [researchId, replacements] of Object.entries(trumanCanonicalEvidenceS
 
 const trumanEvidenceWithReviewBasis: EvidenceRecord[] = trumanCanonicalEvidence.map((record) => {
   if (record.basis) return record;
-  const basis = reviewBasis(verificationById.get(record.id));
+  const basis = reviewBasis(verificationById.get(record.id), record.timestampSeconds);
   if (!basis) return record;
 
   const parent = splitParentById.get(record.id);
   if (!parent) return { ...record, basis };
 
-  // A compound record's check covered two places. A half may inherit the fact of
-  // the check, never a window it does not sit inside — and when its own second was
-  // never looked at, the card says so instead of borrowing «verified» from the
-  // parent. This is how the undeclared boat/setting-sail split came to light.
+  // A split shares its parent's check. A range enclosing the cited second does
+  // not mean that second was seen: reviewBasis compares the individual ledger
+  // timestamps, so the boat's 4840s stays pending between 4830s and 4850s.
+  // If the anchor is outside the parent range, keep the individual times as
+  // provenance but do not present that range as the child's own window.
   const inside =
     basis.window === undefined ||
     record.timestampSeconds === undefined ||

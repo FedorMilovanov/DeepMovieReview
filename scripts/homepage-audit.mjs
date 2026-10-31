@@ -61,6 +61,7 @@ const { theTrumanShowCanonicalPackage } = await import(
 const { theFastAndTheFuriousDraftPackage } = await import(
   `../${buildDir}/src/data/films/the-fast-and-the-furious.js`
 );
+const { homepageFeaturedFilmSlug } = await import(`../${buildDir}/src/data/site-config.js`);
 
 const packages = new Map([
   [theTrumanShowCanonicalPackage.film.slug, theTrumanShowCanonicalPackage],
@@ -543,18 +544,31 @@ if (base) {
     return body.includes('data-tilt="media"') || "кадр без наклона";
   });
   check("VIS", "V06", "главная сообщает своё состояние, а не притворяется другой", () => {
+    if (publishedHome) {
+      // A published film-led home is neither a fixture nor a prelaunch page.
+      // Require reader-visible signals as well as the structural state marker;
+      // a stray footer word must not make the wrong homepage pass.
+      const visible = normaliseSpace(stripTags(body));
+      const target = `href="/films/${homepageFeaturedFilmSlug}"`;
+      const entry = [...body.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].some(([, attributes, contents]) =>
+        attributes.includes(target) && normaliseSpace(stripTags(contents)) === "Открыть разбор");
+      return (/избранный разбор/i.test(visible) && /Опубликовано:\s*\d+\s+разбор/i.test(visible) && entry) ||
+        "опубликованная главная не показывает избранный разбор, ссылку и реестровый статус";
+    }
     const previewMarks = /FILM 001/.test(body);
     const prelaunchMarks = /предзапуск|Структурный стенд/i.test(body);
     return previewMarks || prelaunchMarks || "состояние не читается";
   });
 
-  // Presentation: every section that should have a numeral does.
-  check("VIS", "V01", "у секций главной есть нумерация в разметке", () => {
+  // Published sections use labels, not misleading numbers with hidden gaps.
+  check("VIS", "V01", "рубрики секций соответствуют состоянию главной", () => {
     const indexes = (body.match(/class="sectionIndex"/g) ?? []).length;
-    // Published projection can hide entire spoiler-scoped sections. Validate
-    // its actual smaller shape instead of demanding protected content at NONE.
     const minimum = publishedHome ? 5 : 8;
-    return indexes >= minimum || `индексов: ${indexes}, нужно ${minimum}`;
+    if (indexes < minimum) return `рубрик: ${indexes}, нужно ${minimum}`;
+    if (publishedHome && (!body.includes("Разбор / История") || !body.includes("Разбор / Люди") || body.includes("Проекция 01 /"))) {
+      return "опубликованные рубрики отсутствуют или названы фикстурой";
+    }
+    return true;
   });
   check("VIS", "V02", "главная содержит заголовок-обещание и лид", () => {
     return /class="lede"/.test(body) && /class="kicker"/.test(body);

@@ -195,8 +195,8 @@ export function FilmEvidenceMap({
     .map((scene) => [scene.id, scene]));
   const sourcesById = new Map(sources.map((source) => [source.id, source]));
 
-  // One card per claim–record link, one record per check. A tally over the linked
-  // records — never over the links — is the only count that means anything.
+  // Cards repeat a record for every claim–record link. The tally below counts
+  // visible records, never independent checks: split records can share a basis.
   const linkedIds = new Set<string>();
   let links = 0;
   for (const entry of entries) {
@@ -233,9 +233,9 @@ export function FilmEvidenceMap({
         {tally.records} {pluralRu(tally.records, "запись видна", "записи видны", "записей видно")} в реестре:{" "}
         {tallyParts.join(", ")}. {entries.length} {pluralRu(entries.length, "тезис", "тезиса", "тезисов")}{" "}
         ссылаются на {links} {pluralRu(links, "опору", "опоры", "опор")} — это {linkedIds.size}{" "}
-        {pluralRu(linkedIds.size, "запись", "записи", "записей")}, потому что одна проверка может
-        подтверждать несколько тезисов. Реестр ниже перечисляет проверки, включая те, на которые
-        пока не сослался ни один тезис
+        {pluralRu(linkedIds.size, "запись", "записи", "записей")}: одна запись может поддерживать несколько тезисов.
+        Реестр считает записи, а не независимые проверки: у разных записей может быть общая основа.
+        В него включены и записи, на которые пока не сослался ни один тезис
         {hiddenRecordCount > 0
           ? `; ${hiddenRecordCount} ${pluralRu(hiddenRecordCount, "запись", "записи", "записей")} скрыто до выбранного уровня спойлеров`
           : ""}

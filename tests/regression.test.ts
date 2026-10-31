@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ArticleTable } from "../src/components/film-article/article-table";
+import { GET as getFilmStill } from "../src/app/film-stills/[file]/route";
 import { EvidenceBasisLine } from "../src/components/evidence-basis";
 import { FilmEvidenceMap } from "../src/components/film-modules/evidence-map";
 import { FilmSceneTable } from "../src/components/film-modules/scene-table";
@@ -17,7 +18,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmComparison, projectFilmModule } from "../src/lib/film-module-projection";
-import { publishedFilmStillsEnabled } from "../src/data/site-config";
+import { filmStillsServable, publishedFilmStillsEnabled } from "../src/data/site-config";
 import { trumanArticleStills } from "../src/data/films/the-truman-show-stills";
 import { getFilmHomeAsset } from "../src/data/film-home-assets";
 import { projectHomepage } from "../src/lib/homepage-projection";
@@ -672,8 +673,16 @@ test("spoiler helpers normalize URL state and preserve monotonic reveal permissi
   assert.equal(parseSpoilerLevel("not-a-level"), "NONE");
   assert.equal(canRevealSpoiler("NONE", "MINOR"), false);
   assert.equal(canRevealSpoiler("FULL", "ENDING"), true);
-  assert.equal(withSpoilerQuery("/films/example", "NONE"), "/films/example");
-  assert.equal(withSpoilerQuery("/films/example", "MAJOR"), "/films/example?spoilers=major");
+  for (const level of ["NONE", "MINOR", "MAJOR", "ENDING", "FULL"] as const) {
+    const suffix = level === "NONE" ? "" : `?spoilers=${level.toLowerCase()}`;
+    assert.equal(withSpoilerQuery("/films/example", level), `/films/example${suffix}`);
+    const scoped = withSpoilerQuery("/films/example?lang=ru&spoilers=full&spoilers=ending#anchor", level);
+    const parsed = new URL(scoped, "https://example.test");
+    assert.equal(parsed.searchParams.get("lang"), "ru");
+    assert.deepEqual(parsed.searchParams.getAll("spoilers"), level === "NONE" ? [] : [level.toLowerCase()]);
+    assert.equal(parsed.hash, "#anchor");
+    assert.equal(parseSpoilerLevel(parsed.searchParams.getAll("spoilers")), level);
+  }
   const scoped = [
     { id: "safe", spoilerLevel: "NONE" },
     { id: "minor", spoilerLevel: "MINOR" },
@@ -4547,7 +4556,19 @@ test("Film 001 article keeps the five refuted claims inside the corrections tabl
 test("Film 001 measured timing dataset is internally consistent", () => {
   assert.equal(trumanMasterTimingTotals.detectedTransitions, 1019);
   assert.equal(trumanMasterTimingTotals.subtitleCues, 695);
-  assert.equal(trumanMasterTimingTotals.meanSecondsBetweenTransitions, 6.06);
+  assert.equal(trumanMasterTimingTotals.runtimeSecondsPerDetectedTransition, 6.06);
+  assert.equal(trumanMasterTimingTotals.adjacentTransitionGapCount, 1018);
+  assert.equal(trumanMasterTimingTotals.meanSecondsBetweenTransitions, 5.64);
+  const totalsView = describeTrumanMeasurement({ table: "totals", id: "master" });
+  assert.ok(totalsView);
+  assert.match(totalsView.secondary, /695 записей субтитров/);
+  assert.match(totalsView.detail, /длительность файла \/ число обнаружений: 6,06 с/);
+  assert.match(totalsView.detail, /1 018 промежуткам между соседними обнаружениями: 5,64 с/);
+  assert.doesNotMatch(totalsView.secondary, /строк|реплик/);
+  const windowView = describeTrumanMeasurement({ table: "window", id: "library" });
+  assert.match(windowView?.secondary ?? "", /начавшихся записей субтитров/);
+  const silenceView = describeTrumanMeasurement({ table: "silence", id: "silence-01" });
+  assert.match(silenceView?.detail ?? "", /нет действующих записей субтитров; звук не проверен/);
 
   for (const window of trumanMasterWindows) {
     assert.ok(window.to > window.from, `${window.id}: window must move forward`);
@@ -4642,9 +4663,9 @@ test("a measured window is described by what was measured, not by the chapter it
   assert.ok(!articleText.includes("монтаж не вмешивается"));
 
   // What the script counted is subtitle cues, and the interface now says so.
-  assert.match(panicView.secondary, /строк/);
+  assert.match(panicView.secondary, /начавшихся записей субтитров/);
   const silenceView = describeTrumanMeasurement({ table: "silence", id: "silence-01" });
-  assert.match(silenceView?.detail ?? "", /строк[аи]? субтитров/);
+  assert.match(silenceView?.detail ?? "", /нет действующих записей субтитров; звук не проверен/);
 });
 
 test("Film 001 measurement figures add up: end minus start equals the printed length", () => {
@@ -5756,8 +5777,10 @@ test("a breadcrumb names the film, never the edition's state", () => {
     );
     assert.match(source, /filmTitle: string/, `${name} receives the film title explicitly`);
     assert.ok(
-      source.includes("label: filmTitle, href: `/films/${filmSlug}`"),
-      `${name} links the film crumb by title`,
+      source.includes(name === "article-view"
+        ? "label: filmTitle, href: withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)"
+        : "label: filmTitle, href: `/films/${filmSlug}`"),
+      `${name} links the film crumb by title; the article preserves its spoiler level`,
     );
   }
 
@@ -5769,6 +5792,15 @@ test("a breadcrumb names the film, never the edition's state", () => {
       `${page} passes the film title from the package rather than prose`,
     );
   }
+});
+
+test("both article return links use the selected spoiler level; making is separate", () => {
+  const source = readFileSync("src/components/film-article/article-view.tsx", "utf8");
+  assert.ok(source.includes("label: filmTitle, href: withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)"));
+  assert.ok(source.includes("href={withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}>← Разбор фильма"));
+  assert.ok(source.includes("href={`/films/${filmSlug}/making`}>Как это снимали"));
+  // All five values, existing queries, duplicate spoiler keys and fragments are
+  // separately checked above; the real links are also exercised in the browser.
 });
 
 test("tilt never keeps a position the pointer no longer holds", () => {
@@ -6194,6 +6226,33 @@ test("Homepage projection keeps the spoiler budget instead of filling the page",
   }
 });
 
+test("the stills off switch cannot be bypassed by preview content", async () => {
+  const previousSwitch = process.env.DMR_FILM_STILLS_ENABLED;
+  const previousPreview = process.env.DMR_PREVIEW_CONTENT_ENABLED;
+  try {
+    for (const preview of ["true", "false"]) {
+      process.env.DMR_PREVIEW_CONTENT_ENABLED = preview;
+      process.env.DMR_FILM_STILLS_ENABLED = "false";
+      assert.equal(filmStillsServable(), false, `preview=${preview} must not override the off switch`);
+      const response = await getFilmStill(new Request("https://example.test/film-stills/truman-light-210.jpg"), {
+        params: Promise.resolve({ file: "truman-light-210.jpg" }),
+      });
+      assert.equal(response.status, 404, `preview=${preview} must not serve still bytes`);
+      const home = projectHomepage(theTrumanShowCanonicalPackage, { stills: filmStillsServable() });
+      assert.doesNotMatch(JSON.stringify(home), /film-stills\/truman-light/);
+      const article = projectArticleSections(theTrumanShowArticle, "FULL", { stills: filmStillsServable() });
+      assert.doesNotMatch(JSON.stringify(article), /film-stills\//);
+      delete process.env.DMR_FILM_STILLS_ENABLED;
+      assert.equal(filmStillsServable(), publishedFilmStillsEnabled);
+    }
+  } finally {
+    if (previousSwitch === undefined) delete process.env.DMR_FILM_STILLS_ENABLED;
+    else process.env.DMR_FILM_STILLS_ENABLED = previousSwitch;
+    if (previousPreview === undefined) delete process.env.DMR_PREVIEW_CONTENT_ENABLED;
+    else process.env.DMR_PREVIEW_CONTENT_ENABLED = previousPreview;
+  }
+});
+
 test("Film 001 is published, and the stills carry their provenance", () => {
   // The editorial switch and the edition's publication are separate. The stills
   // carry an edition reference, image digests, approximate times and captions;
@@ -6304,15 +6363,28 @@ test("Film 001 every evidence card states the basis of its own verification", ()
     }
   }
 
-  // The rain rewrite is the one record with no research-era entry to inherit a
-  // basis from, so its basis is stated in the record: two frames, 12:41 and 13:06.
-  // The boat split was undeclared until this pass: the parent's check covers
-  // 4830–4850 s, the sailing record cites 4970 s, so the card must not claim a
-  // window — it says the second itself was never checked.
+  // A window is not a continuous review: 4840 lies between the two individual
+  // 4830/4850 observations and must not inherit "seen" at 4840.
+  const boat = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-boat");
+  assert.ok(boat?.basis);
+  assert.equal(boat.basis.anchorRelation, "between");
+  assert.equal(boat.basis.outcome, "pending");
+  assert.deepEqual(boat.basis.observationTimes, [4830, 4850]);
+  assert.equal(boat.basis.inheritedFrom, "truman-ev-boat");
+  const boatMarkup = renderToStaticMarkup(createElement(EvidenceBasisLine, { basis: boat.basis }));
+  assert.match(boatMarkup, /01:20:30, 01:20:50/);
+  assert.match(boatMarkup, /между отметками, а не отдельный проверенный кадр/);
+  assert.match(boatMarkup, /не отдельная проверка/);
+  assert.doesNotMatch(boatMarkup, /наблюдение подтверждено/);
+
+  // The rain rewrite has its own basis. The sailing record cites 4970s, outside
+  // the parent's window; it must not present that window as its own check.
   const sail = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-setting-sail");
   assert.ok(sail?.basis);
   assert.equal(sail.basis.inheritedFrom, "truman-ev-boat");
   assert.equal(sail.basis.window, undefined);
+  assert.equal(sail.basis.anchorRelation, "outside");
+  assert.deepEqual(sail.basis.observationTimes, [4830, 4850]);
   assert.equal(sail.basis.outcome, "pending");
 
   // A tally over linked records, not over links: the map renders one card per
@@ -6360,6 +6432,18 @@ test("review basis never upgrades a record the ledger did not confirm", () => {
   assert.equal(pending.outcome, "pending");
   assert.match(evidenceBasisOutcomeLabels[pending.outcome], /не записана/);
   assert.deepEqual(pending.window, { from: 10, to: 40 });
+
+  const ledger = { status: "VISUAL_CONFIRMED" as const, frames: [frame(10), frame(40)] };
+  const listed = reviewBasis(ledger, 10);
+  const between = reviewBasis(ledger, 25);
+  const outside = reviewBasis(ledger, 41);
+  assert.equal(listed?.anchorRelation, "listed");
+  assert.equal(listed?.outcome, "seen");
+  assert.equal(between?.anchorRelation, "between");
+  assert.equal(between?.outcome, "pending");
+  assert.deepEqual(between?.observationTimes, [10, 40]);
+  assert.equal(outside?.anchorRelation, "outside");
+  assert.equal(outside?.outcome, "pending");
 
   const transcript = reviewBasis({ status: "TRANSCRIPT_CONFIRMED", frames: [frame(3459.2), frame(3464.3)] });
   assert.ok(transcript);
@@ -6486,7 +6570,7 @@ test("scene clip findings distinguish sampled evidence from the original master"
   }
   const html = renderToStaticMarkup(createElement(EvidenceBasisLine, { basis: reunion.basis }));
   assert.match(html, /кадры предоставленного фрагмента/);
-  assert.match(html, /наблюдения ≈/);
+  assert.match(html, /пределы отметок ≈/);
   assert.match(html, /исходный мастер независимо не пересчитан/);
   assert.match(html, /звук не проверен/);
 

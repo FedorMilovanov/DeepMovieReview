@@ -132,3 +132,101 @@ test("Node and shell bundle tools preserve source PTS, scan threshold and subtit
     }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+// These tiny bundles exercise the measurement consumer independently of FFmpeg
+// and of the copyrighted master. All times in the SRT are integer seconds.
+function withMeasurementBundle({ cues = [], cuts = [], threshold = 0.32, runtime = 100 }, check) {
+  const dir = mkdtempSync(join(tmpdir(), "dmr-measure-test-"));
+  const clock = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor(seconds / 60) % 60;
+    const s = seconds % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")},000`;
+  };
+  try {
+    writeFileSync(join(dir, "00-manifest.txt"), `duration_seconds: ${runtime}\nscene_threshold: ${threshold}\nsubtitle_map: 0:s:0\n`);
+    writeFileSync(join(dir, "01-probe.json"), JSON.stringify({ streams: [{ index: 0, codec_type: "subtitle", codec_name: "subrip", tags: { language: "eng" } }] }));
+    writeFileSync(join(dir, "03-subs-en.srt"), cues.map(([from, to], index) => `${index + 1}\n${clock(from)} --> ${clock(to)}\nText\n`).join("\n"));
+    writeFileSync(join(dir, "04-cuts.csv"), `time_s,score\n${cuts.map(([time, score]) => `${time},${score}\n`).join("")}`);
+    check(dir);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
+function measureBundle(dir, ...args) {
+  return run(process.execPath, [join(tool, "measure-master-windows.mjs"), "--bundle", dir, "--top", "50", ...args]);
+}
+
+test("subtitle gaps use the union of nested, overlapping, touching and separate SRT cues", () => {
+  const cases = [
+    { name: "nested", cues: [[1, 10], [2, 3], [4, 5], [12, 13]], gaps: [[10, 12]] },
+    { name: "overlapping", cues: [[1, 6], [4, 8], [9, 10]], gaps: [[8, 9]] },
+    { name: "touching", cues: [[1, 2], [2, 3], [4, 5]], gaps: [[3, 4]] },
+    { name: "separate", cues: [[8, 9], [1, 2], [4, 5]], gaps: [[2, 4], [5, 8]] },
+    { name: "nested final cue", cues: [[1, 20], [3, 4]], gaps: [], lastEnd: 20 },
+  ];
+  for (const { name, cues, gaps, lastEnd } of cases) {
+    withMeasurementBundle({ cues }, (dir) => {
+      const result = measureBundle(dir);
+      assert.equal(result.status, 0, result.stderr);
+      const report = JSON.parse(result.stdout);
+      const actual = report.silences.map(({ from, to }) => [from, to]).sort((a, b) => a[0] - b[0]);
+      assert.deepEqual(actual, gaps, name);
+      if (lastEnd !== undefined) {
+        assert.equal(report.totals.lastCueEndSeconds, lastEnd, name);
+        assert.equal(report.totals.tailAfterLastCueSeconds, 100 - lastEnd, name);
+      }
+    });
+  }
+});
+
+test("a rounded CSV score must be consistent with the recorded strict detection threshold", () => {
+  for (const { threshold, score, valid } of [
+    { threshold: 0.32, score: "0.3199", valid: false },
+    // A true score slightly above .32 can round to .3200; equality is not proof
+    // of a bad CSV or proof of the original unrounded score.
+    { threshold: 0.32, score: "0.3200", valid: true },
+    { threshold: 0.32, score: "0.3201", valid: true },
+    { threshold: 0.320049, score: "0.3200", valid: true },
+    // FFmpeg first prints six decimals, then the bundle rounds to four. A
+    // threshold on that boundary cannot safely be rejected after both rounds.
+    { threshold: 0.32005, score: "0.3200", valid: true },
+    { threshold: 0.30005, score: "0.3000", valid: true },
+    { threshold: 0.320051, score: "0.3200", valid: false },
+    { threshold: 1, score: "1.0000", valid: false },
+  ]) {
+    withMeasurementBundle({ threshold, cuts: [[5, score]] }, (dir) => {
+      const result = measureBundle(dir);
+      assert.equal(result.status === 0, valid, `score ${score}, threshold ${threshold}: ${result.stderr}`);
+      if (!valid) assert.match(result.stderr, /threshold/i);
+    });
+  }
+});
+
+test("zero or one detected transition never invents an adjacent interval", () => {
+  for (const cuts of [[], [[20, "0.5000"]]]) {
+    withMeasurementBundle({ cuts }, (dir) => {
+      const result = measureBundle(dir);
+      assert.equal(result.status, 0, result.stderr);
+      const report = JSON.parse(result.stdout);
+      assert.equal(report.totals.detectedTransitions, cuts.length);
+      assert.equal(report.totals.runtimeSecondsPerDetectedTransition, cuts.length ? 100 : null);
+      assert.equal(report.totals.adjacentTransitionGapCount, 0);
+      assert.equal(report.totals.meanSecondsBetweenTransitions, null);
+      assert.deepEqual(report.holds, []);
+      assert.equal(report.longestHold, null);
+      assert.equal(report.totals.firstTransitionSeconds, cuts.length ? 20 : null);
+      assert.equal(report.totals.lastTransitionSeconds, cuts.length ? 20 : null);
+    });
+  }
+});
+
+test("runtime per detection differs from the mean of adjacent detection gaps", () => {
+  withMeasurementBundle({ cuts: [[50, "0.4000"], [10, "0.5000"], [20, "0.6000"]] }, (dir) => {
+    const result = measureBundle(dir);
+    assert.equal(result.status, 0, result.stderr);
+    const { totals } = JSON.parse(result.stdout);
+    assert.equal(totals.runtimeSecondsPerDetectedTransition, 33.33); // 100 / 3
+    assert.equal(totals.adjacentTransitionGapCount, 2);
+    assert.equal(totals.meanSecondsBetweenTransitions, 20); // (50 - 10) / 2
+  });
+});

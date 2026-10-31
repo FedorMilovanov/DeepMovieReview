@@ -24,11 +24,12 @@
  *                on this data must say "detected transition", never "shot".
  *   hold         interval between two consecutive detected transitions.
  *   cue          one cue from the selected subtitle track (as recorded by ffprobe).
- *   cue start    a cue belongs to a window when its start lies in
- *                [from, to). Cues that straddle a boundary are not counted.
- *   silence      interval between the end of one cue and the start of the next.
- *                The tail after the final cue is reported separately, because it
- *                is the credit roll and not part of the film body.
+ *   cue start    a cue belongs to a window when its start lies in [from, to).
+ *                A cue already active at the window start is not counted.
+ *   silence      internal gap in the union of subtitle cue intervals. This is
+ *                absence of subtitle coverage, not evidence of acoustic silence.
+ *                The tail after the final covered instant is reported separately;
+ *                it is not assumed to be silence or a credit roll.
  *
  * Usage:
  *   node measure-master-windows.mjs --bundle "<dir>" [--out <file>] [--top 6]
@@ -80,7 +81,7 @@ function clockToSeconds(value) {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
-function readCuts(file) {
+function readCuts(file, threshold) {
   const text = readFileSync(file, "utf8").replace(/^\uFEFF/, "");
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
   const header = lines.shift()?.toLowerCase() ?? "";
@@ -91,6 +92,16 @@ function readCuts(file) {
     const time = Number(rawTime);
     const score = Number(rawScore);
     if (!rawTime?.trim() || !Number.isFinite(time) || time < 0 || !rawScore?.trim() || !Number.isFinite(score) || score < 0 || score > 1 || extra.length) fail(`bad cut row "${line}"`);
+    // FFmpeg's strict gt(scene, threshold) selection precedes metadata printed
+    // to six decimals, which our producers then serialize to four. A rounded
+    // score at the threshold can have come from above it. Allow both rounding
+    // steps and a tiny floating-point tolerance: reject only an impossible bin,
+    // not a borderline value whose original score is no longer available.
+    if (!/^(?:0|1)(?:\.\d{1,4})?$/.test(rawScore.trim())) fail(`bad cut row "${line}": score must have at most four decimal places`);
+    const possibleUpperBound = Math.min(1, score + 0.0000505);
+    if (threshold === 1 || possibleUpperBound + 1e-12 < threshold) {
+      fail(`cut score "${rawScore.trim()}" is inconsistent with scene threshold ${threshold} after four-decimal rounding`);
+    }
     cuts.push({ time, score });
   }
   cuts.sort((a, b) => a.time - b.time);
@@ -175,7 +186,7 @@ const subtitleTrack = language === "eng" && subtitle.codec_name === "subrip"
   ? `Embedded English SubRip (stream ${subtitle.index})`
   : `Embedded ${language || "language unspecified"} ${codec} (stream ${subtitle.index})`;
 
-const cuts = readCuts(cutsPath);
+const cuts = readCuts(cutsPath, threshold);
 const cues = readCues(cuesPath);
 const runtimeSeconds = readRuntimeSeconds(manifestPath);
 
@@ -195,16 +206,20 @@ for (let i = 0; i < cuts.length - 1; i += 1) {
 }
 
 const silences = [];
-for (let i = 0; i < cues.length - 1; i += 1) {
-  const from = cues[i].to;
-  const to = cues[i + 1].from;
-  if (to <= from) continue;
-  silences.push({
-    from: round(from, 3),
-    to: round(to, 3),
-    durationSeconds: round(to - from, 3),
-    detectedTransitions: transitionsIn(from, to),
-  });
+// Merge coverage, not merely neighbouring rows: a short nested cue must not
+// expose a false gap before the earlier, longer cue has actually ended.
+let lastCueEnd = cues[0]?.to ?? 0;
+for (let i = 1; i < cues.length; i += 1) {
+  const cue = cues[i];
+  if (cue.from > lastCueEnd) {
+    silences.push({
+      from: round(lastCueEnd, 3),
+      to: round(cue.from, 3),
+      durationSeconds: round(cue.from - lastCueEnd, 3),
+      detectedTransitions: transitionsIn(lastCueEnd, cue.from),
+    });
+  }
+  lastCueEnd = Math.max(lastCueEnd, cue.to);
 }
 
 const longestHold = holds.reduce((best, hold) => (hold.durationSeconds > (best?.durationSeconds ?? -1) ? hold : best), null);
@@ -224,17 +239,21 @@ const report = {
     transition: "ffmpeg scene score above threshold on the native-resolution stream; written by make-evidence-bundle.mjs",
     hold: "gap between two consecutive detected transitions",
     cueWindow: "a subtitle cue belongs to a window when its start lies in [from, to)",
-    silence: "gap between the end of one subtitle cue and the start of the next",
+    silence: "internal gap between merged subtitle cue intervals; no inference about audio",
     caveat: "threshold detection is not a shot log: a long dissolve can stay below the threshold",
   },
   totals: {
     detectedTransitions: cuts.length,
     subtitleCues: cues.length,
-    meanSecondsBetweenTransitions: cuts.length ? round(runtimeSeconds / cuts.length, 2) : null,
+    runtimeSecondsPerDetectedTransition: cuts.length ? round(runtimeSeconds / cuts.length, 2) : null,
+    adjacentTransitionGapCount: Math.max(0, cuts.length - 1),
+    meanSecondsBetweenTransitions: cuts.length > 1
+      ? round((cuts.at(-1).time - cuts[0].time) / (cuts.length - 1), 2)
+      : null,
     firstTransitionSeconds: cuts.length ? round(cuts[0].time, 3) : null,
     lastTransitionSeconds: cuts.length ? round(cuts.at(-1).time, 3) : null,
-    lastCueEndSeconds: round(cues.at(-1)?.to ?? 0, 3),
-    tailAfterLastCueSeconds: round(runtimeSeconds - (cues.at(-1)?.to ?? 0), 3),
+    lastCueEndSeconds: round(lastCueEnd, 3),
+    tailAfterLastCueSeconds: round(runtimeSeconds - lastCueEnd, 3),
   },
   longestHold,
   holds: holds

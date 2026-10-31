@@ -22,8 +22,10 @@ import rawMeasurements from "./the-truman-show-master-windows.json";
  *   native-resolution stream. Threshold detection is not a shot log: a long
  *   dissolve can stay below the threshold and read as one continuous stretch.
  *   Prose built on this data must say "detected transition", never "shot".
- * - `subtitleCueStarts` counts embedded English SubRip cues whose *start* lies
- *   inside the window. Cues that straddle a boundary are not counted.
+ * - `subtitleCues` counts SRT blocks, not text lines or necessarily dialogue.
+ *   `subtitleCueStarts` counts blocks whose *start* lies inside the window; a
+ *   block already active at the start is excluded. Missing subtitles are not
+ *   evidence of silence in the audio.
  */
 
 type RawWindow = {
@@ -69,13 +71,15 @@ type RawMeasurements = {
   totals: {
     detectedTransitions: number;
     subtitleCues: number;
-    meanSecondsBetweenTransitions: number;
-    firstTransitionSeconds: number;
-    lastTransitionSeconds: number;
+    runtimeSecondsPerDetectedTransition: number | null;
+    adjacentTransitionGapCount: number;
+    meanSecondsBetweenTransitions: number | null;
+    firstTransitionSeconds: number | null;
+    lastTransitionSeconds: number | null;
     lastCueEndSeconds: number;
     tailAfterLastCueSeconds: number;
   };
-  longestHold: RawHold;
+  longestHold: RawHold | null;
   holds: RawHold[];
   silences: RawSilence[];
   windows: RawWindow[];
@@ -156,7 +160,9 @@ export type TrumanMeasuredTotals = {
   id: "master";
   detectedTransitions: number;
   subtitleCues: number;
-  meanSecondsBetweenTransitions: number;
+  runtimeSecondsPerDetectedTransition: number | null;
+  adjacentTransitionGapCount: number;
+  meanSecondsBetweenTransitions: number | null;
   durationSeconds: number;
 };
 
@@ -164,6 +170,8 @@ export const trumanMasterMeasurementTotals: TrumanMeasuredTotals = {
   id: "master",
   detectedTransitions: measurements.totals.detectedTransitions,
   subtitleCues: measurements.totals.subtitleCues,
+  runtimeSecondsPerDetectedTransition: measurements.totals.runtimeSecondsPerDetectedTransition,
+  adjacentTransitionGapCount: measurements.totals.adjacentTransitionGapCount,
   meanSecondsBetweenTransitions: measurements.totals.meanSecondsBetweenTransitions,
   durationSeconds: measurements.inputs.durationSeconds,
 };
@@ -205,6 +213,8 @@ export const trumanMeasuredDigitStrings: string[] = [
     [
       trumanMasterMeasurementTotals.detectedTransitions,
       trumanMasterMeasurementTotals.subtitleCues,
+      trumanMasterMeasurementTotals.runtimeSecondsPerDetectedTransition,
+      trumanMasterMeasurementTotals.adjacentTransitionGapCount,
       trumanMasterMeasurementTotals.meanSecondsBetweenTransitions,
       trumanMasterMeasurementTotals.durationSeconds,
       ...trumanMasterWindows.flatMap((window) => [
@@ -218,6 +228,7 @@ export const trumanMeasuredDigitStrings: string[] = [
         silence.detectedTransitions,
       ]),
     ]
+      .filter((value): value is number => typeof value === "number")
       .filter((value) => (Number.isInteger(value) ? value >= 200 : String(value).length >= 4))
       .map(String),
   ),
@@ -241,14 +252,18 @@ const plural = (count: number, one: string, few: string, many: string): string =
 const groupDigits = (value: number): string => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
 const transitionsPhrase = (count: number): string =>
-  `${groupDigits(count)} ${plural(count, "переход", "перехода", "переходов")}`;
+  `${groupDigits(count)} ${plural(count, "обнаруженный переход", "обнаруженных перехода", "обнаруженных переходов")}`;
 
-/**
- * A subtitle cue is not a line of dialogue: one block can hold two speakers, and a
- * block with no speech can still be a cue. The count is named for what was counted.
- */
+/** An SRT block can span several text lines or speakers; it is not a dialogue count. */
 const cuesPhrase = (count: number): string =>
-  `${groupDigits(count)} ${plural(count, "строка субтитров", "строки субтитров", "строк субтитров")}`;
+  `${groupDigits(count)} ${plural(count, "запись субтитров", "записи субтитров", "записей субтитров")}`;
+
+/** Windows count cue starts, not the number of blocks visible at any instant. */
+const cueStartsPhrase = (count: number): string =>
+  `${groupDigits(count)} ${plural(count, "начавшаяся запись субтитров", "начавшиеся записи субтитров", "начавшихся записей субтитров")}`;
+
+const secondsValue = (value: number | null): string =>
+  value === null ? "нет данных" : `${value.toFixed(2).replace(".", ",")} с`;
 
 /**
  * Detected transitions per minute of the window.
@@ -297,10 +312,10 @@ export function describeTrumanMeasurement(
   if ("id" in record && record.id === "master") {
     const totals = trumanMasterMeasurementTotals;
     return {
-      title: "Залоченный мастер целиком",
+      title: "Расчёт по предоставленному отчёту",
       primary: transitionsPhrase(totals.detectedTransitions),
       secondary: cuesPhrase(totals.subtitleCues),
-      detail: `средний интервал ${totals.meanSecondsBetweenTransitions} с · ${duration(totals.durationSeconds)} экрана`,
+      detail: `длительность файла / число обнаружений: ${secondsValue(totals.runtimeSecondsPerDetectedTransition)} · среднее по ${groupDigits(totals.adjacentTransitionGapCount)} промежуткам между соседними обнаружениями: ${secondsValue(totals.meanSecondsBetweenTransitions)} · ${duration(totals.durationSeconds)} экрана`,
     };
   }
 
@@ -309,7 +324,7 @@ export function describeTrumanMeasurement(
     return {
       title: WINDOW_LABELS[window.id] ?? window.label,
       primary: transitionsPhrase(window.detectedTransitions),
-      secondary: cuesPhrase(window.subtitleCueStarts),
+      secondary: cueStartsPhrase(window.subtitleCueStarts),
       detail: `${span(window.from, window.to)} · ${duration(window.durationSeconds)} · ${perMinute(
         window.detectedTransitions,
         window.durationSeconds,
@@ -327,7 +342,7 @@ export function describeTrumanMeasurement(
             ? "Библиотека: Труман, посетители и девушка в красном"
             : "Без обнаруженного перехода",
       primary: duration(hold.durationSeconds),
-      secondary: cuesPhrase(hold.subtitleCueStarts),
+      secondary: cueStartsPhrase(hold.subtitleCueStarts),
       detail: `${span(hold.from, hold.to)} · ни одного обнаруженного перехода`,
     };
   }
@@ -337,6 +352,6 @@ export function describeTrumanMeasurement(
     title: "У края нарисованного неба",
     primary: duration(silence.durationSeconds),
     secondary: transitionsPhrase(silence.detectedTransitions),
-    detail: `${span(silence.from, silence.to)} · ни одной строки субтитров`,
+    detail: `${span(silence.from, silence.to)} · нет действующих записей субтитров; звук не проверен`,
   };
 }
