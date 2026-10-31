@@ -25,6 +25,19 @@ export function viewportSwipeActions({ x, fromY, toY, duration = 700 }) {
   ] }] };
 }
 
+export async function performCompletedSwipe(perform, release) {
+  // The submitted sequence ends in pointerUp. After successful completion the
+  // finger is released; do not send SafariDriver a redundant Release Actions.
+  try { return await perform(); }
+  catch (actionError) {
+    // If the sequence failed before pointerUp, attempt to clear any pressed
+    // state, while retaining the original Perform Actions error for diagnosis.
+    try { await release(); }
+    catch (releaseError) { throw new AggregateError([actionError, releaseError], "Native swipe action and cleanup both failed"); }
+    throw actionError;
+  }
+}
+
 // An absent or navigation-lost probe is not evidence that input was undelivered.
 export function noNativeEventsDelivered(probe) {
   return Boolean(probe && !probe.lostAfterNavigation && Array.isArray(probe.events) && probe.events.length === 0);
@@ -178,16 +191,14 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       async swipeViewport(points) {
         assert.equal(capabilities.platformName?.toLowerCase(), "ios", "viewport swipe is iOS-only");
         inputs.push({ gesture: "native viewport swipe", ...points });
-        let result, actionError;
-        try { result = await request(`${path}/actions`, viewportSwipeActions(points)); }
-        catch (error) { actionError = error; }
-        try { await request(`${path}/actions`, undefined, "DELETE"); }
-        catch (releaseError) {
-          if (actionError) throw new AggregateError([actionError, releaseError], "Native swipe action and release both failed");
-          throw releaseError;
-        }
-        if (actionError) throw actionError;
-        return result;
+        // A successful sequence ends in pointerUp, so the finger is already
+        // released. SafariDriver has hung on a subsequent Release Actions
+        // even after acknowledging Perform Actions. Keep its idle source until
+        // session deletion; callers must still verify touch delivery + scroll.
+        return performCompletedSwipe(
+          () => request(`${path}/actions`, viewportSwipeActions(points)),
+          () => request(`${path}/actions`, undefined, "DELETE"),
+        );
       },
       // Standard W3C element activation, used only when a delivered touch is
       // proven absent by a DOM event probe. Never a JS .click() substitute.

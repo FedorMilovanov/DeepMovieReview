@@ -239,7 +239,7 @@ try {
         }) ? "changed" : "same";
       };
       await safari.execute(`window.__swipeProbe = [];
-        for (const type of ["touchstart", "touchend", "touchcancel"]) document.addEventListener(type, e =>
+        for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"]) document.addEventListener(type, e =>
           __swipeProbe.push({ type, x: e.changedTouches[0]?.clientX ?? null, y: e.changedTouches[0]?.clientY ?? null }), { capture: true });`);
       const targetGeometry = () => safari.execute(`const el = document.querySelector('.spoilerOption'), r = el.getBoundingClientRect();
         const x = r.x + r.width / 2, y = r.y + r.height / 2, hit = document.elementFromPoint(x, y);
@@ -267,7 +267,7 @@ try {
       await safari.goto(`http://127.0.0.1:3213${route}`);
       await waitForNativeValue(() => safari.execute("return document.querySelector('.readingOutlineTrigger') ? 'ready' : 'missing'"), "ready");
       await safari.execute(`window.__railSwipeProbe = [];
-        for (const type of ["touchstart", "touchend", "touchcancel"]) document.addEventListener(type, e =>
+        for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"]) document.addEventListener(type, e =>
           __railSwipeProbe.push({ type, x: e.changedTouches[0]?.clientX ?? null, y: e.changedTouches[0]?.clientY ?? null }), { capture: true });`);
       const railGeometry = () => safari.execute(`const el = document.querySelector('.readingOutlineTrigger'), r = el.getBoundingClientRect();
         const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);

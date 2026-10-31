@@ -656,6 +656,18 @@ test("iOS native scroll refuses undelivered swipes and occluded targets", async 
   await assert.rejects(scrollToNativeTarget(occluded), /occluded/); assert.equal(occluded.calls(), 0);
 });
 
+test("completed native swipe releases with pointerUp and preserves action failures", async () => {
+  const { performCompletedSwipe } = await import("../scripts/lib/native-safari.mjs");
+  let releases = 0;
+  assert.equal(await performCompletedSwipe(async () => "completed", async () => { releases++; }), "completed");
+  assert.equal(releases, 0, "do not send redundant Release Actions after pointerUp");
+  const actionError = new Error("perform failed"), cleanupError = new Error("cleanup failed");
+  await assert.rejects(performCompletedSwipe(async () => { throw actionError; }, async () => { releases++; }), error => error === actionError);
+  assert.equal(releases, 1);
+  await assert.rejects(performCompletedSwipe(async () => { throw actionError; }, async () => { throw cleanupError; }),
+    error => error instanceof AggregateError && error.errors[0] === actionError && error.errors[1] === cleanupError);
+});
+
 test("native UI observation waits without replaying input and fails a persistent state", async () => {
   const { waitForNativeValue, noNativeEventsDelivered, viewportSwipeActions } = await import("../scripts/lib/native-safari.mjs");
   const swipe = viewportSwipeActions({ x: 200, fromY: 500, toY: 240 });
