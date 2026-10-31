@@ -6159,6 +6159,9 @@ test("scene navigation counts only visible evidence and always reaches a registe
     evidence, scenes: [scene], researchDraft: false, spoilerLevel: "NONE",
   }));
   assert.match(table, new RegExp(`id="scene-${scene.id}"`));
+  assert.match(table, /Сцены фильма: начало, название, состояние проверки и число опор/);
+  assert.doesNotMatch(table, /Сцены фильма: начало, длительность/);
+  assert.match(table, /отмечено, что он не записан/);
   assert.match(table, /Опоры сцены[^>]*: 1/);
   assert.match(table, new RegExp(`href="#evidence-${safe.id}"`));
   assert.doesNotMatch(table, /HIDDEN EVIDENCE SENTINEL|test-hidden-evidence/);
