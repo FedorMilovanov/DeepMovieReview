@@ -172,13 +172,31 @@ try {
     assert.ok(box.width < 500 && box.scroll <= box.width + 1, `${route}: native iOS reflow ${JSON.stringify(box)}`);
     assert.equal(box.lang, "ru"); assert.equal(box.h1, 1);
     const menuState = () => safari.execute("return document.querySelector('.menuButton').getAttribute('aria-expanded')");
-    const openedBy = await activate(".menuButton", menuState, "true");
-    evidence.actions.push({ route, label: "actual menu input opened disclosure", expanded: true, openedBy });
-    const closedBy = await activate(".menuButton", menuState, "false");
-    evidence.actions.push({ route, label: "actual menu input closed disclosure", expanded: false, closedBy });
+    let menuPassed = false;
+    try {
+      const openedBy = await activate(".menuButton", menuState, "true");
+      evidence.actions.push({ route, label: "actual menu input opened disclosure", expanded: true, openedBy });
+      // Separate two intentional taps rather than issuing a double-tap gesture.
+      // This is not a retry: a delivered but ineffective close still fails.
+      await new Promise(resolve => setTimeout(resolve, 600));
+      const closedBy = await activate(".menuButton", menuState, "false");
+      evidence.actions.push({ route, label: "actual menu input closed disclosure", expanded: false, closedBy });
+      menuPassed = true;
+    } catch (error) {
+      const details = inspect(error, { depth: 8, maxStringLength: 16000 });
+      report.failures.push(`Menu on ${route}: ${details}`);
+      report.menuFailures = [...(report.menuFailures ?? []), { route, details }];
+      console.error(workflowError(`iOS Safari Simulator menu on ${route}: ${error.stack ?? error}`));
+      try { evidence.screenshots.push({ route: `${route} — failed menu state`, data: await safari.screenshot() }); }
+      catch (diagnosticError) { report.menuFailures.at(-1).screenshotError = diagnosticError.message; }
+      // Navigate to a fresh document, not a synthetic click or a replay. The
+      // recorded menu failure still fails the job; independent checks can run.
+      await safari.goto(`http://127.0.0.1:3213${route}`);
+      assert.equal(await menuState(), "false", "Fresh document must reset the menu before independent checks");
+    }
     const data = await safari.screenshot();
     evidence.screenshots.push({ route, data });
-    evidence.actions.push({ route, label: "native iOS Safari layout and actual menu taps", box });
+    evidence.actions.push({ route, label: "native iOS Safari layout", box, menuPassed });
     if (route.includes("/article?")) {
       const sectionIds = await safari.execute("return Array.from(document.querySelectorAll('.articleSection'), section => section.id)");
       const count = sectionIds.length;

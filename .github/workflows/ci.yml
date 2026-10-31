@@ -312,7 +312,18 @@ jobs:
           fi
 
           echo '::notice title=CI progress::Starting three-engine reader regression'
-          BASE_URL=http://127.0.0.1:3212 READER_BROWSERS=chromium,firefox,webkit node scripts/reader-regression.mjs
+          for engine in chromium firefox webkit; do
+            echo "::notice title=Reader engine::Starting $engine (8 minute deadline)"
+            set +e
+            timeout 8m env BASE_URL=http://127.0.0.1:3212 READER_BROWSERS="$engine" READER_AUDIT_DIR="browser-audit/reader-$engine" node scripts/reader-regression.mjs
+            status=$?
+            set -e
+            if [[ "$status" -ne 0 ]]; then
+              echo "::error title=Reader engine::$engine failed or exceeded its deadline (exit $status)"
+              exit "$status"
+            fi
+            echo "::notice title=Reader engine::Completed $engine"
+          done
           echo '::notice title=CI progress::Reader regression finished; starting browser audit'
           BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs
           echo '::notice title=CI progress::Browser audit finished; starting axe scans'

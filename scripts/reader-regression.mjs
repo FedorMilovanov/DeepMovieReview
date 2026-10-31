@@ -7,6 +7,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium, firefox, webkit } from "playwright-core";
 import { parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
+import { hasVariedImagePixels, waitForImageResource } from "./lib/reader-image.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
 const engines = { chromium, firefox, webkit };
@@ -25,9 +26,12 @@ stillsAtLevel.ENDING = [...stillsAtLevel.MAJOR, "truman-kitchen-3240.jpg", "trum
 stillsAtLevel.FULL = stillsAtLevel.ENDING;
 let failures = 0;
 async function check(name, page, action) {
+  const trace = process.env.GITHUB_ACTIONS === "true" && name.includes(" no-js ") && !name.includes("px /films/");
+  if (trace) console.log(`::notice title=Reader detail::Starting ${name}`);
   try {
     await action();
     results.push({ name, pass: true });
+    if (trace) console.log(`::notice title=Reader detail::Completed ${name}`);
   } catch (error) {
     failures++;
     const details = String(error?.stack ?? error);
@@ -126,9 +130,12 @@ for (const engine of requested) {
               const image = figure.locator("img");
               assert.match(await image.getAttribute("alt") ?? "", /\S/);
               await image.scrollIntoViewIfNeeded();
-              await image.evaluate((element) => element.decode());
-              const dimensions = await image.evaluate((element) => ({ width: element.naturalWidth, height: element.naturalHeight }));
-              assert.deepEqual(dimensions, { width: 800, height: 450 });
+              const loaded = await waitForImageResource(() => image.evaluate((element) => ({
+                complete: element.complete, width: element.naturalWidth, height: element.naturalHeight,
+              })));
+              assert.deepEqual({ width: loaded.width, height: loaded.height }, { width: 800, height: 450 });
+              assert.ok(await image.isVisible(), "the still must be visible without scripts");
+              assert.ok(hasVariedImagePixels(await image.screenshot({ timeout: 15000 })), "the rendered still must not be a uniform placeholder");
               const caption = await figure.locator("figcaption").innerText();
               assert.match(caption, /Шоу Трумана.*1998.*Питер Уир/);
               if (caption.includes("Номинальная отметка сетки")) grid++;

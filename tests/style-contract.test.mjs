@@ -607,6 +607,23 @@ test("real VoiceOver CI preflight starts once and waits for actual service outpu
 });
 
 
+test("reader image check waits for intrinsic data and rejects a blank render", async () => {
+  const { waitForImageResource, hasVariedImagePixels } = await import("../scripts/lib/reader-image.mjs");
+  const { PNG } = await import("pngjs");
+  let clock = 0, reads = 0;
+  const loaded = await waitForImageResource(async () => ++reads < 3
+    ? { complete: false, width: 0, height: 0 } : { complete: true, width: 800, height: 450 },
+  { now: () => clock++, pause: async () => {}, timeout: 10 });
+  assert.equal(loaded.width, 800);
+  await assert.rejects(waitForImageResource(async () => ({ complete: true, width: 0, height: 0 }),
+    { now: () => clock++, pause: async () => {}, timeout: 2 }), /did not load/);
+  const image = new PNG({ width: 16, height: 16 });
+  for (let i = 0; i < image.data.length; i += 4) image.data[i + 3] = 255;
+  assert.equal(hasVariedImagePixels(PNG.sync.write(image)), false);
+  for (let i = 0; i < image.data.length; i += 4) image.data[i] = (i / 4) % 256;
+  assert.equal(hasVariedImagePixels(PNG.sync.write(image)), true);
+});
+
 test("iOS native scroll refuses undelivered swipes and occluded targets", async () => {
   const { scrollToNativeTarget } = await import("../scripts/lib/ios-native-scroll.mjs");
   const wait = async (read, expected) => assert.equal(await read(), expected);
