@@ -607,8 +607,37 @@ test("real VoiceOver CI preflight starts once and waits for actual service outpu
 });
 
 
+test("iOS native scroll refuses undelivered swipes and occluded targets", async () => {
+  const { scrollToNativeTarget } = await import("../scripts/lib/ios-native-scroll.mjs");
+  const wait = async (read, expected) => assert.equal(await read(), expected);
+  const setup = ({ delivered = true, move = true, initial = 0, hidden = false, scrolls = [300] } = {}) => {
+    let scrollY = initial, events = [], calls = 0;
+    const readTarget = async () => ({ rect: { top: 850 - scrollY, bottom: 894 - scrollY }, scrollY,
+      innerWidth: 402, innerHeight: 714, hitContained: !hidden });
+    return { readTarget, readEvents: async () => events, wait, attempts: [],
+      swipe: async () => { if (delivered) events.push({ type: "touchstart" }); if (move) scrollY = scrolls[Math.min(calls, scrolls.length - 1)]; calls++; },
+      calls: () => calls };
+  };
+  const valid = setup();
+  const target = await scrollToNativeTarget(valid);
+  assert.equal(target.scrollY, 300); assert.equal(valid.calls(), 1); assert.equal(valid.attempts[0].events[0].type, "touchstart");
+  const alreadyVisible = setup({ initial: 300 });
+  await scrollToNativeTarget(alreadyVisible); assert.equal(alreadyVisible.calls(), 0);
+  const overshot = setup({ scrolls: [950, 600] });
+  await scrollToNativeTarget(overshot); assert.equal(overshot.calls(), 2);
+  await assert.rejects(scrollToNativeTarget(setup({ delivered: false })), /must deliver a touch event/);
+  await assert.rejects(scrollToNativeTarget(setup({ move: false })), /same/);
+  const occluded = setup({ initial: 700, hidden: true });
+  await assert.rejects(scrollToNativeTarget(occluded), /occluded/); assert.equal(occluded.calls(), 0);
+});
+
 test("native UI observation waits without replaying input and fails a persistent state", async () => {
-  const { waitForNativeValue, noNativeEventsDelivered } = await import("../scripts/lib/native-safari.mjs");
+  const { waitForNativeValue, noNativeEventsDelivered, viewportSwipeActions } = await import("../scripts/lib/native-safari.mjs");
+  const swipe = viewportSwipeActions({ x: 200, fromY: 500, toY: 240 });
+  assert.deepEqual(swipe.actions[0].actions.map((step) => step.type), ["pointerMove", "pointerDown", "pointerMove", "pointerUp"]);
+  assert.equal(swipe.actions[0].parameters.pointerType, "touch");
+  assert.equal(swipe.actions[0].actions[2].duration, 700);
+  assert.throws(() => viewportSwipeActions({ x: -1, fromY: 500, toY: 240 }));
   assert.equal(noNativeEventsDelivered({ events: [] }), true);
   for (const probe of [undefined, {}, { lostAfterNavigation: true, events: [] }, { events: [{ type: "touchstart" }] }]) {
     assert.equal(noNativeEventsDelivered(probe), false);

@@ -7,6 +7,7 @@ import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } fro
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari, noNativeEventsDelivered, waitForNativeValue } from "./lib/native-safari.mjs";
+import { scrollToNativeTarget } from "./lib/ios-native-scroll.mjs";
 import { noneArticleProjectionReached, parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari";
@@ -117,7 +118,7 @@ try {
   // evidence about this hosted Simulator driver, not about the control; fall
   // back to the standard W3C element activation once and keep both facts. A
   // touch that WAS delivered but did not change state is a real failure.
-  const activate = async (selector, read, expected, timeout = 10000) => {
+  const activate = async (selector, read, expected, timeout = 10000, { scroll = true } = {}) => {
     await safari.execute(`window.__inputProbe = { events: [] };
       for (const type of ["touchstart", "touchend", "click", "pointerdown"])
         document.addEventListener(type, e => __inputProbe.events.push({ type,
@@ -125,7 +126,7 @@ try {
           href: e.target.closest?.("a")?.getAttribute("href") ?? null,
           x: Number.isFinite(e.clientX) ? e.clientX : null, y: Number.isFinite(e.clientY) ? e.clientY : null }), { capture: true, once: true });`);
     const readProbe = () => safari.execute("return window.__inputProbe ? { ...window.__inputProbe, url: location.href } : { lostAfterNavigation: true, url: location.href }");
-    await safari.click(selector);
+    await safari.click(selector, { scroll });
     let method = "native touch";
     try { await waitForNativeValue(read, expected, { timeout }); }
     catch (error) {
@@ -195,12 +196,10 @@ try {
       assert.ok(expectedSectionIds.length < count && expectedSectionIds.every((id, index) => sectionIds[index] === id) &&
         !expectedSectionIds.includes(lastSectionId), "NONE baseline must be a proper prefix of the full article");
       report.spoilerBaseline = { fullSectionIds: sectionIds, expectedSectionIds, lastSectionId };
-      // Exercise the control before anything else on the page. It sits at the
-      // very edge of the installed simulator's 390x844 window — behind Safari's
-      // own bottom toolbar — and a tap there reached no DOM event at all
-      // (measured on 2cecbb7 and on two earlier heads). Center it in the actual
-      // viewport first, so the single native tap lands inside the web content,
-      // and record where it was aimed.
+      // Exercise the control before other content interactions. Previous
+      // Simulator runs delivered no event after JS scrollIntoView. Use real
+      // W3C finger drags to bring it into view, and prove both touch delivery
+      // and a change in scroll position before attempting the actual control.
       await safari.execute(`window.__spoilerProbe = { touched: [], clicked: [], url: location.href };
         for (const type of ["touchstart", "touchend", "click"]) document.addEventListener(type, e =>
           __spoilerProbe[type === "click" ? "clicked" : "touched"].push({ type, target: (e.target.className || e.target.tagName).toString().slice(0, 40), href: e.target.closest?.("a")?.getAttribute("href") }), { capture: true });`);
@@ -221,13 +220,19 @@ try {
           expectedUrl, beforeSections: count, expectedSectionIds,
         }) ? "changed" : "same";
       };
-      await safari.execute("document.querySelector('.spoilerOption').scrollIntoView({ block: 'center', behavior: 'instant' });");
-      report.spoilerTarget = await safari.execute(`const el = document.querySelector('.spoilerOption');
-        const rect = el.getBoundingClientRect();
-        return { rect: rect.toJSON(), scrollY, innerWidth, innerHeight,
+      await safari.execute(`window.__swipeProbe = [];
+        for (const type of ["touchstart", "touchend", "touchcancel"]) document.addEventListener(type, e =>
+          __swipeProbe.push({ type, x: e.changedTouches[0]?.clientX ?? null, y: e.changedTouches[0]?.clientY ?? null }), { capture: true });`);
+      const targetGeometry = () => safari.execute(`const el = document.querySelector('.spoilerOption'), r = el.getBoundingClientRect();
+        const x = r.x + r.width / 2, y = r.y + r.height / 2, hit = document.elementFromPoint(x, y);
+        return { rect: r.toJSON(), scrollY, innerWidth, innerHeight, hitContained: !!hit && el.contains(hit),
           visualViewport: visualViewport ? { height: visualViewport.height, offsetTop: visualViewport.offsetTop } : null };`);
-      evidence.actions.push({ route, label: "native spoiler target geometry", ...report.spoilerTarget });
-      const spoilerBy = await activate(".spoilerOption", projection, "changed", 20000);
+      report.spoilerSwipes = [];
+      report.spoilerTarget = await scrollToNativeTarget({ readTarget: targetGeometry,
+        readEvents: () => safari.execute("return window.__swipeProbe"),
+        swipe: points => safari.swipeViewport(points), attempts: report.spoilerSwipes });
+      evidence.actions.push({ route, label: "native spoiler swipe and target geometry", swipes: report.spoilerSwipes, ...report.spoilerTarget });
+      const spoilerBy = await activate(".spoilerOption", projection, "changed", 20000, { scroll: false });
       report.spoilerProjection = { before: count, after: lastObservation.sectionIds.length, by: spoilerBy,
         url: lastObservation.url, expectedSectionIds, lastSectionId, observation: lastObservation };
       // A full-document navigation legitimately discards page-local probes. Keep

@@ -13,6 +13,18 @@ export function safariRequestTimeout(path) {
   return path === "/session" || path.endsWith("/url") ? 90000 : path === "/status" ? 1500 : 30000;
 }
 
+// A real W3C finger drag, not JS scrolling. Keep the path in viewport CSS pixels
+// and release it; callers must separately prove that touch and scroll occurred.
+export function viewportSwipeActions({ x, fromY, toY, duration = 700 }) {
+  assert.ok([x, fromY, toY, duration].every(Number.isInteger) && x >= 0 && fromY >= 0 && toY >= 0 && duration > 0);
+  return { actions: [{ type: "pointer", id: "finger-scroll", parameters: { pointerType: "touch" }, actions: [
+    { type: "pointerMove", duration: 0, origin: "viewport", x, y: fromY },
+    { type: "pointerDown", button: 0 },
+    { type: "pointerMove", duration, origin: "viewport", x, y: toY },
+    { type: "pointerUp", button: 0 },
+  ] }] };
+}
+
 // An absent or navigation-lost probe is not evidence that input was undelivered.
 export function noNativeEventsDelivered(probe) {
   return Boolean(probe && !probe.lostAfterNavigation && Array.isArray(probe.events) && probe.events.length === 0);
@@ -127,12 +139,12 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       version: result.capabilities.browserVersion,
       capabilities: result.capabilities,
       inputs,
-      async click(selector) {
+      async click(selector, { scroll = true } = {}) {
         const element = await request(`${path}/element`, { using: "css selector", value: selector });
         if (capabilities.platformName?.toLowerCase() === "ios") {
           // Mobile Safari element/click can deliver a move without a tap.
           // Use a real W3C touch gesture; release is required to dispatch up.
-          await request(`${path}/execute/sync`, {
+          if (scroll) await request(`${path}/execute/sync`, {
             script: "arguments[0].scrollIntoView({block:'center',behavior:'instant'})", args: [element],
           });
           const point = await waitForStableNativeTarget(() => request(`${path}/execute/sync`, {
@@ -162,6 +174,12 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
           } finally { await request(`${path}/actions`, undefined, "DELETE"); }
         }
         return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
+      },
+      async swipeViewport(points) {
+        assert.equal(capabilities.platformName?.toLowerCase(), "ios", "viewport swipe is iOS-only");
+        inputs.push({ gesture: "native viewport swipe", ...points });
+        try { return await request(`${path}/actions`, viewportSwipeActions(points)); }
+        finally { await request(`${path}/actions`, undefined, "DELETE"); }
       },
       // Standard W3C element activation, used only when a delivered touch is
       // proven absent by a DOM event probe. Never a JS .click() substitute.
