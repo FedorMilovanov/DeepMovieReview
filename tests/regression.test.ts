@@ -170,11 +170,12 @@ test("a page's own robots tag never contradicts robots.txt", () => {
   const filmRoutes = [
     readFileSync("src/app/films/[slug]/page.tsx", "utf8"),
     readFileSync("src/app/films/[slug]/article/page.tsx", "utf8"),
+    readFileSync("src/app/films/[slug]/making/page.tsx", "utf8"),
   ];
   for (const source of filmRoutes) {
     assert.match(source, /film\.status === "published" && siteIndexingEnabled\(\)/);
   }
-  // And the four consumers of the switch read it from one place, not four.
+  // The site-wide consumers read the switch from one place too.
   for (const route of ["src/app/robots.ts", "src/app/sitemap.ts", "src/app/layout.tsx"]) {
     const source = readFileSync(route, "utf8");
     assert.match(source, /siteIndexingEnabled\(\)/, route);

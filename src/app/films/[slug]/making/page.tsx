@@ -5,6 +5,7 @@ import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { getProductionDossier } from "@/data/films/production-dossiers";
 import { getProductionCoverAsset } from "@/data/film-share-assets";
 import { isPreviewContentEnabled } from "@/data/site-config";
+import { siteIndexingEnabled } from "@/lib/site-indexing";
 import {
   heroImageFromAsset,
   productionPageMetadata,
@@ -16,8 +17,8 @@ import {
  *
  * It is gated exactly like the article: it exists only when the film's edition
  * carries a dossier, and while the film is a draft the route is preview-only and
- * noindex. No spoiler control is rendered because the dossier is written to a
- * single, spoiler-free level; that is a property of the data, not a UI promise.
+ * noindex. The dossier has one level rather than a spoiler control; it can discuss
+ * the ending and explicitly warns readers before the content.
  */
 
 type MakingPageProps = { params: Promise<{ slug: string }> };
@@ -52,7 +53,11 @@ export async function generateMetadata({ params }: MakingPageProps): Promise<Met
     openGraph: page.openGraph,
     twitter: page.twitter,
     alternates: film.status === "published" ? { canonical: `/films/${film.slug}/making` } : undefined,
-    robots: film.status === "published" ? undefined : { index: false, follow: false },
+    // A published dossier is still noindex when this build is a preview.
+    robots:
+      film.status === "published" && siteIndexingEnabled()
+        ? undefined
+        : { index: false, follow: false },
   };
 }
 

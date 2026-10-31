@@ -17,18 +17,19 @@ import { trumanComparison } from "./the-truman-show-comparison";
  * «Шоу Трумана» (The Truman Show, 1998, Питер Уир) — canonical edition.
  *
  * This package is the promoted counterpart of the research draft. The edition is
- * LOCKED: every scene below was verified against the exact viewing master
- * (SHA-256 E8543F61…B3B575, 6177.792 s) and every evidence record cites that
- * master as its provenance.
+ * LOCKED in the existing registry: evidence records cite the declared viewing
+ * master (SHA-256 E8543F61…B3B575, 6177.792 s) as provenance. The later audit
+ * independently inspected selected frames and clips, not the full master or its
+ * sound; the registry state is not proof of a new continuous viewing.
  *
- * The edition is `status: "published"` as of 2026-10-30: the editorial decision
- * follows the evidence lock, and the reader can now reach the page without a
- * preview flag. Indexing stays a separate switch — `canIndexSite()` still requires
- * the deploy to ask for it (`DMR_SITE_INDEXING_ENABLED`) and to run without
- * preview content, so publication and crawling are not the same decision.
+ * The edition is `status: "published"` as of 2026-10-30, so the reader can reach
+ * the page without a preview flag. Indexing is separate: outside a Vercel preview,
+ * a configured host or explicit flag requests it, and preview content must be off.
+ * Publication and crawling are not the same decision.
  *
- * See docs/47-FILM-001-VISUAL-VERIFICATION.md for how each observation was
- * verified and docs/48-FILM-001-EDITION-LOCK.md for the promotion ledger.
+ * See docs/47-FILM-001-VISUAL-VERIFICATION.md for the original verification
+ * ledger, docs/48-FILM-001-EDITION-LOCK.md for promotion and docs/63 for the
+ * limits of the later clip and frame audit.
  */
 /**
  * The verification ledger is the only thing that knows *how* a record was

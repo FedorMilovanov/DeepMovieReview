@@ -472,6 +472,20 @@ if (base) {
   } catch (error) {
     indexFetchError = error.message;
   }
+  // A route's metadata can override and silently drop the layout's noindex.
+  // Check each public film surface, not just the article, against the served
+  // policy. Keep individual fetch failures in the corresponding check.
+  const [filmIndexPage, makingIndexPage] = await Promise.all(
+    [filmPath, `${filmPath}/making`].map(async (path) => {
+      try {
+        return { path, html: stripScripts(await fetchPage(path)) };
+      } catch (error) {
+        return { path, error: error.message };
+      }
+    }),
+  );
+  const indexability = (page) => indexFetchError || page.error ||
+    checkPageIndexability(page.html, robots, sitemap, page.path);
 
   check("SE", "SE01", "на странице ровно один h1", () => {
     const count = (doc.match(/<h1[\s>]/g) ?? []).length;
@@ -584,6 +598,9 @@ if (base) {
   check("ME", "ME07", "индексация статьи согласована с robots.txt и sitemap", () => {
     return indexFetchError || checkPageIndexability(doc, robots, sitemap, "/films/the-truman-show/article");
   });
+
+  check("ME", "ME11", "индексация разбора согласована с robots.txt и sitemap", () => indexability(filmIndexPage));
+  check("ME", "ME12", "индексация досье согласована с robots.txt и sitemap", () => indexability(makingIndexPage));
 
   check("ME", "ME09", "у статьи есть размеченные хлебные крошки в разметке схемы", () => {
     // Scripts are stripped from `doc` on purpose, so the schema is read from the

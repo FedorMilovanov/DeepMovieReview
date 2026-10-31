@@ -218,6 +218,20 @@ jobs:
             echo "Published film route must advertise its canonical public URL."
             exit 1
           fi
+          # Each route can override the layout's metadata independently. In
+          # particular, the production dossier once silently dropped noindex.
+          for suffix in article making; do
+            preview_film_page="/tmp/truman-preview-${suffix}.html"
+            curl --fail --silent --show-error "http://127.0.0.1:3210/films/the-truman-show/${suffix}" > "$preview_film_page"
+            if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' "$preview_film_page"; then
+              echo "Published film ${suffix} route must remain noindex/nofollow in a preview build."
+              exit 1
+            fi
+            if ! grep -Eq "rel=\"canonical\"[^>]*href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"|href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"[^>]*rel=\"canonical\"" "$preview_film_page"; then
+              echo "Published film ${suffix} route must advertise its canonical public URL."
+              exit 1
+            fi
+          done
           if grep -Eiq 'rel="canonical"' /tmp/fast-draft.html; then
             echo "Research draft must not advertise a canonical public film URL."
             exit 1
@@ -451,6 +465,18 @@ jobs:
             exit 1
           fi
           grep -Fq 'Труман Бёрбанк' /tmp/public-truman-route.html
+          for suffix in article making; do
+            public_film_page="/tmp/truman-public-${suffix}.html"
+            curl --fail --silent --show-error "http://127.0.0.1:3211/films/the-truman-show/${suffix}" > "$public_film_page"
+            if grep -Eiq 'name="robots"[^>]*content="noindex|content="noindex[^>]*name="robots"' "$public_film_page"; then
+              echo "Published film ${suffix} route is noindex on a site that allows indexing."
+              exit 1
+            fi
+            if ! grep -Eq "rel=\"canonical\"[^>]*href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"|href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"[^>]*rel=\"canonical\"" "$public_film_page"; then
+              echo "Published film ${suffix} route is missing its canonical URL."
+              exit 1
+            fi
+          done
 
           fast_status=$(curl --silent --output /tmp/public-fast-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/the-fast-and-the-furious)
           if [[ "$fast_status" != "200" && "$fast_status" != "404" ]]; then
