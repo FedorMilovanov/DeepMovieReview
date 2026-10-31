@@ -1,4 +1,5 @@
 import type { EvidenceRecord, FilmSceneRecord } from "@/lib/film-package";
+import { LENS_LABELS } from "@/lib/content";
 import { canRevealSpoiler, type SpoilerLevel } from "@/lib/spoilers";
 import { formatTimecode } from "@/lib/timecode";
 
@@ -40,6 +41,10 @@ export function FilmSceneTable({
   const ordered = [...visibleScenes].sort(
     (a, b) => a.startTimestampSeconds - b.startTimestampSeconds,
   );
+  const sceneReadings = ordered.flatMap((scene) => {
+    const readings = (scene.lensReadings ?? []).filter((reading) => canRevealSpoiler(spoilerLevel, reading.spoilerLevel));
+    return readings.length ? [{ scene, readings }] : [];
+  });
 
   return (
     <section className="sectionShell sectionRule filmSceneTable" aria-labelledby="film-scene-table-title">
@@ -99,6 +104,28 @@ export function FilmSceneTable({
           </tbody>
         </table>
       </div>
+      {sceneReadings.map(({ scene, readings }) => (
+        <details className="sceneLensDetails" id={`scene-lenses-${scene.id}`} key={scene.id}>
+          <summary>Одна сцена — разные прочтения: {scene.shortLabel}</summary>
+          <p>Наблюдения и интерпретации ссылаются на записи этой сцены; пределы проверки указаны у каждой опоры.</p>
+          <ul>
+            {readings.map((reading) => (
+              <li key={reading.lens}>
+                <strong>{LENS_LABELS[reading.lens]}</strong>
+                <p>{reading.text}</p>
+                {reading.support.evidenceIds.map((id) => {
+                  const record = (evidencePerScene.get(scene.id) ?? []).find((item) => item.id === id);
+                  return record ? <a key={id} href={`#evidence-${id}`}>{record.label} →</a> : null;
+                })}
+                {(reading.support.counterevidenceIds ?? []).map((id) => {
+                  const record = (evidencePerScene.get(scene.id) ?? []).find((item) => item.id === id);
+                  return record ? <a key={id} href={`#evidence-${id}`}>Контропора: {record.label} →</a> : null;
+                })}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ))}
     </section>
   );
 }

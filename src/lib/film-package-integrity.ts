@@ -236,6 +236,7 @@ export function validateFilmPackage(
     errors.push("published package requires a final-synthesis module.");
   }
 
+  const sceneLensKeys = new Set(["story", "people", "relationships", "ideas", "moral-world", "craft"]);
   for (const scene of scenes) {
     if (isBlank(scene.id)) errors.push("scenes: scene id is required.");
     if (published && realFilm && scene.verificationState !== "VERIFIED") {
@@ -254,6 +255,24 @@ export function validateFilmPackage(
       }
     } else if (scene.verificationState === "VERIFIED") {
       errors.push(`scene/${scene.id}: VERIFIED scene requires endTimestampSeconds.`);
+    }
+    for (const lens of duplicateIds((scene.lensReadings ?? []).map((reading) => reading.lens))) {
+      errors.push(`scene/${scene.id}: duplicate lens reading "${lens}".`);
+    }
+    for (const reading of scene.lensReadings ?? []) {
+      const path = `scene/${scene.id}/lens/${reading.lens}`;
+      if (!sceneLensKeys.has(reading.lens)) errors.push(`${path}: unknown lens.`);
+      if (isBlank(reading.text)) errors.push(`${path}: reading text is required.`);
+      if (!canRevealSpoiler(reading.spoilerLevel, scene.spoilerLevel)) {
+        errors.push(`${path}: reading cannot be less spoiler-restricted than its scene.`);
+      }
+      checkScopedSupport(reading.support, path, reading.spoilerLevel, true);
+      for (const evidenceId of [...(reading.support?.evidenceIds ?? []), ...(reading.support?.counterevidenceIds ?? [])]) {
+        const record = evidenceById.get(evidenceId);
+        if (record && record.sceneId !== scene.id) {
+          errors.push(`${path}: evidence "${evidenceId}" must belong to this scene.`);
+        }
+      }
     }
   }
 

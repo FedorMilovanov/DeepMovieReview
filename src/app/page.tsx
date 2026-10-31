@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { AnalysisWorkbench } from "@/components/analysis-workbench";
 import { LivingFrame } from "@/components/living-frame";
 import { TiltSurface } from "@/components/tilt-surface";
 import { AutopsyExamine } from "@/components/home/autopsy-examine";
 import { PipelineSpy } from "@/components/home/pipeline-spy";
 import { SpoilerLadder } from "@/components/home/spoiler-ladder";
-import type { NarrativePermissionState } from "@/lib/content";
+import type { LensKey, NarrativePermissionState } from "@/lib/content";
 import { filmPackages, getFilmPackageBySlug, requireFilmPackageBySlug } from "@/data/film-registry";
 import { pluralRu } from "@/lib/plural-ru";
-import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
+import { formatTimecode } from "@/lib/timecode";
+import { filmStillsServable, homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
+import { illustrationView } from "@/data/film-illustrations";
+import { getFilmHomeAsset } from "@/data/visual-assets";
 import { projectHomepage, type HomepageViewModel } from "@/lib/homepage-projection";
 import type { Confidence } from "@/lib/film-package";
 import craftMaster from "../../public/art/craft-master.jpg";
@@ -71,7 +75,7 @@ const confidenceLabels: Record<Confidence, string> = {
 type LensMark = { label: string; x: string; y: string };
 
 type LensStageLens = {
-  key: string;
+  key: LensKey;
   label: string;
   prompt: string;
   reading: string;
@@ -250,76 +254,98 @@ function HeroStatusStrip({ preview }: { preview: boolean }) {
   );
 }
 
-function LensStage() {
+function LensStage({ example, filmSlug }: { example?: HomepageViewModel["sceneExample"]; filmSlug?: string }) {
+  const readings = new Map(example?.readings.map((reading) => [reading.lens, reading]) ?? []);
+  const stageLenses = lensStageLenses.map((lens) => ({ ...lens, example: readings.get(lens.key) }));
   return (
     <section id="lenses" className="sectionShell sectionRule lensStageSection" aria-labelledby="lenses-title">
-      <div className="sectionIndex">03 / Шесть линз</div>
-      <h2 id="lenses-title">Один фильм. Шесть прочтений.</h2>
+      <div className="sectionIndex">Шесть линз</div>
+      <h2 id="lenses-title">{example ? "Одна сцена — шесть прочтений." : "Один фильм. Шесть прочтений."}</h2>
       <p className="sectionIntro">
-        Мораль — не первый вопрос. Первый вопрос: что это за история и кто эти люди. Выберите линзу — кадр ответит.
+        {example
+          ? `На примере сцены «${example.sceneLabel}»: что можно увидеть, как это истолковать и где заканчиваются основания.`
+          : "Мораль — не первый вопрос. Первый вопрос: что это за история и кто эти люди. Выберите линзу, чтобы увидеть подход к разбору."}
       </p>
       <div className="lensStage">
         <div className="lensStageGrid">
           <div className="lensFrameWrap">
-            <LivingFrame
-              art={lensMaster}
-              alt="Фигура спиной перед светящимся дверным проёмом в тёмном коридоре"
-              metaLeft="Иллюстрация"
-              metaRight="2.39:1"
-              label="Иллюстрация: шесть линз прочтения, не кадр фильма"
-              className="lensFrame"
-              sizes="(max-width: 1020px) 100vw, 58vw"
-            >
-              {lensStageLenses.map((lens) => (
-                <span className="lensGrade" data-lens={lens.key} key={`grade-${lens.key}`} aria-hidden="true" />
-              ))}
-              <svg className="lensTrace" data-lens="story" viewBox="0 0 100 41.8" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M14,25.9 C26,25 32,14.5 44,14.2 C56,14 60,24.5 72,24.2" />
-              </svg>
-              <svg className="lensTrace" data-lens="relationships" viewBox="0 0 100 41.8" preserveAspectRatio="none" aria-hidden="true">
-                <path d="M12,14.2 C24,14.2 32,9.2 44,9.2 C56,9.2 60,14.2 70,14.2" />
-              </svg>
-              {lensStageLenses.map((lens) => (
-                <div className="lensMarkGroup" data-lens={lens.key} key={lens.key}>
-                  {lens.marks.map((mark) => (
-                    <span className="lensMark" style={{ left: mark.x, top: mark.y }} key={mark.label}>
-                      {mark.label}
-                    </span>
-                  ))}
-                </div>
-              ))}
-            </LivingFrame>
-            <p className="lensFrameNote">Демонстрация инструмента: разметка живёт в кадре, а не в тексте эссе.</p>
+            {example?.still ? (
+              <figure className="lensEvidenceFigure">
+                <picture>
+                  <source type="image/avif" srcSet={example.still.avifSrc} />
+                  <Image src={example.still.src} alt={example.still.alt} width={example.still.width} height={example.still.height} unoptimized />
+                </picture>
+                <figcaption>
+                  <strong>{example.still.caption}</strong>
+                  <span>{example.still.samplingKind === "grid"
+                    ? `Номинальная отметка сетки ${formatTimecode(example.still.sampleTimeSeconds)}; исходный PTS не проверен.`
+                    : "Кадр из предоставленного фрагмента; точный PTS исходного мастера не проверен."}</span>
+                  <span>{example.still.credit}</span>
+                </figcaption>
+              </figure>
+            ) : (
+              <>
+                <LivingFrame
+                  art={lensMaster}
+                  alt="Фигура спиной перед светящимся дверным проёмом в тёмном коридоре"
+                  metaLeft="Иллюстрация"
+                  metaRight="2.39:1"
+                  label="Иллюстрация: шесть линз прочтения, не кадр фильма"
+                  className="lensFrame"
+                  sizes="(max-width: 1020px) 100vw, 58vw"
+                >
+                  {!example ? lensStageLenses.map((lens) => (
+                    <span className="lensGrade" data-lens={lens.key} key={`grade-${lens.key}`} aria-hidden="true" />
+                  )) : null}
+                  {!example ? (
+                    <>
+                      <svg className="lensTrace" data-lens="story" viewBox="0 0 100 41.8" preserveAspectRatio="none" aria-hidden="true">
+                        <path d="M14,25.9 C26,25 32,14.5 44,14.2 C56,14 60,24.5 72,24.2" />
+                      </svg>
+                      <svg className="lensTrace" data-lens="relationships" viewBox="0 0 100 41.8" preserveAspectRatio="none" aria-hidden="true">
+                        <path d="M12,14.2 C24,14.2 32,9.2 44,9.2 C56,9.2 60,14.2 70,14.2" />
+                      </svg>
+                      {lensStageLenses.map((lens) => (
+                        <div className="lensMarkGroup" data-lens={lens.key} key={lens.key}>
+                          {lens.marks.map((mark) => (
+                            <span className="lensMark" style={{ left: mark.x, top: mark.y }} key={mark.label}>{mark.label}</span>
+                          ))}
+                        </div>
+                      ))}
+                    </>
+                  ) : null}
+                </LivingFrame>
+                <p className="lensFrameNote">{example ? "Иллюстрация метода, не изображение этой сцены." : "Демонстрация инструмента: разметка живёт в иллюстрации, а не в тексте эссе."}</p>
+              </>
+            )}
           </div>
           <div className="lensPanel">
             <fieldset className="lensSelector">
               <legend className="lensSelectorLegend">Линза</legend>
-              {lensStageLenses.map((lens, index) => (
+              {stageLenses.map((lens, index) => (
                 <label className="lensTab" htmlFor={`lens-radio-${lens.key}`} key={lens.key}>
-                  <input
-                    className="lensRadio"
-                    defaultChecked={index === 0}
-                    id={`lens-radio-${lens.key}`}
-                    name="homepage-lens"
-                    type="radio"
-                    value={lens.key}
-                  />
-                  <span className="lensTabLabel">
-                    <span className="lensTabIndex" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-                    {lens.label}
-                  </span>
+                  <input className="lensRadio" defaultChecked={index === 0} id={`lens-radio-${lens.key}`} name="homepage-lens" type="radio" value={lens.key} />
+                  <span className="lensTabLabel"><span className="lensTabIndex" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>{lens.label}</span>
                 </label>
               ))}
             </fieldset>
+            <p className="lensFallbackNote">Ваш браузер показывает все шесть прочтений последовательно.</p>
             <div className="lensReadings" aria-live="polite">
-              {lensStageLenses.map((lens) => (
+              {stageLenses.map((lens) => (
                 <div className="lensReading" data-lens={lens.key} key={lens.key}>
                   <h3>{lens.label}</h3>
                   <p className="lensReadingPrompt">{lens.prompt}</p>
-                  <p>{lens.reading}</p>
+                  <p>{lens.example?.text ?? lens.reading}</p>
+                  {filmSlug && lens.example ? (
+                    <nav className="lensEvidenceLinks" aria-label="Опоры прочтения">
+                      {lens.example.evidence.map((record) => <Link key={record.id} href={`/films/${filmSlug}#evidence-${record.id}`}>{record.label} →</Link>)}
+                      {lens.example.counterevidence.map((record) => <Link key={record.id} href={`/films/${filmSlug}#evidence-${record.id}`}>Контропора: {record.label} →</Link>)}
+                    </nav>
+                  ) : null}
                 </div>
               ))}
             </div>
+            {example && filmSlug ? <Link className="lensSceneLink" href={`/films/${filmSlug}#scene-lenses-${example.sceneId}`}>К сцене и её прочтениям →</Link> : null}
           </div>
         </div>
       </div>
@@ -612,8 +638,10 @@ function PlatformLanding({ preview }: { preview: boolean }) {
 
 function FilmHero({ data }: { data: HomepageViewModel }) {
   const { featuredFilm } = data;
+  const homeArt = getFilmHomeAsset(featuredFilm.slug);
+  const homeArtSrc = homeArt?.variants.find((variant) => variant.purpose === "display")?.src;
   return (
-    <section className="heroSection sectionShell heroEnter" aria-labelledby="hero-title">
+    <section className="heroSection heroFilmSection sectionShell heroEnter" aria-labelledby="hero-title">
       <div className="eyebrow">Исследование кино через библейскую картину мира · избранный разбор</div>
       <div className="heroGrid">
         <div className="heroCopy">
@@ -621,7 +649,8 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
             {featuredFilm.year} · {featuredFilm.director} · {featuredFilm.genre.join(", ")}
           </p>
           <h1 id="hero-title">{featuredFilm.title}</h1>
-          <p className="lede">{featuredFilm.thesisQuestion}</p>
+          <p className="lede">{featuredFilm.premise}</p>
+          <p className="heroFilmQuestion">{featuredFilm.thesisQuestion}</p>
           <div className="heroActions">
             <Link className="buttonPrimary" href={`/films/${featuredFilm.slug}`}>Открыть разбор</Link>
             {featuredFilmPackage.article ? (
@@ -629,47 +658,74 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
                 Читать текст
               </Link>
             ) : null}
-            <Link className="buttonGhost" href="/methodology">Методология</Link>
+            {data.paths.hasScenes ? <Link className="heroSceneLink" href={`/films/${featuredFilm.slug}#film-scene-table-title`}>Сцены и опоры →</Link> : null}
           </div>
         </div>
-        {/* The cover is a generated illustration, and docs/54 §7 says so. Calling it
-            a frame of the film would be the one caption this site may not print. */}
-        <LivingFrame
-          art={heroMaster}
-          alt={`Иллюстрация к разбору «${featuredFilm.title}», не кадр фильма`}
-          priority
-          metaLeft="Иллюстрация"
-          metaRight="2.39:1"
-          captionTitle={featuredFilm.title}
-          captionNote={featuredFilm.premise}
-          label={`Иллюстрация к разбору «${featuredFilm.title}»: рисунок, не кадр фильма`}
-          sizes="(max-width: 900px) 100vw, 52vw"
-          tilt
-        />
+        <div className="heroVisual">
+          <LivingFrame
+            art={homeArtSrc ?? heroMaster}
+            alt={homeArt?.alt ?? `Иллюстрация к разбору «${featuredFilm.title}», не кадр фильма`}
+            priority
+            metaLeft="Иллюстрация"
+            metaRight={homeArt ? "редакционная" : "платформенная"}
+            label={`Иллюстрация к разбору «${featuredFilm.title}»: рисунок, не кадр фильма`}
+            className={homeArt ? "heroFilmFrame" : undefined}
+            sizes="(max-width: 900px) 100vw, 52vw"
+            tilt
+          />
+          <p className="heroArtCredit">Редакционная ИИ-иллюстрация, не кадр фильма.</p>
+        </div>
       </div>
     </section>
   );
 }
 
-function DataSections({ data, published }: { data: HomepageViewModel; published: boolean }) {
-  const label = published ? "Разбор" : "Проекция";
+function HomepagePaths({ data }: { data: HomepageViewModel }) {
+  const base = `/films/${data.featuredFilm.slug}`;
+  const firstCharacter = data.characters[0];
   return (
-    <section id="structural-stand" className="standShell" aria-labelledby="stand-title">
-      <div className="sectionShell sectionRule">
-        <div className="sectionIndex">{published ? "Материал / Проекция" : "Стенд / Проекция"}</div>
-        <h2 id="stand-title">{published ? "Материал разбора." : "Структурный стенд: тестовые данные."}</h2>
-        <p className="sectionIntro">
-          {published
-            ? "Спойлер-безопасная проекция избранного разбора: главная показывает метод и завязку, не раскрывая финала."
-            : "Ниже — проекция структурной фикстуры платформы: контракты рендера, сцены и уровни спойлеров. Это не опубликованный разбор и не редакционное суждение. Тексты фикстуры оставлены на английском как тестовые данные."}
-        </p>
+    <section className="sectionShell sectionRule homePaths" aria-labelledby="home-paths-title">
+      <div>
+        <div className="sectionIndex">Внутри разбора</div>
+        <h2 id="home-paths-title">Выберите, с чего начать.</h2>
+        <p>Главная показывает начало без финала. Более поздние материалы откроются только после выбора уровня спойлеров.</p>
       </div>
+      <nav className="homePathsGrid" aria-label="Входы в разбор">
+        {firstCharacter && data.paths.charactersId ? (
+          <Link href={`${base}#character-${firstCharacter.id}`}><strong>Герой</strong><span>Портрет: {firstCharacter.name}</span><small>Без спойлеров →</small></Link>
+        ) : null}
+        {data.paths.hasScenes ? (
+          <Link href={data.sceneExample ? `${base}#scene-${data.sceneExample.sceneId}` : `${base}#film-scene-table-title`}><strong>Сцены и опоры</strong><span>От наблюдения к его основанию</span><small>Без спойлеров →</small></Link>
+        ) : null}
+        {data.paths.hasRelationships ? (
+          <Link href={`${base}#${data.paths.relationshipId ?? "spoiler-title"}`}><strong>Отношения</strong><span>Доверие, роли и власть</span><small>{data.paths.relationshipId ? "Открыть →" : "Сначала выберите уровень →"}</small></Link>
+        ) : null}
+        {data.paths.hasComparison ? (
+          <Link href={`${base}#${data.paths.comparisonId ?? "comparison-locked-title"}`}><strong>Сравнение решений</strong><span>Разные позиции без назначенного победителя</span><small>{data.paths.comparisonId ? "Открыть →" : "Содержит финал →"}</small></Link>
+        ) : null}
+      </nav>
+    </section>
+  );
+}
+
+function DataSections({ data, published }: { data: HomepageViewModel; published: boolean }) {
+  const index = (number: string, title: string) => published ? `Разбор / ${title}` : `Проекция ${number} / ${title}`;
+  return (
+    <section id="structural-stand" className="standShell" data-home-state={published ? "published" : "fixture"} aria-label={published ? "Избранные материалы разбора" : "Структурный стенд"}>
+      {!published ? (
+        <div className="sectionShell sectionRule">
+          <div className="sectionIndex">Стенд / Проекция</div>
+          <h2>Структурный стенд: тестовые данные.</h2>
+          <p className="sectionIntro">Ниже — проекция структурной фикстуры платформы: контракты рендера, сцены и уровни спойлеров. Это не опубликованный разбор и не редакционное суждение. Тексты фикстуры оставлены на английском как тестовые данные.</p>
+        </div>
+      ) : null}
 
       <section className="sectionShell sectionRule splitSection" aria-labelledby="stand-story-title">
         <div>
-          <div className="sectionIndex">{label} 01 / История</div>
-          <h2 id="stand-story-title">Структура истории.</h2>
-          <p className="sectionIntro">Завязка, эскалация и поворот — без финала на главной странице.</p>
+          <div className="sectionIndex">{index("01", "История")}</div>
+          <h2 id="stand-story-title">{published ? "Начало истории." : "Структура истории."}</h2>
+          <p className="sectionIntro">{published ? "Завязка и первый сбой. Дальнейшие события доступны после выбора уровня спойлеров." : "Завязка, эскалация и поворот тестовой истории."}</p>
+          {published && data.paths.storyId ? <Link className="standEntryLink" href={`/films/${data.featuredFilm.slug}#${data.paths.storyId}`}>Продолжить в разборе →</Link> : null}
         </div>
         <ol className="storyTrack">
           {data.storyBeats.map((beat, index) => (
@@ -682,20 +738,29 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
       </section>
 
       <section className="sectionShell sectionRule" aria-labelledby="stand-people-title">
-        <div className="sectionIndex">{label} 02 / Люди</div>
-        <h2 id="stand-people-title">Люди несут аргумент фильма.</h2>
-        <div className="characterGrid">
-          {data.characters.map((character) => (
-            <article className="characterCard" key={character.id}>
-              <div className="portraitPlaceholder" aria-hidden="true" />
-              <h3>{character.name}</h3>
-              <dl>
-                <div><dt>Хочет</dt><dd>{character.wants}</dd></div>
-                <div><dt>Боится</dt><dd>{character.fears}</dd></div>
-                <div><dt>Противоречие</dt><dd>{character.contradiction}</dd></div>
-              </dl>
-            </article>
-          ))}
+        <div className="sectionIndex">{index("02", "Люди")}</div>
+        <h2 id="stand-people-title">{published ? "Человек внутри истории." : "Люди несут аргумент фильма."}</h2>
+        <div className={`characterGrid${data.characters.length === 1 ? " characterGridSingle" : ""}`}>
+          {data.characters.map((character) => {
+            const art = character.visual ? illustrationView(character.visual.assetId) : undefined;
+            return (
+              <article className="characterCard" key={character.id}>
+                {art && character.visual ? (
+                  <figure className="homeCharacterVisual">
+                    <Image src={art.src} alt={`ИИ-иллюстрация, не кадр фильма. ${art.alt}`} width={art.width} height={art.height} sizes="(max-width: 720px) 100vw, 36vw" />
+                    <figcaption>{character.visual.caption}</figcaption>
+                  </figure>
+                ) : null}
+                <h3>{character.name}</h3>
+                <dl>
+                  <div><dt>Хочет</dt><dd>{character.wants}</dd></div>
+                  <div><dt>Боится</dt><dd>{character.fears}</dd></div>
+                  <div><dt>Противоречие</dt><dd>{character.contradiction}</dd></div>
+                </dl>
+                {published && data.paths.charactersId ? <Link className="standEntryLink" href={`/films/${data.featuredFilm.slug}#character-${character.id}`}>Открыть портрет героя →</Link> : null}
+              </article>
+            );
+          })}
         </div>
         {data.relationship ? (
           <div className="relationshipPanel" role="group" aria-labelledby="stand-relationship-title">
@@ -716,10 +781,19 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
         ) : null}
       </section>
 
+      {!data.relationship && published && data.paths.hasRelationships ? (
+        <section className="sectionShell sectionRule relationshipPreview" aria-labelledby="stand-relationship-preview-title">
+          <div className="sectionIndex">Разбор / Отношения</div>
+          <h2 id="stand-relationship-preview-title">Близость под наблюдением.</h2>
+          <p className="sectionIntro">Что происходит с доверием, когда личная жизнь становится частью представления? Разбор отношений начинается после выбора уровня спойлеров.</p>
+          <Link className="standEntryLink" href={`/films/${data.featuredFilm.slug}#spoiler-title`}>Выбрать уровень и перейти к отношениям →</Link>
+        </section>
+      ) : null}
+
       {data.familyYouth ? (
         <section className="sectionShell sectionRule splitSection" aria-labelledby="stand-family-title">
           <div>
-            <div className="sectionIndex">{label} 03 / Семья и юность</div>
+            <div className="sectionIndex">{index("03", "Семья и юность")}</div>
             <h2 id="stand-family-title">Какую взрослость моделирует история?</h2>
             <p className="sectionIntro">
               Родители, сверстники, власть, бунт и самостоятельность анализируются как отношения и ответственность.
@@ -735,7 +809,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
 
       {data.meaning ? (
       <section className="sectionShell sectionRule meaningSection" aria-labelledby="stand-meaning-title">
-        <div className="sectionIndex">{label} 04 / Смысл</div>
+        <div className="sectionIndex">{index("04", "Смысл")}</div>
         <p className="microLabel">Вопрос</p>
         <h2 id="stand-meaning-title">{data.meaning.question}</h2>
         <div className="meaningGrid">
@@ -749,7 +823,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
 
       {data.permissions.length > 0 ? (
       <section className="sectionShell sectionRule" aria-labelledby="stand-permission-title">
-        <div className="sectionIndex">{label} 05 / Нарративное разрешение</div>
+        <div className="sectionIndex">{index("05", "Нарративное разрешение")}</div>
         <h2 id="stand-permission-title">Что фильм делает дорогим, нормальным или вознаграждённым?</h2>
         <div className="permissionField">
           {data.permissions.map((permission) => (
@@ -766,7 +840,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
       {data.craft.length > 0 ? (
       <section className="sectionShell sectionRule splitSection" aria-labelledby="stand-craft-title">
         <div>
-          <div className="sectionIndex">{label} 06 / Форма</div>
+          <div className="sectionIndex">{index("06", "Форма")}</div>
           <h2 id="stand-craft-title">Форма формирует симпатию.</h2>
         </div>
         <div className="stackList">
@@ -779,7 +853,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
 
       {data.sceneAutopsy ? (
         <section className="sectionShell sectionRule autopsySection" aria-labelledby="stand-autopsy-title">
-          <div className="sectionIndex">{label} 07 / Вскрытие сцены</div>
+          <div className="sectionIndex">{index("07", "Вскрытие сцены")}</div>
           <div className="autopsyFrame" aria-hidden="true">
             <span>Сцена / {published ? "доказательство" : "фикстура"}</span>
             <div className="autopsyCrosshair" />
@@ -799,7 +873,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
 
       {data.decision ? (
         <section className="sectionShell sectionRule decisionSection" aria-labelledby="stand-decision-title">
-          <div className="sectionIndex">{label} 08 / Решение и туман незнания</div>
+          <div className="sectionIndex">{index("08", "Решение и туман незнания")}</div>
           <h2 id="stand-decision-title">{data.decision.question}</h2>
           <div className="knowledgeGrid">
             <article>
@@ -816,7 +890,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
 
       {data.biblicalSynthesis ? (
         <section className="sectionShell sectionRule biblicalSection" aria-labelledby="stand-biblical-title">
-          <div className="sectionIndex">{label} 09 / Библейский синтез</div>
+          <div className="sectionIndex">{index("09", "Библейский синтез")}</div>
           <h2 id="stand-biblical-title">Норма — после описания.</h2>
           <ol className="synthesisSteps">
             <li><span>Наблюдение</span><p>{data.biblicalSynthesis.observation}</p></li>
@@ -829,7 +903,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
 
       <section className="sectionShell sectionRule discoverySection" aria-labelledby="stand-discovery-title">
         <div>
-          <div className="sectionIndex">{label} 10 / Навигация</div>
+          <div className="sectionIndex">{index("10", "Навигация")}</div>
           <h2 id="stand-discovery-title">Каждый разбор углубляет атлас.</h2>
           <p className="sectionIntro">
             Фильмы связываются темами, отношениями, дилеммами и библейскими принципами — не сводясь к одному баллу.
@@ -910,13 +984,14 @@ export default function HomePage() {
     return <PlatformLanding preview={false} />;
   }
 
-  const data = projectHomepage(featuredFilmPackage);
+  const data = projectHomepage(featuredFilmPackage, { stills: filmStillsServable() });
 
   if (isPublished) {
     return (
       <>
         <FilmHero data={data} />
-        <LensStage />
+        <HomepagePaths data={data} />
+        <LensStage example={data.sceneExample} filmSlug={data.featuredFilm.slug} />
         <DataSections data={data} published />
       </>
     );

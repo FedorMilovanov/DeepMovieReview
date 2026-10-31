@@ -19,6 +19,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { projectFilmComparison, projectFilmModule } from "../src/lib/film-module-projection";
 import { publishedFilmStillsEnabled } from "../src/data/site-config";
 import { trumanArticleStills } from "../src/data/films/the-truman-show-stills";
+import { getFilmHomeAsset } from "../src/data/film-home-assets";
 import { projectHomepage } from "../src/lib/homepage-projection";
 import { validateFilmPackage } from "../src/lib/film-package-integrity";
 import {
@@ -6589,4 +6590,94 @@ test("published methodology does not turn supplied metadata into a viewing or au
   assert.match(articleLimits.text, /не заменяет просмотра всей сцены со звуком/i);
   assert.match(theTrumanShowArticle.standfirst, /отмечено, что он не записан/i);
   assert.doesNotMatch(theTrumanShowArticle.standfirst, /у каждой опоры указан материал/i);
+});
+
+test("NONE character profile does not reveal the later Sylvia, Fiji or father plot", () => {
+  const film = theTrumanShowCanonicalPackage;
+  const characters = film.modules.find((module): module is CharactersModule => module.kind === "characters");
+  assert.ok(characters);
+  const none = projectFilmModule(characters, "NONE");
+  const ending = projectFilmModule(characters, "ENDING");
+  assert.ok(none && none.kind === "characters" && ending && ending.kind === "characters");
+  const safe = none.characters.find((character) => character.id === "truman-ch-truman");
+  const later = ending.characters.find((character) => character.id === "truman-ch-truman");
+  assert.ok(safe && later);
+  assert.doesNotMatch([safe.wants, safe.fears, safe.loyalties, safe.contradiction].join(" "), /Фиджи|Сильви|отц|тонущ/i);
+  assert.match(later.arcSummary ?? "", /Фиджи.*Сильви|Сильви.*Фиджи/i);
+  const home = projectHomepage(film);
+  assert.doesNotMatch(JSON.stringify(home.characters), /Фиджи|Сильви|отц|тонущ/i);
+});
+
+test("scene-specific lens readings stay spoiler-scoped and use the gated article still", () => {
+  const film = theTrumanShowCanonicalPackage;
+  const scene = film.scenes?.find((item) => item.id === "truman-sc-day-10909");
+  assert.ok(scene?.lensReadings && scene.lensReadings.length === 6);
+  assert.equal(new Set(scene.lensReadings.map((reading) => reading.lens)).size, 6);
+  const home = projectHomepage(film, { stills: true });
+  assert.equal(home.sceneExample?.sceneId, scene.id);
+  assert.equal(home.sceneExample?.readings.length, 6);
+  assert.deepEqual(home.sceneExample?.still, trumanArticleStills.light);
+  assert.match(home.sceneExample!.readings.find((reading) => reading.lens === "story")!.text, /субтитр.*звук не сверялся/i);
+  assert.match(home.sceneExample!.readings.find((reading) => reading.lens === "craft")!.text, /Sirius.*закрыто/i);
+  for (const reading of home.sceneExample!.readings) {
+    assert.ok(reading.evidence.length > 0);
+    for (const link of reading.evidence) {
+      const record = film.evidence?.find((item) => item.id === link.id);
+      assert.equal(record?.sceneId, scene.id);
+      assert.equal(record?.spoilerLevel, "NONE");
+    }
+  }
+  assert.equal(projectHomepage(film).sceneExample?.still, undefined, "unspecified picture policy must fail closed");
+  const withoutPictures = projectHomepage(film, { stills: false });
+  assert.equal(withoutPictures.sceneExample?.still, undefined);
+  assert.doesNotMatch(JSON.stringify(withoutPictures), /film-stills\/truman-light/);
+
+  const withCounter = structuredClone(film);
+  withCounter.scenes!.find((item) => item.id === scene.id)!.lensReadings![1]!.support.counterevidenceIds = ["truman-ev-light-explanation"];
+  assert.equal(projectHomepage(withCounter).sceneExample?.readings[1]?.counterevidence[0]?.id, "truman-ev-light-explanation");
+  const counterHtml = renderToStaticMarkup(createElement(FilmSceneTable, {
+    scenes: withCounter.scenes!, evidence: withCounter.evidence!, researchDraft: false, spoilerLevel: "NONE",
+  }));
+  assert.match(counterHtml, /Контропора: Объяснение в тексте субтитров/);
+
+  const protectedFilm = structuredClone(film);
+  const protectedScene = protectedFilm.scenes!.find((item) => item.id === scene.id)!;
+  protectedScene.lensReadings![0]!.spoilerLevel = "FULL";
+  protectedScene.lensReadings![0]!.text = "HIDDEN LENS SENTINEL";
+  assert.equal(projectHomepage(protectedFilm).sceneExample, null, "an incomplete safe example is not filled with protected text");
+  const render = (level: "NONE" | "FULL") => renderToStaticMarkup(createElement(FilmSceneTable, {
+    scenes: protectedFilm.scenes!, evidence: protectedFilm.evidence!, researchDraft: false, spoilerLevel: level,
+  }));
+  assert.doesNotMatch(render("NONE"), /HIDDEN LENS SENTINEL/);
+  assert.match(render("FULL"), /HIDDEN LENS SENTINEL/);
+  assert.match(render("NONE"), /id="scene-lenses-truman-sc-day-10909"/);
+});
+
+test("scene lens integrity rejects duplicates, unsupported or cross-scene claims and spoiler inversions", () => {
+  const film = structuredClone(theTrumanShowCanonicalPackage);
+  const scene = film.scenes!.find((item) => item.id === "truman-sc-day-10909")!;
+  const readings = scene.lensReadings!;
+  readings[0]!.text = " ";
+  readings[0]!.support.evidenceIds = ["truman-ev-exit"];
+  readings.push({ ...readings[1]!, lens: readings[1]!.lens, support: { evidenceIds: [] } });
+  const errors = validateFilmPackage(film).join("\n");
+  assert.match(errors, /reading text is required/);
+  assert.match(errors, /duplicate lens reading/);
+  assert.match(errors, /evidenceIds must not be empty/);
+  assert.match(errors, /evidence "truman-ev-exit" must belong to this scene/);
+  assert.match(errors, /support evidence "truman-ev-exit" spoiler level .* exceeds claim level/);
+  scene.spoilerLevel = "MINOR";
+  assert.match(validateFilmPackage(film).join("\n"), /reading cannot be less spoiler-restricted than its scene/);
+});
+
+test("film-specific home art is registered as generated illustration, never evidence", () => {
+  const asset = getFilmHomeAsset("the-truman-show");
+  assert.ok(asset);
+  assert.deepEqual(validateVisualAssetManifest(asset), []);
+  assert.equal(asset.provenance.sourceKind, "generated");
+  assert.match(asset.provenance.editorialNotes ?? "", /not a film frame/i);
+  const display = asset.variants.find((variant) => variant.purpose === "display");
+  assert.ok(display && display.src.startsWith("/art/"));
+  assert.equal(readFileSync(`public${display.src}`).length, display.byteSize);
+  assert.equal(getFilmHomeAsset("unknown-film"), undefined);
 });

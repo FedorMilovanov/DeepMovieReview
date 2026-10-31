@@ -1,4 +1,4 @@
-import type { NarrativePermissionState, ShellFilm } from "@/lib/content";
+import type { LensKey, NarrativePermissionState, ShellFilm } from "@/lib/content";
 import type { SpoilerLevel } from "@/lib/spoilers";
 
 export type Confidence = "HIGH" | "MEDIUM" | "LOW";
@@ -72,6 +72,14 @@ export type EvidenceRecord = {
 
 export type FilmSceneVerificationState = "DRAFT" | "VERIFIED";
 
+/** A scene-specific interpretation with its own spoiler boundary and evidence. */
+export type FilmSceneReading = {
+  lens: LensKey;
+  text: string;
+  spoilerLevel: SpoilerLevel;
+  support: ClaimSupport;
+};
+
 export type FilmSceneRecord = {
   id: string;
   sequenceIndex: number;
@@ -83,6 +91,8 @@ export type FilmSceneRecord = {
   spoilerLevel: SpoilerLevel;
   summary?: string;
   verificationState: FilmSceneVerificationState;
+  /** Optional interpretations of this scene; never substitute for its evidence. */
+  lensReadings?: FilmSceneReading[];
 };
 
 export type ClaimSupport = {

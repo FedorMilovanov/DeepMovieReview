@@ -140,7 +140,7 @@ export function CharactersModuleView({
         {module.characters.map((character) => {
           const art = character.visual ? illustrationView(character.visual.assetId) : undefined;
           return (
-          <article className="characterCard" key={character.id}>
+          <article id={`character-${character.id}`} className="characterCard" key={character.id}>
             {art && character.visual ? (
               <figure className="characterVisual">
                 <picture>

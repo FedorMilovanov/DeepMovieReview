@@ -185,3 +185,27 @@
   .characterCard { display: flow-root; }
   .characterVisual { float: right; width: 40%; margin: 0 0 1rem 1.25rem; }
 }
+
+.sceneLensDetails {
+  margin-top: 1.5rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--stroke-default);
+  background: var(--surface-1);
+  scroll-margin-top: 6rem;
+}
+
+.sceneLensDetails > summary {
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--ink-1);
+  font-weight: 600;
+}
+
+.sceneLensDetails > p,
+.sceneLensDetails li p { color: var(--ink-2); line-height: 1.55; }
+.sceneLensDetails ul { margin: 1rem 0 0; padding: 0; list-style: none; }
+.sceneLensDetails li { padding: 1rem 0; border-top: 1px solid var(--stroke-subtle); }
+.sceneLensDetails li p { margin: 0.4rem 0; }
+.sceneLensDetails li a { display: inline-block; padding: 0.45rem 0.7rem 0.45rem 0; color: var(--ink-1); text-underline-offset: 3px; }
+
+.characterCard[id] { scroll-margin-top: 6rem; }

@@ -229,3 +229,22 @@
 .editionEntry .heroActions {
   margin: 0;
 }
+
+.heroFilmQuestion { margin: 1.1rem 0 0; max-width: 32rem; color: var(--ink-2); font-size: 0.95rem; line-height: 1.6; }
+.heroSceneLink { align-self: center; color: var(--ink-1); padding: 0.8rem 0.2rem; text-underline-offset: 4px; }
+.heroVisual { min-width: 0; }
+.heroGrid .heroFilmFrame { aspect-ratio: 16 / 9; }
+.heroArtCredit { margin: 0.7rem 0 0; color: var(--ink-2); font-size: 0.75rem; line-height: 1.45; }
+
+.homePaths { padding-block: clamp(3rem, 6vw, 5rem); }
+.homePaths h2 { margin: 0; font-size: clamp(1.65rem, 3vw, 2.7rem); }
+.homePaths > div > p { max-width: 60ch; color: var(--ink-2); line-height: 1.6; }
+.homePathsGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; margin-top: 2rem; border: 1px solid var(--stroke-default); background: var(--stroke-default); }
+.homePathsGrid a { min-width: 0; min-height: 150px; display: flex; flex-direction: column; gap: 0.6rem; padding: 1.25rem; background: var(--surface-canvas); color: var(--ink-1); text-decoration: none; transition: background var(--duration-fast) var(--ease-standard); }
+.homePathsGrid a:hover, .homePathsGrid a:focus-visible { background: var(--surface-1); }
+.homePathsGrid strong { font-family: var(--font-display); font-size: 1.18rem; text-transform: uppercase; }
+.homePathsGrid span { color: var(--ink-2); line-height: 1.45; }
+.homePathsGrid small { margin-top: auto; color: var(--ink-1); font-size: 0.75rem; }
+
+.heroFilmSection { min-height: 0; padding-block: clamp(2.5rem, 6vw, 5rem) clamp(3rem, 6vw, 5rem); }
+.heroFilmSection .heroCopy { padding-top: 0; }

@@ -525,7 +525,7 @@ if (base) {
   // The published film-led home is intentionally quieter than the prelaunch
   // marketing template. If it uses no tilted cards, the actual media frame is
   // still checked separately; requiring two decorative cards invents UI.
-  const publishedHome = /Материал разбора\./.test(body);
+  const publishedHome = /data-home-state=["']published["']/.test(body);
   check("TILT", "T17", "карточки с наклоном соответствуют текущему состоянию", () => {
     const surfaces = (body.match(/data-tilt-surface=/g) ?? []).length;
     return (publishedHome ? surfaces === 0 || surfaces >= 2 : surfaces >= 2) || `поверхностей: ${surfaces}`;

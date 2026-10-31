@@ -799,7 +799,7 @@ check("CR", "CR11", "нет мёртвых стилей: каждый класс
 });
 
 check("CR", "CR12", "ассеты не сироты: каждый файл public/art упомянут в данных", () => {
-  const dataText = read("src/data/film-illustrations.ts") + read("src/data/visual-assets.ts") + read("src/data/film-share-assets.ts");
+  const dataText = read("src/data/film-illustrations.ts") + read("src/data/visual-assets.ts") + read("src/data/film-share-assets.ts") + read("src/data/film-home-assets.ts");
   const orphans = artFiles.filter((name) => !dataText.includes(name));
   return orphans.length === 0 || orphans.join(",");
 });

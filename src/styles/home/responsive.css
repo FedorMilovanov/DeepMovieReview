@@ -236,3 +236,32 @@
     background: Canvas;
   }
 }
+
+@media (max-width: 1020px) {
+  .lensStageGrid .lensPanel { order: -1; }
+}
+
+@media (max-width: 640px) {
+  .lensSelector { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lensTab { display: flex; align-items: center; min-height: 48px; padding: 0.7rem; }
+  .lensTabLabel { font-size: 0.82rem; gap: 0.4rem; }
+}
+
+@media (max-width: 900px) {
+  .heroGrid .heroVisual { order: -1; }
+  .heroFilmSection .heroGrid { gap: 1.5rem; }
+}
+
+@media (max-width: 900px) {
+  .homePathsGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .homePathsGrid a { min-height: 138px; padding: 1rem; }
+  .homePathsGrid strong { font-size: 1rem; }
+  .homePathsGrid span { font-size: 0.9rem; }
+  .characterGridSingle .characterCard dl > div { grid-template-columns: 1fr; gap: 0.35rem; }
+}
+
+@media (max-width: 720px) {
+  .homeCharacterVisual { float: none; width: 100%; margin: 0 0 1.5rem; }
+}

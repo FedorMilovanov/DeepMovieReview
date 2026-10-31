@@ -124,8 +124,56 @@ for (const engine of requested) {
             });
           }
         }
+        await check(`${engine} ${mode} ${width}px homepage safe scene and lenses`, page, async () => {
+          const response = await page.goto(`${base}/`, { waitUntil: "load" });
+          assert.equal(response?.status(), 200);
+          assert.equal(await page.locator('link[rel="stylesheet"]').evaluateAll((links) => links.filter((link) => !link.sheet).length), 0);
+          assert.ok(await page.locator('.heroCopy .lede').isVisible(), "the premise must remain visible on narrow screens");
+          assert.equal(await page.locator('.homePathsGrid a').count(), 4);
+          const raw = await response.text();
+          assert.doesNotMatch(raw, /Фиджи|Сильви|Край неба и дверь/, "homepage HTML/RSC must not contain later plot");
+          assert.ok(await page.locator('.lensEvidenceFigure img').isVisible());
+          assert.match(await page.locator('.lensEvidenceFigure img').getAttribute('alt') ?? '', /Sirius.*продолжение закрыто/i);
+          const geometry = await page.evaluate(() => ({ documentWidth: document.documentElement.scrollWidth, viewport: innerWidth }));
+          assert.ok(geometry.documentWidth <= geometry.viewport + 1, JSON.stringify(geometry));
+          const supportsHas = await page.evaluate(() => CSS.supports('selector(:has(*))'));
+          if (supportsHas) {
+            await page.locator('label[for="lens-radio-people"]').click();
+            assert.equal(await page.locator('.lensRadio:checked').getAttribute('value'), 'people');
+            assert.ok(await page.locator('.lensReading[data-lens="people"]').isVisible());
+            assert.equal(await page.locator('.lensReading:visible').count(), 1);
+          } else {
+            assert.equal(await page.locator('.lensReading:visible').count(), 6);
+            assert.ok(await page.locator('.lensFallbackNote').isVisible());
+            assert.equal(await page.locator('.lensMarkGroup:visible').count(), 0);
+          }
+        });
         if (width === 390 && mode === "no-js") {
+          await check(`${engine} no-js homepage paths do not unlock spoilers`, page, async () => {
+            const targets = ['character-truman-ch-truman', 'scene-truman-sc-day-10909', 'spoiler-title', 'comparison-locked-title'];
+            for (let index = 0; index < targets.length; index++) {
+              await page.goto(`${base}/`, { waitUntil: 'load' });
+              const link = page.locator('.homePathsGrid a').nth(index);
+              const href = await link.getAttribute('href');
+              assert.equal(href, `/films/the-truman-show#${targets[index]}`);
+              await link.click();
+              await page.waitForURL(`${base}${href}`);
+              assert.ok(await page.locator(`[id="${targets[index]}"]`).isVisible());
+              assert.equal(await page.locator('#truman-comparison').count(), 0, 'navigation must not select ENDING');
+              assert.ok(!new URL(page.url()).searchParams.has('spoilers'));
+            }
+            await page.goto(`${base}/films/the-truman-show#scene-lenses-truman-sc-day-10909`, { waitUntil: 'load' });
+            const detail = page.locator('#scene-lenses-truman-sc-day-10909');
+            await detail.locator('summary').click();
+            assert.equal(await detail.locator('li').count(), 6);
+            await detail.locator('a[href="#evidence-truman-ev-light"]').first().click();
+            const target = page.locator('#evidence-truman-ev-light');
+            await target.waitFor({ state: 'visible' });
+            await target.locator('summary').click();
+            assert.match(await target.locator('.evidenceBasis').innerText(), /номинальн|точный PTS/i);
+          });
           await check(`${engine} no-js scene stills and provenance`, page, async () => {
+            await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
             const figures = page.locator(".articleSceneStill");
             assert.equal(await figures.count(), 9);
             let grid = 0;
@@ -269,6 +317,19 @@ for (const engine of requested) {
 
     const context = await browser.newContext({ viewport: { width: 390, height: 850 }, reducedMotion: "reduce" });
     const page = await context.newPage();
+    await check(`${engine} homepage lenses work by keyboard`, page, async () => {
+      await page.goto(`${base}/`, { waitUntil: 'load' });
+      if (!(await page.evaluate(() => CSS.supports('selector(:has(*))')))) return;
+      await page.locator('#lens-radio-story').focus();
+      await page.keyboard.press('ArrowRight');
+      assert.equal(await page.locator('.lensRadio:checked').getAttribute('value'), 'people');
+      assert.ok(await page.locator('.lensReading[data-lens="people"]').isVisible());
+      const link = page.locator('.lensReading[data-lens="people"] a').first();
+      assert.equal(await link.getAttribute('href'), '/films/the-truman-show#evidence-truman-ev-light');
+      await link.click();
+      await page.waitForURL(`${base}/films/the-truman-show#evidence-truman-ev-light`);
+      assert.ok(await page.locator('#evidence-truman-ev-light').isVisible());
+    });
     await check(`${engine} spoiler change loads the exact projected document`, page, async () => {
       const article = `${base}/films/the-truman-show/article`;
       const baseline = await page.request.get(article);
@@ -389,6 +450,36 @@ for (const engine of requested) {
         `desktop character art must not crowd the analysis: ${JSON.stringify(dimensions)}`);
     });
     await desktopContext.close();
+
+    // Simulate an older engine's @supports result while keeping the shipped CSS
+    // declarations intact. This tests the fallback cascade, not an old browser.
+    const fallbackContext = await browser.newContext({ viewport: { width: 320, height: 850 }, javaScriptEnabled: false });
+    const fallbackPage = await fallbackContext.newPage();
+    let replacedConditions = 0;
+    await fallbackContext.route('**/*.css', async (route) => {
+      const response = await route.fetch();
+      let body = await response.text();
+      if (body.includes('@supports not selector(:has(*))')) {
+        replacedConditions++;
+        body = body.replaceAll('@supports not selector(:has(*))', '@supports (display:block)')
+          .replaceAll('@supports selector(:has(*))', '@supports (display:not-a-real-value)');
+      }
+      await route.fulfill({ response, body });
+    });
+    await check(`${engine} simulated no-:has CSS fallback`, fallbackPage, async () => {
+      await fallbackPage.goto(`${base}/`, { waitUntil: 'load' });
+      assert.ok(replacedConditions > 0, 'test must actually exercise the fallback stylesheet');
+      assert.equal(await fallbackPage.locator('.lensReading:visible').count(), 6);
+      assert.ok(await fallbackPage.locator('.lensFallbackNote').isVisible());
+      assert.equal(await fallbackPage.locator('.lensSelector:visible').count(), 0);
+      const marks = await fallbackPage.evaluate(() => {
+        const dummy = document.createElement('div'); dummy.className = 'lensMarkGroup';
+        document.querySelector('.lensFrameWrap').append(dummy);
+        return getComputedStyle(dummy).display;
+      });
+      assert.equal(marks, 'none', 'overlays from different lenses must not stack');
+    });
+    await fallbackContext.close();
 
     for (const motion of ["reduce", "no-preference"]) {
       const slowContext = await browser.newContext({ viewport: { width: 390, height: 850 }, reducedMotion: motion });

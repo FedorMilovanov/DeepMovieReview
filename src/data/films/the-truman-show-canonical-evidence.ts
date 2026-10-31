@@ -116,7 +116,7 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
   },
   record(
     "truman-ev-light-explanation",
-    "Объяснение по радио в тексте субтитров",
+    "Объяснение в тексте субтитров",
     "truman-sc-day-10909",
     230.943,
     "NONE",

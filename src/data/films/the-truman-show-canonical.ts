@@ -1,4 +1,4 @@
-import type { EvidenceRecord, FilmPackage } from "@/lib/film-package";
+import type { EvidenceRecord, FilmPackage, FilmSceneReading } from "@/lib/film-package";
 import { reviewBasis } from "../../lib/evidence-review";
 import { trumanMasterSegmentation } from "./the-truman-show-master-segmentation";
 import {
@@ -105,6 +105,35 @@ const trumanEvidenceWithHistory: EvidenceRecord[] = trumanEvidenceWithReviewBasi
   return { ...record, basis: { ...record.basis, refusedAncestor: ancestor } };
 });
 
+// Six bounded readings of one early scene. These are part of the scene record,
+// not a separate homepage review; each points to evidence in the same scene.
+const spotlightReadings: FilmSceneReading[] = [
+  {
+    lens: "story", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light", "truman-ev-light-explanation"] },
+    text: "Осветительный прибор оказывается на улице, а в тексте субтитров появляется объяснение обломками самолёта. Кадр и текст проверены отдельно; звук не сверялся.",
+  },
+  {
+    lens: "people", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light"] },
+    text: "Кадр помещает нас за спиной Трумана: прибор находится перед ним и перед зрителем. Это сближает наши точки зрения, но не позволяет узнать его мысли или степень страха.",
+  },
+  {
+    lens: "relationships", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light"] },
+    text: "В выбранном кадре человек и предмет рядом, но собеседников не видно. О доверии к близким по нему не судят: для отношений нужны другие эпизоды.",
+  },
+  {
+    lens: "ideas", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light"] },
+    text: "Неуместный прибор можно прочитать как след устроенного мира. Из отдельного кадра нельзя вывести, почему предмет оказался на улице или кто за это ответственен.",
+  },
+  {
+    lens: "moral-world", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light", "truman-ev-light-explanation"] },
+    text: "Увиденное и предложенное в субтитрах объяснение ставят вопрос: вправе ли другие решать, какую версию мира получит человек? Сам кадр не устанавливает чей-либо мотив.",
+  },
+  {
+    lens: "craft", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light"] },
+    text: "Крупный план выделяет слово Sirius; продолжение наклейки закрыто. По одному изображению нельзя проверить длительность, монтаж или звук.",
+  },
+];
+
 export const theTrumanShowCanonicalPackage: FilmPackage = {
   schemaVersion: 1,
   comparison: trumanComparison,
@@ -117,7 +146,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
     runtime: "103 мин",
     genre: ["драма", "комедия", "антиутопия"],
     premise:
-      "Страховой агент Труман Бёрбанк не знает, что тридцать лет живёт внутри гигантского телешоу: его город — декорация, жена и друг — актёры, а каждый шаг снимают тысячи скрытых камер. Когда в декорациях начинают происходить сбои, у него впервые появляется повод проверить собственный мир.",
+      "Труман живёт в тихом Сихейвене и не знает, что его город — декорация телешоу. Первые сбои дают ему повод усомниться в привычном мире.",
     thesisQuestion:
       "Что дороже: безопасная клетка, где всё устроено, — или истина, за которую придётся заплатить всем, что имеешь?",
     status: "published",
@@ -139,6 +168,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
   },
   scenes: trumanCanonicalScenes.map((scene) => ({
     id: scene.id,
+    lensReadings: scene.id === "truman-sc-day-10909" ? spotlightReadings : undefined,
     sequenceIndex: scene.sequenceIndex,
     shortLabel: scene.shortLabel,
     summary: scene.summary,
@@ -244,22 +274,22 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           name: "Труман Бёрбанк",
           presentation: "ASPIRATIONAL",
           identification: "HIGH",
-          wants: "Вырваться из Сихейвена, добраться до Фиджи и найти Сильвию",
-          fears: "Вода, глубина, «тонущий» отец — страх, сконструированный сценаристами",
-          loyalties: "Верен двум чувствам, выросшим вне сценария: обещанию, данному Сильвии, и памяти об отце. Оба влекут его из Сихейвена сильнее, чем любой довод шоу.",
-          contradiction: "Самый любимый человек планеты — и единственный, кто не знает, что его любят в прямом эфире",
+          wants: "В начале он живёт привычным распорядком; его дальнейшие желания раскрываются по ходу истории.",
+          fears: "По материалам первого утра его страхи пока нельзя надёжно определить.",
+          loyalties: "Приветствия соседям показывают повседневные связи; глубину его привязанностей ещё предстоит разобрать.",
+          contradiction: "Зрители следят за его повседневной жизнью, а сам он не знает, что стал героем телешоу.",
           profileSpoilerLevel: "NONE",
           interpretiveSpoilerLevel: "ENDING",
           believes: "Внутренний голос подсказывает ему, что мир можно проверить и что за горизонтом есть настоящее",
           selfDeception: "Годами уговаривает себя, что «всё в порядке»: удобная жизнь заглушает накопившиеся нестыковки",
-          arcSummary: "От милого неведения — через цепь улик и панику — к проверке мира экспериментом и к свободному выбору неизвестного",
+          arcSummary: "От милого неведения — через страх воды, память об отце и желание найти Сильвию на Фиджи — к проверке мира экспериментом и выбору неизвестного. Эти привязанности не отменяют того, что их глубину мы интерпретируем, а не измеряем.",
           unchanged: "Доверчивость и потребность в близком человеке остаются при нём и после прозрения: он уходит не ожесточившимся, а всё тем же, кто хочет, чтобы рядом был кто-то настоящий.",
           arcCredibility: { level: "HIGH", note: "Поворот накапливается, а не срабатывает: страх воды, сбившееся радио, вернувшийся «отец» и повторяющиеся лица складываются в улику, а не в озарение. Финальный выбор вырастает из уже показанной способности проверять мир делом." },
           roleInArgument: "Доказательство фильма: человек не сводим к навязанной ему роли; даже тридцать лет эфира не отменяют его «я»",
           counterpoint: "Смелость выйти не делает неизвестное безопасным: он принимает риск, не зная, что ждёт за дверью.",
           visual: { assetId: "illu-truman-caric-tag", spoilerLevel: "NONE", caption: "Человек как товар — редакционная ИИ-иллюстрация, не кадр." },
           profileSupport: { evidenceIds: ["truman-ev-daycount", "truman-ev-greeting", "truman-ev-routine"] },
-          interpretiveSupport: { evidenceIds: ["truman-ev-fiji", "truman-ev-bridge", "truman-ev-exit"] },
+          interpretiveSupport: { evidenceIds: ["truman-ev-fiji", "truman-ev-sylvia", "truman-ev-drowning", "truman-ev-bridge", "truman-ev-exit"] },
         },
         {
           id: "truman-ch-christof",

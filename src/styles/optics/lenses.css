@@ -2,13 +2,14 @@
 
 @supports selector(:has(*)) {
   .lensReadings {
-    display: grid;
-    align-items: start;
+    position: relative;
   }
 
   .lensReading {
     display: block;
-    grid-area: 1 / 1;
+    position: absolute;
+    inset: 0 0 auto;
+    pointer-events: none;
     opacity: 0;
     visibility: hidden;
     transform: translateY(8px);
@@ -56,6 +57,9 @@
   .lensStage:has(.lensRadio[value="ideas"]:checked) .lensReading[data-lens="ideas"],
   .lensStage:has(.lensRadio[value="moral-world"]:checked) .lensReading[data-lens="moral-world"],
   .lensStage:has(.lensRadio[value="craft"]:checked) .lensReading[data-lens="craft"] {
+    position: relative;
+    inset: auto;
+    pointer-events: auto;
     opacity: 1;
     visibility: visible;
     transform: none;
@@ -106,14 +110,11 @@
 }
 
 @supports not selector(:has(*)) {
-  .lensMarkGroup {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .lensReading {
-    display: block;
-  }
+  /* An older browser cannot connect radio state to distant overlays. Expose
+     the real readings as an ordered list instead of stacking six mark groups. */
+  .lensMarkGroup, .lensSelector { display: none; }
+  .lensFallbackNote { display: block; }
+  .lensReading { display: block; padding: 1rem 0; border-top: 1px solid var(--stroke-default); }
 }
 
 /* ── Lens grades + TRACE lines (CSS-only state machine extension) ─────────────── */

@@ -1,5 +1,6 @@
 import Image, { type StaticImageData } from "next/image";
 import { LivingFrame } from "@/components/living-frame";
+import { getFilmHomeAsset } from "@/data/visual-assets";
 import decisionMaster from "../../public/art/decision-master.jpg";
 import heroMaster from "../../public/art/hero-master.jpg";
 import lensMaster from "../../public/art/lens-master.jpg";
@@ -24,7 +25,8 @@ const STANDIN_ART: Record<string, StaticImageData> = {
 };
 
 export function FilmMediaFrame({ slug, variant }: FilmMediaFrameProps) {
-  const art = STANDIN_ART[slug] ?? relationshipMaster;
+  const filmArt = getFilmHomeAsset(slug);
+  const art = filmArt?.variants.find((variant) => variant.purpose === "display")?.src ?? STANDIN_ART[slug] ?? relationshipMaster;
 
   if (variant === "index") {
     return (
@@ -41,13 +43,13 @@ export function FilmMediaFrame({ slug, variant }: FilmMediaFrameProps) {
   return (
     <LivingFrame
       art={art}
-      alt=""
+      alt={filmArt?.alt ?? ""}
       sizes="100vw"
       metaLeft="Иллюстрация"
-      metaRight="платформенный арт"
+      metaRight={filmArt ? "редакционная" : "платформенный арт"}
       className="filmMediaFrameHero"
       transitionSlug={slug}
-      label="Декоративный платформенный арт: рисунок, не кадр фильма."
+      label={filmArt ? "Редакционная ИИ-иллюстрация, не кадр фильма." : "Декоративный платформенный арт: рисунок, не кадр фильма."}
     />
   );
 }
