@@ -31,24 +31,79 @@ test("article metadata audit distinguishes preview and published indexable build
   const noindex = `${html}<meta content="noindex, nofollow" name="robots">`;
   const open = "User-Agent: *\nAllow: /\nDisallow: /labs/\n";
   const closed = "User-Agent: *\nDisallow: /\n";
-  const empty = "<urlset></urlset>";
-  const listed = `<urlset><url><loc>${canonical}</loc></url></urlset>`;
+  const xml = ' xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
+  const empty = `<urlset${xml}></urlset>`;
+  const listed = `<urlset${xml}><url><loc>${canonical}</loc></url></urlset>`;
   assert.equal(checkPageCanonical(html, pathname), true);
   assert.equal(checkPageIndexability(noindex, closed, empty, pathname), true);
   assert.equal(checkPageIndexability(html, open, listed, pathname), true);
   const home = '<link rel="canonical" href="https://example.test/">';
   assert.equal(checkPageIndexability(`${home}<meta name="robots" content="noindex, nofollow">`, closed, empty, "/"), true);
-  assert.equal(checkPageIndexability(home, open, '<urlset><loc>https://example.test/</loc></urlset>', "/"), true);
-  assert.notEqual(checkPageIndexability(home, open, '<urlset><loc>https://wrong.test/</loc></urlset>', "/"), true);
+  assert.equal(checkPageIndexability(home, open, `<urlset${xml}><url><loc>https://example.test/</loc></url></urlset>`, "/"), true);
+  assert.notEqual(checkPageIndexability(home, open, `<urlset${xml}><url><loc>https://wrong.test/</loc></url></urlset>`, "/"), true);
   for (const [page, robots, sitemap] of [
     [html, closed, empty], [noindex, open, listed], [html, open, empty],
     [noindex, closed, listed], [noindex, "", empty], [noindex, closed, "broken"],
-    [noindex, closed, `<urlset><loc>https://wrong.test${pathname}</loc></urlset>`],
-    [html, open, `<urlset><loc>https://wrong.test${pathname}</loc></urlset>`],
+    [noindex, closed, `<urlset${xml}><url><loc>https://wrong.test${pathname}</loc></url></urlset>`],
+    [html, open, `<urlset${xml}><url><loc>https://wrong.test${pathname}</loc></url></urlset>`],
   ]) assert.notEqual(checkPageIndexability(page, robots, sitemap, pathname), true);
   for (const href of ["", "https://example.test/films/the-truman-show", `${canonical}?spoilers=full`, `${canonical}#section`]) {
     assert.notEqual(checkPageCanonical(`<link rel="canonical" href="${href}">`, pathname), true);
   }
+});
+
+test("indexability audit checks the actual URL and never borrows another crawler's policy", () => {
+  const pathname = "/films/the-truman-show/article";
+  const canonical = `https://example.test${pathname}`;
+  const html = `<link rel="canonical" href="${canonical}">`;
+  const noindex = `${html}<meta name="robots" content="noindex, nofollow">`;
+  const xml = ' xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
+  const listed = `<urlset${xml}><url><loc>${canonical}</loc></url></urlset>`;
+  const empty = `<urlset${xml}></urlset>`;
+
+  for (const robots of [
+    "User-Agent: *\nAllow: /\nDisallow: /films/",
+    "User-Agent: *\nAllow: /\nDisallow: /films/*/article$",
+    "User-Agent: Googlebot\nDisallow: /films/\n\nUser-Agent: *\nAllow: /",
+    "User-Agent: ExampleBot\nAllow: /\n\nUser-Agent: *\nDisallow: /films/",
+    "Allow: /\nDisallow: /labs/",
+    "User-Agent: *\nAllow: /\nDisallow: /fi%6cms/",
+    "User-Agent: *\nAllow: /\nSitemap: https://wrong.test/sitemap.xml",
+  ]) assert.notEqual(checkPageIndexability(html, robots, listed, pathname), true, robots);
+
+  assert.notEqual(checkPageIndexability(noindex,
+    "User-Agent: *\nDisallow: /\nAllow: /films/the-truman-show/article$", empty, pathname), true);
+  assert.notEqual(checkPageIndexability(`${html}<link rel="canonical" href="https://wrong.test/">`,
+    "User-Agent: *\nAllow: /", listed, pathname), true);
+  assert.equal(checkPageIndexability(html,
+    "User-Agent: *\nAllow: /\nDisallow: /films/\nAllow: /films/the-truman-show/article", listed, pathname), true);
+  assert.equal(checkPageIndexability(html,
+    "User-Agent: *\nAllow: /\nDisallow: /films/the-truman-show/article/", listed, pathname), true);
+});
+
+test("indexability audit rejects malformed XML, wrong sitemap structure and ambiguous wildcard conflicts", () => {
+  const pathname = "/page.htm", canonical = `https://example.test${pathname}`;
+  const html = `<link rel="canonical" href="${canonical}">`;
+  const robots = "User-Agent: *\nAllow: /";
+  const xml = ' xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
+  const valid = `<urlset${xml}><url><loc>${canonical}</loc></url></urlset>`;
+  assert.equal(checkPageIndexability(html, robots, valid, pathname), true);
+  assert.equal(checkPageIndexability(html, robots,
+    `<sm:urlset xmlns:sm="http://www.sitemaps.org/schemas/sitemap/0.9"><sm:url><sm:loc>${canonical}</sm:loc><sm:lastmod>2026-10-31</sm:lastmod></sm:url></sm:urlset>`, pathname), true);
+  for (const invalid of [
+    `<urlset${xml}><url><loc>${canonical}</loc></urlset>`,
+    `<urlset${xml}><loc>${canonical}</loc></urlset>`,
+    `<urlset><url><loc>${canonical}</loc></url></urlset>`,
+    `<urlset${xml}><url><loc>${canonical}</loc><loc>${canonical}</loc></url></urlset>`,
+    `<urlset${xml}><url>unexpected<loc>${canonical}</loc></url></urlset>`,
+    `<urlset${xml}><url><loc>${canonical}</loc></url><![CDATA[unexpected]]></urlset>`,
+    `<urlset${xml}><url><loc>${canonical}</loc></url><url><loc>https://wrong.test/other</loc></url></urlset>`,
+    `<!DOCTYPE urlset><urlset${xml}><url><loc>${canonical}</loc></url></urlset>`,
+  ]) assert.notEqual(checkPageIndexability(html, robots, invalid, pathname), true, invalid);
+  // Google uses the full rule length (including '*'): /*.htm beats /page.
+  // Do not silently pass conflicting wildcard rules with crawler-dependent semantics.
+  assert.notEqual(checkPageIndexability(html,
+    "User-Agent: *\nAllow: /\nAllow: /page\nDisallow: /*.htm", valid, pathname), true);
 });
 
 function fixture(run) {
@@ -393,6 +448,15 @@ test("native speech timeout never manufactures a semantic pass", async () => {
   assert.doesNotMatch(result.speech.join(" "), /VoiceOver Menu/);
 });
 
+test("scoped rendered contrast bounds skip unrelated page tiles without changing whole-document scope", async () => {
+  const { restrictContrastToTargets } = await import("../scripts/lib/rendered-contrast.mjs");
+  assert.equal(restrictContrastToTargets("document", false), false);
+  assert.equal(restrictContrastToTargets("document", true), true); // Film BATTLE-only assessment.
+  assert.equal(restrictContrastToTargets(".siteHeader", false), true);
+  assert.equal(restrictContrastToTargets(".articleAnalysis", false), true);
+  assert.equal(restrictContrastToTargets(".readingOutline", false), true);
+});
+
 test("rendered contrast bounds use every background pixel, not averages or rounding", async () => {
   const { contrast, rectangleContrast } = await import("../scripts/lib/contrast-pixels.mjs");
   assert.equal(contrast([255, 255, 255, 1], [0, 0, 0]), 21);
@@ -549,6 +613,31 @@ test("native UI observation waits without replaying input and fails a persistent
   assert.equal(await waitForNativeValue(async () => ++reads < 3 ? "true" : "false", "false", { now: () => clock++, pause: async () => {}, timeout: 10 }), "false");
   assert.equal(reads, 3);
   await assert.rejects(waitForNativeValue(async () => "true", "false", { now: () => clock++, pause: async () => {}, timeout: 3 }), /Native UI state/);
+});
+
+test("iOS spoiler audit requires the exact NONE projection, not just a changed URL", async () => {
+  const { noneArticleProjectionReached, parseArticleSectionIds } = await import("../scripts/lib/ios-spoiler-observation.mjs");
+  const expectedUrl = "http://127.0.0.1:3213/films/the-truman-show/article";
+  const baseline = '<html><body><section class="sectionShell articleSection" id="method"></section></body></html>';
+  const expectedSectionIds = parseArticleSectionIds(baseline);
+  assert.deepEqual(expectedSectionIds, ["method"]);
+  assert.throws(() => parseArticleSectionIds('<html><body><section class="articleSection"></section></body></html>'), /id/i);
+  assert.throws(() => parseArticleSectionIds('<html><body><section class="articleSection" id="x"></section><section class="articleSection" id="x"></section></body></html>'), /duplicat/i);
+  const options = { expectedUrl, beforeSections: 11, expectedSectionIds };
+  const ready = { url: expectedUrl, sectionIds: ["method"], noneSelected: true, lastSectionPresent: false };
+  assert.equal(noneArticleProjectionReached(ready, options), true);
+  assert.equal(noneArticleProjectionReached({ ...ready, url: `${expectedUrl}?spoilers=NONE` }, options), true);
+  for (const partial of [
+    { ...ready, sectionIds: ["method", "ending"], lastSectionPresent: true }, // URL changed before React content.
+    { ...ready, sectionIds: ["method", "major"] }, // Partially projected is still not NONE.
+    { ...ready, url: `${expectedUrl}?spoilers=full` },
+    { ...ready, url: `${expectedUrl}?spoilers=none&spoilers=full` },
+    { ...ready, url: "https://other.test/films/the-truman-show/article" },
+    { ...ready, url: "http://127.0.0.1:3213/films/the-truman-show" },
+    { ...ready, sectionIds: [] }, { ...ready, sectionIds: ["different"] },
+    { ...ready, noneSelected: false }, { ...ready, lastSectionPresent: true },
+    { ...ready, lastSectionPresent: undefined },
+  ]) assert.equal(noneArticleProjectionReached(partial, options), false, JSON.stringify(partial));
 });
 
 test("reading layout wraps inset artwork and preserves accessible navigation", () => {

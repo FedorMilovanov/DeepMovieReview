@@ -37,6 +37,7 @@
     "@types/react-dom": "^19.0.0",
     "@types/three": "0.185.4",
     "@typescript/native": "npm:typescript@7.0.2",
+    "@xmldom/xmldom": "0.9.12",
     "axe-core": "4.11.0",
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.3",

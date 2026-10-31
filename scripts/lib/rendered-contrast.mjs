@@ -4,6 +4,13 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { rectangleContrast } from "./contrast-pixels.mjs";
 
+// Scoped axe scans only need tiles intersecting their own live text ranges.
+// Whole-document scans still traverse the document, except the explicitly
+// reported comparison-only assessment. Coverage remains checked independently.
+export function restrictContrastToTargets(scope, comparisonOnly = false) {
+  return comparisonOnly || scope !== "document";
+}
+
 // Mask text foreground paint only. Changing CSS color would also change currentColor
 // backgrounds/borders/icons and could manufacture an apparently better bound.
 export function maskTextPaint(s) {

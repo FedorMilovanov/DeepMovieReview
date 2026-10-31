@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import { chromium, firefox, webkit } from "playwright-core";
 import axe from "axe-core";
 import { calibrateRenderedContrast } from "./lib/contrast-calibration.mjs";
-import { renderedContrast } from "./lib/rendered-contrast.mjs";
+import { renderedContrast, restrictContrastToTargets } from "./lib/rendered-contrast.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
 const require = createRequire(import.meta.url);
@@ -91,10 +91,12 @@ for (const name of selected) {
               if (comparisonOnly) writeFileSync(`${out}/${id}-${state}-comparison-axe.json`, JSON.stringify(contrastResult, null, 2));
               const nodes = contrastResult.incomplete.filter(rule => rule.id === "color-contrast").flatMap(rule => rule.nodes);
               if (nodes.length) {
-                const assessment = await renderedContrast(page, nodes, `${out}/paint-pairs`, `${id}-${state}`, { restrictToTargetBounds: comparisonOnly });
+                const bounded = restrictContrastToTargets(scope, comparisonOnly);
+                const assessment = await renderedContrast(page, nodes, `${out}/paint-pairs`, `${id}-${state}`, { restrictToTargetBounds: bounded });
                 const file = `${id}-${state}-rendered.json`;
                 writeFileSync(`${out}/${file}`, JSON.stringify({ violations: [], incomplete: [], actions: [{ label: "finite rendered contrast assessment", assessment }] }, null, 2));
-                report.results.push({ browser: name, version: browser.version(), width, route, state: `${state}-rendered-contrast`, scope: comparisonOnly ? "comparison section only: paired native renderer text-range backgrounds" : "paired native renderer text-range backgrounds", file, needsReview: !assessment.pass });
+                const coverage = comparisonOnly ? "comparison section only" : scope === "document" ? "whole-document targets" : `${scope} only`;
+                report.results.push({ browser: name, version: browser.version(), width, route, state: `${state}-rendered-contrast`, scope: `${coverage}: paired native renderer text-range backgrounds`, file, needsReview: !assessment.pass });
                 if (!assessment.pass) failure(`${id}/${state}: rendered contrast requires review: ${assessment.ranges.filter(range => !range.pass).length} ranges, ${assessment.missing.length} missing owners, tileLimit=${assessment.tileLimit}`);
               }
             }

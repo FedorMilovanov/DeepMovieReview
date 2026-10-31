@@ -7,6 +7,7 @@ import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } fro
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari, waitForNativeValue } from "./lib/native-safari.mjs";
+import { noneArticleProjectionReached, parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari";
 mkdirSync(directory, { recursive: true });
@@ -150,8 +151,21 @@ try {
     evidence.screenshots.push({ route, data });
     evidence.actions.push({ route, label: "native iOS Safari layout and actual menu taps", box });
     if (route.includes("/article?")) {
-      const count = await safari.execute("return document.querySelectorAll('.articleSection').length");
-      assert.ok(count > 0, "Actual native article sections must exist before the spoiler input");
+      const sectionIds = await safari.execute("return Array.from(document.querySelectorAll('.articleSection'), section => section.id)");
+      const count = sectionIds.length;
+      const lastSectionId = sectionIds.at(-1);
+      assert.ok(count > 1 && sectionIds.every(Boolean) && new Set(sectionIds).size === count,
+        "Actual native full article sections must have unique IDs before the spoiler input");
+      // Establish the expected NONE projection from a separate SSR response from
+      // this very build. This adapts to new spoiler-safe sections without making
+      // a partially updated page pass just because its total count decreased.
+      const expectedUrl = `http://127.0.0.1:3213${route.split("?")[0]}`;
+      const baselineResponse = await fetch(expectedUrl, { signal: AbortSignal.timeout(30000) });
+      assert.equal(baselineResponse.status, 200, "NONE baseline must be a real article response");
+      assert.match(baselineResponse.headers.get("content-type") ?? "", /text\/html/i);
+      const expectedSectionIds = parseArticleSectionIds(await baselineResponse.text());
+      assert.ok(expectedSectionIds.length < count && expectedSectionIds.every((id, index) => sectionIds[index] === id) &&
+        !expectedSectionIds.includes(lastSectionId), "NONE baseline must be a proper prefix of the full article");
       // Exercise the control before anything else on the page. It sits at the
       // very edge of the installed simulator's 390x844 window — behind Safari's
       // own bottom toolbar — and a tap there reached no DOM event at all
@@ -162,14 +176,20 @@ try {
         for (const type of ["touchstart", "touchend", "click"]) document.addEventListener(type, e =>
           __spoilerProbe[type === "click" ? "clicked" : "touched"].push({ type, target: (e.target.className || e.target.tagName).toString().slice(0, 40), href: e.target.closest?.("a")?.getAttribute("href") }), { capture: true });`);
       evidence.screenshots.push({ route: `${route} — before spoiler input`, data: await safari.screenshot() });
-      const sections = () => safari.execute("return document.querySelectorAll('.articleSection').length");
-      // The projection changes either by hiding sections in place or by a real
-      // navigation to the projected route. Both are the same reader-visible
-      // outcome; a URL that still asks for full spoilers with all sections is
-      // not a change.
+      // A URL change can precede the server-rendered content update. Observe the
+      // actual NONE selection, remaining article sections and removal of the last
+      // full-spoiler section together; a blank/error page is not a projection.
+      let lastObservation;
       const projection = async () => {
-        const state = await safari.execute("return { sections: document.querySelectorAll('.articleSection').length, search: location.search }");
-        return state.sections < count || !/spoilers=full/.test(state.search) ? "changed" : "same";
+        lastObservation = await safari.execute(`return {
+          url: location.href,
+          sectionIds: Array.from(document.querySelectorAll('.articleSection'), section => section.id),
+          noneSelected: document.querySelector('.spoilerOption')?.getAttribute('aria-current') === 'true',
+          lastSectionPresent: Boolean(document.getElementById(${JSON.stringify(lastSectionId)}))
+        }`);
+        return noneArticleProjectionReached(lastObservation, {
+          expectedUrl, beforeSections: count, expectedSectionIds,
+        }) ? "changed" : "same";
       };
       await safari.execute("document.querySelector('.spoilerOption').scrollIntoView({ block: 'center', behavior: 'instant' });");
       report.spoilerTarget = await safari.execute(`const el = document.querySelector('.spoilerOption');
@@ -178,9 +198,12 @@ try {
           visualViewport: visualViewport ? { height: visualViewport.height, offsetTop: visualViewport.offsetTop } : null };`);
       evidence.actions.push({ route, label: "native spoiler target geometry", ...report.spoilerTarget });
       const spoilerBy = await activate(".spoilerOption", projection, "changed", 20000);
-      report.spoilerProjection = { before: count, after: await sections(), by: spoilerBy,
-        url: await safari.execute("return location.href") };
-      report.spoilerProbe = await safari.execute("return { ...__spoilerProbe, target: (() => { const el = document.querySelector('.spoilerOption'); if (!el) return null; const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { rect: r.toJSON(), scrollY, hit: hit && (hit.className || hit.tagName) }; })() }");
+      report.spoilerProjection = { before: count, after: lastObservation.sectionIds.length, by: spoilerBy,
+        url: lastObservation.url, expectedSectionIds, lastSectionId, observation: lastObservation };
+      // A full-document navigation legitimately discards page-local probes. Keep
+      // that loss explicit rather than failing with a ReferenceError or inventing
+      // an event trace; the independently observed projection above still gates.
+      report.spoilerProbe = await safari.execute("return { ...(window.__spoilerProbe ?? { lostAfterNavigation: true }), target: (() => { const el = document.querySelector('.spoilerOption'); if (!el) return null; const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { rect: r.toJSON(), scrollY, hit: hit && (hit.className || hit.tagName) }; })() }");
       evidence.actions.push({ route, label: "native spoiler input probe", ...report.spoilerProbe });
       evidence.actions.push({ route, label: "native spoiler input changed projection", ...report.spoilerProjection });
       evidence.screenshots.push({ route: `${route} — after spoiler input`, data: await safari.screenshot() });
