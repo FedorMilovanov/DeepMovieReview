@@ -13,6 +13,11 @@ export function safariRequestTimeout(path) {
   return path === "/session" || path.endsWith("/url") ? 90000 : path === "/status" ? 1500 : 30000;
 }
 
+// An absent or navigation-lost probe is not evidence that input was undelivered.
+export function noNativeEventsDelivered(probe) {
+  return Boolean(probe && !probe.lostAfterNavigation && Array.isArray(probe.events) && probe.events.length === 0);
+}
+
 // Observe asynchronous native browser/UI completion; never replay the input.
 export async function waitForNativeValue(read, expected, { timeout = 10000, now = Date.now, pause = () => delay(100) } = {}) {
   const deadline = now() + timeout;
@@ -163,6 +168,30 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       async elementClick(selector) {
         const element = await request(`${path}/element`, { using: "css selector", value: selector });
         return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
+      },
+      // A second W3C touch coordinate system, attempted only by the caller
+      // after both the element-origin gesture and element activation delivered
+      // zero DOM events. It is not a synthetic DOM click and it may still fail.
+      async viewportTouch(selector) {
+        assert.equal(capabilities.platformName?.toLowerCase(), "ios", "viewport touch is iOS-only");
+        const element = await request(`${path}/element`, { using: "css selector", value: selector });
+        const target = await waitForStableNativeTarget(() => request(`${path}/execute/sync`, {
+          script: `const el=arguments[0],r=el.getBoundingClientRect(),v=visualViewport;
+            const point={x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)};
+            const hit=document.elementFromPoint(point.x,point.y);
+            return {ready:el.isConnected&&document.readyState==='complete'&&document.fonts.status==='loaded'&&
+              point.x>=0&&point.x<innerWidth&&point.y>=0&&point.y<innerHeight&&!!hit&&el.contains(hit),
+              point,hitContained:!!hit&&el.contains(hit),rect:r.toJSON(),scroll:{x:scrollX,y:scrollY},
+              viewport:v?{x:v.offsetLeft,y:v.offsetTop,width:v.width,height:v.height,scale:v.scale}:null};`,
+          args: [element],
+        }));
+        inputs.push({ selector, ...target, gesture: "single W3C viewport-origin touch after two undelivered inputs" });
+        try {
+          return await request(`${path}/actions`, { actions: [{ type: "pointer", id: "finger-viewport", parameters: { pointerType: "touch" }, actions: [
+            { type: "pointerMove", duration: 0, origin: "viewport", x: target.point.x, y: target.point.y },
+            { type: "pointerDown", button: 0 }, { type: "pause", duration: 80 }, { type: "pointerUp", button: 0 },
+          ] }] });
+        } finally { await request(`${path}/actions`, undefined, "DELETE"); }
       },
       execute: script => request(`${path}/execute/sync`, { script, args: [] }),
       goto: url => request(`${path}/url`, { url }),

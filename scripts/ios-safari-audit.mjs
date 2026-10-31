@@ -6,7 +6,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
-import { nativeSafari, waitForNativeValue } from "./lib/native-safari.mjs";
+import { nativeSafari, noNativeEventsDelivered, waitForNativeValue } from "./lib/native-safari.mjs";
 import { noneArticleProjectionReached, parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari";
@@ -126,27 +126,43 @@ try {
           x: Number.isFinite(e.clientX) ? e.clientX : null, y: Number.isFinite(e.clientY) ? e.clientY : null }), { capture: true, once: true });`);
     const readProbe = () => safari.execute("return window.__inputProbe ? { ...window.__inputProbe, url: location.href } : { lostAfterNavigation: true, url: location.href }");
     await safari.click(selector);
-    let delivered = true;
+    let method = "native touch";
     try { await waitForNativeValue(read, expected, { timeout }); }
     catch (error) {
       const probe = await readProbe();
       const attempt = { selector, touch: probe };
       report.nativeActivationDiagnostics = [...(report.nativeActivationDiagnostics ?? []), attempt];
       // A navigation discards the probe; it is not proof of an undelivered touch.
-      if (probe.lostAfterNavigation || probe.events.length) throw error;
-      delivered = false;
+      if (!noNativeEventsDelivered(probe)) throw error;
       attempt.fallback = "W3C element activation after zero delivered events";
+      let fallbackError;
       try {
         await safari.elementClick(selector);
         await waitForNativeValue(read, expected, { timeout });
-      } finally {
-        // Retain the fallback events and final URL even when its postcondition
-        // fails. A successful command is not itself evidence of activation.
-        try { attempt.afterFallback = await readProbe(); }
-        catch (diagnosticError) { attempt.afterFallback = { diagnosticError: diagnosticError.message }; }
+        method = "element activation after undelivered touch";
+      } catch (error) { fallbackError = error; }
+      // Retain the fallback events even when its postcondition fails. A
+      // successful driver command is not itself evidence of activation.
+      try { attempt.afterFallback = await readProbe(); }
+      catch (diagnosticError) { attempt.afterFallback = { diagnosticError: diagnosticError.message }; }
+      if (fallbackError) {
+        const after = attempt.afterFallback;
+        if (fallbackError.code !== "ERR_ASSERTION" || !noNativeEventsDelivered(after)) throw fallbackError;
+        // Both previous inputs demonstrably delivered no event. Try one real
+        // viewport-origin W3C touch; if it arrives on the wrong target or fails
+        // the exact projection, fail rather than retry or synthesize a click.
+        attempt.viewportFallback = "W3C viewport-origin touch after two zero-event attempts";
+        try {
+          await safari.viewportTouch(selector);
+          await waitForNativeValue(read, expected, { timeout });
+          method = "viewport-origin native touch after two undelivered inputs";
+        } finally {
+          try { attempt.afterViewport = await readProbe(); }
+          catch (diagnosticError) { attempt.afterViewport = { diagnosticError: diagnosticError.message }; }
+        }
       }
     }
-    return delivered ? "native touch" : "element activation after undelivered touch";
+    return method;
   };
   for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"]) {
     report.phase = `native iOS route ${route}`;

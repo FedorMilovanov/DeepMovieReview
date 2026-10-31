@@ -608,7 +608,11 @@ test("real VoiceOver CI preflight starts once and waits for actual service outpu
 
 
 test("native UI observation waits without replaying input and fails a persistent state", async () => {
-  const { waitForNativeValue } = await import("../scripts/lib/native-safari.mjs");
+  const { waitForNativeValue, noNativeEventsDelivered } = await import("../scripts/lib/native-safari.mjs");
+  assert.equal(noNativeEventsDelivered({ events: [] }), true);
+  for (const probe of [undefined, {}, { lostAfterNavigation: true, events: [] }, { events: [{ type: "touchstart" }] }]) {
+    assert.equal(noNativeEventsDelivered(probe), false);
+  }
   let clock = 0, reads = 0;
   assert.equal(await waitForNativeValue(async () => ++reads < 3 ? "true" : "false", "false", { now: () => clock++, pause: async () => {}, timeout: 10 }), "false");
   assert.equal(reads, 3);

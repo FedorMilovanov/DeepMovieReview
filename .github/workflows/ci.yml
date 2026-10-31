@@ -311,9 +311,13 @@ jobs:
             exit 1
           fi
 
+          echo '::notice title=CI progress::Starting three-engine reader regression'
           BASE_URL=http://127.0.0.1:3212 READER_BROWSERS=chromium,firefox,webkit node scripts/reader-regression.mjs
+          echo '::notice title=CI progress::Reader regression finished; starting browser audit'
           BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs
+          echo '::notice title=CI progress::Browser audit finished; starting axe scans'
           BASE_URL=http://127.0.0.1:3212 npm run test:a11y
+          echo '::notice title=CI progress::Browser and accessibility audits finished'
 
       # Historical recovery is informational, never a substitute for current-head tests.
       - name: Recover previous successful accessibility evidence

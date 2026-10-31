@@ -11,6 +11,9 @@ export async function calibrateRenderedContrast(browser, directory, name) {
     { name: "transitioned-text-mask", html: '<p id="target" style="color:white;background:black;transition:all 0.01ms">Deferred text paint must settle</p>', pass: true },
     { name: "moving-high-contrast", html: '<div style="height:2000px"></div><p id="target" style="color:white;background:black">Moving text must settle before the paired capture</p><script>addEventListener("scroll",()=>document.querySelector("#target").animate([{transform:"translateY(40px)"},{transform:"translateY(0)"}],{duration:700}),{once:true})</script>', pass: true, bounded: true, mustMeasure: true },
     { name: "moving-low-contrast", html: '<div style="height:2000px"></div><p id="target" style="color:white;background:#eee">Moving text must still fail on a pale background</p><script>addEventListener("scroll",()=>document.querySelector("#target").animate([{transform:"translateY(40px)"},{transform:"translateY(0)"}],{duration:700}),{once:true})</script>', pass: false, bounded: true, mustMeasure: true },
+    { name: "first-capture-shift-unwarmed", html: '<div style="height:1500px"></div><p id="target">Screenshot moves the scroll anchor</p><div style="height:1000px"></div>', pass: false, bounded: true, shiftOnCapture: 1, warmup: false, expectPhase: "before-background-capture" },
+    { name: "first-capture-shift-warmed", html: '<div style="height:1500px"></div><p id="target">Discard the shifted screenshot and measure again</p><div style="height:1000px"></div>', pass: true, bounded: true, shiftOnCapture: 1, warmup: true, mustMeasure: true },
+    { name: "background-capture-shift", html: '<div style="height:1500px"></div><p id="target">A moved background cannot cover the original text</p><div style="height:1000px"></div>', pass: false, bounded: true, shiftOnCapture: 2, warmup: false, expectPhase: "after-background-capture" },
     { name: "permanently-moving-text", html: '<p id="target" style="color:white;background:black">Unsettled geometry must not pass</p><script>let i=0;setInterval(()=>document.querySelector("#target").style.transform=`translateX(${i++%31}px)`,17)</script>', pass: false },
     { name: "blocked-text-mask", html: '<style>#target{-webkit-text-fill-color:white!important}</style><p id="target" style="color:white;background:black">An unremovable foreground must not pass as a background</p>', pass: false },
     { name: "white-own-gray", html: '<p id="target" style="color:white;background:#eee">White on pale gray must fail</p>', pass: false },
@@ -35,12 +38,29 @@ export async function calibrateRenderedContrast(browser, directory, name) {
     const page = await browser.newPage({ viewport: { width: 390, height: 900 } });
     try {
       await page.setContent(`<html><body style="margin:0;background:black;color:white;font:16px/22px sans-serif">${fixture.html}</body></html>`);
-      const assessment = await renderedContrast(page, [{ target: ["#target"] }], `${directory}/calibration-pairs`, `${name}-${fixture.name}`, { restrictToTargetBounds: fixture.bounded });
+      if (fixture.shiftOnCapture) {
+        // Synthetic driver behaviour: one screenshot moves the viewport after
+        // capture. This tests the harness, not any real browser's implementation.
+        const capture = page.screenshot.bind(page);
+        let count = 0;
+        page.screenshot = async (...args) => {
+          const bytes = await capture(...args);
+          if (++count === fixture.shiftOnCapture) await page.evaluate(() => scrollTo({ top: scrollY - 34, behavior: "instant" }));
+          return bytes;
+        };
+      }
+      const assessment = await renderedContrast(page, [{ target: ["#target"] }], `${directory}/calibration-pairs`, `${name}-${fixture.name}`, {
+        restrictToTargetBounds: fixture.bounded, ...(fixture.warmup === undefined ? {} : { warmupFirstCapture: fixture.warmup }),
+      });
       receipt.actions.push({ label: `Synthetic harness only: ${fixture.name}`, expectedPass: fixture.pass, assessment });
       writeFileSync(file, JSON.stringify(receipt, null, 2));
       assert.equal(assessment.pass, fixture.pass, `${name}: calibration ${fixture.name}`);
       if (fixture.mustMeasure) assert.ok(assessment.ranges.some(range => Number.isFinite(range.minimum) && !range.issues.length),
         `${name}: ${fixture.name} must actually measure the settled background`);
+      if (fixture.expectPhase) assert.ok(assessment.maskValidation.some(item => item.phase === fixture.expectPhase && item.moved.length),
+        `${name}: ${fixture.name} must identify which capture moved`);
+      if (fixture.shiftOnCapture && fixture.warmup) assert.ok(assessment.screenshotWarmups.some(item => item.before - item.after === 34),
+        `${name}: warm-up must record the simulated scroll change`);
       if (fixture.bounded) assert.ok(assessment.frames.length <= 8 && !assessment.tileLimit, `${name}: scoped sweep traversed unrelated page space`);
     } finally { await page.close(); }
   }

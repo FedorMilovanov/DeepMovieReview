@@ -245,7 +245,8 @@ for (const engine of requested) {
         }
         if (mode === "scripts-blocked") assert.ok(blocked > 0, `${engine}: blocked-script scenario did not block scripts`);
         if (mode === "no-js" && width === 320) assert.ok(delayedStyles > 0, `${engine}: slow-CSS scenario did not delay a stylesheet`);
-        console.log(`Reader progress: ${engine} ${mode} ${width}px completed; ${failures} failures so far.`);
+        const progress = `Reader progress: ${engine} ${mode} ${width}px completed; ${failures} failures so far.`;
+        console.log(process.env.GITHUB_ACTIONS === "true" ? `::notice title=Reader progress::${progress}` : progress);
         await context.close();
       }
     }
