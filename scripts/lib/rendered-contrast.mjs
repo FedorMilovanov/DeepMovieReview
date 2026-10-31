@@ -129,6 +129,17 @@ export function snapshotTextPaint(s) {
   // Range ascent/descent boxes can extend into ordinary neighbouring line boxes;
   // a different normal-flow hit is not proof that it paints over the glyphs.
   function exposed(element, rect, width, height, hitTest) {
+    // A box may fit the browser viewport while a horizontal table viewport clips
+    // it. Pixels outside that viewport do not show the glyph's real background.
+    // Require the whole line to be exposed; the coverage pass can scroll an
+    // auto/scroll ancestor and revisit it. A permanently clipped line fails.
+    for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      const overflow = getComputedStyle(ancestor).overflowX;
+      if (!["auto", "scroll", "hidden", "clip"].includes(overflow)) continue;
+      const bounds = ancestor.getBoundingClientRect();
+      const left = bounds.left + ancestor.clientLeft, right = left + ancestor.clientWidth;
+      if (rect.left < left || rect.right > right) return false;
+    }
     // Existing pointer-events:none paint (e.g. lens annotations) cannot own a
     // hit. Use its nearest hit-testable container, without changing any style.
     while (element.parentElement && getComputedStyle(element).pointerEvents === "none") element = element.parentElement;
@@ -220,6 +231,33 @@ export function changedTextGeometry(s) {
   });
 }
 
+// Serialized into the page. Revisit the actual unmeasured line by scrolling its
+// horizontal reader viewports, innermost first. Never change styles or scroll a
+// hidden/clip container that a reader could not use as a horizontal viewport.
+// A line wider than its viewport or otherwise still clipped remains uncovered.
+export function revealHorizontalScroll({ s, id, line }) {
+  const record = s.records[id], moves = [];
+  if (!record?.element.isConnected) return moves;
+  for (let ancestor = record.element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+    const overflow = getComputedStyle(ancestor).overflowX;
+    if (!["auto", "scroll"].includes(overflow) || ancestor.scrollWidth <= ancestor.clientWidth) continue;
+    const rect = record.range.getClientRects()[line];
+    if (!rect || rect.width <= 0 || rect.height <= 0) continue;
+    const bounds = ancestor.getBoundingClientRect();
+    const left = bounds.left + ancestor.clientLeft, right = left + ancestor.clientWidth;
+    const delta = rect.left < left ? rect.left - left - 1 : rect.right > right ? rect.right - right + 1 : 0;
+    if (!delta) continue;
+    const before = ancestor.scrollLeft;
+    ancestor.scrollTo({ left: before + delta, behavior: "instant" });
+    const after = ancestor.scrollLeft;
+    if (after !== before) {
+      if (!s.horizontalScroll.has(ancestor)) s.horizontalScroll.set(ancestor, before);
+      moves.push({ element: ancestor.tagName, className: String(ancestor.className || "").slice(0, 80), before, after });
+    }
+  }
+  return moves;
+}
+
 export async function renderedContrast(page, nodes, directory, id, options = {}) {
   mkdirSync(directory, { recursive: true });
   const state = await page.evaluateHandle(targets => {
@@ -244,10 +282,10 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
       if (!owner.ids.length) owner.error = "No rendered DOM text range";
     }
     const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
-    return { records, owners, saved: [], textChanges: [], ctx: canvas.getContext("2d", { willReadFrequently: true }) };
+    return { records, owners, saved: [], textChanges: [], horizontalScroll: new Map(), ctx: canvas.getContext("2d", { willReadFrequently: true }) };
   }, nodes.map(node => node.target));
   const previousScroll = await page.evaluate(() => scrollY);
-  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [], maskValidation = [], geometryWaits = [], screenshotWarmups = [], captureTrace = [];
+  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [], maskValidation = [], geometryWaits = [], screenshotWarmups = [], captureTrace = [], horizontalRevisits = [];
   // WebKit's first paired capture has coincided with a scroll-anchor shift;
   // its cause is not established. Warm the actual capture path before taking
   // the geometry snapshot, then independently check every measured frame.
@@ -491,14 +529,18 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
             for (const record of s.records) {
               if ((attempts[record.id] ?? 0) >= limit || !record.element.isConnected) continue;
               const rects = [...record.range.getClientRects()];
-              if (!rects.some((_, line) => !measured.includes(`${record.id}:${record.version ?? 0}:${line}`))) continue;
-              const rect = record.range.getBoundingClientRect();
-              if (rect.width > 0 && rect.height > 0) return { id: record.id, top: scrollY + rect.top - Math.max(0, (innerHeight - rect.height) / 2) };
+              const line = rects.findIndex((rect, index) => rect.width > 0 && rect.height > 0 &&
+                !measured.includes(`${record.id}:${record.version ?? 0}:${index}`));
+              if (line < 0) continue;
+              const rect = rects[line];
+              return { id: record.id, line, top: scrollY + rect.top - Math.max(0, (innerHeight - rect.height) / 2) };
             }
             return null;
           }, { s: state, measured: [...measurements.keys()], attempts: Object.fromEntries(revisitAttempts), limit: 3 });
           if (!candidate) break;
           revisitAttempts.set(candidate.id, (revisitAttempts.get(candidate.id) ?? 0) + 1);
+          const moves = await page.evaluate(revealHorizontalScroll, { s: state, id: candidate.id, line: candidate.line });
+          if (moves.length) horizontalRevisits.push({ tile, id: candidate.id, line: candidate.line, moves });
           top = Math.max(0, candidate.top);
         } else top = snapshot.scroll + Math.floor(snapshot.height * 0.75);
         if (tile === 249) tileLimit = true;
@@ -533,6 +575,8 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
       }, { s: state, absent: absentNow, attempts: Object.fromEntries(revisitAttempts), limit: 3, measured: [...measurements.keys()] });
       if (!resume) break;
       revisitAttempts.set(resume.id, (revisitAttempts.get(resume.id) ?? 0) + 1);
+      const moves = await page.evaluate(revealHorizontalScroll, { s: state, id: resume.id, line: resume.line });
+      if (moves.length) horizontalRevisits.push({ tile, id: resume.id, line: resume.line, moves });
       top = Math.max(0, resume.top);
     }
     const owners = await page.evaluate(s => s.owners, state);
@@ -575,9 +619,13 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
         })) };
     }), { s: state, absent: [...absent] }) : [];
     const failed = ranges.filter(range => !range.pass);
-    return { restrictedToTargetBounds: Boolean(extent), method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
+    return { restrictedToTargetBounds: Boolean(extent), method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], horizontalRevisits, uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
       missing, tileLimit, maskValidation, geometryWaits, screenshotWarmups, captureTrace, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
+    // Leave the reader's horizontal and vertical positions as we found them.
+    await page.evaluate(s => {
+      for (const [element, left] of s.horizontalScroll) if (element.isConnected) element.scrollTo({ left, behavior: "instant" });
+    }, state);
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);
     await state.dispose();
   }

@@ -8,6 +8,10 @@ export async function calibrateRenderedContrast(browser, directory, name) {
     { name: "bounded-distant-high-contrast", html: '<div style="height:150000px"></div><p id="target" style="color:white;background:black">Target far below the fold</p><div style="height:150000px"></div>', pass: true, bounded: true },
     { name: "bounded-distant-gradient", html: '<div style="height:150000px"></div><p id="target" style="color:white;background-image:linear-gradient(#eee,#eee)">Target far below the fold must fail</p><div style="height:150000px"></div>', pass: false, bounded: true },
     { name: "white-black", html: '<p id="target" style="color:white;background:black">Known text</p>', pass: true },
+    { name: "horizontal-high-contrast", html: '<div id="viewport" style="width:160px;overflow-x:auto"><div style="width:560px"><span id="target" style="display:inline-block;margin-left:360px;white-space:nowrap;color:white;background:black">Scrollable target</span></div></div>', pass: true, mustMeasure: true, mustMove: 1 },
+    { name: "horizontal-low-contrast", html: '<div id="viewport" style="width:160px;overflow-x:auto"><div style="width:560px"><span id="target" style="display:inline-block;margin-left:360px;white-space:nowrap;color:white;background:#eee">Scrollable target</span></div></div>', pass: false, mustMeasure: true, mustMove: 1, mustFailContrast: true },
+    { name: "horizontal-nested", html: '<div id="outer" style="width:210px;overflow-x:auto"><div style="width:650px"><div id="viewport" style="margin-left:250px;width:160px;overflow-x:auto"><div style="width:560px"><span id="target" style="display:inline-block;margin-left:360px;white-space:nowrap;color:white;background:black">Nested target</span></div></div></div></div>', pass: true, mustMeasure: true, mustMove: 2 },
+    { name: "horizontal-clipped", html: '<div id="viewport" style="width:160px;overflow-x:hidden"><div style="width:560px"><span id="target" style="display:inline-block;margin-left:360px;white-space:nowrap;color:white;background:black">Clipped target</span></div></div>', pass: false, mustRemainMissing: true },
     { name: "transitioned-text-mask", html: '<p id="target" style="color:white;background:black;transition:all 0.01ms">Deferred text paint must settle</p>', pass: true },
     { name: "moving-high-contrast", html: '<div style="height:2000px"></div><p id="target" style="color:white;background:black">Moving text must settle before the paired capture</p><script>addEventListener("scroll",()=>document.querySelector("#target").animate([{transform:"translateY(40px)"},{transform:"translateY(0)"}],{duration:700}),{once:true})</script>', pass: true, bounded: true, mustMeasure: true },
     { name: "moving-low-contrast", html: '<div style="height:2000px"></div><p id="target" style="color:white;background:#eee">Moving text must still fail on a pale background</p><script>addEventListener("scroll",()=>document.querySelector("#target").animate([{transform:"translateY(40px)"},{transform:"translateY(0)"}],{duration:700}),{once:true})</script>', pass: false, bounded: true, mustMeasure: true },
@@ -57,6 +61,18 @@ export async function calibrateRenderedContrast(browser, directory, name) {
       assert.equal(assessment.pass, fixture.pass, `${name}: calibration ${fixture.name}`);
       if (fixture.mustMeasure) assert.ok(assessment.ranges.some(range => Number.isFinite(range.minimum) && !range.issues.length),
         `${name}: ${fixture.name} must actually measure the settled background`);
+      if (fixture.mustMove) {
+        assert.ok(assessment.horizontalRevisits.some(revisit => revisit.moves.length >= fixture.mustMove),
+          `${name}: ${fixture.name} must expose its clipped line through the reader's scroll viewport`);
+        assert.equal(await page.locator("#viewport").evaluate(element => element.scrollLeft), 0,
+          `${name}: ${fixture.name} must restore the initial horizontal position`);
+        if (fixture.mustMove > 1) assert.equal(await page.locator("#outer").evaluate(element => element.scrollLeft), 0,
+          `${name}: ${fixture.name} must restore the outer viewport`);
+      }
+      if (fixture.mustFailContrast) assert.ok(assessment.ranges.some(range => !range.pass) && !assessment.missing.length,
+        `${name}: ${fixture.name} must measure and reject low contrast, not merely miss the target`);
+      if (fixture.mustRemainMissing) assert.ok(assessment.missing.length && !assessment.horizontalRevisits.length,
+        `${name}: ${fixture.name} must not manufacture visibility inside a clipped viewport`);
       if (fixture.expectPhase) assert.ok(assessment.maskValidation.some(item => item.phase === fixture.expectPhase && item.moved.length),
         `${name}: ${fixture.name} must identify which capture moved`);
       if (fixture.shiftOnCapture && fixture.warmup) assert.ok(assessment.screenshotWarmups.some(item => item.before - item.after === 34),
