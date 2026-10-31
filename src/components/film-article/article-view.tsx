@@ -392,6 +392,7 @@ export function ArticleView({
 
         <div className="sectionIndex">{article.kicker}</div>
         <h1 className="articleTitle">{article.title}</h1>
+        {controls ? <div className="articleSpoilerBar">{controls}</div> : null}
         <p className="articleStandfirst">{article.standfirst}</p>
         <div className="articleByline">
           <span>{article.byline.author}</span>
@@ -408,7 +409,6 @@ export function ArticleView({
           <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
           {complete && synthesis ? <a className="microLabel" href="#article-verdict">Редакционная оценка ↓</a> : null}
         </div>
-        {controls ? <div className="articleSpoilerBar">{controls}</div> : null}
       </header>
 
       <ReadingOutline sections={readingSections} />

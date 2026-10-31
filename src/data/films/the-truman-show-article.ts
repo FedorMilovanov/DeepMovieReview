@@ -24,7 +24,7 @@ export const theTrumanShowArticle: FilmArticle = {
   kicker: "Разбор / залоченное издание",
   title: "Шоу Трумана: человек, который заметил камеру",
   standfirst:
-    "Первый разбор «Глубоких вод» опирается на предоставленные измерения, отдельные кадры и субтитры. У каждой опоры указан материал проверки и его ограничения.",
+    "Первый разбор «Глубоких вод» опирается на предоставленные измерения, отдельные кадры и субтитры. В реестре указан материал проверки или отмечено, что он не записан.",
   // The headline above already fits a tab; the standfirst does not fit a
   // snippet, so the visible standfirst stays long and the snippet says the same
   // thing shorter. Both are the article's own words, not a summary of it.

@@ -6587,4 +6587,6 @@ test("published methodology does not turn supplied metadata into a viewing or au
   assert.ok(articleLimits?.kind === "paragraph");
   assert.match(articleLimits.text, /прямо сказано, что он не записан/i);
   assert.match(articleLimits.text, /не заменяет просмотра всей сцены со звуком/i);
+  assert.match(theTrumanShowArticle.standfirst, /отмечено, что он не записан/i);
+  assert.doesNotMatch(theTrumanShowArticle.standfirst, /у каждой опоры указан материал/i);
 });

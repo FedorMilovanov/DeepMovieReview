@@ -7,7 +7,7 @@ import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } fro
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari, noNativeEventsDelivered, waitForNativeValue } from "./lib/native-safari.mjs";
-import { scrollToNativeTarget } from "./lib/ios-native-scroll.mjs";
+import { nativeSwipeAndObserve, scrollToNativeTarget } from "./lib/ios-native-scroll.mjs";
 import { noneArticleProjectionReached, parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari";
@@ -215,9 +215,9 @@ try {
         !expectedSectionIds.includes(lastSectionId), "NONE baseline must be a proper prefix of the full article");
       report.spoilerBaseline = { fullSectionIds: sectionIds, expectedSectionIds, lastSectionId };
       // Exercise the control before other content interactions. Previous
-      // Simulator runs delivered no event after JS scrollIntoView. Use real
-      // W3C finger drags to bring it into view, and prove both touch delivery
-      // and a change in scroll position before attempting the actual control.
+      // Simulator runs delivered no event after JS scrollIntoView. If the
+      // control is not already visible, use real W3C finger drags and prove
+      // touch delivery and scrolling before attempting the actual control.
       await safari.execute(`window.__spoilerProbe = { touched: [], clicked: [], url: location.href };
         for (const type of ["touchstart", "touchend", "click"]) document.addEventListener(type, e =>
           __spoilerProbe[type === "click" ? "clicked" : "touched"].push({ type, target: (e.target.className || e.target.tagName).toString().slice(0, 40), href: e.target.closest?.("a")?.getAttribute("href") }), { capture: true });`);
@@ -249,7 +249,7 @@ try {
       report.spoilerTarget = await scrollToNativeTarget({ readTarget: targetGeometry,
         readEvents: () => safari.execute("return window.__swipeProbe"),
         swipe: points => safari.swipeViewport(points), attempts: report.spoilerSwipes });
-      evidence.actions.push({ route, label: "native spoiler swipe and target geometry", swipes: report.spoilerSwipes, ...report.spoilerTarget });
+      evidence.actions.push({ route, label: "native spoiler target and any required swipes", swipes: report.spoilerSwipes, ...report.spoilerTarget });
       const spoilerBy = await activate(".spoilerOption", projection, "changed", 20000, { scroll: false });
       report.spoilerProjection = { before: count, after: lastObservation.sectionIds.length, by: spoilerBy,
         url: lastObservation.url, expectedSectionIds, lastSectionId, observation: lastObservation };
@@ -261,13 +261,26 @@ try {
       evidence.actions.push({ route, label: "native spoiler input changed projection", ...report.spoilerProjection });
       evidence.screenshots.push({ route: `${route} — after spoiler input`, data: await safari.screenshot() });
 
-      // Then prove that a native source input still works after scrolling, on
-      // the reading rail: a real button, not a synthetic JS click.
+      // Independently retain a real post-scroll input gate even when the now
+      // earlier spoiler control fits in the initial viewport. No DOM scrolling
+      // or synthetic click may substitute for the native swipe and rail tap.
       await safari.goto(`http://127.0.0.1:3213${route}`);
-      await safari.execute("document.querySelectorAll('.articleSection')[5].scrollIntoView();");
+      await waitForNativeValue(() => safari.execute("return document.querySelector('.readingOutlineTrigger') ? 'ready' : 'missing'"), "ready");
+      await safari.execute(`window.__railSwipeProbe = [];
+        for (const type of ["touchstart", "touchend", "touchcancel"]) document.addEventListener(type, e =>
+          __railSwipeProbe.push({ type, x: e.changedTouches[0]?.clientX ?? null, y: e.changedTouches[0]?.clientY ?? null }), { capture: true });`);
+      const railGeometry = () => safari.execute(`const el = document.querySelector('.readingOutlineTrigger'), r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return { rect: r.toJSON(), scrollY, innerWidth, innerHeight, hitContained: !!hit && el.contains(hit) };`);
+      report.railSwipes = [];
+      await nativeSwipeAndObserve({ readTarget: railGeometry, readEvents: () => safari.execute("return window.__railSwipeProbe"),
+        swipe: points => safari.swipeViewport(points), attempts: report.railSwipes });
+      const railTarget = await railGeometry();
+      assert.ok(railTarget.hitContained && railTarget.rect.top >= 0 && railTarget.rect.bottom <= railTarget.innerHeight,
+        "The reading rail must be visible and hit-contained after native scrolling");
       const railState = () => safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')");
-      const railBy = await activate(".readingOutlineTrigger", railState, "true");
-      report.postScrollInput = { expanded: await railState(), by: railBy, scrollY: await safari.execute("return scrollY") };
+      const railBy = await activate(".readingOutlineTrigger", railState, "true", 10000, { scroll: false });
+      report.postScrollInput = { expanded: await railState(), by: railBy, scrollY: await safari.execute("return scrollY"), swipes: report.railSwipes };
       evidence.actions.push({ route, label: "post-scroll native input on the reading rail", ...report.postScrollInput });
     }
   }

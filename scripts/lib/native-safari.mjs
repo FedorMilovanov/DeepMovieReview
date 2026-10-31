@@ -178,8 +178,16 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
       async swipeViewport(points) {
         assert.equal(capabilities.platformName?.toLowerCase(), "ios", "viewport swipe is iOS-only");
         inputs.push({ gesture: "native viewport swipe", ...points });
-        try { return await request(`${path}/actions`, viewportSwipeActions(points)); }
-        finally { await request(`${path}/actions`, undefined, "DELETE"); }
+        let result, actionError;
+        try { result = await request(`${path}/actions`, viewportSwipeActions(points)); }
+        catch (error) { actionError = error; }
+        try { await request(`${path}/actions`, undefined, "DELETE"); }
+        catch (releaseError) {
+          if (actionError) throw new AggregateError([actionError, releaseError], "Native swipe action and release both failed");
+          throw releaseError;
+        }
+        if (actionError) throw actionError;
+        return result;
       },
       // Standard W3C element activation, used only when a delivered touch is
       // proven absent by a DOM event probe. Never a JS .click() substitute.

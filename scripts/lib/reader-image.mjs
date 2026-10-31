@@ -17,14 +17,27 @@ export async function waitForImageResource(read, { timeout = 15000, now = Date.n
 
 // A rendered screenshot must show more than a uniform placeholder. This is not
 // a perceptual or rights check; intrinsic dimensions and sources are checked too.
-export function hasVariedImagePixels(bytes) {
+export function imagePixelSample(bytes) {
   const image = PNG.sync.read(bytes);
   const colors = new Set();
   const stride = Math.max(1, Math.floor((image.width * image.height) / 4000)) * 4;
   for (let index = 0; index < image.data.length; index += stride) {
     if (image.data[index + 3] === 0) continue;
     colors.add(`${image.data[index] >> 4}:${image.data[index + 1] >> 4}:${image.data[index + 2] >> 4}`);
-    if (colors.size >= 4) return true;
+    if (colors.size >= 4) break;
   }
-  return false;
+  return { width: image.width, height: image.height, colors: [...colors], varied: colors.size >= 4 };
+}
+
+export function hasVariedImagePixels(bytes) { return imagePixelSample(bytes).varied; }
+
+export async function waitForImagePaint(capture, { attempts = 4, pause = () => delay(500) } = {}) {
+  assert.ok(Number.isInteger(attempts) && attempts > 0);
+  let sample;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    sample = { ...imagePixelSample(await capture()), attempts: attempt };
+    if (sample.varied) return sample;
+    if (attempt < attempts) await pause();
+  }
+  return sample;
 }

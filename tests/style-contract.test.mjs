@@ -608,7 +608,7 @@ test("real VoiceOver CI preflight starts once and waits for actual service outpu
 
 
 test("reader image check waits for intrinsic data and rejects a blank render", async () => {
-  const { waitForImageResource, hasVariedImagePixels } = await import("../scripts/lib/reader-image.mjs");
+  const { waitForImageResource, waitForImagePaint, hasVariedImagePixels, imagePixelSample } = await import("../scripts/lib/reader-image.mjs");
   const { PNG } = await import("pngjs");
   let clock = 0, reads = 0;
   const loaded = await waitForImageResource(async () => ++reads < 3
@@ -619,13 +619,19 @@ test("reader image check waits for intrinsic data and rejects a blank render", a
     { now: () => clock++, pause: async () => {}, timeout: 2 }), /did not load/);
   const image = new PNG({ width: 16, height: 16 });
   for (let i = 0; i < image.data.length; i += 4) image.data[i + 3] = 255;
-  assert.equal(hasVariedImagePixels(PNG.sync.write(image)), false);
+  const blank = PNG.sync.write(image);
+  assert.equal(hasVariedImagePixels(blank), false);
+  assert.deepEqual(imagePixelSample(blank), { width: 16, height: 16, colors: ["0:0:0"], varied: false });
   for (let i = 0; i < image.data.length; i += 4) image.data[i] = (i / 4) % 256;
-  assert.equal(hasVariedImagePixels(PNG.sync.write(image)), true);
+  const painted = PNG.sync.write(image);
+  assert.equal(hasVariedImagePixels(painted), true);
+  let captures = 0;
+  assert.equal((await waitForImagePaint(async () => ++captures === 1 ? blank : painted, { pause: async () => {} })).attempts, 2);
+  assert.equal((await waitForImagePaint(async () => blank, { pause: async () => {} })).varied, false);
 });
 
 test("iOS native scroll refuses undelivered swipes and occluded targets", async () => {
-  const { scrollToNativeTarget } = await import("../scripts/lib/ios-native-scroll.mjs");
+  const { nativeSwipeAndObserve, scrollToNativeTarget } = await import("../scripts/lib/ios-native-scroll.mjs");
   const wait = async (read, expected) => assert.equal(await read(), expected);
   const setup = ({ delivered = true, move = true, initial = 0, hidden = false, scrolls = [300] } = {}) => {
     let scrollY = initial, events = [], calls = 0;
@@ -640,6 +646,8 @@ test("iOS native scroll refuses undelivered swipes and occluded targets", async 
   assert.equal(target.scrollY, 300); assert.equal(valid.calls(), 1); assert.equal(valid.attempts[0].events[0].type, "touchstart");
   const alreadyVisible = setup({ initial: 300 });
   await scrollToNativeTarget(alreadyVisible); assert.equal(alreadyVisible.calls(), 0);
+  const postScroll = setup({ initial: 300, scrolls: [600] });
+  await nativeSwipeAndObserve(postScroll); assert.equal(postScroll.calls(), 1); assert.equal(postScroll.attempts[0].after.scrollY, 600);
   const overshot = setup({ scrolls: [950, 600] });
   await scrollToNativeTarget(overshot); assert.equal(overshot.calls(), 2);
   await assert.rejects(scrollToNativeTarget(setup({ delivered: false })), /must deliver a touch event/);

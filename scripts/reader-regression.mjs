@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium, firefox, webkit } from "playwright-core";
 import { parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
-import { hasVariedImagePixels, waitForImageResource } from "./lib/reader-image.mjs";
+import { waitForImagePaint, waitForImageResource } from "./lib/reader-image.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
 const engines = { chromium, firefox, webkit };
@@ -91,6 +91,11 @@ for (const engine of requested) {
               const geometry = await page.evaluate(() => ({ documentWidth: document.documentElement.scrollWidth, viewport: innerWidth }));
               assert.ok(geometry.documentWidth <= geometry.viewport + 1, `global horizontal overflow ${JSON.stringify(geometry)}`);
               if (route === "/article") {
+                const earlyControls = await page.locator(".articleHeader").evaluate((header) => {
+                  const controls = header.querySelector(".articleSpoilerBar"), intro = header.querySelector(".articleStandfirst");
+                  return Boolean(controls && intro && (controls.compareDocumentPosition(intro) & Node.DOCUMENT_POSITION_FOLLOWING));
+                });
+                assert.ok(earlyControls, "spoiler controls must precede the article introduction");
                 assert.ok(await page.locator(".articleSection:visible").count() > 0, "article sections must render without scripts");
                 assert.equal(await page.locator(".articleSceneStill img").count(), stillsAtLevel[level].length);
                 const raw = await response.text();
@@ -135,12 +140,15 @@ for (const engine of requested) {
               })));
               assert.deepEqual({ width: loaded.width, height: loaded.height }, { width: 800, height: 450 });
               assert.ok(await image.isVisible(), "the still must be visible without scripts");
-              assert.ok(hasVariedImagePixels(await image.screenshot({ timeout: 15000 })), "the rendered still must not be a uniform placeholder");
+              const jpeg = await image.getAttribute("src");
+              // A loaded resource can precede its compositor paint. Re-observe the
+              // real pixels briefly; a persistently blank frame still fails.
+              const paint = await waitForImagePaint(() => image.screenshot({ timeout: 15000 }));
+              assert.ok(paint.varied, `${jpeg}: rendered still remained a uniform placeholder: ${JSON.stringify(paint)}`);
               const caption = await figure.locator("figcaption").innerText();
               assert.match(caption, /Шоу Трумана.*1998.*Питер Уир/);
               if (caption.includes("Номинальная отметка сетки")) grid++;
               else { assert.match(caption, /Кадр из фрагмента.*примерно.*точный таймкод исходника не проверен/); clips++; }
-              const jpeg = await image.getAttribute("src");
               const avif = await figure.locator('source[type="image/avif"]').getAttribute("srcset");
               for (const [path, type] of [[jpeg, "image/jpeg"], [avif, "image/avif"]]) {
                 const response = await page.request.get(`${base}${path}`);
