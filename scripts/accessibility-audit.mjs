@@ -117,7 +117,10 @@ for (const name of selected) {
             await page.keyboard.press("Enter");
             assert.ok(await disclosure.evaluate(el => el.open), "scene evidence opens by keyboard");
             assert.ok(await disclosure.locator("a").first().isVisible(), "visible scene has a reachable evidence link");
-            await scan("scene-links-open", "#scene-truman-sc-day-10909");
+            // The table scrolls horizontally. At the right edge the row header
+            // is offscreen, so assess the newly exposed evidence cell itself;
+            // do not claim the rest of the row was measured in this state.
+            await scan("scene-links-open", "#scene-truman-sc-day-10909 .filmSceneSupports");
             await disclosure.locator("summary").focus();
             await page.keyboard.press("Enter");
             await wrap.evaluate(el => { el.scrollLeft = 0; });
