@@ -2,10 +2,10 @@ import CoreGraphics
 import Foundation
 import XCTest
 
-// Safari is opened on the article by simctl before the test. This UI-test
+// Safari is opened on the home page by simctl before the test. This UI-test
 // runner has no test host and drives the real MobileSafari app, not a WebView
 // fixture or the isolated SafariDriver automation window. The independent,
-// passive page probe must still prove trusted touch + scroll + rail activation.
+// passive page probe must still prove every touch and resulting UI state.
 final class NativeGestureTests: XCTestCase {
     @MainActor
     func testNativeScrollAndRail() {
@@ -13,8 +13,23 @@ final class NativeGestureTests: XCTestCase {
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
         safari.activate()
         XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 45), "Mobile Safari did not come to the foreground")
+        // One native open and close on each distinct page. The Node harness
+        // navigates to the next route only after the passive observer validates
+        // the previous page's ordered trusted touchstart/end/click and real
+        // expanded/navigation state. No gesture is replayed or synthesized.
+        verifyMenu(in: safari, screenshot: "DMR-menu-home-open")
+        waitForPageMarker("Опубликованные разборы связывают", in: safari, name: "films index")
+        verifyMenu(in: safari, screenshot: "DMR-menu-films-open")
+        let articleRail = safari.buttons.matching(identifier: "Оглавление статьи").firstMatch
+        XCTAssertTrue(articleRail.waitForExistence(timeout: 90), "The FULL article did not arrive for its menu test")
+        verifyMenu(in: safari, screenshot: "DMR-menu-article-open")
+        waitForPageMarker("поиск режиссёра и город", in: safari, name: "making article")
+        verifyMenu(in: safari, screenshot: "DMR-menu-making-open")
+
+        // After the fourth close the harness navigates to a NEW FULL article.
+        // This rail is absent on making and anchors the subsequent scroll test.
         let rail = safari.buttons.matching(identifier: "Оглавление статьи").firstMatch
-        XCTAssertTrue(rail.waitForExistence(timeout: 60), "The article's reading rail is not in Mobile Safari's accessibility tree")
+        XCTAssertTrue(rail.waitForExistence(timeout: 90), "The fresh article's reading rail is not in Mobile Safari's accessibility tree")
         XCTAssertTrue(rail.isHittable, "The reading rail is not visible before the native drag")
         capture("DMR-before-native-scroll")
 
@@ -86,6 +101,28 @@ final class NativeGestureTests: XCTestCase {
         // its exact SSR sections and the trusted uninterrupted touch + click.
         Thread.sleep(forTimeInterval: 5)
         capture("DMR-spoiler-after-input")
+    }
+
+    @MainActor
+    private func waitForPageMarker(_ text: String, in app: XCUIApplication, name: String) {
+        // The visible, route-specific text is not an instruction to click it.
+        // The independent observer also verifies the exact URL and a new page.
+        let marker = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS[cd] %@", text)).firstMatch
+        XCTAssertTrue(marker.waitForExistence(timeout: 90), "The \(name) page did not arrive in Safari's accessibility tree")
+    }
+
+    @MainActor
+    private func verifyMenu(in app: XCUIApplication, screenshot: String) {
+        let closed = app.buttons.matching(NSPredicate(format: "label ==[cd] %@", "Меню")).firstMatch
+        XCTAssertTrue(closed.waitForExistence(timeout: 60), "The hydrated menu button is absent")
+        // Let the passive observer record the ready state before the one tap.
+        Thread.sleep(forTimeInterval: 2)
+        tapVisibleCenter(closed, in: app, name: "Open menu")
+        let opened = app.buttons.matching(NSPredicate(format: "label ==[cd] %@", "Закрыть")).firstMatch
+        XCTAssertTrue(opened.waitForExistence(timeout: 20), "The menu button did not expose its open state")
+        capture(screenshot)
+        tapVisibleCenter(opened, in: app, name: "Close menu")
+        XCTAssertTrue(closed.waitForExistence(timeout: 20), "The menu did not return to the closed state")
     }
 
     @MainActor

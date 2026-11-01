@@ -3,8 +3,8 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
-import { nativeArticlePath, nativeScenePath, startNativeObservationProxy, validateNativeGestureTrace, validateNativeSceneTrace,
-  validateNativeSpoilerTrace } from "./lib/ios-gesture-probe.mjs";
+import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, startNativeObservationProxy, validateNativeGestureTrace,
+  validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace } from "./lib/ios-gesture-probe.mjs";
 import { parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 
 const upstream = process.env.BASE_URL ?? "http://127.0.0.1:3212";
@@ -32,10 +32,26 @@ try {
   const page = await context.newPage(), browserErrors = [];
   page.on("pageerror", error => browserErrors.push(error.message));
   page.on("console", message => { if (message.type() === "error") browserErrors.push(message.text()); });
+  // Calibrate the four-page menu oracle with actual Chromium-generated touch
+  // events, not DOM .click(). This still proves NOTHING about iOS itself.
+  for (const route of nativeMenuRoutes) {
+    const start = proxy.events.length;
+    await page.goto(`${proxy.baseUrl}${route}`, { waitUntil: "load" });
+    const menuReady = await until(() => proxy.events.slice(start).find(event => event.kind === "menu-ready"), `Menu not observed on ${route}`);
+    await page.locator(".menuButton").tap();
+    await until(() => proxy.events.some(event => event.pageId === menuReady.pageId && event.kind === "menu-state" && event.menu?.expanded === "true"),
+      `Menu did not open on ${route}`);
+    await page.locator(".menuButton").tap();
+    await until(() => proxy.events.some(event => event.pageId === menuReady.pageId && event.kind === "menu-state" && event.menu?.expanded === "false"),
+      `Menu did not close on ${route}`);
+    validateNativeMenuTrace(proxy.events, proxy.baseUrl, route);
+  }
+  const menuMeasured = validateNativeMenuSequence(proxy.events, proxy.baseUrl);
   const url = `${proxy.baseUrl}${nativeArticlePath}?spoilers=full`;
+  const gestureStart = proxy.events.length;
   await page.goto(url, { waitUntil: "load" });
   await page.locator(".readingOutlineTrigger").waitFor({ state: "visible" });
-  const ready = await until(() => proxy.events.find(event => event.kind === "ready"), "Observer did not report the first document");
+  const ready = await until(() => proxy.events.slice(gestureStart).find(event => event.kind === "ready"), "Observer did not report the gesture document");
   const cdp = await context.newCDPSession(page);
   const point = y => [{ x: 195, y, id: 1, radiusX: 2, radiusY: 2, force: 1 }];
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: point(528) });
@@ -49,7 +65,7 @@ try {
   await page.locator(".readingOutlineTrigger").tap();
   await until(() => proxy.events.some(event => event.pageId === ready.pageId && event.kind === "rail-state" && event.rail?.expanded === "true"),
     "Chromium calibration rail did not open");
-  const measured = validateNativeGestureTrace(proxy.events, proxy.baseUrl);
+  const measured = validateNativeGestureTrace(proxy.events, proxy.baseUrl, { pageId: ready.pageId });
   await page.goto(`${proxy.baseUrl}${nativeScenePath}?spoilers=none#scene-truman-sc-day-10909`, { waitUntil: "load" });
   const sceneReady = await until(() => proxy.events.find(event => event.kind === "scene-ready"), "Scene observer did not see a visible support");
   await page.locator('#scene-truman-sc-day-10909 .filmSceneSupports summary').tap();
@@ -68,6 +84,18 @@ try {
 
   // JS scroll and click can change the same DOM state. They must never satisfy
   // the native-input oracle in place of the trusted touch sequence above.
+  const negativeMenu = await context.newPage();
+  const negativeMenuStart = proxy.events.length;
+  await negativeMenu.goto(`${proxy.baseUrl}/`, { waitUntil: "load" });
+  const syntheticMenuReady = await until(() => proxy.events.slice(negativeMenuStart).find(event => event.kind === "menu-ready" &&
+    event.url === `${proxy.baseUrl}/`), "Synthetic menu not observed");
+  await negativeMenu.locator(".menuButton").evaluate(element => element.click());
+  await until(() => proxy.events.some(event => event.pageId === syntheticMenuReady.pageId && event.kind === "menu-state" && event.menu?.expanded === "true"),
+    "Synthetic menu did not open");
+  await negativeMenu.locator(".menuButton").evaluate(element => element.click());
+  await until(() => proxy.events.some(event => event.pageId === syntheticMenuReady.pageId && event.kind === "menu-state" && event.menu?.expanded === "false"),
+    "Synthetic menu did not close");
+  assert.throws(() => validateNativeMenuTrace(proxy.events.slice(negativeMenuStart), proxy.baseUrl, "/"));
   const negative = await context.newPage();
   const negativeRailStart = proxy.events.length;
   await negative.goto(url, { waitUntil: "load" });
@@ -95,7 +123,7 @@ try {
   assert.throws(() => validateNativeSpoilerTrace(proxy.events.slice(negativeStart), proxy.baseUrl,
     { fullSectionIds, expectedSectionIds, afterScene: sceneMeasured.arrived }));
   assert.deepEqual(proxy.errors, []); assert.deepEqual(browserErrors, []);
-  console.log(JSON.stringify({ calibration: "Chromium CDP touch; not iOS", before: measured.touch.scrollY,
+  console.log(JSON.stringify({ calibration: "Chromium touch; not iOS", menus: menuMeasured.map(menu => menu.route), before: measured.touch.scrollY,
     scroll: measured.scroll.scrollY, railOpened: measured.opened.rail.expanded,
     sceneOpened: sceneMeasured.opened.scene.open, evidence: new URL(sceneMeasured.arrived.url).hash,
     spoilerSections: [spoilerMeasured.before.sectionIds.length, spoilerMeasured.after.sectionIds.length], syntheticControls: "rejected",

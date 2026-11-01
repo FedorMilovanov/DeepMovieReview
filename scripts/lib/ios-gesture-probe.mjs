@@ -1,5 +1,5 @@
 // Test-only, loopback observation of the unmodified app's real native input.
-// The proxy adds a passive observer script to article and scene HTML; it never
+// The proxy adds a passive observer script to the tested page HTML; it never
 // sends gestures, scrolls, clicks, changes styles, or supplies a successful result.
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
@@ -9,6 +9,7 @@ import { noneArticleProjectionReached } from "./ios-spoiler-observation.mjs";
 
 export const nativeArticlePath = "/films/the-truman-show/article";
 export const nativeScenePath = "/films/the-truman-show";
+export const nativeMenuRoutes = Object.freeze(["/", "/films", `${nativeArticlePath}?spoilers=full`, `${nativeScenePath}/making`]);
 const scriptPath = "/__dmr_native_ios_observer.js";
 const eventPath = "/__dmr_native_ios_event";
 
@@ -35,6 +36,14 @@ export function nativeObservationScript(token, { spoilerLastSectionId = null } =
       return { rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
         hitContained: !!hit && el.contains(hit) };
     }
+    function menuState() {
+      const button = document.querySelector('.menuButton'), nav = document.getElementById('site-menu');
+      if (!button || !nav) return null;
+      const rect = nav.getBoundingClientRect();
+      return { ...box(button), expanded: button.getAttribute('aria-expanded'),
+        navVisible: getComputedStyle(nav).display !== 'none' && rect.width > 0 && rect.height > 0,
+        navInert: nav.inert, labels: Array.from(nav.querySelectorAll('a'), el => el.textContent.trim()) };
+    }
     function spoilerState() {
       const options = document.querySelectorAll('.spoilerOption');
       if (options.length !== 5) return null;
@@ -59,9 +68,11 @@ export function nativeObservationScript(token, { spoilerLastSectionId = null } =
       const target = event && event.target instanceof Element ? event.target : null;
       const touch = event && event.changedTouches && event.changedTouches[0];
       const targetRail = !!target?.closest('.readingOutlineTrigger');
+      const targetMenu = !!target?.closest('.menuButton');
       const targetSupport = !!target?.closest('#scene-truman-sc-day-10909 .filmSceneSupports summary');
       const targetEvidence = !!target?.closest('#scene-truman-sc-day-10909 .filmSceneSupports a[href="#evidence-truman-ev-daycount"]');
       const targetSpoiler = !!target?.closest('.spoilerOption:first-child');
+      const inspectMenu = kind === 'menu-ready' || kind === 'menu-click' || kind === 'menu-state' || (kind === 'touchstart' && targetMenu);
       const inspectRail = kind === 'ready' || kind === 'rail-click' || kind === 'rail-state' || (kind === 'touchstart' && targetRail);
       const inspectScene = kind.startsWith('scene-') || (kind === 'touchstart' && (targetSupport || targetEvidence));
       const inspectSpoiler = kind === 'ready' || kind === 'spoiler-click' || (kind === 'touchstart' && targetSpoiler);
@@ -69,9 +80,9 @@ export function nativeObservationScript(token, { spoilerLastSectionId = null } =
       const value = { token, pageId, seq: ++seq, time, timestamp: performance.timeOrigin + time, kind,
         trusted: event ? event.isTrusted : null, url: location.href, scrollY,
         width: innerWidth, height: innerHeight, lang: document.documentElement.lang,
-        targetRail, targetSupport, targetEvidence, targetSpoiler,
+        targetRail, targetMenu, targetSupport, targetEvidence, targetSpoiler,
         x: touch?.clientX ?? event?.clientX ?? null, y: touch?.clientY ?? event?.clientY ?? null,
-        rail: inspectRail ? railState() : null, scene: inspectScene ? sceneState() : null,
+        menu: inspectMenu ? menuState() : null, rail: inspectRail ? railState() : null, scene: inspectScene ? sceneState() : null,
         spoiler: inspectSpoiler ? spoilerState() : null,
         ...(kind === 'ready' ? { sectionIds: Array.from(document.querySelectorAll('.articleSection'), node => node.id) } : {}) };
       navigator.sendBeacon(${JSON.stringify(eventPath)}, JSON.stringify(value));
@@ -85,6 +96,7 @@ export function nativeObservationScript(token, { spoilerLastSectionId = null } =
     }
     document.addEventListener('click', event => {
       if (!(event.target instanceof Element)) return;
+      if (event.target.closest('.menuButton')) record('menu-click', event);
       if (event.target.closest('.readingOutlineTrigger')) record('rail-click', event);
       if (event.target.closest('.spoilerOption:first-child')) record('spoiler-click', event);
       if (event.target.closest('#scene-truman-sc-day-10909 .filmSceneSupports summary')) record('scene-support-click', event);
@@ -99,14 +111,25 @@ export function nativeObservationScript(token, { spoilerLastSectionId = null } =
       if (location.hash === '#evidence-truman-ev-daycount') setTimeout(() => record('scene-evidence-arrived'), 800);
     });
     new MutationObserver(records => {
+      if (records.some(item => item.target instanceof Element && item.target.matches('.menuButton'))) record('menu-state');
       if (records.some(item => item.target instanceof Element && item.target.matches('.readingOutlineTrigger'))) record('rail-state');
       if (records.some(item => item.target instanceof Element && item.target.matches('#scene-truman-sc-day-10909 .filmSceneSupports'))) record('scene-support-state');
     }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['aria-expanded', 'open'] });
+    let reportedMenu = false, reportedContent = false;
     function whenReady(remaining) {
-      if (document.querySelector('.readingOutlineTrigger') && document.querySelector('.articleSection')) { record('ready'); return; }
+      const menu = menuState();
+      if (!reportedMenu && menu && menu.rect.width > 0 && menu.rect.height > 0) {
+        record('menu-ready'); reportedMenu = true;
+      }
+      if (!reportedContent && document.querySelector('.readingOutlineTrigger') && document.querySelector('.articleSection')) {
+        record('ready'); reportedContent = true;
+      }
       const scene = sceneState();
-      if (scene && scene.support?.hitContained && scene.support.rect.top >= 60 && scene.support.rect.bottom <= innerHeight) { record('scene-ready'); return; }
-      if (remaining > 0) setTimeout(() => whenReady(remaining - 1), 100);
+      if (!reportedContent && scene && scene.support?.hitContained && scene.support.rect.top >= 60 && scene.support.rect.bottom <= innerHeight) {
+        record('scene-ready'); reportedContent = true;
+      }
+      const needsContent = location.pathname === ${JSON.stringify(nativeArticlePath)} || location.pathname === ${JSON.stringify(nativeScenePath)};
+      if ((!reportedMenu || (needsContent && !reportedContent)) && remaining > 0) setTimeout(() => whenReady(remaining - 1), 100);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => whenReady(100), { once: true });
     else whenReady(100);
@@ -148,7 +171,7 @@ export async function startNativeObservationProxy({ upstream = "http://127.0.0.1
           assert.equal(entry.token, token);
           assert.equal(typeof entry.pageId, "string");
           assert.ok(Number.isSafeInteger(entry.seq) && entry.seq > 0);
-          assert.ok(["ready", "touchstart", "touchmove", "touchend", "touchcancel", "scroll", "rail-click", "rail-state", "spoiler-click",
+          assert.ok(["ready", "menu-ready", "menu-click", "menu-state", "touchstart", "touchmove", "touchend", "touchcancel", "scroll", "rail-click", "rail-state", "spoiler-click",
             "scene-ready", "scene-support-click", "scene-support-state", "scene-evidence-click", "scene-evidence-arrived"].includes(entry.kind));
           delete entry.token;
           events.push(entry); onEvent(entry);
@@ -162,7 +185,7 @@ export async function startNativeObservationProxy({ upstream = "http://127.0.0.1
     const upstreamRequest = http.request({ protocol: origin.protocol, hostname: origin.hostname, port: origin.port,
       path: request.url, method: request.method, headers }, upstreamResponse => {
       const outgoing = forwardedHeaders(upstreamResponse.headers);
-      const isObservedPage = [nativeArticlePath, nativeScenePath].includes(url.pathname) && request.method === "GET" &&
+      const isObservedPage = ["/", "/films", nativeArticlePath, nativeScenePath, `${nativeScenePath}/making`].includes(url.pathname) && request.method === "GET" &&
         /^text\/html\b/i.test(String(outgoing["content-type"] ?? ""));
       if (!isObservedPage) { response.writeHead(upstreamResponse.statusCode, outgoing); upstreamResponse.pipe(response); return; }
       const chunks = []; let size = 0;
@@ -170,7 +193,7 @@ export async function startNativeObservationProxy({ upstream = "http://127.0.0.1
       upstreamResponse.on("end", () => {
         const html = Buffer.concat(chunks).toString("utf8");
         if (size > 10 * 1024 * 1024 || outgoing["content-encoding"] || !html.includes("</head>")) {
-          errors.push("Article HTML cannot be safely instrumented"); response.writeHead(502).end(); return;
+          errors.push("Test page HTML cannot be safely instrumented"); response.writeHead(502).end(); return;
         }
         const tag = `<script defer src="${scriptPath}?token=${token}"></script>`;
         const body = Buffer.from(html.replace("</head>", `${tag}</head>`));
@@ -191,6 +214,77 @@ function inViewport(rail, event) {
   const r = rail?.rect;
   return Boolean(rail?.hitContained && r && r.width > 0 && r.height > 0 &&
     r.left >= 0 && r.top >= 0 && r.right <= event.width + 1 && r.bottom <= event.height + 1);
+}
+
+// Each of the four pages gets one real open and one real close in normal
+// MobileSafari. Sequence numbers reconstruct the order even if beacons arrive
+// out of order. Neither DOM state alone, a JS click nor a cancelled/repeated
+// touch can pass. The page remains unchanged; the observer only reads it.
+export function validateNativeMenuTrace(events, baseUrl, route, { afterTimestamp = -Infinity } = {}) {
+  assert.ok(nativeMenuRoutes.includes(route), "Unknown native menu route");
+  const expected = new URL(route, baseUrl);
+  const ready = events.filter(event => {
+    try {
+      const url = new URL(event.url);
+      return event.kind === "menu-ready" && Number.isFinite(event.timestamp) && event.timestamp > afterTimestamp &&
+        url.origin === expected.origin && url.pathname === expected.pathname && url.search === expected.search && !url.hash;
+    } catch { return false; }
+  }).sort((a, b) => a.timestamp - b.timestamp)[0];
+  assert.ok(ready, `No new mobile menu document observed for ${route}`);
+  const trace = events.filter(event => event.pageId === ready.pageId).sort((a, b) => a.seq - b.seq);
+  assert.equal(new Set(trace.map(event => event.seq)).size, trace.length, "Menu observer sequence must be unique");
+  assert.ok(ready.lang === "ru" && ready.width > 0 && ready.width < 500 && ready.height > 0 &&
+    Number.isFinite(ready.scrollY) && ready.scrollY >= 0 && ready.scrollY < 30,
+  "Each menu must start on a fresh Russian mobile document near the top");
+  const closedState = state => state?.expanded === "false" && state.navVisible === false && state.navInert === true;
+  const openState = state => state?.expanded === "true" && state.navVisible === true && state.navInert === false &&
+    ["Фильмы", "Обзор", "Методология"].every(label => state.labels?.includes(label));
+  assert.ok(closedState(ready.menu) && inViewport(ready.menu, ready), "The menu must initially be closed, visible and hit-contained");
+  const next = (after, predicate, message) => {
+    const found = trace.find(event => event.seq > after.seq && predicate(event));
+    assert.ok(found, message); return found;
+  };
+  const tap = (after, expectedState, label) => {
+    const start = next(after, event => event.kind === "touchstart" && event.trusted === true && event.targetMenu &&
+      expectedState(event.menu) && inViewport(event.menu, event), `${label}: expected a trusted touch on the visible menu button`);
+    assert.ok(!trace.some(event => event.seq > after.seq && event.seq < start.seq && event.targetMenu &&
+      ["touchstart", "touchend", "touchcancel", "menu-click"].includes(event.kind)), `${label}: an earlier failed touch cannot be hidden`);
+    const end = next(start, event => event.kind === "touchend" && event.trusted === true && event.targetMenu,
+      `${label}: the native touch must end on the menu button`);
+    const click = next(end, event => event.kind === "menu-click" && event.trusted === true && event.targetMenu,
+      `${label}: the completed touch must produce a trusted click`);
+    assert.ok(!trace.some(event => event.seq > start.seq && event.seq < click.seq &&
+      (event.kind === "touchcancel" || event.kind === "touchstart")), `${label}: the click must belong to the uninterrupted touch`);
+    return { start, end, click };
+  };
+  const opening = tap(ready, closedState, "Open menu");
+  const opened = next(opening.click, event => event.kind === "menu-state" && openState(event.menu),
+    "The native click must visibly open the actual navigation");
+  const closing = tap(opened, openState, "Close menu");
+  const closed = next(closing.click, event => event.kind === "menu-state" && closedState(event.menu),
+    "The native click must close and make navigation inert again");
+  assert.deepEqual(trace.filter(event => event.targetMenu && ["touchstart", "touchend", "touchcancel", "menu-click"].includes(event.kind))
+    .map(event => event.seq), [opening.start, opening.end, opening.click, closing.start, closing.end, closing.click].map(event => event.seq),
+  "Exactly one uninterrupted open and one close are allowed; extra menu input cannot be hidden");
+  const sequence = [ready, opening.start, opening.end, opening.click, opened, closing.start, closing.end, closing.click, closed];
+  assert.ok(sequence.every(event => Number.isFinite(event.timestamp)) &&
+    sequence.every((event, index) => index === 0 || sequence[index - 1].timestamp <= event.timestamp),
+  "Menu event timestamps must be ordered within one document");
+  assert.ok(trace.every(event => {
+    try { const url = new URL(event.url); return url.origin === expected.origin && url.pathname === expected.pathname && url.search === expected.search && !url.hash; }
+    catch { return false; }
+  }), "A menu scenario cannot cross a document or route boundary");
+  return { route, pageId: ready.pageId, ready, opening, opened, closing, closed };
+}
+
+export function validateNativeMenuSequence(events, baseUrl) {
+  const result = [];
+  for (const route of nativeMenuRoutes) {
+    const trace = validateNativeMenuTrace(events, baseUrl, route, { afterTimestamp: result.at(-1)?.closed.timestamp ?? -Infinity });
+    assert.ok(!result.some(previous => previous.pageId === trace.pageId), "Each menu must use a distinct document");
+    result.push(trace);
+  }
+  return result;
 }
 
 // All observations must belong to one full-spoiler article document, in the
@@ -374,7 +468,8 @@ export function validateXCTestSummary(summary, deviceId) {
 // automatic failure screenshot or an arbitrary PNG from the result bundle.
 export function selectNativeGestureAttachments(manifest) {
   assert.ok(Array.isArray(manifest));
-  const names = ["DMR-before-native-scroll", "DMR-after-native-scroll", "DMR-after-native-rail-tap",
+  const names = ["DMR-menu-home-open", "DMR-menu-films-open", "DMR-menu-article-open", "DMR-menu-making-open",
+    "DMR-before-native-scroll", "DMR-after-native-scroll", "DMR-after-native-rail-tap",
     "DMR-scene-before-support", "DMR-scene-support-open", "DMR-scene-evidence",
     "DMR-spoiler-before-full", "DMR-spoiler-after-input"];
   const rows = manifest.flatMap(test => test.attachments ?? []);

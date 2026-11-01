@@ -6,7 +6,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
-import { nativeSafari, noNativeEventsDelivered, waitForNativeValue, waitForStableNativeTarget } from "./lib/native-safari.mjs";
+import { nativeSafari, waitForStableNativeTarget } from "./lib/native-safari.mjs";
 import { runNativeGestureXCTest, shouldRunGestureAfterDriverFailure } from "./lib/ios-xctest-gesture.mjs";
 import { parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
@@ -35,6 +35,12 @@ async function runAndRecordNativeGesture() {
     if (!gestureReport.failures.length) gestureReport.failures.push(String(error.stack ?? error));
     throw error;
   }
+  assert.ok(gestureReport.observedMenus?.length === 4 && gestureReport.observedGesture && gestureReport.observedScene &&
+    gestureReport.observedSpoiler && gestureReport.screenshots?.length === 12,
+  "All four native menus, gestures, FULL → NONE and named screenshots must pass");
+  report.nativeMenus = gestureReport.observedMenus;
+  for (const menu of gestureReport.observedMenus) evidence.actions.push({ route: menu.route,
+    label: "XCUITest native menu open and close; full trusted-event trace and screenshots in ios-gesture evidence", observed: menu });
   report.postScrollInput = gestureReport.observedGesture;
   if (report.spoilerBaseline) {
     assert.deepEqual(gestureReport.spoilerBaseline.fullSectionIds, report.spoilerBaseline.fullSectionIds,
@@ -147,96 +153,31 @@ try {
     },
   });
   report.capabilities = safari.capabilities;
-  report.nativeInputs = safari.inputs;
   assert.equal(safari.capabilities.platformName, "iOS");
   assert.equal(safari.capabilities["safari:useSimulator"], true);
   assert.equal(safari.capabilities["safari:deviceUDID"], device.udid);
-  // One recorded native activation. A raw touch that never reached the DOM is
-  // evidence about this hosted Simulator driver, not about the control; fall
-  // back to the standard W3C element activation once and keep both facts. A
-  // touch that WAS delivered but did not change state is a real failure.
-  const activate = async (selector, read, expected, timeout = 10000, { scroll = true } = {}) => {
-    await safari.execute(`window.__inputProbeAbort?.abort();
-      window.__inputProbeAbort = new AbortController(); window.__inputProbe = { events: [] };
-      for (const type of ["touchstart", "touchend", "touchcancel", "click", "pointerdown", "pointerup", "pointercancel"])
-        document.addEventListener(type, e => { const touch = e.changedTouches?.[0]; __inputProbe.events.push({ type, trusted: e.isTrusted, at: Date.now(),
-          target: (e.target.className || e.target.tagName).toString().slice(0, 40),
-          href: e.target.closest?.("a")?.getAttribute("href") ?? null,
-          x: Number.isFinite(e.clientX) ? e.clientX : touch?.clientX ?? null,
-          y: Number.isFinite(e.clientY) ? e.clientY : touch?.clientY ?? null }); },
-          { capture: true, once: true, signal: __inputProbeAbort.signal });`);
-    const readProbe = () => safari.execute("return window.__inputProbe ? { ...window.__inputProbe, url: location.href } : { lostAfterNavigation: true, url: location.href }");
-    await safari.click(selector, { scroll });
-    let method = "native touch";
-    try { await waitForNativeValue(read, expected, { timeout }); }
-    catch (error) {
-      const probe = await readProbe();
-      const attempt = { selector, touch: probe };
-      report.nativeActivationDiagnostics = [...(report.nativeActivationDiagnostics ?? []), attempt];
-      // A navigation discards the probe; it is not proof of an undelivered touch.
-      if (!noNativeEventsDelivered(probe)) throw error;
-      attempt.fallback = "W3C element activation after zero delivered events";
-      let fallbackError;
-      try {
-        await safari.elementClick(selector);
-        await waitForNativeValue(read, expected, { timeout });
-        method = "element activation after undelivered touch";
-      } catch (error) { fallbackError = error; }
-      // Retain the fallback events even when its postcondition fails. A
-      // successful driver command is not itself evidence of activation.
-      try { attempt.afterFallback = await readProbe(); }
-      catch (diagnosticError) { attempt.afterFallback = { diagnosticError: diagnosticError.message }; }
-      if (fallbackError) {
-        const after = attempt.afterFallback;
-        if (fallbackError.code !== "ERR_ASSERTION" || !noNativeEventsDelivered(after)) throw fallbackError;
-        // Both previous inputs demonstrably delivered no event. Try one real
-        // viewport-origin W3C touch; if it arrives on the wrong target or fails
-        // the exact projection, fail rather than retry or synthesize a click.
-        attempt.viewportFallback = "W3C viewport-origin touch after two zero-event attempts";
-        try {
-          await safari.viewportTouch(selector);
-          await waitForNativeValue(read, expected, { timeout });
-          method = "viewport-origin native touch after two undelivered inputs";
-        } finally {
-          try { attempt.afterViewport = await readProbe(); }
-          catch (diagnosticError) { attempt.afterViewport = { diagnosticError: diagnosticError.message }; }
-        }
-      }
-    }
-    return method;
-  };
+  // SafariDriver measures the installed Safari layout but sends NO pointer or
+  // touch actions. All four menu interactions remain mandatory in normal
+  // MobileSafari/XCTest, with a stricter passive trusted-event/state oracle.
   for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"]) {
     report.phase = `native iOS route ${route}`;
     await safari.goto(`http://127.0.0.1:3213${route}`);
-    const box = await safari.execute("return ({width:innerWidth,scroll:document.documentElement.scrollWidth,lang:document.documentElement.lang,h1:document.querySelectorAll('main h1').length})");
-    assert.ok(box.width < 500 && box.scroll <= box.width + 1, `${route}: native iOS reflow ${JSON.stringify(box)}`);
+    const box = await waitForStableNativeTarget(() => safari.execute(`const el=document.querySelector('.menuButton');
+      const nav=document.getElementById('site-menu'), r=el?.getBoundingClientRect();
+      const hit=r&&document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+      return {ready:document.readyState==='complete'&&document.fonts.status==='loaded'&&!!r&&r.width>0&&r.height>0&&
+        r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1&&!!hit&&el.contains(hit),
+        width:innerWidth,height:innerHeight,scroll:document.documentElement.scrollWidth,lang:document.documentElement.lang,
+        h1:document.querySelectorAll('main h1').length,expanded:el?.getAttribute('aria-expanded'),inert:nav?.inert,
+        visible:nav?getComputedStyle(nav).display!=='none':null,
+        menuRect:r?{left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}:null};`));
+    assert.ok(box.width > 0 && box.width < 500 && box.height > 0 && box.scroll <= box.width + 1,
+      `${route}: native iOS reflow ${JSON.stringify(box)}`);
     assert.equal(box.lang, "ru"); assert.equal(box.h1, 1);
-    const menuState = () => safari.execute("return document.querySelector('.menuButton').getAttribute('aria-expanded')");
-    let menuPassed = false;
-    try {
-      const openedBy = await activate(".menuButton", menuState, "true");
-      evidence.actions.push({ route, label: "actual menu input opened disclosure", expanded: true, openedBy });
-      // Separate two intentional taps rather than issuing a double-tap gesture.
-      // This is not a retry: a delivered but ineffective close still fails.
-      await new Promise(resolve => setTimeout(resolve, 600));
-      const closedBy = await activate(".menuButton", menuState, "false");
-      evidence.actions.push({ route, label: "actual menu input closed disclosure", expanded: false, closedBy });
-      menuPassed = true;
-    } catch (error) {
-      const details = inspect(error, { depth: 8, maxStringLength: 16000 });
-      report.failures.push(`Menu on ${route}: ${details}`);
-      report.menuFailures = [...(report.menuFailures ?? []), { route, details }];
-      console.error(workflowError(`iOS Safari Simulator menu on ${route}: ${error.stack ?? error}`));
-      try { evidence.screenshots.push({ route: `${route} — failed menu state`, data: await safari.screenshot() }); }
-      catch (diagnosticError) { report.menuFailures.at(-1).screenshotError = diagnosticError.message; }
-      // Navigate to a fresh document, not a synthetic click or a replay. The
-      // recorded menu failure still fails the job; independent checks can run.
-      await safari.goto(`http://127.0.0.1:3213${route}`);
-      assert.equal(await menuState(), "false", "Fresh document must reset the menu before independent checks");
-    }
-    const data = await safari.screenshot();
-    evidence.screenshots.push({ route, data });
-    evidence.actions.push({ route, label: "native iOS Safari layout", box, menuPassed });
+    assert.ok(box.expanded === "false" && box.inert === true && box.visible === false,
+      `${route}: hydrated navigation must start closed and inert`);
+    evidence.screenshots.push({ route, data: await safari.screenshot() });
+    evidence.actions.push({ route, label: "native iOS Safari layout and menu hit-test (no input)", box });
     if (route.includes("/article?")) {
       const sectionIds = await safari.execute("return Array.from(document.querySelectorAll('.articleSection'), section => section.id)");
       const count = sectionIds.length;
@@ -292,7 +233,7 @@ try {
   report.safariVersion = safari.version;
   await safari.close();
   safari = undefined;
-  report.phase = "XCUITest native scroll and post-scroll rail input";
+  report.phase = "XCUITest native menus, scroll, scene and spoiler input";
   await runAndRecordNativeGesture();
 } catch (error) {
   // Session creation can fail before a WebDriver object exists. Preserve the
@@ -323,7 +264,7 @@ try {
     try {
       const file = `${directory}/failed-active-simulator.png`;
       execFileSync("xcrun", ["simctl", "io", report.device.udid, "screenshot", file], { timeout: 15000 });
-      evidence.screenshots.push({ route: "Simulator display after failed native action; diagnostic only", data: readFileSync(file).toString("base64") });
+      evidence.screenshots.push({ route: "Simulator display after failed SafariDriver layout; diagnostic only", data: readFileSync(file).toString("base64") });
     } catch (diagnosticError) { report.failedActiveSimulatorDiagnostic = diagnosticError.message; }
     try {
       report.failedPageState = await safari.execute("return ({url:location.href,expanded:document.querySelector('.menuButton')?.getAttribute('aria-expanded'),button:document.querySelector('.menuButton')?.getBoundingClientRect().toJSON(),width:innerWidth,scrollY})");

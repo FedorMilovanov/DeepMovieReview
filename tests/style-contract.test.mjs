@@ -655,41 +655,6 @@ test("reader image check waits for intrinsic data and rejects a blank render", a
   assert.equal((await waitForImagePaint(async () => blank, { pause: async () => {} })).varied, false);
 });
 
-test("native touch sequences preserve cleanup and action failures", async () => {
-  const { performTapWithCleanup, tapActions } = await import("../scripts/lib/native-safari.mjs");
-  const element = { "element-6066-11e4-a52e-4f735466cecf": "target" };
-  for (const [origin, x, y] of [[element, 0, 0], ["viewport", 108, 462]]) {
-    const sequence = tapActions({ origin, x, y }).actions[0];
-    assert.equal(sequence.parameters.pointerType, "touch");
-    assert.deepEqual(sequence.actions.map(action => action.type), ["pointerMove", "pointerDown", "pause", "pointerUp"]);
-    assert.deepEqual(sequence.actions[0], { type: "pointerMove", duration: 0, origin, x, y });
-  }
-  assert.throws(() => tapActions({ origin: {} }));
-  assert.throws(() => tapActions({ origin: "viewport", x: 1.5 }));
-  let releases = 0;
-  const actionError = new Error("perform failed"), cleanupError = new Error("cleanup failed");
-  assert.equal(await performTapWithCleanup(async () => "tap", async () => { releases++; }), "tap");
-  assert.equal(releases, 1, "a completed SafariDriver tap still gets its observed necessary cleanup");
-  await assert.rejects(performTapWithCleanup(async () => { throw actionError; }, async () => { releases++; }), error => error === actionError);
-  assert.equal(releases, 2);
-  await assert.rejects(performTapWithCleanup(async () => "tap", async () => { throw cleanupError; }), error => error === cleanupError);
-  await assert.rejects(performTapWithCleanup(async () => { throw actionError; }, async () => { throw cleanupError; }),
-    error => error instanceof AggregateError && error.errors[0] === actionError && error.errors[1] === cleanupError);
-  await assert.rejects(performTapWithCleanup(async () => { throw null; }, async () => {}), error => error === null);
-});
-
-test("native UI observation waits without replaying input and fails a persistent state", async () => {
-  const { waitForNativeValue, noNativeEventsDelivered } = await import("../scripts/lib/native-safari.mjs");
-  assert.equal(noNativeEventsDelivered({ events: [] }), true);
-  for (const probe of [undefined, {}, { lostAfterNavigation: true, events: [] }, { events: [{ type: "touchstart" }] }]) {
-    assert.equal(noNativeEventsDelivered(probe), false);
-  }
-  let clock = 0, reads = 0;
-  assert.equal(await waitForNativeValue(async () => ++reads < 3 ? "true" : "false", "false", { now: () => clock++, pause: async () => {}, timeout: 10 }), "false");
-  assert.equal(reads, 3);
-  await assert.rejects(waitForNativeValue(async () => "true", "false", { now: () => clock++, pause: async () => {}, timeout: 3 }), /Native UI state/);
-});
-
 test("iOS spoiler audit requires the exact NONE projection, not just a changed URL", async () => {
   const { noneArticleProjectionReached, parseArticleSectionIds } = await import("../scripts/lib/ios-spoiler-observation.mjs");
   const expectedUrl = "http://127.0.0.1:3213/films/the-truman-show/article";

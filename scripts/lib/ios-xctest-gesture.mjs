@@ -6,8 +6,8 @@ import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
-import { nativeArticlePath, nativeScenePath, selectNativeGestureAttachments, startNativeObservationProxy,
-  validateNativeGestureTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "./ios-gesture-probe.mjs";
+import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, selectNativeGestureAttachments, startNativeObservationProxy,
+  validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "./ios-gesture-probe.mjs";
 import { parseArticleSectionIds } from "./ios-spoiler-observation.mjs";
 
 const exec = promisify(execFile);
@@ -28,6 +28,16 @@ function allowObservedSimctlTimeout(error) {
   if (!error) return;
   const detail = String(error.stderr ?? error.message ?? error);
   if (!/domain=NSPOSIXErrorDomain, code=60/.test(detail) || !/operation timed out/i.test(detail)) throw error;
+}
+
+export function validateMenuNavigationOutcome({ error, from, to, next, baseUrl }) {
+  allowObservedSimctlTimeout(error);
+  assert.ok(from?.closed && next && ["menu-ready", "ready"].includes(next.kind) &&
+    next.pageId !== from.pageId && Number.isFinite(next.timestamp) && next.timestamp > from.closed.timestamp,
+  "The next page must be a distinct document observed after the preceding menu closed");
+  assert.equal(next.url, new URL(to, baseUrl).href, "The observed next document must be the requested route");
+  return { status: error ? "simctl-timed-out-but-next-page-independently-observed" : "simctl-completed",
+    ...(error ? { commandError: String(error.message ?? error) } : {}) };
 }
 
 export function validateSceneNavigationOutcome({ error, events, baseUrl }) {
@@ -83,6 +93,8 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
   assert.ok(!existsSync(bundle) && !existsSync(attachments), "Native XCTest result paths must be fresh");
   const derivedData = mkdtempSync(join(tmpdir(), "dmr-ios-xctest-"));
   let proxy, sceneNavigation, sceneNavigationError, sceneTriggerPageId, spoilerNavigation, spoilerNavigationError;
+  const completedMenus = [], menuPromises = [], menuErrors = [];
+  report.menuNavigations = [];
   try {
     // These are fresh responses from the same build, not hard-coded section
     // counts. The native FULL document and the reached NONE document must each
@@ -96,6 +108,28 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     "NONE SSR must be a proper prefix of FULL SSR");
     report.spoilerBaseline = { fullSectionIds, expectedSectionIds, lastSectionId: fullSectionIds.at(-1) };
     proxy = await startNativeObservationProxy({ spoilerLastSectionId: fullSectionIds.at(-1), onEvent: event => {
+      // Schedule each following route only after the complete preceding native
+      // open/close is independently observed. Beacons may arrive out of order;
+      // the validator orders them by the document's own sequence numbers.
+      if (completedMenus.length < nativeMenuRoutes.length) {
+        const index = completedMenus.length, route = nativeMenuRoutes[index];
+        let completed;
+        try {
+          completed = validateNativeMenuTrace(proxy.events, proxy.baseUrl, route,
+            { afterTimestamp: completedMenus.at(-1)?.closed.timestamp ?? -Infinity });
+        } catch { /* An incomplete or invalid trace cannot advance the test. */ }
+        if (completed) {
+          completedMenus.push(completed);
+          const to = nativeMenuRoutes[index + 1] ?? `${nativeArticlePath}?spoilers=full`;
+          const url = `${proxy.baseUrl}${to}`;
+          report.menuNavigations.push({ from: route, to, method: "simctl openurl after validated native menu close" });
+          // Screenshot is taken while the menu is open, before its close tap.
+          // This small pause also lets XCTest finish its closed-state check.
+          menuPromises.push(delay(2500).then(async () => {
+            await exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 });
+          }).catch(error => { menuErrors[index] = error; }));
+        }
+      }
       if (!sceneNavigation && event.kind === "rail-state" && event.rail?.expanded === "true") {
         sceneTriggerPageId = event.pageId;
         // Let XCTest retain its post-rail screenshot before opening the safe
@@ -117,14 +151,14 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
       }
     } });
   } catch (error) { rmSync(derivedData, { recursive: true, force: true }); throw error; }
-  const url = `${proxy.baseUrl}${nativeArticlePath}?spoilers=full`;
-  report.phase = "opening the full article in normal MobileSafari";
+  const url = `${proxy.baseUrl}/`;
+  report.phase = "opening the home page in normal MobileSafari";
   report.probe = { kind: "passive observer inserted by loopback test proxy", url,
     note: "The observer does not perform input, scrolling or state changes." };
   let run, primaryError;
   try {
     await exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 });
-    report.phase = "XCUITest native swipe and post-scroll rail tap";
+    report.phase = "XCUITest four native menus, swipe, scene and spoiler input";
     const project = resolve("scripts/ios-native-ui/NativeGesture.xcodeproj");
     const args = ["test", "-project", project, "-scheme", "NativeGesture",
       "-destination", `platform=iOS Simulator,id=${device.udid}`, "-parallel-testing-enabled", "NO",
@@ -139,16 +173,25 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     // Allow in-flight same-origin beacon requests to reach the loopback proxy.
     await delay(1000);
     assert.equal(run.code, 0, `XCUITest failed or timed out: ${JSON.stringify({ code: run.code, signal: run.signal, timedOut: run.timedOut })}`);
+    assert.equal(menuPromises.length, nativeMenuRoutes.length, "All four native menu traces must trigger their next route");
     assert.ok(sceneNavigation && sceneTriggerPageId, "The observed rail opening must trigger the separate scene navigation");
     assert.ok(spoilerNavigation, "The observed scene evidence must trigger the separate FULL article navigation");
-    await sceneNavigation; await spoilerNavigation;
+    await Promise.all(menuPromises); await sceneNavigation; await spoilerNavigation;
     const summaryText = await exec("xcrun", ["xcresulttool", "get", "test-results", "summary", "--path", bundle], { timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
     report.xctestSummary = JSON.parse(summaryText.stdout);
     validateXCTestSummary(report.xctestSummary, device.udid);
     assert.deepEqual(proxy.errors, [], "Observer transport must not lose or reject data");
-    // Two distinct FULL documents exist: select the one whose rail opening
-    // triggered the scene navigation, not the later spoiler-test document.
+    report.observedMenus = validateNativeMenuSequence(proxy.events, proxy.baseUrl);
+    // Select the new FULL document whose rail opening triggered the scene, not
+    // the earlier menu-test or later spoiler-test document.
     report.observedGesture = validateNativeGestureTrace(proxy.events, proxy.baseUrl, { pageId: sceneTriggerPageId });
+    assert.ok(!report.observedMenus.some(menu => menu.pageId === report.observedGesture.pageId),
+      "The scroll test must use a fresh document distinct from all menu pages");
+    report.menuNavigations = report.menuNavigations.map((item, index) => {
+      const next = report.observedMenus[index + 1]?.ready ?? report.observedGesture.before;
+      return { ...item, ...validateMenuNavigationOutcome({ error: menuErrors[index], from: report.observedMenus[index],
+        to: item.to, next, baseUrl: proxy.baseUrl }) };
+    });
     const navigation = validateSceneNavigationOutcome({ error: sceneNavigationError, events: proxy.events, baseUrl: proxy.baseUrl });
     report.observedScene = navigation.scene;
     report.sceneNavigation = { ...report.sceneNavigation, status: navigation.status,
@@ -158,6 +201,8 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     report.observedSpoiler = spoilerNavigationResult.spoiler;
     report.spoilerNavigation = { ...report.spoilerNavigation, status: spoilerNavigationResult.status,
       ...(spoilerNavigationResult.commandError ? { commandError: spoilerNavigationResult.commandError } : {}) };
+    for (const menu of report.observedMenus) evidence.actions.push({ route: menu.route,
+      label: "XCUITest native menu open and close; ordered trusted touches and passive state observation", ...menu });
     evidence.actions.push({ route: `${nativeArticlePath}?spoilers=full`,
       label: "XCUITest native scroll and post-scroll rail input; passive DOM observation", ...report.observedGesture });
     evidence.actions.push({ route: `${nativeScenePath}?spoilers=none`,
@@ -171,8 +216,10 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
       const bytes = readFileSync(join(attachments, file));
       assert.ok(bytes.subarray(0, 8).equals(screenshotSignature), `${name} is not a PNG`);
       const sha256 = createHash("sha256").update(bytes).digest("hex");
-      const route = name.startsWith("DMR-scene-") ? `${nativeScenePath}?spoilers=none` :
-        name === "DMR-spoiler-after-input" ? `${nativeArticlePath} (post-input screenshot; URL verified separately)` : `${nativeArticlePath}?spoilers=full`;
+      const menuScreens = { "DMR-menu-home-open": nativeMenuRoutes[0], "DMR-menu-films-open": nativeMenuRoutes[1],
+        "DMR-menu-article-open": nativeMenuRoutes[2], "DMR-menu-making-open": nativeMenuRoutes[3] };
+      const route = menuScreens[name] ?? (name.startsWith("DMR-scene-") ? `${nativeScenePath}?spoilers=none` :
+        name === "DMR-spoiler-after-input" ? `${nativeArticlePath} (post-input screenshot; URL verified separately)` : `${nativeArticlePath}?spoilers=full`);
       evidence.screenshots.push({ route: `${route} — ${name}`, data: bytes.toString("base64") });
       return { name, file, sha256, bytes: bytes.length };
     });
@@ -182,6 +229,8 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     report.failures.push(String(error.stack ?? error));
     throw error;
   } finally {
+    // Do not leave scheduled simctl commands running after a failure.
+    await Promise.allSettled([...menuPromises, ...(sceneNavigation ? [sceneNavigation] : []), ...(spoilerNavigation ? [spoilerNavigation] : [])]);
     report.events = proxy.events; report.observerErrors = proxy.errors;
     if (primaryError && existsSync(bundle) && !report.xctestSummary) {
       try {

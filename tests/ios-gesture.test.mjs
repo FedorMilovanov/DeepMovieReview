@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { once } from "node:events";
 import vm from "node:vm";
-import { nativeArticlePath, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
-  validateNativeGestureTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "../scripts/lib/ios-gesture-probe.mjs";
-import { shouldRunGestureAfterDriverFailure, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
+import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
+  validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "../scripts/lib/ios-gesture-probe.mjs";
+import { shouldRunGestureAfterDriverFailure, validateMenuNavigationOutcome, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
 
 const origin = "http://127.0.0.1:1234";
 const rail = { expanded: "false", hitContained: true, rect: { left: 320, top: 640, right: 390, bottom: 690, width: 70, height: 50 } };
@@ -21,6 +21,78 @@ function trace() {
     { ...common, seq: 7, kind: "rail-state", rail: { ...rail, expanded: "true" }, scrollY: 240 },
   ];
 }
+
+function menuTrace(route = "/", id = "menu-1", start = 100) {
+  const control = { hitContained: true, rect: { left: 305, top: 10, right: 385, bottom: 60, width: 80, height: 50 } };
+  const closed = { ...control, expanded: "false", navVisible: false, navInert: true, labels: ["Фильмы", "Обзор", "Методология"] };
+  const opened = { ...control, expanded: "true", navVisible: true, navInert: false, labels: closed.labels };
+  const base = { pageId: id, url: new URL(route, origin).href, width: 390, height: 714, lang: "ru", scrollY: 0, targetMenu: false };
+  const row = (seq, kind, extra = {}) => ({ ...base, seq, timestamp: start + seq, kind, ...extra });
+  return [row(1, "menu-ready", { menu: closed }),
+    row(2, "touchstart", { trusted: true, targetMenu: true, menu: closed }),
+    row(3, "touchend", { trusted: true, targetMenu: true }),
+    row(4, "menu-click", { trusted: true, targetMenu: true }),
+    row(5, "menu-state", { menu: opened }),
+    row(6, "touchstart", { trusted: true, targetMenu: true, menu: opened }),
+    row(7, "touchend", { trusted: true, targetMenu: true }),
+    row(8, "menu-click", { trusted: true, targetMenu: true }),
+    row(9, "menu-state", { menu: closed })];
+}
+
+test("four native menus require distinct ordered documents and uninterrupted trusted open/close touches", () => {
+  const rows = nativeMenuRoutes.flatMap((route, i) => menuTrace(route, `menu-${i}`, 100 + 100 * i));
+  const measured = validateNativeMenuSequence([...rows].reverse(), origin);
+  assert.deepEqual(measured.map(item => item.route), nativeMenuRoutes);
+  assert.equal(measured[0].opened.menu.navVisible, true);
+  assert.equal(measured[3].closed.menu.navInert, true);
+  assert.equal(validateNativeMenuTrace([...menuTrace()].reverse(), origin, "/").opening.click.trusted, true);
+  assert.throws(() => validateNativeMenuTrace(rows, origin, "/unknown"));
+  for (const [name, change] of [
+    ["wrong route", list => { list[0].url += "films"; }],
+    ["wide viewport", list => { list[0].width = 1000; }],
+    ["wrong language", list => { list[0].lang = "en"; }],
+    ["scrolled initial state", list => { list[0].scrollY = 80; }],
+    ["occluded menu", list => { list[0].menu = { ...list[0].menu, hitContained: false }; }],
+    ["initially open", list => { list[0].menu = { ...list[0].menu, expanded: "true" }; }],
+    ["untrusted touch", list => { list[1].trusted = false; }],
+    ["wrong target", list => { list[1].targetMenu = false; }],
+    ["missing touchend", list => { list[2].kind = "touchcancel"; }],
+    ["untrusted opening click", list => { list[3].trusted = false; }],
+    ["earlier failed touch", list => { list.splice(1, 0, { ...list[1], seq: 1.5, timestamp: 101.5, trusted: false }); }],
+    ["repeated touch inside gesture", list => { list.splice(3, 0, { ...list[1], seq: 3.5, timestamp: 103.5 }); }],
+    ["navigation never visibly opens", list => { list[4].menu = { ...list[4].menu, navVisible: false }; }],
+    ["navigation remains inert", list => { list[4].menu = { ...list[4].menu, navInert: true }; }],
+    ["missing navigation link", list => { list[4].menu = { ...list[4].menu, labels: ["Фильмы"] }; }],
+    ["closing touch cancelled", list => { list[6].kind = "touchcancel"; }],
+    ["untrusted closing click", list => { list[7].trusted = false; }],
+    ["navigation never closes", list => { list[8].menu = list[4].menu; }],
+    ["closed navigation not inert", list => { list[8].menu = { ...list[8].menu, navInert: false }; }],
+    ["extra tap after close", list => { list.push({ ...list[1], seq: 10, timestamp: 110 }); }],
+    ["duplicate sequence", list => { list[6].seq = list[5].seq; }],
+    ["time goes backwards", list => { list[7].timestamp = 104; }],
+    ["route changed mid-document", list => { list[7].url += "#fragment"; }],
+  ]) { const list = menuTrace(); change(list); assert.throws(() => validateNativeMenuTrace(list, origin, "/"), undefined, name); }
+  const sameDoc = nativeMenuRoutes.flatMap((route, i) => menuTrace(route, i === 1 ? "menu-0" : `menu-${i}`, 100 + 100 * i));
+  assert.throws(() => validateNativeMenuSequence(sameDoc, origin));
+  const outOfOrder = nativeMenuRoutes.flatMap((route, i) => menuTrace(route, `menu-${i}`, i === 1 ? 90 : 100 + 100 * i));
+  assert.throws(() => validateNativeMenuSequence(outOfOrder, origin));
+});
+
+test("menu navigation errors are never accepted without the subsequent distinct exact page", () => {
+  const from = validateNativeMenuTrace(menuTrace(), origin, "/");
+  const next = menuTrace("/films", "next", 300)[0];
+  const timeout = Object.assign(new Error("simctl timed out"), {
+    stderr: "domain=NSPOSIXErrorDomain, code=60: Operation timed out",
+  });
+  const input = { from, to: "/films", next, baseUrl: origin };
+  assert.equal(validateMenuNavigationOutcome(input).status, "simctl-completed");
+  assert.equal(validateMenuNavigationOutcome({ ...input, error: timeout }).status, "simctl-timed-out-but-next-page-independently-observed");
+  assert.throws(() => validateMenuNavigationOutcome({ ...input, error: new Error("permission denied") }), /permission denied/);
+  assert.throws(() => validateMenuNavigationOutcome({ ...input, error: timeout, next: undefined }));
+  assert.throws(() => validateMenuNavigationOutcome({ ...input, next: { ...next, pageId: from.pageId } }));
+  assert.throws(() => validateMenuNavigationOutcome({ ...input, next: { ...next, timestamp: from.closed.timestamp } }));
+  assert.throws(() => validateMenuNavigationOutcome({ ...input, next: { ...next, url: `${origin}/` } }));
+});
 
 test("native gesture acceptance requires ordered trusted touch, real scroll and a visible rail activation", () => {
   assert.equal(validateNativeGestureTrace(trace().reverse(), origin).opened.rail.expanded, "true");
@@ -178,12 +250,13 @@ test("XCTest evidence must contain exactly one passed, unskipped test on the cho
 });
 
 test("XCTest exports only the explicitly named screenshots, not arbitrary failure images", () => {
-  const rows = ["DMR-before-native-scroll", "DMR-after-native-scroll", "DMR-after-native-rail-tap",
+  const rows = ["DMR-menu-home-open", "DMR-menu-films-open", "DMR-menu-article-open", "DMR-menu-making-open",
+    "DMR-before-native-scroll", "DMR-after-native-scroll", "DMR-after-native-rail-tap",
     "DMR-scene-before-support", "DMR-scene-support-open", "DMR-scene-evidence",
     "DMR-spoiler-before-full", "DMR-spoiler-after-input"].map((name, i) => ({
     suggestedHumanReadableName: `${name}_0_AAAAAAAA-BBBB.png`, exportedFileName: `F${i}-A.png`,
   }));
-  assert.deepEqual(selectNativeGestureAttachments([{ attachments: [...rows, { suggestedHumanReadableName: "Failure", exportedFileName: "fail.png" }] }]).map(x => x.file), ["F0-A.png", "F1-A.png", "F2-A.png", "F3-A.png", "F4-A.png", "F5-A.png", "F6-A.png", "F7-A.png"]);
+  assert.deepEqual(selectNativeGestureAttachments([{ attachments: [...rows, { suggestedHumanReadableName: "Failure", exportedFileName: "fail.png" }] }]).map(x => x.file), ["F0-A.png", "F1-A.png", "F2-A.png", "F3-A.png", "F4-A.png", "F5-A.png", "F6-A.png", "F7-A.png", "F8-A.png", "F9-A.png", "F10-A.png", "F11-A.png"]);
   assert.throws(() => selectNativeGestureAttachments([{ attachments: rows.slice(0, 2) }]));
   assert.throws(() => selectNativeGestureAttachments([{ attachments: [...rows, rows[0]] }]));
   assert.throws(() => selectNativeGestureAttachments([{ attachments: [{ ...rows[0], exportedFileName: "../secret.png" }, ...rows.slice(1)] }]));
@@ -202,6 +275,10 @@ test("loopback observer is valid JavaScript, is passive and requires a fresh tok
   await once(upstream, "listening");
   const proxy = await startNativeObservationProxy({ upstream: `http://127.0.0.1:${upstream.address().port}` });
   try {
+    for (const route of nativeMenuRoutes) {
+      const menuResponse = await fetch(`${proxy.baseUrl}${route}`);
+      assert.match(await menuResponse.text(), /__dmr_native_ios_observer\.js/);
+    }
     const response = await fetch(`${proxy.baseUrl}${nativeArticlePath}?spoilers=full`);
     assert.equal(response.status, 200); assert.equal(response.headers.get("content-security-policy"), "script-src 'self'");
     const html = await response.text();
