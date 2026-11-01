@@ -25,6 +25,12 @@ const stillsAtLevel = {
 stillsAtLevel.ENDING = [...stillsAtLevel.MAJOR, "truman-kitchen-3240.jpg", "truman-exit-5700.jpg"];
 stillsAtLevel.FULL = stillsAtLevel.ENDING;
 let failures = 0;
+function checkpoint(inProgress = null, completed = false) {
+  // A killed runner must leave an explicitly incomplete report, never an empty
+  // artifact or a partial set that could be mistaken for a successful audit.
+  writeFileSync(`${dir}/results.json`, JSON.stringify({ base, results, failures, inProgress, completed }, null, 2));
+}
+checkpoint();
 async function waitForCharacterArt(image) {
   await image.scrollIntoViewIfNeeded();
   const loaded = await waitForImageResource(() => image.evaluate((element) => ({
@@ -53,6 +59,7 @@ async function verifyArticleReturnNavigation(page) {
 
 async function check(name, page, action) {
   const trace = process.env.GITHUB_ACTIONS === "true" && name.includes(" no-js ") && !name.includes("px /films/");
+  checkpoint(name);
   if (trace) console.log(`::notice title=Reader detail::Starting ${name}`);
   try {
     await action();
@@ -65,6 +72,8 @@ async function check(name, page, action) {
     const message = `FAIL ${name}\n${details}`;
     console.error(process.env.GITHUB_ACTIONS === "true" ? workflowError(message) : message);
     try { await page.screenshot({ path: `${dir}/failure-${failures}.png` }); } catch { /* preserve original error */ }
+  } finally {
+    checkpoint();
   }
 }
 
@@ -560,6 +569,6 @@ for (const engine of requested) {
     await browser.close();
   }
 }
-writeFileSync(`${dir}/results.json`, JSON.stringify({ base, results, failures }, null, 2));
+checkpoint(null, true);
 console.log(`Reader checks: ${results.length - failures}/${results.length} passed; ${failures} failed. Engines: ${requested.join(", ")}.`);
 if (failures) process.exitCode = 1;

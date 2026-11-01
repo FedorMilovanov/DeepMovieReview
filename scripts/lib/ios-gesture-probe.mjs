@@ -249,15 +249,25 @@ export function validateNativeSceneTrace(events, baseUrl) {
   const supportTouch = next(ready, event => event.kind === "touchstart" && event.trusted === true && event.targetSupport &&
     event.scene?.open === false && event.scene.sceneScroll === 0 && inViewport(event.scene.support, event),
   "The visible scene disclosure must receive a trusted native touch");
-  const supportClick = next(supportTouch, event => event.kind === "scene-support-click" && event.trusted === true && event.targetSupport,
+  const supportEnd = next(supportTouch, event => event.kind === "touchend" && event.trusted === true && event.targetSupport,
+    "The scene disclosure touch must end on its original target");
+  const supportClick = next(supportEnd, event => event.kind === "scene-support-click" && event.trusted === true && event.targetSupport,
     "The scene disclosure must receive a trusted native click");
+  assert.ok(!trace.some(event => event.seq > supportTouch.seq && event.seq < supportClick.seq &&
+    (event.kind === "touchcancel" || event.kind === "touchstart")),
+  "The disclosure click must belong to the first uninterrupted native touch");
   const opened = next(supportClick, event => event.kind === "scene-support-state" && event.scene?.open === true,
     "The scene disclosure must really open after the click");
   const linkTouch = next(opened, event => event.kind === "touchstart" && event.trusted === true && event.targetEvidence &&
     event.scene?.open === true && event.scene.sceneScroll === 0 && inViewport(event.scene.link, event),
   "The visible evidence link must receive a trusted native touch");
-  const linkClick = next(linkTouch, event => event.kind === "scene-evidence-click" && event.trusted === true && event.targetEvidence,
+  const linkEnd = next(linkTouch, event => event.kind === "touchend" && event.trusted === true && event.targetEvidence,
+    "The evidence touch must end on its original target");
+  const linkClick = next(linkEnd, event => event.kind === "scene-evidence-click" && event.trusted === true && event.targetEvidence,
     "The evidence link must receive a trusted native click");
+  assert.ok(!trace.some(event => event.seq > linkTouch.seq && event.seq < linkClick.seq &&
+    (event.kind === "touchcancel" || event.kind === "touchstart")),
+  "The evidence click must belong to the first uninterrupted native touch");
   const arrived = next(linkClick, event => {
     const rect = event.scene?.evidenceRect;
     return event.kind === "scene-evidence-arrived" && new URL(event.url).hash === "#evidence-truman-ev-daycount" &&
@@ -265,7 +275,7 @@ export function validateNativeSceneTrace(events, baseUrl) {
       rect && rect.top >= 50 && rect.top < event.height &&
       ["Титры", "Таймкод", "Сцена", "Основа", "Итог"].every(label => event.scene.evidenceText?.includes(label));
   }, "Evidence must be visible, complete and remain at NONE after native navigation");
-  return { pageId: ready.pageId, ready, supportTouch, supportClick, opened, linkTouch, linkClick, arrived };
+  return { pageId: ready.pageId, ready, supportTouch, supportEnd, supportClick, opened, linkTouch, linkEnd, linkClick, arrived };
 }
 
 export function validateXCTestSummary(summary, deviceId) {

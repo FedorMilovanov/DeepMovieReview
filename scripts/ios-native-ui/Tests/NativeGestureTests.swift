@@ -75,7 +75,11 @@ final class NativeGestureTests: XCTestCase {
         XCTAssertGreaterThan(frame.width, 0, "\(name) must have a nonempty native accessibility frame")
         XCTAssertGreaterThan(frame.height, 0, "\(name) must have a nonempty native accessibility frame")
         XCTAssertTrue(appFrame.contains(center), "\(name) accessibility frame must intersect the native screen: \(frame)")
-        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // A brief native press is a single tap. On 5dc7fd7 XCTest's coordinate
+        // tap produced a trusted touchstart followed by touchcancel; no click or
+        // disclosure opening was observed. The oracle requires touchend and a
+        // trusted click, so another cancelled gesture cannot count as success.
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.08)
     }
 
     @MainActor
