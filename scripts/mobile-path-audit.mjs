@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { chromium, firefox, webkit } from "playwright-core";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { workflowError } from "./lib/audit-report.mjs";
 
 const base = (process.env.BASE_URL ?? "http://127.0.0.1:3212").replace(/\/$/, "");
 const engineName = process.env.MOBILE_BROWSER ?? "chromium";
@@ -14,18 +15,24 @@ const engine = { chromium, firefox, webkit }[engineName];
 assert.ok(engine, `Unknown mobile audit browser ${engineName}`);
 const dir = resolve(process.env.MOBILE_AUDIT_DIR ?? `browser-audit/mobile-${engineName}`);
 mkdirSync(dir, { recursive: true });
-const report = { browser: engineName, results: [], failures: [] };
+const report = { browser: engineName, results: [], failures: [], inProgress: null, completed: false };
 const browser = await engine.launch({
   ...(engineName === "chromium" && process.env.CHROME_BIN ? { executablePath: process.env.CHROME_BIN } : {}),
   ...(engineName === "chromium" ? { args: ["--no-sandbox", "--disable-dev-shm-usage"] } : {}),
 });
 let page;
 async function check(name, run) {
+  report.inProgress = name;
+  writeFileSync(`${dir}/summary.json`, JSON.stringify(report, null, 2));
   try { await run(); report.results.push({ name, pass: true }); console.log(`PASS ${name}`); }
   catch (error) {
     report.results.push({ name, pass: false }); report.failures.push({ name, error: String(error?.stack ?? error) });
-    console.error(`FAIL ${name}\n${error?.stack ?? error}`);
+    const message = `FAIL ${name}\n${error?.stack ?? error}`;
+    console.error(process.env.GITHUB_ACTIONS === "true" ? workflowError(message) : message);
     try { await page?.screenshot({ path: `${dir}/failure-${report.failures.length}.png` }); } catch { /* keep original error */ }
+  } finally {
+    report.inProgress = null;
+    writeFileSync(`${dir}/summary.json`, JSON.stringify(report, null, 2));
   }
 }
 async function inHorizontalViewport(locator, viewport) {
@@ -212,9 +219,10 @@ try {
     assert.ok(await page.locator(".articleTableScrollHint").first().isVisible());
   });
   await context.close();
+  report.completed = true;
 } finally {
   await browser.close();
   writeFileSync(`${dir}/summary.json`, JSON.stringify(report, null, 2));
 }
 console.log(`${engineName}: ${report.results.length - report.failures.length}/${report.results.length} passed`);
-if (report.failures.length) process.exitCode = 1;
+if (report.failures.length || !report.completed) process.exitCode = 1;

@@ -331,12 +331,12 @@ jobs:
               exit "$status"
             fi
             echo "::notice title=Reader engine::Completed $engine; checking mobile scene/evidence paths"
-            timeout 3m env BASE_URL=http://127.0.0.1:3212 MOBILE_BROWSER="$engine" MOBILE_AUDIT_DIR="browser-audit/mobile-$engine" node scripts/mobile-path-audit.mjs
+            timeout 3m env BASE_URL=http://127.0.0.1:3212 MOBILE_BROWSER="$engine" MOBILE_AUDIT_DIR="browser-audit/mobile-$engine" node scripts/mobile-path-audit.mjs 2>&1 | tee "/tmp/dmr-mobile-$engine.log"
           done
           echo '::notice title=CI progress::Reader regression finished; starting browser audit'
-          BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs
+          BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs 2>&1 | tee /tmp/dmr-browser-audit.log
           echo '::notice title=CI progress::Browser audit finished; starting axe scans'
-          BASE_URL=http://127.0.0.1:3212 npm run test:a11y
+          BASE_URL=http://127.0.0.1:3212 npm run test:a11y 2>&1 | tee /tmp/dmr-axe-audit.log
           echo '::notice title=CI progress::Browser and accessibility audits finished'
 
       - name: Preserve interrupted reader diagnostics
