@@ -10,7 +10,10 @@ import { safariDriverLog, safariDriverPids, safariListenerPids, safariHttpServic
 import { setTimeout as delay } from "node:timers/promises";
 
 export function safariRequestTimeout(path) {
-  return path === "/session" || path.endsWith("/url") ? 90000 : path === "/status" ? 1500 : 30000;
+  // A hosted cold Simulator timed out one 30s execute request on 18ba586;
+  // allow a bounded minute, without replaying the command or its input.
+  return path === "/session" || path.endsWith("/url") ? 90000 : path === "/status" ? 1500 :
+    path.endsWith("/execute/sync") ? 60000 : 30000;
 }
 
 // A real W3C finger drag, not JS scrolling. Keep the path in viewport CSS pixels

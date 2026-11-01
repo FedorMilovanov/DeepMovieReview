@@ -8,7 +8,7 @@ import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } fro
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari, noNativeEventsDelivered, waitForNativeValue, waitForStableNativeTarget } from "./lib/native-safari.mjs";
 import { scrollToNativeTarget } from "./lib/ios-native-scroll.mjs";
-import { runNativeGestureXCTest } from "./lib/ios-xctest-gesture.mjs";
+import { runNativeGestureXCTest, shouldRunGestureAfterDriverFailure } from "./lib/ios-xctest-gesture.mjs";
 import { noneArticleProjectionReached, parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari", gestureDirectory = "at-report/ios-gesture";
@@ -24,6 +24,25 @@ const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "star
 const systemEnv = { ...process.env };
 delete systemEnv.DEVELOPER_DIR;
 let safari, restoreDeveloperDirectory, automation;
+const sceneRoute = "/films/the-truman-show?spoilers=none#scene-truman-sc-day-10909";
+async function runAndRecordNativeGesture() {
+  gestureReport.attempted = true;
+  gestureReport.failures = [];
+  gestureReport.device = report.device;
+  gestureReport.results[0].version = report.safariVersion ?? report.capabilities?.browserVersion ?? "not-started";
+  try {
+    await runNativeGestureXCTest({ device: report.device, directory: gestureDirectory, report: gestureReport, evidence: gestureEvidence });
+  } catch (error) {
+    if (!gestureReport.failures.length) gestureReport.failures.push(String(error.stack ?? error));
+    throw error;
+  }
+  report.postScrollInput = gestureReport.observedGesture;
+  evidence.actions.push({ route: "/films/the-truman-show/article?spoilers=full",
+    label: "native XCUITest scroll and post-scroll rail input; full trace and screenshots in ios-gesture evidence",
+    scrollY: gestureReport.observedGesture.opened.scrollY, expanded: gestureReport.observedGesture.opened.rail.expanded });
+  evidence.actions.push({ route: sceneRoute, label: "native XCUITest scene support → evidence; full trace and screenshots in ios-gesture evidence",
+    observed: gestureReport.observedScene });
+}
 function hostSimulatorProcesses() {
   try {
     return nativeSimulatorProcessLines(execFileSync("ps", ["-axo", "pid=,state=,pcpu=,comm="], { encoding: "utf8", timeout: 10000 }));
@@ -256,7 +275,10 @@ try {
         readEvents: () => safari.execute("return window.__swipeProbe"),
         swipe: points => safari.swipeViewport(points), attempts: report.spoilerSwipes });
       evidence.actions.push({ route, label: "native spoiler target and any required swipes", swipes: report.spoilerSwipes, ...report.spoilerTarget });
-      const spoilerBy = await activate(".spoilerOption", projection, "changed", 20000, { scroll: false });
+      // On 18ba586 the native click reached the option but the separate failure
+      // snapshot showed the destination only after the 20s observation window.
+      // Allow a bounded 45s for the same exact projection, without replaying it.
+      const spoilerBy = await activate(".spoilerOption", projection, "changed", 45000, { scroll: false });
       report.spoilerProjection = { before: count, after: lastObservation.sectionIds.length, by: spoilerBy,
         url: lastObservation.url, expectedSectionIds, lastSectionId, observation: lastObservation };
       // A full-document navigation legitimately discards page-local probes. Keep
@@ -274,7 +296,6 @@ try {
   // page is exercised independently by normal MobileSafari/XCUITest below:
   // SafariDriver on dff4efc delivered zero events for three W3C attempts.
   report.phase = "native iOS scene support and evidence";
-  const sceneRoute = "/films/the-truman-show?spoilers=none#scene-truman-sc-day-10909";
   await safari.goto(`http://127.0.0.1:3213${sceneRoute}`);
   const supportSelector = "#scene-truman-sc-day-10909 .filmSceneSupports summary";
   const supportGeometry = await waitForStableNativeTarget(() => safari.execute(`const el = document.querySelector(${JSON.stringify(supportSelector)}), wrap = el.closest('.filmSceneTableWrap');
@@ -294,22 +315,8 @@ try {
   report.safariVersion = safari.version;
   await safari.close();
   safari = undefined;
-  gestureReport.failures = [];
-  gestureReport.device = report.device;
-  gestureReport.results[0].version = report.safariVersion;
   report.phase = "XCUITest native scroll and post-scroll rail input";
-  try {
-    await runNativeGestureXCTest({ device: report.device, directory: gestureDirectory, report: gestureReport, evidence: gestureEvidence });
-  } catch (error) {
-    if (!gestureReport.failures.length) gestureReport.failures.push(String(error.stack ?? error));
-    throw error;
-  }
-  report.postScrollInput = gestureReport.observedGesture;
-  evidence.actions.push({ route: "/films/the-truman-show/article?spoilers=full",
-    label: "native XCUITest scroll and post-scroll rail input; full trace and screenshots in ios-gesture evidence",
-    scrollY: gestureReport.observedGesture.opened.scrollY, expanded: gestureReport.observedGesture.opened.rail.expanded });
-  evidence.actions.push({ route: sceneRoute, label: "native XCUITest scene support → evidence; full trace and screenshots in ios-gesture evidence",
-    observed: gestureReport.observedScene });
+  await runAndRecordNativeGesture();
 } catch (error) {
   // Session creation can fail before a WebDriver object exists. Preserve the
   // actual Simulator screen and bounded RWI logs instead of diagnosing a blank
@@ -353,7 +360,22 @@ try {
 } finally {
   report.results.push({ browser: "ios-safari-simulator", version: report.safariVersion ?? safari?.version ?? "not-started", width: 0,
     route: "/", state: "native-ios-simulator", scope: "iPhone Simulator, not physical hardware", file: "actual-ios.json" });
-  await safari?.close().catch(() => {}); server.kill();
+  await safari?.close().catch(() => {});
+  // A driver failure must remain a failure. Still try the independent real
+  // XCUITest once after closing that session, so a stalled SafariDriver does
+  // not make its separate native gesture evidence disappear entirely.
+  if (shouldRunGestureAfterDriverFailure(report, gestureReport)) {
+    report.independentGestureAfterDriverFailure = { attempted: true, driverFailurePhase: report.phase };
+    try {
+      await runAndRecordNativeGesture();
+      report.independentGestureAfterDriverFailure.result = "passed";
+    } catch (error) {
+      report.independentGestureAfterDriverFailure.result = "failed";
+      report.failures.push(`Independent native gesture after driver failure: ${error.stack ?? error}`);
+      console.error(workflowError(`Independent iOS XCUITest after driver failure: ${error.stack ?? error}`));
+    }
+  }
+  server.kill();
   if (automation) {
     try { automation.restore(); report.restoredAutomationPreference = automation.original; }
     catch (error) { report.failures.push(`Simulator Safari preference restoration failed: ${error.message}`); }

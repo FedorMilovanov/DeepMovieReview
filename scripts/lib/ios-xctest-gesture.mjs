@@ -12,6 +12,13 @@ import { nativeArticlePath, nativeScenePath, selectNativeGestureAttachments, sta
 const exec = promisify(execFile);
 const screenshotSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
+// A failed driver scenario stays failed, but an independent native test may
+// still run once after the driver closes when the actual iOS session existed.
+export function shouldRunGestureAfterDriverFailure(report, gestureReport) {
+  return Boolean(report.failures.length && report.device?.state === "Booted" && report.capabilities &&
+    gestureReport.phase === "not started" && gestureReport.attempted !== true);
+}
+
 async function runXcodebuild(args, logFile, deadlineMs = 480000) {
   const output = createWriteStream(logFile, { flags: "wx" });
   const child = spawn("xcodebuild", args, { stdio: ["ignore", "pipe", "pipe"] });

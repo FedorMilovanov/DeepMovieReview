@@ -5,6 +5,7 @@ import { once } from "node:events";
 import vm from "node:vm";
 import { nativeArticlePath, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeSceneTrace, validateXCTestSummary } from "../scripts/lib/ios-gesture-probe.mjs";
+import { shouldRunGestureAfterDriverFailure } from "../scripts/lib/ios-xctest-gesture.mjs";
 
 const origin = "http://127.0.0.1:1234";
 const rail = { expanded: "false", hitContained: true, rect: { left: 320, top: 640, right: 390, bottom: 690, width: 70, height: 50 } };
@@ -82,6 +83,18 @@ test("native scene trace requires trusted touches, the real disclosure, visible 
     ["evidence not visible", rows => { rows[8].scene = { ...scene, evidenceRect: { top: -300 } }; }],
     ["missing basis", rows => { rows[8].scene = { ...scene, evidenceText: "Титры" }; }],
   ]) { const rows = trace(); change(rows); assert.throws(() => validateNativeSceneTrace(rows, origin), undefined, name); }
+});
+
+test("a failed driver allows only one independent gesture on an established booted simulator", () => {
+  const report = { failures: ["driver failed"], device: { state: "Booted" }, capabilities: { platformName: "iOS" } };
+  const gesture = { phase: "not started" };
+  assert.equal(shouldRunGestureAfterDriverFailure(report, gesture), true);
+  assert.equal(shouldRunGestureAfterDriverFailure({ ...report, failures: [] }, gesture), false);
+  assert.equal(shouldRunGestureAfterDriverFailure({ ...report, device: { state: "Shutdown" } }, gesture), false);
+  assert.equal(shouldRunGestureAfterDriverFailure({ ...report, capabilities: null }, gesture), false);
+  assert.equal(shouldRunGestureAfterDriverFailure(report, { phase: "opening Safari" }), false);
+  assert.equal(shouldRunGestureAfterDriverFailure(report, { phase: "not started", attempted: true }), false);
+  assert.deepEqual(report.failures, ["driver failed"], "independent eligibility cannot clear the original failure");
 });
 
 test("XCTest evidence must contain exactly one passed, unskipped test on the chosen iOS Simulator", () => {

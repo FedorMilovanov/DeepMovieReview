@@ -364,7 +364,7 @@ test("native navigation has its own bounded deadline, not a generic 30s command 
   assert.equal(safariRequestTimeout("/session"), 90000);
   assert.equal(safariRequestTimeout("/session/id/url"), 90000);
   assert.equal(safariRequestTimeout("/status"), 1500);
-  assert.equal(safariRequestTimeout("/session/id/execute/sync"), 30000);
+  assert.equal(safariRequestTimeout("/session/id/execute/sync"), 60000);
   assert.equal(safariRequestTimeout("/session/id/screenshot"), 30000);
 });
 
