@@ -71,6 +71,33 @@ function allowObservedSimctlTimeout(error) {
   if (!/domain=NSPOSIXErrorDomain, code=60/.test(detail) || !/operation timed out/i.test(detail)) throw error;
 }
 
+// Initial setup occurs before XCTest starts: no interaction has been sent. If
+// simctl itself times out and no home document arrived, permit one more URL
+// opening (never a touch retry). A late first navigation may still race; the
+// unchanged, strict menu oracle must prove one complete trace on one document.
+export async function openInitialNativePage({ open, events, baseUrl, wait = delay }) {
+  const attempts = [];
+  const homeObserved = () => events.some(event => {
+    try { return event.kind === "menu-ready" && event.url === `${baseUrl}/`; } catch { return false; }
+  });
+  for (let index = 0; index < 2; index++) {
+    try {
+      await open();
+      attempts.push({ status: "completed" });
+      return { attempts, status: index ? "setup-navigation-retried" : "completed" };
+    } catch (error) {
+      allowObservedSimctlTimeout(error);
+      attempts.push({ status: "timeout", error: String(error.message ?? error) });
+      if (events.some(event => ["touchstart", "touchend", "touchcancel", "menu-click"].includes(event.kind))) throw error;
+      await wait(2000);
+      if (homeObserved()) return { attempts, status: "timed-out-home-observed" };
+    }
+  }
+  // XCTest may still see a late navigation, but can pass only if the independent
+  // observer subsequently validates all four complete menu interactions.
+  return { attempts, status: "timed-out-awaiting-home-observation" };
+}
+
 export function validateMenuNavigationOutcome({ error, from, to, next, baseUrl }) {
   allowObservedSimctlTimeout(error);
   assert.ok(from?.closed && next && ["menu-ready", "ready"].includes(next.kind) &&
@@ -203,7 +230,8 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     note: "The observer does not perform input, scrolling or state changes." };
   let run, primaryError;
   try {
-    await exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 });
+    report.initialNavigation = await openInitialNativePage({ events: proxy.events, baseUrl: proxy.baseUrl,
+      open: () => exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 }) });
     report.phase = "XCUITest four native menus, swipe, scene and spoiler input";
     const project = resolve("scripts/ios-native-ui/NativeGesture.xcodeproj");
     const args = ["test", "-project", project, "-scheme", "NativeGesture",
