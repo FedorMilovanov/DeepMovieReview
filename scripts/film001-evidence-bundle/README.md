@@ -35,17 +35,28 @@ compact bundle of exact timings plus small images the editor can actually look a
 | `03-subs-en.srt` | embedded English subtitle track (695 cues) | ~40 KB |
 | `04-cuts.csv` | shot-boundary candidates + scene scores | ~25 KB |
 | `05-frames/f_%05d.jpg` | one still every 30 s, 800 px wide (~206 files) | ~15–20 MB |
-| `06-sheets/sheet_%03d.jpg` | contact sheets: 6×5 tiles, 10 s per tile, 300 s per sheet, 360 px thumbs (~21 sheets) | ~8 MB |
+| `06-sheets/sheet_%03d.jpg` | contact sheets: 6×5 tiles, nominal 10 s interval, 360 px thumbs (~21 sheets) | ~8 MB |
+| `05-frame-times.csv`, `06-sheet-times.csv` | selected input PTS for every still and row-major sheet tile | small |
 | `07-srt-plain.txt` | dialogue text only | ~25 KB |
 
 Total: roughly **25–30 MB** as a ZIP with defaults. Use `SHEET_STEP`/`GRID_STEP`
 to trade resolution for size; `GRID_STEP=0`-style skipping is not supported, so
 raise `GRID_STEP` to 60 to halve the stills.
 
-Timestamp mapping is exact and documented in the manifest:
+For bundles produced by the current scripts, use the two PTS CSVs, not an
+inferred grid: `showinfo` records the selected input frame before scale/tile.
+These PTS use FFmpeg's decoded presentation timeline after input-start
+normalization, not the container's raw PTS; a nonzero container `start_time`
+may need to be accounted for when correlating with external tools. The
+requested interval is nominal and actual PTS can drift with the time base or
+frame rate. `frame_timestamp_status` must be `complete`; otherwise the output
+is not a timestamped evidence set. The sheet chunk is derived from the requested
+rows × columns × interval, not a fixed 30 tiles.
 
-- `f_0000N.jpg` = `(N-1) * GRID_STEP` seconds;
-- contact sheet `N`, tile `k` (row-major from 0) = `(N-1) * SHEET_CHUNK + k * SHEET_STEP`.
+**Earlier bundles are different:** the old `fps` filter could label a frame
+near the midpoint of an interval as its beginning. Their formula in the old
+manifest is nominal, not a verified source PTS; do not silently assign exact
+frame times. Re-extract from the master or verify the actual source frame.
 
 ## Usage
 
@@ -124,14 +135,56 @@ record the discrepancy instead of proceeding:
 ## Measuring the bundle
 
 `measure-master-windows.mjs` reads `04-cuts.csv`, `03-subs-en.srt` and
-`00-manifest.txt` and emits the timing dataset the public article is allowed to
-quote — total detected transitions, the longest stretches without a transition,
-the longest stretches without dialogue, and named editorial windows:
+`00-manifest.txt`, and `01-probe.json` and emits the timing dataset the public article is allowed to
+quote — total detected transitions, the longest stretches without a detected transition,
+internal gaps in the union of subtitle-cue intervals, and named editorial windows.
+A cue is one SRT block, not necessarily one text line or one spoken utterance;
+no subtitle coverage does not imply acoustic silence:
 
 ```
 node measure-master-windows.mjs --bundle <bundle dir> \
   --out ../../src/data/films/the-truman-show-master-windows.json
 ```
+
+The report takes its threshold from the manifest. Passing `--scene` with a
+different value is rejected: a filtered scan cannot recover transitions that
+were not recorded. Skipped or failed scans and failed subtitle extraction also
+fail closed. FFmpeg's six-decimal metadata is stored in the CSV at four decimals:
+a row is rejected only when its possible two-stage rounding interval cannot be
+above the strict threshold. A rounded score at the threshold can be consistent,
+but does not prove the original value. The
+subtitle language and absolute stream index come from the manifest's actual map
+and `01-probe.json`; the filename `03-subs-en.srt` alone proves neither.
+
+### Time domain and malformed inputs
+
+The consumer treats `duration_seconds` as the exclusive end of the presentation
+interval measured from zero. Current producers use FFmpeg's input-start-normalized
+timeline for the scan and subtitle extraction, rather than raw container PTS.
+An older bundle's manifest may not establish the mapping: compare the probe and
+provenance, and re-extract or explicitly align inputs before measuring. The
+consumer does **not** infer or subtract a stream/container offset for you; an
+in-range timestamp is not proof that differently offset streams are synchronized.
+
+The Node producer writes duration and cut timestamps to three decimal places;
+SRT times are in milliseconds. To allow at most the combined rounding of the
+serialized endpoint and timestamp, a cut or cue end up to **0.001 s** beyond the
+recorded runtime is clamped to that endpoint. Larger overruns and negative or
+impossible clock components are rejected, not converted into negative tails.
+A cue must still have positive length after clamping. For valid in-range data,
+interval calculations and window membership use the input times; reported spans
+are rounded to milliseconds. No tolerance is applied at named-window boundaries.
+
+Empty/whitespace SRT files and explicitly prefixed `NOTE` comment blocks are
+accepted (the latter is an allowed extension, not a cue). Other nonempty blocks
+must be well-formed cue records with an optional numeric index, a `start --> end`
+line and text. Invalid records, including a single-dash `->`, stop the report
+with a block and line number rather than silently reducing the cue count.
+
+`runtimeSecondsPerDetectedTransition` is file duration / detection count, which
+includes the start and end tails. `meanSecondsBetweenTransitions` is the mean of
+`adjacentTransitionGapCount` successive gaps, or null for fewer than two detections.
+Neither metric is a verified shot duration or a complete editing log.
 
 The committed JSON is that command's output, verbatim. It records the SHA-256 of
 its own inputs, so a different bundle cannot silently produce a different
@@ -143,6 +196,6 @@ article. Method and the definitions of *transition*, *hold*, *cue start* and
 - The bundle is **working evidence**, not a publication artifact.
 - No still is authorized for publication by this tooling. See
   `docs/38-FILM-001-VIEWING-MASTER-INTAKE.md` §9.
-- Producing the bundle does not move Film 001 out of
-  `MASTER_IDENTIFIED + SECONDARY_SOURCES`; that transition stays atomic and
-  gated by `npm test`.
+- Producing a bundle does not by itself change the film registry's review or
+  publication state; any state transition must be supported by the underlying
+  review and quality gates. It also does not establish publication rights.

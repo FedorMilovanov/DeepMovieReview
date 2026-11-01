@@ -1,0 +1,128 @@
+// !$*UTF8*$!
+{
+  archiveVersion = 1;
+  classes = {};
+  objectVersion = 56;
+  objects = {
+    A00100000000000000000001 /* NativeGestureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00100000000000000000002 /* NativeGestureTests.swift */; };
+    A00100000000000000000002 /* NativeGestureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeGestureTests.swift; sourceTree = "<group>"; };
+    A00100000000000000000003 /* NativeGestureUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NativeGestureUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+    A00100000000000000000004 = {
+      isa = PBXGroup;
+      children = (A00100000000000000000005 /* Tests */, A00100000000000000000006 /* Products */,);
+      sourceTree = "<group>";
+    };
+    A00100000000000000000005 /* Tests */ = {
+      isa = PBXGroup;
+      children = (A00100000000000000000002 /* NativeGestureTests.swift */,);
+      path = Tests;
+      sourceTree = "<group>";
+    };
+    A00100000000000000000006 /* Products */ = {
+      isa = PBXGroup;
+      children = (A00100000000000000000003 /* NativeGestureUITests.xctest */,);
+      name = Products;
+      sourceTree = "<group>";
+    };
+    A00100000000000000000007 /* NativeGestureUITests */ = {
+      isa = PBXNativeTarget;
+      buildConfigurationList = A0010000000000000000000B /* Target configurations */;
+      buildPhases = (A00100000000000000000008 /* Sources */,);
+      buildRules = ();
+      dependencies = ();
+      name = NativeGestureUITests;
+      productName = NativeGestureUITests;
+      productReference = A00100000000000000000003 /* NativeGestureUITests.xctest */;
+      productType = "com.apple.product-type.bundle.ui-testing";
+    };
+    A00100000000000000000008 /* Sources */ = {
+      isa = PBXSourcesBuildPhase;
+      buildActionMask = 2147483647;
+      files = (A00100000000000000000001 /* NativeGestureTests.swift in Sources */,);
+      runOnlyForDeploymentPostprocessing = 0;
+    };
+    A00100000000000000000009 /* Project object */ = {
+      isa = PBXProject;
+      attributes = {
+        BuildIndependentTargetsInParallel = YES;
+        LastUpgradeCheck = 1600;
+        TargetAttributes = {A00100000000000000000007 = {ProvisioningStyle = Automatic;};};
+      };
+      buildConfigurationList = A0010000000000000000000A /* Project configurations */;
+      compatibilityVersion = "Xcode 14.0";
+      developmentRegion = en;
+      hasScannedForEncodings = 0;
+      knownRegions = (en, Base,);
+      mainGroup = A00100000000000000000004;
+      productRefGroup = A00100000000000000000006 /* Products */;
+      projectDirPath = "";
+      projectRoot = "";
+      targets = (A00100000000000000000007 /* NativeGestureUITests */,);
+    };
+    A0010000000000000000000A /* Project configurations */ = {
+      isa = XCConfigurationList;
+      buildConfigurations = (A0010000000000000000000C /* Debug */, A0010000000000000000000D /* Release */,);
+      defaultConfigurationIsVisible = 0;
+      defaultConfigurationName = Debug;
+    };
+    A0010000000000000000000B /* Target configurations */ = {
+      isa = XCConfigurationList;
+      buildConfigurations = (A0010000000000000000000E /* Debug */, A0010000000000000000000F /* Release */,);
+      defaultConfigurationIsVisible = 0;
+      defaultConfigurationName = Debug;
+    };
+    A0010000000000000000000C /* Debug */ = {
+      isa = XCBuildConfiguration;
+      buildSettings = {
+        CLANG_ENABLE_MODULES = YES;
+        CODE_SIGNING_ALLOWED = NO;
+        CODE_SIGNING_REQUIRED = NO;
+        DEBUG_INFORMATION_FORMAT = dwarf;
+        ENABLE_TESTABILITY = YES;
+        IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+        PRODUCT_NAME = "$(TARGET_NAME)";
+        SDKROOT = iphoneos;
+        SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+        SWIFT_VERSION = 5.0;
+        TARGETED_DEVICE_FAMILY = "1,2";
+      };
+      name = Debug;
+    };
+    A0010000000000000000000D /* Release */ = {
+      isa = XCBuildConfiguration;
+      buildSettings = {
+        CLANG_ENABLE_MODULES = YES;
+        CODE_SIGNING_ALLOWED = NO;
+        CODE_SIGNING_REQUIRED = NO;
+        IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+        PRODUCT_NAME = "$(TARGET_NAME)";
+        SDKROOT = iphoneos;
+        SWIFT_COMPILATION_MODE = wholemodule;
+        SWIFT_VERSION = 5.0;
+        TARGETED_DEVICE_FAMILY = "1,2";
+      };
+      name = Release;
+    };
+    A0010000000000000000000E /* Debug */ = {
+      isa = XCBuildConfiguration;
+      buildSettings = {
+        BUNDLE_LOADER = "$(TEST_HOST)";
+        GENERATE_INFOPLIST_FILE = YES;
+        LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks",);
+        PRODUCT_BUNDLE_IDENTIFIER = org.deepmoviereview.nativegesture.uitests;
+      };
+      name = Debug;
+    };
+    A0010000000000000000000F /* Release */ = {
+      isa = XCBuildConfiguration;
+      buildSettings = {
+        BUNDLE_LOADER = "$(TEST_HOST)";
+        GENERATE_INFOPLIST_FILE = YES;
+        LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks",);
+        PRODUCT_BUNDLE_IDENTIFIER = org.deepmoviereview.nativegesture.uitests;
+      };
+      name = Release;
+    };
+  };
+  rootObject = A00100000000000000000009 /* Project object */;
+}

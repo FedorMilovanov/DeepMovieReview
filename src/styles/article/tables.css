@@ -10,6 +10,8 @@
   max-inline-size: 100%;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
+  /* Query the actual reading viewport, including when the page is zoomed. */
+  container-type: inline-size;
 }
 
 .articleTableViewport:focus-visible {
@@ -60,8 +62,18 @@
   font-variant-numeric: tabular-nums;
 }
 
-.articleTable td:not(:last-child) {
-  white-space: nowrap;
+/* Keep glyphs clear of the sticky header's painted/hit-tested edge, including
+   when a browser rounds the shared table-cell boundary differently. */
+.articleTable th:not(:first-child),
+.articleTable td:not(:first-child) { padding-inline-start: var(--space-2); }
+/* Leave room for ordinary Russian words before falling back to emergency wraps. */
+.articleTable td:nth-child(2) { min-inline-size: 8.75rem; }
+
+/* A long middle value must fit beside the sticky row header, not disappear
+   under it as soon as the reader scrolls. Preserve words and let them wrap. */
+.articleTable td {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .articleCorrections {
@@ -97,4 +109,37 @@
     white-space: normal;
     overflow-wrap: anywhere;
   }
+}
+
+.articleTableScrollHint {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-inline-start: 2px solid var(--stroke-warm);
+  color: var(--ink-2);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+.articleTable thead th:first-child,
+.articleTable tbody th[scope="row"] {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: var(--surface-1);
+}
+.articleTable thead th:first-child { z-index: 2; }
+/* At extreme zoom a pinned row label would consume almost the entire viewport.
+   Let it scroll instead; native row/column headers remain in the table. */
+@container (max-width: 15rem) {
+  .articleTable thead th:first-child,
+  .articleTable tbody th[scope="row"] { position: static; }
+}
+.articleCorrectionEvidence { margin: 0.7rem 0 0; padding-inline-start: 1.1rem; }
+.articleCorrectionEvidence li + li { margin-top: 0.55rem; }
+.articleCorrectionEvidence a { color: var(--ink-1); text-underline-offset: 0.2em; }
+.articleCorrectionEvidence small { display: block; margin-top: 0.15rem; color: var(--ink-3); }
+
+@media print {
+  .articleTableScrollHint { display: none; }
+  .articleTable thead th:first-child,
+  .articleTable tbody th[scope="row"] { position: static; }
 }

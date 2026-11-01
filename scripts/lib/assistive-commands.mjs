@@ -4,6 +4,34 @@ import { promisify } from "node:util";
 import { setTimeout as delay } from "node:timers/promises";
 import { MacOSKeyCodes } from "@guidepup/guidepup";
 
+// Require the named row and the actual detector count, not the nearby 0,0/min
+// rate or an unqualified (and now inaccurate) "0 переходов" announcement.
+export const libraryDetectionRowSpeech = /библиотека[\s\S]*\b0 обнаруженных переходов/i;
+
+// Both speech and native browser focus must identify the real skip link. Keep
+// spontaneous entry speech separate: Guidepup polls "last phrase" and may only
+// retain the subsequent help hint, so it must not be invented from DOM focus.
+export function validateVoiceOverSkipLink(entrySpeech, describedSpeech, focus) {
+  const name = /перейти к содержимому/i;
+  assert.match(entrySpeech.join(" "), /web content|перейти к содержимому/i, "VoiceOver must enter web content");
+  assert.match(describedSpeech.join(" "), name, "VoiceOver Describe Item must speak the link name");
+  assert.match(describedSpeech.join(" "), /link|ссылк/i, "VoiceOver Describe Item must speak the link role");
+  assert.equal(focus?.tag, "A", "Native focus must be on a link");
+  assert.equal(focus?.href, "#main", "Native focus must target main content");
+  assert.match(focus?.text ?? "", name, "Native focus must be the named skip link");
+  return { automaticNameObserved: name.test(entrySpeech.join(" ")) };
+}
+
+// NVDA may announce the table caption without literally saying "caption".
+// Only an explicit cell coordinate proves that row-navigation is ready.
+export function firstTableCellSpoken(phrases) {
+  return /(?:row\s*1[\s\S]*column\s*1|строка\s*1[\s\S]*столбец\s*1)/i.test(phrases.join(" "));
+}
+
+export function firstTableHeaderSpoken(phrases, pattern) {
+  return phrases.some((phrase) => firstTableCellSpoken([phrase]) && pattern.test(phrase));
+}
+
 // Keep Guidepup's native command mapping, but send it via reader.press: unlike
 // reader.perform(keyboardCommand), this does not activate VoiceOver's app first.
 export function macKeyboardShortcut(command) {

@@ -1,3 +1,4 @@
+import { expectedDocument404Log } from "./lib/browser-audit-exceptions.mjs";
 import { failureMessage, workflowError } from "./lib/audit-report.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -87,6 +88,7 @@ const checks = [];
 const browserErrors = [];
 const networkErrors = [];
 const expectedNetworkErrors = [];
+const expectedBrowserErrors = [];
 const livingFrameMeasurements = {};
 let socket;
 
@@ -128,6 +130,7 @@ try {
         status: message.params.response.status,
         url: message.params.response.url,
         type: message.params.type,
+        requestId: message.params.requestId,
       });
     }
 
@@ -151,6 +154,9 @@ try {
       browserErrors.push({
         type: "log",
         text: message.params.entry.text ?? "Browser log error",
+        source: message.params.entry.source,
+        url: message.params.entry.url,
+        requestId: message.params.entry.networkRequestId,
       });
     }
     if (message.method === "Runtime.consoleAPICalled" && message.params?.type === "error") {
@@ -438,7 +444,13 @@ try {
       expectedNetworkErrors.push(...networkDelta);
       networkErrors.splice(networkStart, networkDelta.length);
     }
-    assertCheck(label + ": no console/runtime errors", browserErrors.length === browserErrorStart, browserErrors.slice(browserErrorStart));
+    const browserDelta = browserErrors.slice(browserErrorStart);
+    const expectedLogs = onlyExpectedDocument404
+      ? browserDelta.filter((entry) => expectedDocument404Log(entry, networkDelta, expectedPath)) : [];
+    const unexpected = browserDelta.filter((entry) => !expectedLogs.includes(entry));
+    expectedBrowserErrors.push(...expectedLogs);
+    browserErrors.splice(browserErrorStart, browserDelta.length, ...unexpected);
+    assertCheck(label + ": no console/runtime errors", unexpected.length === 0, unexpected);
   }
 
   await send("Page.enable");
@@ -1470,6 +1482,10 @@ try {
         "    if (skip.test(String(el.className))) return false;" +
         "    if (cs.position === 'fixed' || cs.display === 'none') return false;" +
         "    if (!['hidden', 'clip', 'auto', 'scroll'].includes(cs.overflowX)) return false;" +
+        // A locally scrollable, named and keyboard-focusable data table is not
+        // clipped: its offscreen cells remain reachable. Do not exempt hidden
+        // overflow, unnamed wrappers or non-semantic tables.
+        "    if (['auto', 'scroll'].includes(cs.overflowX) && el.getAttribute('role') === 'region' && el.tabIndex === 0 && (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby')) && el.querySelector('table caption') && el.querySelector('th[scope=col]') && el.querySelector('th[scope=row]')) return false;" +
         "    if (el.tagName === 'LEGEND') return false;" +
         "    if (cs.clipPath && cs.clipPath.includes('inset(50%')) return false;" +
         "    if (el.getBoundingClientRect().width <= 1) return false;" +
@@ -1537,6 +1553,7 @@ try {
     browserErrors,
     networkErrors,
     expectedNetworkErrors,
+    expectedBrowserErrors,
     livingFrameMeasurements,
     chromeStderr: chromeStderr.slice(-12000),
   };

@@ -16,6 +16,7 @@ import type {
   TeachingSignalsModule,
 } from "@/lib/film-package";
 import { canRevealSpoiler, type SpoilerLevel } from "@/lib/spoilers";
+import { illustrationView } from "@/data/film-illustrations";
 import {
   arcCredibilityLabels,
   characterPresentationLabels,
@@ -30,6 +31,7 @@ import {
   moralValenceLabels,
   narrativePermissionLabels,
   pressureKindLabels,
+  pressureStrengthLabels,
   repentanceLabels,
   socialFormationLabels,
   researchSourceRoleLabels,
@@ -50,6 +52,8 @@ export type FilmModuleRenderContext = {
   formatTimecode?: (seconds: number) => string;
   /** Reader's level: an anchor above it must not be rendered, even as a title. */
   spoilerLevel?: SpoilerLevel;
+  /** Already-projected production/context sources; never film evidence. */
+  sourcesById?: ReadonlyMap<string, SourcesMethodModule["sources"][number]>;
 };
 
 type ResolvedSupport = { record: EvidenceRecord; counter: boolean };
@@ -135,8 +139,19 @@ export function CharactersModuleView({
     <section id={module.id} className="sectionShell sectionRule filmModule">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
       <div className="characterGrid">
-        {module.characters.map((character) => (
-          <article className="characterCard" key={character.id}>
+        {module.characters.map((character) => {
+          const art = character.visual ? illustrationView(character.visual.assetId) : undefined;
+          return (
+          <article id={`character-${character.id}`} className="characterCard" key={character.id}>
+            {art && character.visual ? (
+              <figure className="characterVisual">
+                <picture>
+                  {art.sources.map((source) => <source key={source.type} srcSet={source.srcSet} sizes="(max-width: 700px) 100vw, 33vw" type={source.type} />)}
+                  <img src={art.src} srcSet={art.srcSet} sizes="(max-width: 700px) 100vw, 33vw" alt={`Иллюстрация ИИ, не кадр из фильма. ${art.alt}`} width={art.width} height={art.height} loading="lazy" decoding="async" />
+                </picture>
+                <figcaption>{character.visual.caption}</figcaption>
+              </figure>
+            ) : null}
             <div className="characterCardHead">
               <h3>{character.name}</h3>
               {character.presentation || character.identification ? (
@@ -159,7 +174,7 @@ export function CharactersModuleView({
             <p className="characterThesis">{character.contradiction}</p>
             <CharacterAnchors context={context} support={character.profileSupport} />
             <CharacterAnchors context={context} support={character.interpretiveSupport} />
-            <details className="characterDetails">
+            <details className="characterDetails" open>
               <summary>Разбор по полям</summary>
               <dl>
                 <div><dt>Хочет</dt><dd>{character.wants}</dd></div>
@@ -179,17 +194,28 @@ export function CharactersModuleView({
                   </div>
                 ) : null}
                 {character.roleInArgument ? <div><dt>Роль</dt><dd>{character.roleInArgument}</dd></div> : null}
+                {character.counterpoint ? <div><dt>Другая перспектива</dt><dd>{character.counterpoint}</dd></div> : null}
                 <div><dt>Противоречие</dt><dd>{character.contradiction}</dd></div>
               </dl>
             </details>
           </article>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
 }
 
-export function RelationshipModuleView({ module }: { module: RelationshipModule }) {
+const relationshipDimensionLabels = {
+  TRUST: "Доверие",
+  TRUTHFULNESS: "Правда",
+  POWER: "Власть",
+  BOUNDARIES: "Границы",
+  RESPONSIBILITY: "Ответственность",
+  REPAIR: "Восстановление",
+} as const;
+
+export function RelationshipModuleView({ module, context }: { module: RelationshipModule; context?: FilmModuleRenderContext }) {
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule">
       <ModuleHeader eyebrow={module.eyebrow} heading={module.heading} />
@@ -202,7 +228,21 @@ export function RelationshipModuleView({ module }: { module: RelationshipModule 
           {module.events.map((event) => (
             <li className={`traceEvent trace-${event.tone}`} key={event.id}>
               <span className="traceDot" aria-hidden="true" />
-              <div><strong>{event.label}</strong><p>{event.change}</p></div>
+              <div>
+                <strong>{event.label}</strong><p>{event.change}</p>
+                {event.dimensions?.length ? (
+                  <dl className="relationshipDimensions" aria-label="Как меняется связь">
+                    {event.dimensions.map((shift) => (
+                      <div key={shift.dimension}>
+                        <dt>{relationshipDimensionLabels[shift.dimension]}</dt>
+                        <dd><span>До:</span> {shift.before}</dd>
+                        <dd><span>После:</span> {shift.after}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : null}
+                <CharacterAnchors support={event.support} context={context} />
+              </div>
             </li>
           ))}
         </ol>
@@ -244,7 +284,8 @@ export function MeaningModuleView({ module }: { module: MeaningModule }) {
       <div className="meaningGrid">
         <div><span>Тема</span><strong>{module.theme}</strong></div>
         <div><span>Предполагаемый тезис</span><strong>{module.apparentClaim}</strong></div>
-        <div><span>Контрдоказательство</span><strong>{module.counterevidence}</strong></div>
+        <div><span>Другая перспектива</span><strong>{module.counterevidence}</strong></div>
+        {module.additionalReading ? <div><span>После просмотра · контрдовод</span><strong>{module.additionalReading.text}</strong></div> : null}
         <div><span>Достоверность</span><strong>{confidenceLabels[module.confidence]}</strong></div>
       </div>
     </section>
@@ -291,7 +332,7 @@ export function PermissionModuleView({ module }: { module: PermissionModule }) {
   );
 }
 
-export function CraftModuleView({ module }: { module: CraftModule }) {
+export function CraftModuleView({ module, context }: { module: CraftModule; context?: FilmModuleRenderContext }) {
   const pressureAssessments = module.pressureAssessments ?? [];
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule filmCraft">
@@ -305,6 +346,24 @@ export function CraftModuleView({ module }: { module: CraftModule }) {
             </div>
             <p>{observation.observation}</p>
             <strong>{observation.interpretiveEffect}</strong>
+            {observation.support ? <CharacterAnchors support={observation.support} context={context} /> : null}
+            {observation.detail ? (
+              <details className="filmCraftDetail">
+                <summary>{observation.detail.summary}</summary>
+                <p><b>На экране по источнику.</b> {observation.detail.screen}</p>
+                <p><b>На съёмке.</b> {observation.detail.production}</p>
+                <p><b>После съёмки.</b> {observation.detail.postProduction}</p>
+                <blockquote>«{observation.detail.quote}» <cite>— {observation.detail.attribution}</cite></blockquote>
+              </details>
+            ) : null}
+            {observation.contextSourceIds?.length ? (
+              <p className="filmCraftSources">Производственный источник (внешняя страница может содержать спойлеры):{" "}
+                {observation.contextSourceIds.flatMap((id) => {
+                  const source = context?.sourcesById?.get(id);
+                  return source?.href ? [<a key={id} href={source.href}>{source.label} →</a>] : [];
+                })}
+              </p>
+            ) : null}
           </article>
         ))}
       </div>
@@ -312,7 +371,7 @@ export function CraftModuleView({ module }: { module: CraftModule }) {
         <div className="filmPressureGrid">
           {pressureAssessments.map((assessment) => (
             <article key={assessment.id}>
-              <span className="microLabel">{pressureKindLabels[assessment.kind]} давление{assessment.level ? ` / ${confidenceLabels[assessment.level]}` : ""}</span>
+              <span className="microLabel">{pressureKindLabels[assessment.kind]} давление{assessment.level ? ` / ${pressureStrengthLabels[assessment.level]}` : ""}</span>
               <p>{assessment.rationale}</p>
               <small>Достоверность / {confidenceLabels[assessment.confidence]}</small>
             </article>
@@ -468,6 +527,10 @@ export function SourcesMethodModuleView({ module }: { module: SourcesMethodModul
         <div><span>Издание / статус</span><strong>{module.analyzedEdition}</strong></div>
         <div><span>Дата редакционной ревизии</span><strong>{module.lastReviewedAt ?? "Не опубликовано"}</strong></div>
       </div>
+      {module.hiddenSourceCount ? (
+        <p className="sectionIntro">Ещё {module.hiddenSourceCount} источников скрыто до полного уровня спойлеров: заголовки и описания могут раскрывать сюжет.</p>
+      ) : null}
+      <p className="sectionIntro">Внешние страницы могут содержать спойлеры, даже если название ссылки их не раскрывает.</p>
       <ol className="filmSourceList">
         {module.sources.map((source) => (
           <li key={source.id}>

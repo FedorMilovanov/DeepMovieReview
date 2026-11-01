@@ -1,5 +1,7 @@
 # Film 001 — Visual verification and canonical scene inventory v1
 
+> **Later qualification (2026-10-31):** this is a historical ledger, not proof of a continuous viewing or listening session. Its bundle's master identity was not independently rehashed in the later review; old grid times are nominal, not verified source-frame PTS. The contact-sheet mapping and scene descriptions below should not be read as independent frame-by-frame confirmation. For the subsequently checked clip frames and corrections, see [docs/63](63-FILM-001-CLIP-REVIEW.md).
+
 > Film: **The Truman Show (1998)**
 > Viewing master: SHA-256 `E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575`
 > Measured runtime: **6177.792 s**

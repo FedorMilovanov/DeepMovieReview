@@ -39,7 +39,16 @@ export function filterBySpoilerLevel<T extends SpoilerScoped>(
 }
 
 export function withSpoilerQuery(pathname: string, level: SpoilerLevel): string {
-  if (level === "NONE") return pathname;
-  const separator = pathname.includes("?") ? "&" : "?";
-  return `${pathname}${separator}${SPOILER_QUERY_KEY}=${level.toLowerCase()}`;
+  const hashIndex = pathname.indexOf("#");
+  const hash = hashIndex === -1 ? "" : pathname.slice(hashIndex);
+  const beforeHash = hashIndex === -1 ? pathname : pathname.slice(0, hashIndex);
+  const queryIndex = beforeHash.indexOf("?");
+  const path = queryIndex === -1 ? beforeHash : beforeHash.slice(0, queryIndex);
+  const params = new URLSearchParams(queryIndex === -1 ? "" : beforeHash.slice(queryIndex + 1));
+  // Replace, rather than append, so a stale or duplicated higher level can never
+  // override NONE (parseSpoilerLevel reads the first value).
+  params.delete(SPOILER_QUERY_KEY);
+  if (level !== "NONE") params.set(SPOILER_QUERY_KEY, level.toLowerCase());
+  const query = params.toString();
+  return `${path}${query ? `?${query}` : ""}${hash}`;
 }

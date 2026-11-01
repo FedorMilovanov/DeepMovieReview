@@ -1,4 +1,4 @@
-import type { EvidenceRecord, FilmPackage } from "@/lib/film-package";
+import type { EvidenceRecord, FilmPackage, FilmSceneReading } from "@/lib/film-package";
 import { reviewBasis } from "../../lib/evidence-review";
 import { trumanMasterSegmentation } from "./the-truman-show-master-segmentation";
 import {
@@ -11,23 +11,25 @@ import {
 } from "./the-truman-show-visual-verification";
 import { trumanCanonicalScenes } from "./the-truman-show-scene-inventory";
 import { theTrumanShowArticle } from "./the-truman-show-article";
+import { trumanComparison } from "./the-truman-show-comparison";
 
 /**
  * «Шоу Трумана» (The Truman Show, 1998, Питер Уир) — canonical edition.
  *
  * This package is the promoted counterpart of the research draft. The edition is
- * LOCKED: every scene below was verified against the exact viewing master
- * (SHA-256 E8543F61…B3B575, 6177.792 s) and every evidence record cites that
- * master as its provenance.
+ * LOCKED in the existing registry: evidence records cite the declared viewing
+ * master (SHA-256 E8543F61…B3B575, 6177.792 s) as provenance. The later audit
+ * independently inspected selected frames and clips, not the full master or its
+ * sound; the registry state is not proof of a new continuous viewing.
  *
- * The edition is `status: "published"` as of 2026-10-30: the editorial decision
- * follows the evidence lock, and the reader can now reach the page without a
- * preview flag. Indexing stays a separate switch — `canIndexSite()` still requires
- * the deploy to ask for it (`DMR_SITE_INDEXING_ENABLED`) and to run without
- * preview content, so publication and crawling are not the same decision.
+ * The edition is `status: "published"` as of 2026-10-30, so the reader can reach
+ * the page without a preview flag. Indexing is separate: outside a Vercel preview,
+ * a configured host or explicit flag requests it, and preview content must be off.
+ * Publication and crawling are not the same decision.
  *
- * See docs/47-FILM-001-VISUAL-VERIFICATION.md for how each observation was
- * verified and docs/48-FILM-001-EDITION-LOCK.md for the promotion ledger.
+ * See docs/47-FILM-001-VISUAL-VERIFICATION.md for the original verification
+ * ledger, docs/48-FILM-001-EDITION-LOCK.md for promotion and docs/63 for the
+ * limits of the later clip and frame audit.
  */
 /**
  * The verification ledger is the only thing that knows *how* a record was
@@ -63,16 +65,17 @@ for (const [researchId, replacements] of Object.entries(trumanCanonicalEvidenceS
 
 const trumanEvidenceWithReviewBasis: EvidenceRecord[] = trumanCanonicalEvidence.map((record) => {
   if (record.basis) return record;
-  const basis = reviewBasis(verificationById.get(record.id));
+  const basis = reviewBasis(verificationById.get(record.id), record.timestampSeconds);
   if (!basis) return record;
 
   const parent = splitParentById.get(record.id);
   if (!parent) return { ...record, basis };
 
-  // A compound record's check covered two places. A half may inherit the fact of
-  // the check, never a window it does not sit inside — and when its own second was
-  // never looked at, the card says so instead of borrowing «verified» from the
-  // parent. This is how the undeclared boat/setting-sail split came to light.
+  // A split shares its parent's check. A range enclosing the cited second does
+  // not mean that second was seen: reviewBasis compares the individual ledger
+  // timestamps, so the boat's 4840s stays pending between 4830s and 4850s.
+  // If the anchor is outside the parent range, keep the individual times as
+  // provenance but do not present that range as the child's own window.
   const inside =
     basis.window === undefined ||
     record.timestampSeconds === undefined ||
@@ -103,8 +106,38 @@ const trumanEvidenceWithHistory: EvidenceRecord[] = trumanEvidenceWithReviewBasi
   return { ...record, basis: { ...record.basis, refusedAncestor: ancestor } };
 });
 
+// Six bounded readings of one early scene. These are part of the scene record,
+// not a separate homepage review; each points to evidence in the same scene.
+const spotlightReadings: FilmSceneReading[] = [
+  {
+    lens: "story", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light", "truman-ev-light-explanation"] },
+    text: "Осветительный прибор оказывается на улице, а в тексте субтитров появляется объяснение обломками самолёта. Кадр и текст проверены отдельно; звук не сверялся.",
+  },
+  {
+    lens: "people", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light"] },
+    text: "Кадр помещает нас за спиной Трумана: прибор находится перед ним и перед зрителем. Это сближает наши точки зрения, но не позволяет узнать его мысли или степень страха.",
+  },
+  {
+    lens: "relationships", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light"] },
+    text: "В выбранном кадре человек и предмет рядом, но собеседников не видно. О доверии к близким по нему не судят: для отношений нужны другие эпизоды.",
+  },
+  {
+    lens: "ideas", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light"] },
+    text: "Неуместный прибор можно прочитать как след устроенного мира. Из отдельного кадра нельзя вывести, почему предмет оказался на улице или кто за это ответственен.",
+  },
+  {
+    lens: "moral-world", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light", "truman-ev-light-explanation"] },
+    text: "Увиденное и предложенное в субтитрах объяснение ставят вопрос: вправе ли другие решать, какую версию мира получит человек? Сам кадр не устанавливает чей-либо мотив.",
+  },
+  {
+    lens: "craft", spoilerLevel: "NONE", support: { evidenceIds: ["truman-ev-light"] },
+    text: "Крупный план выделяет слово Sirius; продолжение наклейки закрыто. По одному изображению нельзя проверить длительность, монтаж или звук.",
+  },
+];
+
 export const theTrumanShowCanonicalPackage: FilmPackage = {
   schemaVersion: 1,
+  comparison: trumanComparison,
   film: {
     slug: "the-truman-show",
     title: "Шоу Трумана",
@@ -114,7 +147,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
     runtime: "103 мин",
     genre: ["драма", "комедия", "антиутопия"],
     premise:
-      "Страховой агент Труман Бёрбанк не знает, что тридцать лет живёт внутри гигантского телешоу: его город — декорация, жена и друг — актёры, а каждый шаг снимают тысячи скрытых камер. Когда в декорациях начинают происходить сбои, у него впервые появляется повод проверить собственный мир.",
+      "Труман живёт в тихом Сихейвене и не знает, что его город — декорация телешоу. Первые сбои дают ему повод усомниться в привычном мире.",
     thesisQuestion:
       "Что дороже: безопасная клетка, где всё устроено, — или истина, за которую придётся заплатить всем, что имеешь?",
     status: "published",
@@ -136,6 +169,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
   },
   scenes: trumanCanonicalScenes.map((scene) => ({
     id: scene.id,
+    lensReadings: scene.id === "truman-sc-day-10909" ? spotlightReadings : undefined,
     sequenceIndex: scene.sequenceIndex,
     shortLabel: scene.shortLabel,
     summary: scene.summary,
@@ -181,14 +215,14 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-story-crack",
           label: "Трещина",
-          summary: "С неба падает студийный прожектор; официальная версия («самолёт сбросил») не выдерживает проверки — первая трещина в декорациях.",
+          summary: "Студийный прожектор оказывается на улице; в субтитрах обломки объясняют деталями самолёта — первая трещина в декорациях. Кадр и текст проверены отдельно.",
           spoilerLevel: "NONE",
-          support: { evidenceIds: ["truman-ev-light"] },
+          support: { evidenceIds: ["truman-ev-light", "truman-ev-light-explanation"] },
         },
         {
           id: "truman-story-interference",
           label: "Помехи",
-          summary: "Служебный эфир в автомобильном радио, первая полоса о «погроме бездомных», город, реагирующий на его шаги: мир начинает следить за ним слишком открыто.",
+          summary: "В субтитрах появляется маршрут и команда статистам; на отдельном кадре виден Труман в машине. Первая полоса о «погроме бездомных» предлагает объяснение другой ситуации. Связь эпизодов со слежкой — интерпретация, а звук этой проверкой не установлен.",
           spoilerLevel: "MINOR",
           support: { evidenceIds: ["truman-ev-radio", "truman-ev-europe", "truman-ev-elevator"] },
         },
@@ -216,9 +250,9 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-story-collapse",
           label: "Распад семейного контракта",
-          summary: "Срыв Мэрил с рекламными инструментами в руках, «душевный» Марлон по подсказке Кристофа и слёзное «возвращение отца» с амнезией: все линии сюжета лопаются одновременно, и шоу латает их в прямом эфире.",
+          summary: "Срыв Мэрил и успокаивающий разговор Марлона показывают трещины в управляемых отношениях. Возвращение отца показано у ограждения моста и на мониторе аппаратной.",
           spoilerLevel: "MAJOR",
-          support: { evidenceIds: ["truman-ev-knife", "truman-ev-fingers", "truman-ev-marlon", "truman-ev-reunion"] },
+          support: { evidenceIds: ["truman-ev-knife", "truman-ev-knife-tools", "truman-ev-fingers", "truman-ev-marlon", "truman-ev-reunion"] },
         },
         {
           id: "truman-story-exit",
@@ -241,20 +275,22 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           name: "Труман Бёрбанк",
           presentation: "ASPIRATIONAL",
           identification: "HIGH",
-          wants: "Вырваться из Сихейвена, добраться до Фиджи и найти Сильвию",
-          fears: "Вода, глубина, «тонущий» отец — страх, сконструированный сценаристами",
-          loyalties: "Верен двум чувствам, выросшим вне сценария: обещанию, данному Сильвии, и памяти об отце. Оба влекут его из Сихейвена сильнее, чем любой довод шоу.",
-          contradiction: "Самый любимый человек планеты — и единственный, кто не знает, что его любят в прямом эфире",
+          wants: "В начале он живёт привычным распорядком; его дальнейшие желания раскрываются по ходу истории.",
+          fears: "По материалам первого утра его страхи пока нельзя надёжно определить.",
+          loyalties: "Приветствия соседям показывают повседневные связи; глубину его привязанностей ещё предстоит разобрать.",
+          contradiction: "Зрители следят за его повседневной жизнью, а сам он не знает, что стал героем телешоу.",
           profileSpoilerLevel: "NONE",
           interpretiveSpoilerLevel: "ENDING",
           believes: "Внутренний голос подсказывает ему, что мир можно проверить и что за горизонтом есть настоящее",
           selfDeception: "Годами уговаривает себя, что «всё в порядке»: удобная жизнь заглушает накопившиеся нестыковки",
-          arcSummary: "От милого неведения — через цепь улик и панику — к проверке мира экспериментом и к свободному выбору неизвестного",
+          arcSummary: "От милого неведения — через страх воды, память об отце и желание найти Сильвию на Фиджи — к проверке мира экспериментом и выбору неизвестного. Эти привязанности не отменяют того, что их глубину мы интерпретируем, а не измеряем.",
           unchanged: "Доверчивость и потребность в близком человеке остаются при нём и после прозрения: он уходит не ожесточившимся, а всё тем же, кто хочет, чтобы рядом был кто-то настоящий.",
           arcCredibility: { level: "HIGH", note: "Поворот накапливается, а не срабатывает: страх воды, сбившееся радио, вернувшийся «отец» и повторяющиеся лица складываются в улику, а не в озарение. Финальный выбор вырастает из уже показанной способности проверять мир делом." },
           roleInArgument: "Доказательство фильма: человек не сводим к навязанной ему роли; даже тридцать лет эфира не отменяют его «я»",
+          counterpoint: "Смелость выйти не делает неизвестное безопасным: он принимает риск, не зная, что ждёт за дверью.",
+          visual: { assetId: "illu-truman-caric-tag", spoilerLevel: "NONE", caption: "Человек как товар — редакционная ИИ-иллюстрация, не кадр." },
           profileSupport: { evidenceIds: ["truman-ev-daycount", "truman-ev-greeting", "truman-ev-routine"] },
-          interpretiveSupport: { evidenceIds: ["truman-ev-fiji", "truman-ev-bridge", "truman-ev-exit"] },
+          interpretiveSupport: { evidenceIds: ["truman-ev-fiji", "truman-ev-sylvia", "truman-ev-drowning", "truman-ev-bridge", "truman-ev-exit"] },
         },
         {
           id: "truman-ch-christof",
@@ -264,15 +300,17 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           wants: "Продлевать «идеальный мир» — свой шедевр — любой ценой",
           fears: "Потерять контроль: тогда весь проект окажется ошибкой, а жизнь — потраченной",
           loyalties: "Верен своему замыслу — «миру, каким он должен быть», — а не человеку, который в этом мире живёт.",
-          contradiction: "Называет Трумана «звездой» и почти сыном — и при этом топит его в шторме ради рейтинга",
+          contradiction: "Называет Трумана «звездой» и почти сыном — и подвергает его жизнь опасности, чтобы удержать в шоу",
           profileSpoilerLevel: "MAJOR",
           interpretiveSpoilerLevel: "ENDING",
-          believes: "«Мы принимаем реальность, которую нам предъявляют» — и потому в долголетии шоу виноваты зрители, а не он",
+          believes: "Говорит, что люди принимают предложенную им реальность; этой мыслью он объясняет устройство шоу",
           selfDeception: "Считает себя благодетелем: «Сихейвен — то, каким мир должен быть»; не замечает границы между заботой и собственничеством",
           arcSummary: "От всесильного кукловода — до голоса с неба, проигрывающего спор одному человеку у двери",
           unchanged: "Убеждённость в собственной правоте. К финалу он не меняется: он лишь теряет канал влияния и продолжает говорить в пустоту.",
           arcCredibility: { level: "HIGH", note: "Его падение подготовлено тем же, чем он управлял: шоу держалось на любопытстве Трумана — и проиграло тому же любопытству." },
           roleInArgument: "Карикатура на Творца: власть без любви к свободе другого; его крах — смысловой центр фильма",
+          counterpoint: "Его желание защитить Трумана может быть искренним. Но забота не устраняет вопрос согласия и не оправдывает принуждение.",
+          visual: { assetId: "illu-truman-caric-trophy", spoilerLevel: "MAJOR", caption: "Создатель и его «трофей» — редакционная ИИ-иллюстрация, не кадр." },
           profileSupport: { evidenceIds: ["truman-ev-interviews", "truman-ev-marlon"] },
           interpretiveSupport: { evidenceIds: ["truman-ev-cuesun", "truman-ev-storm", "truman-ev-dialog"] },
         },
@@ -283,7 +321,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           identification: "LOW",
           wants: "Играть «идеальную жену» и держать контракт: дом, зарплата, роль в шоу, которое смотрит весь мир",
           fears: "Выпасть из роли — потерять всё, чем платит шоу",
-          loyalties: "Верна контракту и роли: профессия для неё прочнее любых отношений и переживает их без потерь.",
+          loyalties: "Держится за контракт и роль, даже когда брак превращается в сцену; фильм не раскрывает полностью её чувства за пределами эфира.",
           contradiction: "Каждое «люблю» Труману — реплика по сценарию; но актёрское истощение в ней настоящее",
           profileSpoilerLevel: "MAJOR",
           interpretiveSpoilerLevel: "MAJOR",
@@ -293,8 +331,10 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           unchanged: "Способность играть — и неспособность выйти из роли иначе, чем через срыв.",
           arcCredibility: { level: "HIGH", note: "Перелом укладывается в несколько реплик: рекламная улыбка, раздражение, паника — роль рассыпается ровно там, где от неё требуют настоящего чувства." },
           roleInArgument: "Показывает цену системы для «профессионалов»: ложь деформирует и лгущего",
+          counterpoint: "Её страх в конфликте нельзя свести к расчёту или отсутствию чувств: фильм не даёт прямого доступа к её внутренней жизни.",
+          visual: { assetId: "illu-truman-caric-grater", spoilerLevel: "MAJOR", caption: "Роль и реклама — редакционная ИИ-иллюстрация, не кадр." },
           profileSupport: { evidenceIds: ["truman-ev-mococoa", "truman-ev-fingers"] },
-          interpretiveSupport: { evidenceIds: ["truman-ev-knife", "truman-ev-knife-call"] },
+          interpretiveSupport: { evidenceIds: ["truman-ev-knife", "truman-ev-knife-tools", "truman-ev-knife-call"] },
         },
         {
           id: "truman-ch-marlon",
@@ -302,17 +342,19 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           presentation: "MIXED",
           identification: "PARTIAL",
           wants: "Быть «лучшим другом» — ролью, в которой он прожил всю жизнь рядом с Труманом",
-          fears: "Провалиться в прямом эфире: забыть реплику, выдать правду",
+          fears: "Риск провалить роль в прямом эфире; фильм не раскрывает его страхи целиком",
           loyalties: "Верен Труману ровно настолько, насколько это совместимо со служебной ролью: дружба для него — обязанность с расписанием.",
           contradiction: "Его дружба — единственное, что Труман считал настоящим, и именно ею манипулируют сильнее всего",
           profileSpoilerLevel: "MAJOR",
           interpretiveSpoilerLevel: "MAJOR",
-          believes: "«Последнее, что я стал бы делать, — врать тебе» — фраза, которую он произносит дважды, поправляясь на ходу: перед нами не признание, а дубль, снятый до нужной интонации",
+          believes: "Уверяет друга, что не стал бы ему лгать; в контексте управляемого шоу обещание становится нравственно двусмысленным",
           selfDeception: "Годами выдаёт сценарную дружбу за свою собственную",
           arcSummary: "Фигура Иуды наоборот: предаёт не за деньги, а «по долгу службы» — каждый день и с объятиями",
-          unchanged: "Остаётся «другом» в границах сцены: даже произнося признание, он повторяет его вторым дублем.",
-          arcCredibility: { level: "HIGH", note: "Его роль не меняется — меняется наша оптика: то, что читалось как дружба, при повторе читается как репетиция." },
+          unchanged: "Продолжает занимать место близкого друга, хотя доверие между ними обслуживает чужой замысел.",
+          arcCredibility: { level: "HIGH", note: "Оптика зрителя меняется: сцену дружеской поддержки можно читать и как часть эфира. Повтор в субтитрах сам по себе не доказывает пересъёмку." },
           roleInArgument: "Доказательство, что ложь опаснее всего, когда носит лицо самого близкого человека",
+          counterpoint: "Участие во лжи не доказывает, что все чувства Марлона поддельны. Из субтитров также нельзя вывести, кто и зачем повторяет обещание.",
+          visual: { assetId: "illu-truman-caric-friend", spoilerLevel: "MAJOR", caption: "Дружба как роль — редакционная ИИ-иллюстрация, не кадр." },
           profileSupport: { evidenceIds: ["truman-ev-beer"] },
           interpretiveSupport: { evidenceIds: ["truman-ev-marlon", "truman-ev-reunion"] },
         },
@@ -331,8 +373,9 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           selfDeception: "Недооценивает силу удобной лжи: правда, сказанная один раз, была нейтрализована за минуты",
           arcSummary: "От эпизодической статистки — к совести фильма и лидеру протеста против Кристофа",
           unchanged: "Готовность спорить с создателем публично: её протест не слабеет с годами.",
-          arcCredibility: { level: "MEDIUM", note: "Её линия пунктирна: фильм показывает её в прологе и в финале, а связь между этими точками держится на зрителе больше, чем на показанных сценах." },
+          arcCredibility: { level: "MEDIUM", note: "Её линия показана эпизодически: фильм не раскрывает подробно жизнь между знакомством с Труманом и публичным протестом." },
           roleInArgument: "Голос настоящей любви: она любит Трумана не как зритель (образ), а как человек (личность)",
+          counterpoint: "Её позиция показана фрагментарно: решимость сказать правду не раскрывает всех мотивов и не делает её всесильной.",
           profileSupport: { evidenceIds: ["truman-ev-sylvia"] },
           interpretiveSupport: { evidenceIds: ["truman-ev-fiji"] },
         },
@@ -349,10 +392,11 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           interpretiveSpoilerLevel: "MAJOR",
           believes: "Прошлое следует хранить в альбоме, а не в сердце: «всё к лучшему»",
           selfDeception: "Убеждена, что участвует в чём-то вроде материнства, — не замечая, что нежность расписана указаниями Кристофа",
-          arcSummary: "От эфирной колыбели до краха: когда сын исчезает из декораций, роль кончается вместе с шоу",
+          arcSummary: "От эфирной матери к человеку, который пытается успокоить сына, когда тот задаёт неудобные вопросы",
           unchanged: "Способность закрывать вопрос лаской: и в начале, и в конце она гасит тревогу сына прикосновением и семейным альбомом.",
-          arcCredibility: { level: "MEDIUM", note: "У её линии почти нет развития: роль заканчивается вместе с шоу, и фильм не показывает, что осталось от человека за сценой." },
+          arcCredibility: { level: "MEDIUM", note: "У её линии мало самостоятельных сцен; фильм почти не показывает человека за профессиональной ролью." },
           roleInArgument: "Предельный случай системы: даже материнская любовь — расходный материал удержания",
+          counterpoint: "Она участвует в обмане, но немногие сцены не позволяют уверенно судить, что она чувствует вне своей роли.",
           profileSupport: { evidenceIds: ["truman-ev-album"] },
           interpretiveSupport: { evidenceIds: ["truman-ev-album", "truman-ev-conception"] },
         },
@@ -379,7 +423,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
             { dimension: "TRUTHFULNESS", before: "Труман верит, что его брак — частная жизнь", after: "Брак оказывается рекламной паузой с реквизитом из магазина" },
             { dimension: "TRUST", before: "Полное доверие к жене", after: "Сомнение, которое уже не рассосётся" },
           ],
-          support: { evidenceIds: ["truman-ev-mococoa", "truman-ev-knife", "truman-ev-knife-call"] },
+          support: { evidenceIds: ["truman-ev-mococoa", "truman-ev-knife", "truman-ev-knife-tools", "truman-ev-knife-call"] },
           spoilerLevel: "MAJOR",
         },
         {
@@ -397,10 +441,10 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           change: "Под давлением вопросов Мэрил ломается: роли кончились, дальше — только правда или бегство",
           tone: "fracture",
           dimensions: [
-            { dimension: "TRUST", before: "Иллюзия команды «мы»", after: "Мэрил обращается за помощью не к мужу, а к съёмочной группе" },
+            { dimension: "TRUST", before: "Иллюзия команды «мы»", after: "Мэрил ищет помощь вне разговора; адресат просьбы остаётся неясным" },
             { dimension: "POWER", before: "Труман — «глава дома» по сценарию", after: "Видно, кто на самом деле держит сценарий" },
           ],
-          support: { evidenceIds: ["truman-ev-knife"] },
+          support: { evidenceIds: ["truman-ev-knife-tools", "truman-ev-knife-call", "truman-ev-meryl-held"] },
           spoilerLevel: "MAJOR",
         },
         {
@@ -418,33 +462,33 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       id: "truman-mod-friendship",
       kind: "relationship",
       eyebrow: "03 / Отношения",
-      heading: "Труман и Марлон: дружба по подсказке",
+      heading: "Труман и Марлон: дружба внутри шоу",
       spoilerLevel: "MAJOR",
       label: "Дружба в прямом эфире",
       summary:
-        "Единственная дружба Трумана — тридцатилетний рабочий контракт: Марлон искренне привязан к нему, и именно поэтому его ложь — самый тонкий инструмент удержания. Фильм держит этот парадокс в центре: предаёт Трумана не враг, а лучший друг.",
+        "Дружба Трумана с Марлоном существует внутри оплачиваемого представления. Её можно прочитать как настоящую привязанность, скомпрометированную работой, или как убедительную профессиональную роль. Проверенные кадры и субтитры не позволяют установить чувства Марлона; для Трумана же неравенство знания делает доверие уязвимым.",
       summarySupport: { evidenceIds: ["truman-ev-beer", "truman-ev-marlon"] },
       participantCharacterIds: ["truman-ch-truman", "truman-ch-marlon"],
       events: [
         {
           id: "truman-friend-beer",
           label: "Мост, пиво и Фиджи",
-          change: "После сорванной попытки уехать Марлон слушает мечту Трумана о Фиджи — идеальная сцена дружбы, снятая скрытой камерой и проданная спонсорам («Вот это… пиво»)",
+          change: "После сорванной попытки уехать разговор о Фиджи соседствует с рекламой пива. Сцену можно читать как жест дружбы и одновременно как часть шоу; искренность участников по субтитрам не измерить.",
           tone: "trust",
           dimensions: [
-            { dimension: "TRUST", before: "Ритуал дружбы: несколько минут честности в мире декораций", after: "Честность есть — но и она в эфире" },
+            { dimension: "TRUST", before: "Ритуал дружбы", after: "Возможная близость существует внутри эфира" },
           ],
           support: { evidenceIds: ["truman-ev-beer"] },
           spoilerLevel: "MINOR",
         },
         {
           id: "truman-friend-earpiece",
-          label: "Дубль за дублем",
-          change: "В ночь худших сомнений Марлон обещает Труману, что скорее бросится под машину, чем соврёт, — и повторяет обе фразы заново, с поправкой: доверие друга применяется как успокоительное, а сама сцена выдаёт себя повтором",
+          label: "Обещание, записанное дважды",
+          change: "Во встроенных субтитрах обещание не лгать записано дважды, почти одинаково. По субтитрам нельзя установить, кто произнёс повтор и почему; сцена ставит доверие друга в контекст управляемого шоу",
           tone: "fracture",
           dimensions: [
-            { dimension: "TRUTHFULNESS", before: "«Марлон не может мне врать»", after: "Искренность тона — сценарий; сам Марлон, возможно, верит своим словам" },
-            { dimension: "TRUST", before: "Друг как опора", after: "Друг как канал управления" },
+            { dimension: "TRUTHFULNESS", before: "«Марлон не может мне врать»", after: "Повтор виден в субтитрах; тон и происхождение повтора требуют проверки звука" },
+            { dimension: "TRUST", before: "Друг как опора", after: "Возможное противоречие между дружбой и обязанностью перед шоу" },
           ],
           support: { evidenceIds: ["truman-ev-marlon", "truman-ev-marlon-retake"] },
           spoilerLevel: "MAJOR",
@@ -452,10 +496,10 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-friend-reunion",
           label: "«Возвращение отца»",
-          change: "Марлон помогает разыграть эмоциональное «воссоединение» — друг становится соавтором главного манипулятивного хода шоу",
+          change: "Возвращение отца описывается как часть управления Труманом. Конкретную роль Марлона в непрерывной сцене ещё нужно проверить; доступная запись этого не устанавливает.",
           tone: "fracture",
           dimensions: [
-            { dimension: "RESPONSIBILITY", before: "Друг рядом в трудную минуту", after: "Трудную минуту устроило же шоу — и друг её «решает»" },
+            { dimension: "RESPONSIBILITY", before: "Друг рядом в трудную минуту", after: "Шоу управляет обстоятельствами; участие Марлона в самом возвращении остаётся на проверке" },
           ],
           support: { evidenceIds: ["truman-ev-reunion"] },
           spoilerLevel: "MAJOR",
@@ -488,7 +532,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           label: "«Он предпочитает клетку»",
           change: "В интервью TruTalk Кристоф публично уверен в своей звезде: если бы Труман всерьёз хотел правды — его бы не удержать; звонок Сильвии превращает уверенность в спор",
           tone: "pressure",
-          dimensions: [{ dimension: "TRUTHFULNESS", before: "Создатель «знает» героя лучше, чем тот себя", after: "Готовность Трумана умереть за выход делает это знание ложным" }],
+          dimensions: [{ dimension: "TRUTHFULNESS", before: "Создатель «знает» героя лучше, чем тот себя", after: "Сильвия публично оспаривает право Кристофа говорить от имени Трумана" }],
           support: { evidenceIds: ["truman-ev-trutalk"] },
           spoilerLevel: "MAJOR",
         },
@@ -539,7 +583,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           domain: "PARENTAL_PRESENCE",
           subject: "Труман и «отец» Кирк",
           claim: "Единственное сильное мужское присутствие в детстве — актёр, чью «смерть» постановили, чтобы привить сыну страх воды и привязать его к острову.",
-          counterevidence: "Кирк по-человечески тоскует по сыну и пытается пробиться к нему вне сценария — отцовское чувство в системе всё же просачивается.",
+          counterevidence: "Попытку Кирка приблизиться к Труману можно читать как знак привязанности, но его чувства нельзя полностью установить по доступным материалам.",
           confidence: "HIGH",
           support: { evidenceIds: ["truman-ev-drowning", "truman-ev-ghost", "truman-ev-reunion"] },
           spoilerLevel: "MAJOR",
@@ -616,12 +660,17 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       eyebrow: "05 / Смысл",
       heading: "О чём на самом деле этот фильм",
       spoilerLevel: "NONE",
-      theme: "Человек как контент — и цена выхода из клетки",
+      theme: "Человек как контент — и цена жизни под наблюдением",
       question: "Допустимо ли делать жизнь другого человека развлекательным продуктом — и что победит в человеке: удобная декорация или истина?",
       apparentClaim:
         "Кажется, что фильм — про опасность тотальной слежки: злой продюсер против невинной жертвы.",
       counterevidence:
-        "Но сам фильм смотрит на Трумана тем же взглядом, что и его зрители: съёмка «со скрытых камер» не даёт нам точки вне зрелища, а выходу из клетки он придаёт ликование большого финала. Проверьте себя: в какой момент вы перестали подглядывать и начали болеть?",
+        "Но сам фильм смотрит на Трумана тем же взглядом, что и его зрители: съёмка «со скрытых камер» не даёт нам точки вне зрелища. Проверьте себя: в какой момент вы перестали подглядывать и начали сопереживать?",
+      additionalReading: {
+        spoilerLevel: "ENDING",
+        text: "Финальный выход фильм превращает в зрелищное освобождение. Это не опровергает критику слежки, но усложняет её: зритель одновременно сочувствует Труману и получает удовольствие от развязки. Это редакционная интерпретация, а не установленный замысел авторов.",
+        support: { evidenceIds: ["truman-ev-routine"], counterevidenceIds: ["truman-ev-exit"] },
+      },
       confidence: "HIGH",
       support: { evidenceIds: ["truman-ev-interviews", "truman-ev-routine"] },
     },
@@ -664,8 +713,8 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           id: "truman-sig-headlines",
           type: "REPEATED_PATTERN",
           subject: "Заголовки как забор",
-          interpretation: "Печать купола не запрещает — она переименовывает: человек, которого Труман только что узнал, превращается в «проблему бездомных», а сам город объявляет себя лучшим на земле. Мягкая блокада тоном работает надёжнее забора: зритель учится, что желание выйти стыдно.",
-          confidence: "HIGH",
+          interpretation: "Газетный заголовок о бездомности можно прочитать как готовое объяснение события, а городской плакат — как приглашение остаться. Отдельные кадры не устанавливают, что на газетной фотографии тот же человек, которого видел Труман, или какой тон звучит в сцене.",
+          confidence: "MEDIUM",
           support: { evidenceIds: ["truman-ev-europe", "truman-ev-poster"] },
           spoilerLevel: "MINOR",
         },
@@ -673,8 +722,8 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           id: "truman-sig-antimodel",
           type: "ANTI_MODEL",
           subject: "Кристоф как «благодетель»",
-          interpretation: "Создатель — главный антипример: искренне веря в свою миссию, он оправдывает любое насилие «заботой». Фильм разбирает логику патернализма: любовь без свободы — это собственничество.",
-          confidence: "HIGH",
+          interpretation: "Даже если создатель искренне верит в свою миссию, ссылка на заботу не снимает вопроса о принуждении. Это прочтение патернализма, а не установленный по субтитрам факт о его чувствах.",
+          confidence: "MEDIUM",
           support: { evidenceIds: ["truman-ev-interviews", "truman-ev-cuesun", "truman-ev-storm"] },
           spoilerLevel: "ENDING",
         },
@@ -717,19 +766,29 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-craft-vignette",
           mechanism: "POINT_OF_VIEW",
-          observation: "Оператор Питер Бизиу и Питер Уир строят кадр как «случайную» скрытую камеру: виньетирование, широкие углы, объективы, спрятанные за зеркалами, приборными панелями и рамками фотографий.",
-          interpretiveEffect: "Зритель физически занимает место камеры слежки — фильм делает нас соучастниками подглядывания ещё до того, как мы успели об этом подумать.",
+          observation: "В интервью American Cinematographer Питер Уир и оператор Питер Бизу рассказывают о широкоугольной оптике и виньетках, которыми создавали ощущение наблюдения. Не каждый необычный ракурс обязательно изображает камеру шоу.",
+          interpretiveEffect: "Такое обрамление можно читать как приглашение занять позицию наблюдателя; это интерпретация формы, а не доказательство места каждой камеры.",
           confidence: "HIGH",
           support: { evidenceIds: ["truman-ev-routine"] },
+          contextSourceIds: ["truman-src-asc"],
+          detail: {
+            summary: "Как сделан взгляд из радиоприёмника",
+            screen: "ASC описывает и иллюстрирует ракурс, в котором Труман за рулём виден через обрамление с цифровыми индикаторами радио. Это описание источника; кадр здесь не воспроизводится, исходную сцену со звуком мы не сверяли.",
+            production: "По словам Бизу, из автомобиля сняли приборную панель и двигатель, чтобы свободнее разместить камеру. Широкоугольный объектив поставили там, где находился бы радиоприёмник, и перед ним установили маску (gobo).",
+            postProduction: "Майк Макалистер добавил при композитинге маленькие жидкокристаллические цифровые индикаторы, чтобы обозначить взгляд изнутри радио.",
+            quote: "added a masking gobo in front of the lens",
+            attribution: "Питер Бизу, интервью American Cinematographer, 1998",
+          },
           spoilerLevel: "MINOR",
         },
         {
           id: "truman-craft-seaside",
           mechanism: "PRODUCTION_DESIGN",
-          observation: "Сихейвен снят в реальном «идеальном городке» Сисайд (Флорида) — пилотном проекте новой урбанистики: пастельные фасады, белые заборчики, идеальная площадь.",
-          interpretiveEffect: "Правдоподобие реальной утопии работает на фильм: клетка не выглядит декорацией, и оттого страшнее — так может выглядеть и наш мир.",
+          observation: "В записи утреннего маршрута упоминаются соседи и улица. Отдельно статья American Cinematographer называет реальный город Сисайд во Флориде натурой для Сихейвена; это производственный источник, а не вывод из субтитров приветствия.",
+          interpretiveEffect: "Использование реального города можно прочитать как сочетание знакомого пространства с ощущением искусственно устроенного мира.",
           confidence: "HIGH",
-          support: { evidenceIds: ["truman-ev-greeting"] },
+          support: { evidenceIds: ["truman-ev-routine"] },
+          contextSourceIds: ["truman-src-asc"],
           spoilerLevel: "MINOR",
         },
         {
@@ -738,7 +797,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           observation: "Лора Линни играет актрису, играющую жену: рекламные улыбки «в камеру», пластика по каталогам 1950-х и настоящая паника за роль — двойная игра без единого слова «в лоб».",
           interpretiveEffect: "Расхождение между «актрисой» и «женой» — главный измерительный прибор фильма: чем сильнее трещина, тем яснее зритель видит цену лжи.",
           confidence: "HIGH",
-          support: { evidenceIds: ["truman-ev-mococoa", "truman-ev-knife"] },
+          support: { evidenceIds: ["truman-ev-mococoa", "truman-ev-knife", "truman-ev-knife-tools"] },
           spoilerLevel: "MAJOR",
         },
         {
@@ -762,8 +821,8 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-craft-ending",
           mechanism: "EDITING_RHYTHM",
-          observation: "Финал смонтирован как выдох: тишина перед репликой-подписью, поклон, затемнение двери — и мгновенный скетч «что ещё идёт?» как противовес.",
-          interpretiveEffect: "Монтаж не даёт залипнуть в триумфе: две секунды охранников с пультом обесценивают весь пафос — и в этом весь фильм.",
+          observation: "В субтитрах финала есть повтор приветственной формулы и вопрос о других передачах. Выборочные кадры не устанавливают непрерывный монтаж или акустическую тишину; звук не проверялся.",
+          interpretiveEffect: "Сопоставление прощания и вопроса о следующей передаче можно читать как контраст между освобождением героя и привычкой зрителя переключаться.",
           confidence: "HIGH",
           support: { evidenceIds: ["truman-ev-exit"] },
           spoilerLevel: "ENDING",
@@ -807,7 +866,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       consequence: "Труман прощается со своей звездой поклоном и уходит в темноту; шоу кончается, зрители переключают канал.",
       claim: "Сцена переводит конфликт из плоскости «беглец против охраны» в плоскость «человек против роли»: Труман выигрывает не скорость и не силу, а отказ быть товаром.",
       counterevidence:
-        "Кристоф говорит правду о внешнем мире — «та же ложь, тот же обман»; финальный поклон — жест прощания не только с шоу, но и с гарантиями, которых снаружи не будет.",
+        "Кристоф утверждает, что снаружи «та же ложь, тот же обман»; фильм не доказывает его оценку внешнего мира. Но она напоминает о реальном возражении: за дверью Трумана ждёт неопределённость, а не обещанная безопасность.",
       confidence: "HIGH",
       support: { evidenceIds: ["truman-ev-wall", "truman-ev-dialog", "truman-ev-nocamera", "truman-ev-exit"] },
       anchors: [
@@ -819,7 +878,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-anchor-dialog",
-          label: "«Я — создатель…» — голос с неба",
+          label: "«Я — создатель…» — реплика в субтитрах",
           evidenceId: "truman-ev-dialog",
           point: { x: 0.5, y: 0.45 },
         },
@@ -912,7 +971,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-pr-voice",
           kind: "EMOTIONAL",
-          summary: "Голос «создателя» звучит как голос отца: забота, обида, тридцать лет отношений.",
+          summary: "Слова «создателя» можно прочитать как отцовское обращение после тридцати лет наблюдения. Это интерпретация текста: звук и интонацию мы не проверяли.",
           support: { evidenceIds: ["truman-ev-dialog"] },
           spoilerLevel: "ENDING",
         },
@@ -978,7 +1037,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       spoilerLevel: "ENDING",
       summary:
         "Моральная вселенная фильма выстроена жёстко: любой, кто «использует» Трумана, несёт ответственность — от всемогущего создателя до смеющихся в барах зрителей. При этом фильм не превращает героя в святого: кухонные инструменты в руке Мэрил в сцене срыва — тоже угроза, и она остаётся угрозой, как бы ни был прав человек, её доведший.",
-      summarySupport: { evidenceIds: ["truman-ev-knife", "truman-ev-storm"] },
+      summarySupport: { evidenceIds: ["truman-ev-knife", "truman-ev-knife-tools", "truman-ev-storm"] },
       events: [
         {
           id: "truman-moral-drowning",
@@ -1044,13 +1103,13 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           actorCharacterIds: ["truman-ch-marlon"],
           category: "Ложь дружбы",
           valence: "WRONGDOING",
-          act: "Использовать доверие лучшего друга, гася его сомнения репликами, которые он повторяет, пока они не прозвучат правильно.",
+          act: "Обещание не лгать появляется в субтитрах дважды. Повтор ставит вопрос о доверии, но его причина, говорящий и интонация по тексту не установлены.",
           target: "Труман",
-          motive: "Лояльность проекту как образ жизни: Марлон не знает другой.",
-          knowledge: "Знал, что врёт, и знал, зачем.",
+          motive: "Возможная лояльность проекту; внутренние мотивы Марлона не установлены.",
+          knowledge: "Разница в знании между участником шоу и Труманом принципиальна; мотивацию конкретной реплики ещё нужно проверить.",
           freedom: "Сомнительная: вся его жизнь — тоже роль, но выбор молчать был выбором.",
           consequence: "Именно Марлон последним удерживал Трумана в клетке — под прикрытием дружбы.",
-          responsibility: "Полная за каждое слово; система не отменяет ответчика.",
+          responsibility: "Ответственность за участие в обмане можно обсуждать отдельно от неподтверждённых чувств и конкретной подсказки.",
           severity: "MODERATE",
           culpability: "SUBSTANTIAL",
           narrativeStance: "CONDEMNS",
@@ -1084,18 +1143,18 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           actorCharacterIds: ["truman-ch-truman", "truman-ch-meryl"],
           category: "Давление правдой",
           valence: "MIXED",
-          act: "Загнанный в угол тридцатью годами лжи, Труман требует от жены прямого ответа — и доводит её до срыва, в котором она берёт со стола кухонные инструменты и кричит уже не ему, а в пустоту.",
+          act: "Во время ссоры Мэрил держит перед собой кухонные инструменты, а Труман затем удерживает её; просьба о помощи звучит в сцене, но её адресат не назван.",
           target: "Мэрил",
           motive: "Отчаяние: мирные способы узнать правду исчерпаны.",
-          knowledge: "Он требует ответа, зная, что ломает чужую работу и чужую жизнь.",
+          knowledge: "Труман подозревает обман; намерения обоих участников нельзя полностью восстановить по отдельным кадрам.",
           freedom: "Суженное тотальным обманом, но не отменённое.",
           consequence: "Срыв Мэрил на глазах у миллионов, выход ситуации из-под контроля сценаристов.",
-          responsibility: "Раздельная: давление — его выбор, а предмет в её руке — её собственный жест отчаяния.",
+          responsibility: "Раздельная: Труман отвечает за своё физическое удержание, Мэрил — за собственные действия; смысл её жеста остаётся вопросом интерпретации.",
           severity: "MODERATE",
           culpability: "PARTIAL",
           narrativeStance: "AMBIVALENT",
           confidence: "HIGH",
-          support: { evidenceIds: ["truman-ev-knife", "truman-ev-knife-call", "truman-ev-mococoa"] },
+          support: { evidenceIds: ["truman-ev-knife", "truman-ev-knife-tools", "truman-ev-knife-call", "truman-ev-meryl-held", "truman-ev-mococoa"] },
           spoilerLevel: "MAJOR",
         },
         {
@@ -1198,7 +1257,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           id: "truman-perm-lies",
           subject: "Ложь как забота",
           state: "CONDEMNED",
-          rationale: "«Амнезия» отца, отрепетированные обещания Марлона, реклама жены — все виды лжи «ради его же спокойствия» показаны как звенья одной машины; фильм не оставляет лжи «во спасение» никакой легитимности.",
+          rationale: "«Амнезия» отца, обещания Марлона в управляемом разговоре, реклама жены — все виды лжи «ради его же спокойствия» показаны как звенья одной машины; фильм не оставляет лжи «во спасение» никакой легитимности.",
           confidence: "HIGH",
           support: { evidenceIds: ["truman-ev-reunion", "truman-ev-marlon"] },
           spoilerLevel: "MAJOR",
@@ -1239,7 +1298,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       heading: "Клетка, где всё безопасно и ничего не свято",
       spoilerLevel: "ENDING",
       observation:
-        "Фильм сознательно играет религиозным словарём — и мы не имеем права ни пропустить эту игру, ни выдать её за проповедь. Кристоф говорит «включите солнце» — эхо «да будет свет» (Бытие 1:3); его командный центр спрятан в «луне»; Сихейвен выстроен как псевдо-Эдем, сад, насаждённый для одного человека; в финале он идёт вдоль стены, у которой стоит лестница, — то есть у «неба» есть рабочий вход. Но «Шоу Трумана» — светская сатира о медиа: символика здесь приём, а не исповедание. Наша задача обратна аллегории: не искать в Трумане Христа (его там нет — там обычный человек), а оценить мир фильма библейской меркой. И вот что видно. Всевидение Кристофа — вывернутый Псалом 138: «Куда пойду от Духа Твоего?» — но Божие знание сопровождается любовью, которая не продаёт нас рекламодателям и не поднимает шторм. Границы — вывернутая проповедь в афинском Ареопаге: Бог «назначил… пределы жительства, дабы искали Бога» (Деян 17:26–27) — Кристоф строит границы, чтобы Труман не искал. Одно и то же слово «пределы» — противоположные цели: у Бога границы даны для поиска, у Кристофа — от поиска. Ложь «во спасение» — «амнезия» отца, отрепетированные обещания Марлона, альбом матери — прямое нарушение «не произноси ложного свидетельства» (Исх 20:16): Писание не знает милосердной лжи как метода попечения. И сами зрители показа — та толпа, что кричала «распни» и кричала «осанна»: потреблять человека, не вникая в него, — древнейший из грехов.",
+        "Фильм сознательно играет религиозным словарём — и мы не имеем права ни пропустить эту игру, ни выдать её за проповедь. Кристоф говорит «включите солнце» — эхо «да будет свет» (Бытие 1:3); его командный центр спрятан в «луне»; Сихейвен выстроен как псевдо-Эдем, сад, насаждённый для одного человека; в финале он идёт вдоль стены, у которой стоит лестница, — то есть у «неба» есть рабочий вход. Но «Шоу Трумана» — светская сатира о медиа: символика здесь приём, а не исповедание. Наша задача обратна аллегории: не искать в Трумане Христа (его там нет — там обычный человек), а оценить мир фильма библейской меркой. И вот что видно. Всевидение Кристофа — вывернутый Псалом 138: «Куда пойду от Духа Твоего?» — но Божие знание сопровождается любовью, которая не продаёт нас рекламодателям и не поднимает шторм. Границы — вывернутая проповедь в афинском Ареопаге: Бог «назначил… пределы жительства, дабы искали Бога» (Деян 17:26–27) — Кристоф строит границы, чтобы Труман не искал. Одно и то же слово «пределы» — противоположные цели: у Бога границы даны для поиска, у Кристофа — от поиска. Ложь «во спасение» — «амнезия» отца, обещания Марлона в управляемом разговоре, альбом матери — прямое нарушение «не произноси ложного свидетельства» (Исх 20:16): Писание не знает милосердной лжи как метода попечения. И сами зрители показа — та толпа, что кричала «распни» и кричала «осанна»: потреблять человека, не вникая в него, — древнейший из грехов.",
       principle:
         "Человек — образ Божий, а не контент (Быт 1:26–27): его нельзя сделать средством чужого замысла, даже «благого». Истина — условие свободы (Ин 8:31–32), а комфорт, купленный ложью, Писание называет сообразностью «веку сему» (Рим 12:2). Забота, отнимающая свободу, — не любовь, а идол контроля; свобода же дана «не для угождения плоти» (Гал 5:13) — выход Трумана не бунт ради бунта, а возвращение себе собственного имени.",
       scriptureRefs: [
@@ -1256,7 +1315,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         "Галатам 5:13",
       ],
       application:
-        "Каталог грехов мира картины: человек как собственность — кража целой жизни; ложь как метод — от «амнезии» до отрепетированного обещания; гордыня «создателя» — власть, называющая себя любовью; соучастие зрителей — трусость смотреть и не вмешаться; идол покоя — безопасность ценой личности. Каталог доброго: правдивость Сильвии — правда, за которую платят; упорство Трумана в проверке мира — разум как долг; его финальное самообладание — достоинство без мести; даже тоска Кристофа у монитора — остаток настоящего чувства в фальшивой системе. Вопрос картины каждому: какой купол мы согласились населять — комфорт, рейтинг, чужие ожидания? Голос Кристофа внутри нас говорит: «Оставайся, тебе здесь безопасно». Писание отвечает иначе: «Выйди… и не прикасайся» — дверь открывается не для бунта, а для истины.",
+        "Каталог грехов мира картины: человек как собственность — кража целой жизни; ложь как метод — от «амнезии» до обещания в управляемом разговоре; гордыня «создателя» — власть, называющая себя любовью; соучастие зрителей — трусость смотреть и не вмешаться; идол покоя — безопасность ценой личности. Каталог доброго: правдивость Сильвии — правда, за которую платят; упорство Трумана в проверке мира — разум как долг; его финальное самообладание — достоинство без мести; даже тоска Кристофа у монитора — остаток настоящего чувства в фальшивой системе. Вопрос картины каждому: какой купол мы согласились населять — комфорт, рейтинг, чужие ожидания? Голос Кристофа внутри нас говорит: «Оставайся, тебе здесь безопасно». Писание отвечает иначе: «Выйди… и не прикасайся» — дверь открывается не для бунта, а для истины.",
       qualification:
         "Осторожность, которой мы обязаны и фильму, и читателю: «Шоу Трумана» — не христианская притча. Он намеренно двусмыслен: одни читают его как «бегство от религии» (Кристоф — карикатура на Бога), другие — как историю искупления (Сильвия — заступница). Обе линии в тексте есть; выбирая одну, мы лжём о фильме. Библейская линза здесь — оценка поступков и мира, а не розыск тайного замысла авторов. И последнее: «синдром Трумана» — реальный психиатрический феномен, тема слежки и подлинности болезненна для живых людей — разбор не должен превращать её в проповедь.",
       support: { evidenceIds: ["truman-ev-cuesun", "truman-ev-dialog", "truman-ev-nocamera", "truman-ev-born-live", "truman-ev-album"] },
@@ -1282,10 +1341,10 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       qualifications: [
         "Фильм насыщен сценами страха и психологического давления — чувствительному зрителю финальный акт может даться тяжело.",
         "Философский слой (античность, гностицизм, платоновская пещера) в самом фильме не проговорён: без внешнего контекста он читается упрощённо.",
-        "Тайминги привязаны к точному просмотренному мастеру (SHA-256 E8543F61…B3B575) и воспроизводимы; сам фильм при этом остаётся черновиком до человеческой редакторской подписи.",
+        "Тайминги привязаны к указанному в манифесте изданию (SHA-256 E8543F61…B3B575). Исходный файл в этой проверке недоступен, а выборочные кадры и субтитры не заменяют просмотр со звуком.",
       ],
       confidence: "HIGH",
-      support: { evidenceIds: ["truman-ev-routine", "truman-ev-knife", "truman-ev-storm", "truman-ev-dialog", "truman-ev-exit"] },
+      support: { evidenceIds: ["truman-ev-routine", "truman-ev-knife", "truman-ev-knife-tools", "truman-ev-storm", "truman-ev-dialog", "truman-ev-exit"] },
     },
     {
       id: "truman-mod-sources",
@@ -1299,16 +1358,18 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
       // editor authorised, so it must never be mistaken for a personal re-read.
       lastReviewedAt: "2026-10-28",
       analyzedEdition:
-        "Viewing master identified 2026-09-15: The Truman Show (1998) BDRip.mkv; Matroska; 13,099,008,485 bytes; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575; 1920×1080 H.264; 24000/1001 fps; measured runtime 01:42:57.792. Dialogue basis: English Original DTS 5.1 + embedded English SubRip. Edition LOCKED 2026-10-28 after scene-by-scene and record-by-record verification; 21 canonical scenes and 46 canonical evidence records cite this master directly (41 at lock; 5 dialogue facts added afterwards for the article and the module audit, ledgered separately). The film remains draft and unindexed. See docs/47-FILM-001-VISUAL-VERIFICATION.md and docs/48-FILM-001-EDITION-LOCK.md.",
+        "По предоставленной записи об издании: The Truman Show (1998) BDRip.mkv; Matroska; 13,099,008,485 bytes; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575; 1920×1080 H.264; 24000/1001 fps; 6177.792 s. Издание LOCKED, фильм опубликован; индексация зависит от окружения. Основа отдельных записей — выбранные кадры и субтитры. Исходный файл при этой проверке недоступен, его хеш повторно не пересчитан; наличие дорожки DTS не означает, что её прослушали.",
       sources: [
         {
           id: "truman-src-master-bdrip",
+          spoilerLevel: "NONE",
           label: "Viewing master: The Truman Show (1998) BDRip MKV",
           kind: "film-edition",
-          locator: "Matroska; 13,099,008,485 bytes; 1920×1080 H.264; 24000/1001 fps; 6177.792 s; English Original DTS 5.1 + embedded English SubRip; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575. Upstream retail-disc/region lineage is not independently established.",
+          locator: "По предоставленным метаданным: Matroska; 13,099,008,485 bytes; 1920×1080 H.264; 24000/1001 fps; 6177.792 s; English Original DTS 5.1 и английские субтитры; SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575. Дорожка не прослушана в этой проверке; происхождение от конкретного диска или региона независимо не установлено.",
         },
         {
           id: "truman-src-target",
+          spoilerLevel: "NONE",
           label: "Ранее выбранный target: The Truman Show 4K UHD (Paramount, 2023)",
           kind: "reference",
           researchRole: "database-transcript",
@@ -1317,6 +1378,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-blu-ray",
+          spoilerLevel: "NONE",
           label: "Blu-ray.com — карточка издания The Truman Show 4K UHD",
           kind: "reference",
           researchRole: "database-transcript",
@@ -1325,6 +1387,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-paramount",
+          spoilerLevel: "NONE",
           label: "Paramount Pictures — официальная страница фильма",
           kind: "reference",
           researchRole: "primary-material",
@@ -1333,6 +1396,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-bfi",
+          spoilerLevel: "NONE",
           label: "BFI — каталожная карточка The Truman Show",
           kind: "reference",
           researchRole: "institutional-academic",
@@ -1341,6 +1405,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-bfi-interview",
+          spoilerLevel: "NONE",
           label: "BFI — «How we made The Truman Show» (интервью к 20-летию)",
           kind: "reference",
           researchRole: "primary-material",
@@ -1349,10 +1414,11 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-asc",
-          label: "ASC — статья об операторском решении фильма",
+          spoilerLevel: "NONE",
+          label: "American Cinematographer — Eric Rudolph, интервью Питера Уира и Питера Бизу",
           kind: "reference",
-          researchRole: "institutional-academic",
-          locator: "The American Society of Cinematographers о работе Питера Бизиу",
+          researchRole: "primary-material",
+          locator: "This is Your Life: The Truman Show, первоначально июнь 1998: Сисайд, оптика, маска и цифровые индикаторы радио",
           href: "https://theasc.com/article/the-truman-show-cinematography/",
         },
         {
@@ -1365,6 +1431,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-imdb",
+          spoilerLevel: "NONE",
           label: "The Truman Show — IMDb",
           kind: "reference",
           researchRole: "database-transcript",
@@ -1405,6 +1472,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-kinomania",
+          spoilerLevel: "NONE",
           label: "КиноМания — Шоу Трумана (рус.)",
           kind: "reference",
           researchRole: "database-transcript",
@@ -1413,6 +1481,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-goldenglobes",
+          spoilerLevel: "NONE",
           label: "Golden Globes — The Truman Show",
           kind: "reference",
           researchRole: "primary-material",
@@ -1421,6 +1490,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-oscars",
+          spoilerLevel: "NONE",
           label: "71-я премия «Оскар» — номинации фильма",
           kind: "reference",
           researchRole: "tertiary-community",
@@ -1429,6 +1499,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-ebert",
+          spoilerLevel: "NONE",
           label: "Роджер Эберт — рецензия (4/4)",
           kind: "reference",
           researchRole: "professional-reference",
@@ -1437,6 +1508,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-rt",
+          spoilerLevel: "NONE",
           label: "Rotten Tomatoes — The Truman Show",
           kind: "reference",
           researchRole: "database-transcript",
@@ -1469,10 +1541,11 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-delusion",
-          label: "«Truman Show delusion» — Gold & Gold (2012), обзор клиники",
+          spoilerLevel: "NONE",
+          label: "Kirk Tjalas, F.N.P. / Priority Medical Group — обзор «Truman Show Delusion»",
           kind: "reference",
           researchRole: "professional-reference",
-          locator: "Психиатрический феномен, названный по фильму: бред реалити-слежки у пациентов",
+          locator: "Вторичный обзор клиники; он ссылается на исследование братьев Gold, но сам не является статьёй Gold & Gold. Описание явления не представляет собой диагноз.",
           href: "https://pmgcare.com/understanding-truman-show-delusion/",
         },
         {
@@ -1528,7 +1601,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           label: "TV Tropes — разбор комических сцен",
           kind: "reference",
           researchRole: "tertiary-community",
-          locator: "Плакат с молнией «Это может случиться с вами»; эпизод с дождём описан как «личный дождь» и в источнике, и в кадре: узкая струя над одним человеком, затем ливень на всю сцену",
+          locator: "Плакат с молнией «Это может случиться с вами»; описание дождя в источнике сопоставляется с отдельным кадром узкой струи, но последовательность погоды по нему не установлена",
           href: "https://tvtropes.org/pmwiki/pmwiki.php/Funny/TheTrumanShow",
         },
         {
@@ -1581,10 +1654,11 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         },
         {
           id: "truman-src-note-research",
+          spoilerLevel: "NONE",
           label: "Редакционная записка о статусе разбора",
           kind: "editorial-note",
           locator:
-            "Издание заблокировано (LOCKED): точный просмотренный мастер опознан и измерен — 6177,792 с, SHA-256 E8543F61…B3B575, — и каждая сцена ниже сверена с ним покадрово, а каждое доказательство ссылается на этот мастер как на источник. Сама карточка фильма остаётся черновиком (status: draft), поэтому маршрут закрыт от индексации и живёт только в превью; публикация откроется отдельным решением редакции, а не автоматически.",
+            "Манифест называет издание LOCKED: 6177,792 с, SHA-256 E8543F61…B3B575. Исходный файл здесь повторно не проверялся. Статус каждого наблюдения и его материал указаны в реестре; отдельные кадры и субтитры не подтверждают непрерывный просмотр со звуком. Карточка опубликована, а редакционные ограничения остаются видимыми.",
         },
       ],
     },

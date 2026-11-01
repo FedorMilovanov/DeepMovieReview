@@ -5,13 +5,14 @@ import { SpoilerDeepLinkGuard } from "@/components/spoiler-deep-link-guard";
 import { SpoilerLevelControl } from "@/components/spoiler-level-control";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { getArticleMeasurementBundle } from "@/data/article-measurements";
+import { getProductionDossier } from "@/data/films/production-dossiers";
 import { filmStillsServable, isPreviewContentEnabled } from "@/data/site-config";
 import { getFilmShareAsset } from "@/data/film-share-assets";
 import { projectFilmModule } from "@/lib/film-module-projection";
 import { projectArticleSections } from "@/lib/film-article";
 import { articlePageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
 import { siteIndexingEnabled } from "@/lib/site-indexing";
-import { parseSpoilerLevel } from "@/lib/spoilers";
+import { canRevealSpoiler, parseSpoilerLevel } from "@/lib/spoilers";
 
 /**
  * The readable layer of a locked edition.
@@ -131,7 +132,10 @@ export default async function FilmArticlePage({ params, searchParams }: ArticleP
         synthesis={finalProjection?.kind === "final-synthesis" ? finalProjection : undefined}
         spoilerLevel={spoilerLevel}
         describeMeasurement={measurements.describe}
-        evidenceById={new Map((filmPackage.evidence ?? []).map((record) => [record.id, record]))}
+        evidenceById={new Map((filmPackage.evidence ?? [])
+          .filter((record) => canRevealSpoiler(spoilerLevel, record.spoilerLevel))
+          .map((record) => [record.id, record]))}
+        contextSourcesById={new Map((getProductionDossier(filmPackage.film.slug)?.sources ?? []).map((source) => [source.id, source]))}
         formatTimecode={measurements.formatTimecode}
         moduleHeadings={Object.fromEntries(
           filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.heading]),

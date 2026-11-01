@@ -10,10 +10,11 @@
  *
  * Evidence basis
  * --------------
- * Every `frameTimeSeconds` below was read out of the exact viewing master
- * (SHA-256 E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575,
- * measured runtime 6177.792 s) from the derived evidence bundle described in
- * docs/47-FILM-001-VISUAL-VERIFICATION.md.
+ * This is the historical ledger of observations from the derived bundle described
+ * in docs/47. Its manifest names a master with SHA-256 E8543F6…B3B575, but the
+ * later review did not independently hash the absent master or listen to it.
+ * Older frame-grid labels are nominal, not verified source-frame PTS; subsequent
+ * clip observations and corrections are recorded in docs/63-FILM-001-CLIP-REVIEW.md.
  *
  * Verification statuses are deliberately conservative:
  *
@@ -36,9 +37,9 @@ export type TrumanVisualVerificationStatus =
   | "CONTRADICTED";
 
 export type TrumanObservedFrame = {
-  /** Master timestamp the observation is read from. */
+  /** Historical ledger timestamp; old grid frame PTS was not independently checked. */
   frameTimeSeconds: number;
-  /** What is actually visible / audible at that time. */
+  /** Ledger description, which may be based on an image or on a subtitle cue. */
   observation: string;
 };
 
@@ -97,34 +98,26 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   },
   {
     evidenceId: "truman-ev-interviews",
-    status: "VISUAL_CONFIRMED",
+    status: "TRANSCRIPT_CONFIRMED",
     sceneId: "truman-sc-prologue",
-    frames: [
-      frame(19.1, "Interview audio: audiences are tired of «phoney emotions»."),
-      frame(30, "Christof is framed against a lunar surface, i.e. inside the moon control room."),
-    ],
-    note: "Creator interview is the film's cold open; the moon interior is visible before the town is.",
+    frames: [frame(19.1, "SRT block 1: audiences are tired of «phoney emotions».")],
+    note: "The old entry mixed this subtitle timestamp, an alleged audio observation and a nominal 30 s frame. The available SRT does not name the speaker; the soundtrack and the frame's source PTS were not independently checked.",
   },
   {
     evidenceId: "truman-ev-light",
     status: "VISUAL_CONFIRMED",
     sceneId: "truman-sc-day-10909",
     frames: [
-      frame(210, "A studio lamp rig lies on the pavement; its housing is stencilled «SIRIUS (9 CANIS MAJOR)»."),
-      frame(230.943, "Radio explains the debris as aircraft parts."),
+      frame(210, "Grid file f_00008 shows a close-up of the lamp; «Sirius» is visible, but the rest of the label is obscured."),
     ],
-    note: "Both the physical prop marking and the cover story are master-grounded.",
+    note: "The grid time is nominal, not a verified master PTS. The cover story is a separate subtitle-track record, not a visual finding.",
   },
   {
     evidenceId: "truman-ev-radio",
-    status: "VISUAL_CONFIRMED",
+    status: "TRANSCRIPT_CONFIRMED",
     sceneId: "truman-sc-paranoia",
-    frames: [
-      frame(1790, "Truman at the wheel, eyes on the mirror."),
-      frame(1830, "Close-up of the car radio tuned to 92.5 as the production frequency breaks in."),
-      frame(1798.265, "Production voice tracks his route; «stand by, all extras»."),
-    ],
-    note: "The radio prop and the intercepted production chatter are both confirmed.",
+    frames: [frame(1798.265, "SRT block 206: «He's heading west on Stuart. Stand by, all extras.»")],
+    note: "The earlier ledger mixed subtitle text with visual observations and attributed a 92.5 radio close-up to 1830 s. Grid file f_00062, nominally 1830 s, actually shows the newspaper; its source PTS was not independently checked. A separate nominal 1800 s still shows Truman in the car, but neither it nor the subtitle identifies the speaker or proves what was heard. The 10-second contact sheet and 30-second grid also disagree at these nominal labels, so their timing is not interchangeable without the master.",
   },
   {
     evidenceId: "truman-ev-raincloud",
@@ -136,7 +129,7 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
       frame(1960, "Street scene, dry."),
     ],
     note:
-      "The record may not be promoted as written, for two reasons, and the second one is the correction. First, the beat is not in chapter 08: the three sampled frames above are dry, and they stay in the ledger as what the window actually showed. Second, the beat itself is not absent from the film — a second pass over the master at 12:41–13:06 (previous chapter, at the water) shows a narrow stream of rain falling on the seated Truman, staying in place when he steps aside, and then widening over the whole scene. So the record's placement and its «the cloud follows him» staging both fail, while its subject survives: the retired record is rewritten as `truman-ev-rain` in `the-truman-show-canonical-evidence.ts`. The earlier reading of the subtitle track was also used wrongly here — the scene is nearly wordless, so the absence of the word «rain» in subtitles could never have settled the question.",
+      "The record may not be promoted as written: the three sampled chapter-08 frames above are dry, but three stills cannot prove the episode absent. A later supplied nominal-grid still shows Truman under a narrow stream, so the earlier denial of the episode was wrong. The prior ledger described a wider movement across 12:41–13:06, but the two recorded observations do not establish that sequence or its mechanism. The rewritten record `truman-ev-rain` is therefore limited to the visible still. Absence of the word «rain» in subtitles cannot settle a visual question.",
   },
   {
     evidenceId: "truman-ev-quota",
@@ -268,14 +261,13 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   },
   {
     evidenceId: "truman-ev-marlon",
-    status: "VISUAL_CONFIRMED",
+    status: "TRANSCRIPT_CONFIRMED",
     sceneId: "truman-sc-father-and-son-reunion",
     frames: [
-      frame(3430, "Marlon at night on the bridge, close enough to read his face."),
-      frame(3464.272, "«The last thing I would ever do...»"),
-      frame(3469.903, "«...is lie to you.»"),
+      frame(3464.272, "Subtitle text: «The last thing I would ever do...»"),
+      frame(3469.903, "Subtitle text: «...is lie to you.»"),
     ],
-    note: "Staging and line are confirmed; the earpiece prompting remains a separate craft observation.",
+    note: "The words are recorded in subtitles; neither audio nor the speaker of the repetition was independently verified.",
   },
   {
     evidenceId: "truman-ev-reunion",
@@ -286,7 +278,7 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
       frame(3970, "Kirk, the returned father, in close-up."),
     ],
     note:
-      "Both halves of the compound record are now located in picture: the embrace at 3610 s sits in truman-sc-father-and-son-reunion, while the invented «amnesia» explanation and Kirk's re-presentation at 3880–3970 s sit here, 270 s later. The record must be split before promotion, but nothing about it is unverified.",
+      "Historical ledger: the original compound record put the embrace at 3610 s and the later «amnesia» explanation in this scene. A subsequent check of separate clip frames places the embrace by the bridge at approximately 3591 s and on a monitor around 3611 s. The original record was split; the clip offsets come from its manifest and the master PTS was not independently checked.",
   },
   {
     evidenceId: "truman-ev-escape",
@@ -352,8 +344,11 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
     evidenceId: "truman-ev-dialog",
     status: "TRANSCRIPT_CONFIRMED",
     sceneId: "truman-sc-final-act",
-    frames: [frame(5544.206, "«I'm the creator of a TV show...»")],
-    note: "The creator conversation is anchored; the voice-from-the-sky staging is separately visible at 5510.",
+    frames: [
+      frame(5544.206, "SRT block 670: «I'm the creator of a TV show»; the following blocks continue the exchange."),
+      frame(5565.144, "SRT block 673: «Was nothing real? — You were real.»"),
+    ],
+    note: "Subtitle text, not listened audio. A separate image of the painted wall cannot establish the voice or intonation.",
   },
   {
     evidenceId: "truman-ev-nocamera",
@@ -480,6 +475,13 @@ export const trumanVisualVerificationSummary = {
  */
 export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
   {
+    evidenceId: "truman-ev-light-explanation",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-day-10909",
+    frames: [frame(230.943, "Subtitle text describes falling aircraft parts; the audio was not reviewed.")],
+    note: "Split from the mixed light record: the subtitle cue does not verify the pictured lamp or identify the speaker.",
+  },
+  {
     evidenceId: "truman-ev-manufactured-limits",
     status: "TRANSCRIPT_CONFIRMED",
     sceneId: "truman-sc-trutalk",
@@ -512,11 +514,11 @@ export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
     frames: [
       frame(
         4052.5,
-        "Track line: «The world, the place you live in, is the sick place. Seahaven is the way the world should be.» Christof, in the studio interview.",
+        "SRT blocks 523–524: «The world, the place you live in, is the sick place. Sea haven is the way the world should be.»",
       ),
     ],
     note:
-      "Added after lock for article v2. This is Christof's own statement of design intent and replaces a paraphrase the article previously had to make without an anchor.",
+      "Subtitle text only: the blocks do not name their speaker and the soundtrack was not independently checked.",
   },
   {
     evidenceId: "truman-ev-marlon-retake",
@@ -530,6 +532,20 @@ export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
     ],
     note:
       "Added after lock in the module-audit batch. It carries no claim about an earpiece or any device, and none about a retake: the track shows a repetition, not who repeats the line or why. An earlier note read the repetition as the same words reshot until they sounded right; that inference was not supported by the track and has been removed. The modules previously asserted an earpiece prompt that no ledger entry supported, and that assertion was removed as well.",
+  },
+  {
+    evidenceId: "truman-ev-cocoa-subtitles",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-mococoa",
+    frames: [frame(3226.152, "English SRT cue 382 begins with the Mococoa pitch; cues 383–384 continue it.")],
+    note: "The supplied SRT text was inspected independently. It does not establish the speaker, delivery or audio.",
+  },
+  {
+    evidenceId: "truman-ev-tools-subtitles",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-mococoa",
+    frames: [frame(3265.943, "English SRT cue 390 begins: Dice me, slice me or peel me? There's so many choices.")],
+    note: "The supplied SRT text was inspected independently. It does not establish the speaker, delivery or audio.",
   },
   {
     evidenceId: "truman-ev-camera-count",

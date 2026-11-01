@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
+import type { ProductionSource } from "@/lib/production-dossier";
 import { DecisionModuleView } from "@/components/film-modules/module-components";
 import { VerdictCore } from "@/components/experience/verdict-core";
 import { EvidenceBasisLine } from "@/components/evidence-basis";
 import { ReadingOutline } from "./reading-outline";
 import { ArticleTable } from "./article-table";
+import { ArticleCorrectionTable } from "./article-correction-table";
 import Link from "next/link";
 import type {
   ArticleBlock,
@@ -18,6 +20,7 @@ import { illustrationView } from "@/data/film-illustrations";
 import type { ArticleMeasurementView, ArticleProjection } from "@/lib/film-article";
 import { articleReadingMinutes } from "@/lib/film-article";
 import { withSpoilerQuery, type SpoilerLevel } from "@/lib/spoilers";
+import { evidenceBasisMaterialLabels, evidenceBasisOutcomeLabels } from "@/lib/presentation-labels";
 
 type ArticleViewProps = {
   article: FilmArticle;
@@ -50,6 +53,7 @@ type ArticleViewProps = {
    * id, and the record decides what the reader sees.
    */
   evidenceById?: ReadonlyMap<string, EvidenceRecord>;
+  contextSourcesById?: ReadonlyMap<string, ProductionSource>;
 };
 
 const levelLabels: Record<SpoilerLevel, string> = {
@@ -121,10 +125,14 @@ function MeasurementFigure({ view, text }: { view: ArticleMeasurementView; text:
 function ArticleDuel({
   block,
   evidenceById,
+  filmSlug,
+  spoilerLevel,
   formatTimecode,
 }: {
   block: Extract<ArticleBlock, { kind: "duel" }>;
   evidenceById?: ReadonlyMap<string, EvidenceRecord>;
+  filmSlug: string;
+  spoilerLevel: SpoilerLevel;
   formatTimecode: (seconds: number) => string;
 }) {
   return (
@@ -142,10 +150,12 @@ function ArticleDuel({
                 if (!record) return null;
                 return (
                   <li key={id}>
-                    {record.timestampSeconds !== undefined ? (
-                      <span className="articleDuelTime">{formatTimecode(record.timestampSeconds)}</span>
-                    ) : null}
-                    <span>{record.label}</span>
+                    <a href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>
+                      {record.timestampSeconds !== undefined ? (
+                        <span className="articleDuelTime">{formatTimecode(record.timestampSeconds)} · </span>
+                      ) : null}
+                      {record.label}
+                    </a>
                   </li>
                 );
               })}
@@ -163,18 +173,24 @@ function ArticleDuel({
 
 function ArticleBlockView({
   block,
+  filmSlug,
+  spoilerLevel,
   describeMeasurement,
   evidenceById,
+  contextSourcesById,
   formatTimecode,
 }: {
   block: ArticleBlock;
+  filmSlug: string;
+  spoilerLevel: SpoilerLevel;
   describeMeasurement: ArticleViewProps["describeMeasurement"];
   evidenceById?: ReadonlyMap<string, EvidenceRecord>;
+  contextSourcesById?: ReadonlyMap<string, ProductionSource>;
   formatTimecode: (seconds: number) => string;
 }) {
   switch (block.kind) {
     case "duel":
-      return <ArticleDuel block={block} evidenceById={evidenceById} formatTimecode={formatTimecode} />;
+      return <ArticleDuel block={block} evidenceById={evidenceById} filmSlug={filmSlug} spoilerLevel={spoilerLevel} formatTimecode={formatTimecode} />;
     case "paragraph": {
       const supports = (block.support?.evidenceIds ?? []).flatMap((id) => {
         const record = evidenceById?.get(id);
@@ -183,21 +199,37 @@ function ArticleBlockView({
       return (
         <>
           <p className="articleParagraph">{block.text}</p>
-          {supports.length > 0 ? (
+          {block.contextSourceIds?.length ? (
+            <div className="articleContextSources">
+              <strong>Контекстный источник, не экранная опора:</strong>{" "}
+              {block.contextSourceIds.flatMap((id) => {
+                const source = contextSourcesById?.get(id);
+                return source ? [<a key={id} href={source.url}>{source.label} · {source.publisher}</a>] : [];
+              })}
+              <p>Источник указан отдельно от проверенных сцен; сопоставление — редакционное чтение.</p>
+            </div>
+          ) : null}
+          {supports.length === 1 ? (() => {
+            const record = supports[0];
+            return <p className="articleSupportSingle"><a href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>
+              Опора · {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)} · {record.label}
+              {record.basis?.material === "clip-frames" ? " · отдельные кадры фрагмента" : ""}
+              {!record.basis ? " · основа не записана" : record.basis.outcome !== "seen" ? ` · ${evidenceBasisOutcomeLabels[record.basis.outcome]}` : ""}
+            </a></p>;
+          })() : supports.length > 1 ? (
             <details className="articleSupport">
               <summary>
                 {supports.length === 1 ? "Опора этого абзаца" : `Опоры этого абзаца · ${supports.length}`}
               </summary>
               <ul>
-                {supports.map((record) => (
-                  <li key={record.id}>
-                    <span className="articleTimecode">
-                      {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}
-                    </span>
-                    <div>
-                      <p>{record.label}</p>
-                      <EvidenceBasisLine basis={record.basis} />
-                    </div>
+                {supports.map((record, index) => (
+                  <li key={index}>
+                    <span>{record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}</span>
+                    <a href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>
+                      {record.label}
+                      {record.basis?.material === "clip-frames" ? " · отдельные кадры фрагмента" : ""}
+                      {!record.basis ? " · основа не записана" : record.basis.outcome !== "seen" ? ` · ${evidenceBasisOutcomeLabels[record.basis.outcome]}` : ""}
+                    </a>
                   </li>
                 ))}
               </ul>
@@ -227,18 +259,31 @@ function ArticleBlockView({
     case "timeline":
       return (
         <ol className="articleTimeline" aria-label="Опорные точки разбора">
-          {block.items.map((item) => (
-            <li key={item.id}>
+          {block.items.map((item, index) => (
+            <li key={index}>
               <span className="articleTimecode">{formatTimecode(item.timestampSeconds)}</span>
               <p>{item.label}</p>
               {(() => {
                 const record = evidenceById?.get(item.evidenceId);
                 if (!record) return null;
+                const evidenceHref = `${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`;
+                if (record.basis?.material === "clip-frames") {
+                  return (
+                    <div className="articleTimelineBasis">
+                      <a className="articleTimelineBasisLabel" href={evidenceHref}>{record.label}</a>
+                      <EvidenceBasisLine basis={record.basis} />
+                    </div>
+                  );
+                }
                 return (
-                  <div className="articleTimelineBasis">
-                    <span className="articleTimelineBasisLabel">{record.label}</span>
-                    <EvidenceBasisLine basis={record.basis} />
-                  </div>
+                  <p className="articleTimelineBasis">
+                    <a className="articleTimelineBasisLabel" href={evidenceHref}>
+                      {record.basis
+                        ? `${evidenceBasisMaterialLabels[record.basis.material]} · ${evidenceBasisOutcomeLabels[record.basis.outcome]}`
+                        : "основа проверки не записана"}
+                      {record.basis?.refusedAncestor ? " · исходная запись отклонена и переписана" : ""}
+                    </a>
+                  </p>
                 );
               })()}
               {item.still ? (
@@ -249,7 +294,12 @@ function ArticleBlockView({
                       alt={item.still.alt} loading="lazy" decoding="async" />
                   </picture>
                   <figcaption>
-                    <span>Кадр ≈ {formatTimecode(item.still.sampleTimeSeconds)} · сетка {item.still.samplingIntervalSeconds} с</span>
+                    <span>{item.still.caption}</span>
+                    {item.still.samplingKind === "grid" ? (
+                      <small>Номинальная отметка сетки {formatTimecode(item.still.sampleTimeSeconds)} · шаг {item.still.samplingIntervalSeconds} с; время исходного кадра может отличаться</small>
+                    ) : (
+                      <small>Кадр из фрагмента {item.still.clip.file} · примерно {formatTimecode(item.still.sampleTimeSeconds)} по смещению в манифесте; точный таймкод исходника не проверен</small>
+                    )}
                     <small>{item.still.credit}</small>
                   </figcaption>
                 </figure>
@@ -293,24 +343,8 @@ function ArticleBlockView({
         </ArticleTable>
       );
     case "corrections":
-      return (
-        <ArticleTable blockId={block.id} caption={block.caption} corrections>
-          <thead>
-            <tr>
-              <th scope="col">Ходовое утверждение</th>
-              <th scope="col">Что в кадре</th>
-            </tr>
-          </thead>
-          <tbody>
-            {block.rows.map((row) => (
-              <tr key={row.id}>
-                <th scope="row">{row.commonClaim}</th>
-                <td>{row.onScreen}</td>
-              </tr>
-            ))}
-          </tbody>
-        </ArticleTable>
-      );
+      return <ArticleCorrectionTable block={block} filmSlug={filmSlug} spoilerLevel={spoilerLevel}
+        evidenceById={evidenceById} describeMeasurement={describeMeasurement} />;
   }
 }
 
@@ -325,11 +359,12 @@ export function ArticleView({
   spoilerLevel,
   describeMeasurement,
   evidenceById,
+  contextSourcesById,
   formatTimecode,
   moduleHeadings,
 }: ArticleViewProps) {
   const { visibleSections, hiddenSections, nextHiddenLevel } = projection;
-  const readingMinutes = articleReadingMinutes(article);
+  const readingMinutes = articleReadingMinutes(article, projection);
   const complete = hiddenSections === 0;
   const readingSections = [
     ...visibleSections.map(({ id, number, heading }) => ({ id, number, heading })),
@@ -342,13 +377,14 @@ export function ArticleView({
         <Breadcrumbs
           trail={[
             { label: "Фильмы", href: "/films" },
-            { label: filmTitle, href: `/films/${filmSlug}` },
+            { label: filmTitle, href: withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel) },
             { label: "Разбор" },
           ]}
         />
 
         <div className="sectionIndex">{article.kicker}</div>
         <h1 className="articleTitle">{article.title}</h1>
+        {controls ? <div className="articleSpoilerBar">{controls}</div> : null}
         <p className="articleStandfirst">{article.standfirst}</p>
         <div className="articleByline">
           <span>{article.byline.author}</span>
@@ -357,15 +393,14 @@ export function ArticleView({
               ? `редакция ${article.byline.editorialRevision} · ${formatSignatureDate(article.byline.reviewedAt)}`
               : `черновик · ${article.byline.editorialRevision}`}
           </span>
-          <span>{readingMinutes} мин чтения</span>
+          <span>≈ {readingMinutes} мин основного текста{complete ? "" : " · видимая часть"}</span>
           <span>точка зрения: {levelLabels[spoilerLevel]}</span>
         </div>
         <div className="articleHeaderLinks">
-          <Link className="microLabel" href={`/films/${filmSlug}`}>← Разбор фильма</Link>
+          <Link className="microLabel" href={withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}>← Разбор фильма</Link>
           <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
           {complete && synthesis ? <a className="microLabel" href="#article-verdict">Редакционная оценка ↓</a> : null}
         </div>
-        {controls ? <div className="articleSpoilerBar">{controls}</div> : null}
       </header>
 
       <ReadingOutline sections={readingSections} />
@@ -426,12 +461,17 @@ export function ArticleView({
             </details>
           ))}
           <div className="articleBody">
-            {section.blocks.map((block) => (
+            {/* Projection keeps every block in its original section order; the
+                compact position key avoids serializing long editorial IDs twice. */}
+            {section.blocks.map((block, index) => (
               <ArticleBlockView
-                key={block.id}
+                key={index}
                 block={block}
+                filmSlug={filmSlug}
+                spoilerLevel={spoilerLevel}
                 describeMeasurement={describeMeasurement}
                 evidenceById={evidenceById}
+                contextSourcesById={contextSourcesById}
                 formatTimecode={formatTimecode}
               />
             ))}

@@ -22,6 +22,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { normaliseSpace, stripScripts, stripTags } from "./lib/html-scan.mjs";
+import { checkPageCanonical, checkPageIndexability } from "./lib/page-indexability.mjs";
 
 const buildDir = ".audit-build";
 const tsc = resolve("node_modules", "@typescript", "native", "bin", "tsc");
@@ -60,6 +61,7 @@ const { theTrumanShowCanonicalPackage } = await import(
 const { theFastAndTheFuriousDraftPackage } = await import(
   `../${buildDir}/src/data/films/the-fast-and-the-furious.js`
 );
+const { homepageFeaturedFilmSlug } = await import(`../${buildDir}/src/data/site-config.js`);
 
 const packages = new Map([
   [theTrumanShowCanonicalPackage.film.slug, theTrumanShowCanonicalPackage],
@@ -403,6 +405,17 @@ if (base) {
   }
 
   const { body, ids, duplicates } = summarise(pageHtml);
+  let robots = "";
+  let sitemap = "";
+  let indexFetchError = "";
+  try {
+    const responses = await Promise.all([fetch(`${base}/robots.txt`), fetch(`${base}/sitemap.xml`)]);
+    const failed = responses.find((response) => !response.ok);
+    if (failed) throw new Error(`${failed.url} → ${failed.status}`);
+    [robots, sitemap] = await Promise.all(responses.map((response) => response.text()));
+  } catch (error) {
+    indexFetchError = error.message;
+  }
   // The homepage has two personalities; only one of them shows the film cards.
   const showsFilmCards = body.includes("FILM 001");
   const links = [...new Set([...body.matchAll(/href="(\/[^"#?]*)"/g)].map((m) => m[1]))];
@@ -470,15 +483,17 @@ if (base) {
   });
   check("SSR", "R16", "язык документа объявлен", () => /<html[^>]*lang="ru"/.test(body));
   check("SSR", "R17", "канонический адрес абсолютный и указывает на главную", () => {
+    const valid = checkPageCanonical(body, "/");
+    if (valid !== true) return valid;
+    const expectOrigin = args.includes("--expect-origin") ? args[args.indexOf("--expect-origin") + 1] : "";
+    if (!expectOrigin) return true;
     const canonical = /rel="canonical" href="([^"]*)"/.exec(body)?.[1] ?? "";
-    const expectOrigin = args.includes("--expect-origin")
-      ? args[args.indexOf("--expect-origin") + 1]
-      : "";
-    if (!/^https?:\/\//.test(canonical)) return `не абсолютный: ${canonical}`;
-    if (expectOrigin && !canonical.startsWith(expectOrigin)) return `${canonical} вместо ${expectOrigin}`;
-    return /\/$|^https?:\/\/[^/]+$/.test(canonical) || `не главная: ${canonical}`;
+    try { return new URL(canonical).origin === new URL(expectOrigin).origin || `${canonical} вместо ${expectOrigin}`; }
+    catch { return `некорректный ожидаемый origin: ${expectOrigin}`; }
   });
-  check("SSR", "R18", "черновик закрыт от индексации", () => /name="robots" content="noindex, nofollow"/.test(body));
+  check("SSR", "R18", "индексация главной согласована с robots.txt и sitemap", () => {
+    return indexFetchError || checkPageIndexability(body, robots, sitemap, "/");
+  });
   check("SSR", "R19", "html не тяжелее 250 КБ", () => pageHtml.length <= 250 * 1024 || `${Math.round(pageHtml.length / 1024)} КБ`);
   check("SSR", "R20", "на странице не больше сорока скриптов", () => (pageHtml.match(/<script\b/g) ?? []).length <= 40 || "больше 40");
 
@@ -508,10 +523,13 @@ if (base) {
     return brokenImages.length === 0 || brokenImages.join(",");
   });
 
-  // Tilt wiring in the delivered markup.
-  check("TILT", "T17", "карточки с наклоном отрендерены и размечены", () => {
+  // The published film-led home is intentionally quieter than the prelaunch
+  // marketing template. If it uses no tilted cards, the actual media frame is
+  // still checked separately; requiring two decorative cards invents UI.
+  const publishedHome = /data-home-state=["']published["']/.test(body);
+  check("TILT", "T17", "карточки с наклоном соответствуют текущему состоянию", () => {
     const surfaces = (body.match(/data-tilt-surface=/g) ?? []).length;
-    return surfaces >= 2 || `поверхностей: ${surfaces}`;
+    return (publishedHome ? surfaces === 0 || surfaces >= 2 : surfaces >= 2) || `поверхностей: ${surfaces}`;
   });
   check("TILT", "T18", "кадр с наклоном помечен и содержит изображение", () => {
     const index = body.indexOf('data-tilt="media"');
@@ -520,21 +538,37 @@ if (base) {
   });
   check("TILT", "T19", "разметка наклона не ломает семантику карточек", () => {
     const cards = (body.match(/<article[^>]*data-tilt-surface/g) ?? []).length;
-    return cards >= 2 || `article с наклоном: ${cards}`;
+    return (publishedHome ? cards === 0 || cards >= 2 : cards >= 2) || `article с наклоном: ${cards}`;
   });
   check("TILT", "T20", "в каждом состоянии главной есть хотя бы один кадр с наклоном", () => {
     return body.includes('data-tilt="media"') || "кадр без наклона";
   });
   check("VIS", "V06", "главная сообщает своё состояние, а не притворяется другой", () => {
+    if (publishedHome) {
+      // A published film-led home is neither a fixture nor a prelaunch page.
+      // Require reader-visible signals as well as the structural state marker;
+      // a stray footer word must not make the wrong homepage pass.
+      const visible = normaliseSpace(stripTags(body));
+      const target = `href="/films/${homepageFeaturedFilmSlug}"`;
+      const entry = [...body.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].some(([, attributes, contents]) =>
+        attributes.includes(target) && normaliseSpace(stripTags(contents)) === "Открыть разбор");
+      return (/избранный разбор/i.test(visible) && /Опубликовано:\s*\d+\s+разбор/i.test(visible) && entry) ||
+        "опубликованная главная не показывает избранный разбор, ссылку и реестровый статус";
+    }
     const previewMarks = /FILM 001/.test(body);
     const prelaunchMarks = /предзапуск|Структурный стенд/i.test(body);
     return previewMarks || prelaunchMarks || "состояние не читается";
   });
 
-  // Presentation: every section that should have a numeral does.
-  check("VIS", "V01", "у секций главной есть нумерация в разметке", () => {
+  // Published sections use labels, not misleading numbers with hidden gaps.
+  check("VIS", "V01", "рубрики секций соответствуют состоянию главной", () => {
     const indexes = (body.match(/class="sectionIndex"/g) ?? []).length;
-    return indexes >= 8 || `индексов: ${indexes}`;
+    const minimum = publishedHome ? 5 : 8;
+    if (indexes < minimum) return `рубрик: ${indexes}, нужно ${minimum}`;
+    if (publishedHome && (!body.includes("Разбор / История") || !body.includes("Разбор / Люди") || body.includes("Проекция 01 /"))) {
+      return "опубликованные рубрики отсутствуют или названы фикстурой";
+    }
+    return true;
   });
   check("VIS", "V02", "главная содержит заголовок-обещание и лид", () => {
     return /class="lede"/.test(body) && /class="kicker"/.test(body);

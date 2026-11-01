@@ -6,6 +6,15 @@ export type LensKey =
   | "moral-world"
   | "craft";
 
+export const LENS_LABELS: Record<LensKey, string> = {
+  story: "История",
+  people: "Люди",
+  relationships: "Отношения",
+  ideas: "Идеи",
+  "moral-world": "Моральный мир",
+  craft: "Мастерство",
+};
+
 export type NarrativePermissionState =
   | "CONDEMNED"
   | "COSTLY"

@@ -72,7 +72,8 @@ export function projectArticleSections(
 function blockProse(block: ArticleBlock): string {
   switch (block.kind) {
     case "illustration":
-      return block.caption;
+      // The current view renders an image and alt text, not the stored caption.
+      return "";
     case "paragraph":
     case "aside":
     case "subhead":
@@ -90,21 +91,23 @@ function blockProse(block: ArticleBlock): string {
   }
 }
 
-export function countArticleWords(article: FilmArticle): number {
+export function countArticleWords(article: FilmArticle, projection?: ArticleProjection): number {
+  const sections = projection?.visibleSections ?? article.sections;
+  const complete = !projection || projection.hiddenSections === 0;
   const text = [
     article.title,
     article.standfirst,
-    ...article.sections.flatMap((section) => [
+    ...sections.flatMap((section) => [
       section.heading,
       section.standfirst ?? "",
       ...section.blocks.map(blockProse),
     ]),
-    article.closing?.text ?? "",
+    complete ? article.closing?.text ?? "" : "",
   ].join(" ");
   return text.split(/\s+/).filter(Boolean).length;
 }
 
-/** Reading time at a deliberately slow 150 words per minute for dense criticism. */
-export function articleReadingMinutes(article: FilmArticle): number {
-  return Math.max(1, Math.round(countArticleWords(article) / 150));
+/** Approximate main-prose reading time at 150 words per minute, after projection. */
+export function articleReadingMinutes(article: FilmArticle, projection?: ArticleProjection): number {
+  return Math.max(1, Math.round(countArticleWords(article, projection) / 150));
 }

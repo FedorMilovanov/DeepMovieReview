@@ -293,23 +293,10 @@
   font-size: 0.82rem;
 }
 
-/* 40rem of minimum width is a desktop floor. On a phone it is a horizontal
-   scrollbar inside a page that forbids one, so the floor comes off and the cells
-   wrap; the caption still names the table for a screen reader. */
-@media (max-width: 760px) {
-  .evidenceRegisterWrap table {
-    min-width: 0;
-  }
-
-  .evidenceRegisterWrap th,
-  .evidenceRegisterWrap td {
-    padding: 0.45rem 0.4rem;
-    overflow-wrap: anywhere;
-  }
-
-  .evidenceRegisterTime {
-    white-space: normal;
-  }
+/* Preserve readable columns and use the focusable horizontal viewport. */
+.evidenceRegisterWrap:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
 }
 
 .evidenceRegisterWrap th,
@@ -345,6 +332,10 @@
   white-space: nowrap;
 }
 
+.evidenceRegisterBasis summary { cursor: pointer; text-decoration: underline; text-underline-offset: 0.15em; }
+.evidenceRegisterBasis summary:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }
+.evidenceRegisterBasis .evidenceBasis { margin-top: var(--space-2); min-width: 14rem; }
+
 .evidenceRegisterWrap tr[data-outcome="refused"] td,
 .evidenceRegisterWrap tr[data-outcome="refused"] th {
   color: var(--accent-fracture-bright);
@@ -353,4 +344,23 @@
 .evidenceRegisterWrap tr[data-outcome="missing"] td,
 .evidenceRegisterWrap tr[data-outcome="missing"] th {
   color: var(--ink-3);
+}
+
+.evidenceRegisterObservation {
+  margin: 0.45rem 0 0;
+  color: var(--ink-2);
+  font-weight: 400;
+  line-height: 1.5;
+}
+.evidenceRegisterMobileMeta { display: none; }
+.evidenceRegisterWrap tr[id] { scroll-margin-top: 6rem; }
+.evidenceRegisterWrap tr:target { background: var(--surface-2); }
+.evidenceRegisterWrap tr:focus-visible { outline: 2px solid var(--focus-color); outline-offset: -2px; }
+
+@media (max-width: 720px) {
+  .evidenceRegisterWrap table { min-width: 0; table-layout: fixed; }
+  .evidenceRegisterWrap .evidenceRegisterExtra { display: none; }
+  .evidenceRegisterMobileMeta { display: grid; gap: 0.45rem; margin-top: 0.7rem; color: var(--ink-2); font-weight: 400; }
+  .evidenceRegisterMobileMeta .evidenceBasis { min-width: 0; }
+  .evidenceRegisterMobileMeta summary { min-height: 2.75rem; padding: 0.6rem 0; }
 }

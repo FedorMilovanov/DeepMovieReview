@@ -27,6 +27,12 @@ export function EvidenceBasisLine({ basis }: { basis?: EvidenceReviewBasis }) {
   const window = basis.window
     ? `${formatTimecode(basis.window.from)}–${formatTimecode(basis.window.to)}`
     : undefined;
+  // A range is only an envelope; when the cited second is not one of the
+  // observations, show the individual nominal times instead of implying a
+  // continuous check. Formatting truncates sub-seconds, hence the approximation.
+  const nearbyTimes = basis.anchorRelation && basis.anchorRelation !== "listed"
+    ? basis.observationTimes?.map((time) => formatTimecode(time)).join(", ")
+    : undefined;
 
   return (
     <p
@@ -36,13 +42,17 @@ export function EvidenceBasisLine({ basis }: { basis?: EvidenceReviewBasis }) {
     >
       <span>Основа проверки</span>
       {evidenceBasisMaterialLabels[basis.material]} · {evidenceBasisOutcomeLabels[basis.outcome]}
-      {window ? ` · наблюдения ${window}` : ""} · {basis.observations}{" "}
+      {basis.material === "subtitle-track" ? " · эта основа не проверяет звук и интонацию" : " · не непрерывный просмотр"}
+      {nearbyTimes ? ` · отдельные отметки журнала ≈ ${nearbyTimes}` : window ? ` · пределы отметок ${basis.windowApproximate ? "≈ " : ""}${window}` : ""}
+      {basis.anchorRelation === "between" ? " · указанный момент между отметками, а не отдельный проверенный кадр" : ""}
+      {basis.inheritedFrom ? " · общая основа родительской записи, не отдельная проверка" : ""} · {basis.observations}{" "}
       {pluralRu(basis.observations, "наблюдение", "наблюдения", "наблюдений")}
       {basis.unrecorded?.length
         ? ` · не записано: ${basis.unrecorded
             .map((field) => (field === "reviewer" ? "кто проверял" : "когда"))
             .join(", ")}`
         : ""}
+      {basis.note ? ` · ${basis.note}` : ""}
       {basis.refusedAncestor ? (
         <span className="evidenceBasisRefusal">
           исходная формулировка отклонена проверкой и переписана

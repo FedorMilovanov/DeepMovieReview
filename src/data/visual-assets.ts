@@ -1,5 +1,6 @@
 import { filmPackages } from "@/data/film-registry";
 import { filmShareAssets, getFilmShareAsset } from "@/data/film-share-assets";
+import { filmHomeAssets, getFilmHomeAsset } from "@/data/film-home-assets";
 import { assertValidVisualAssetRegistry } from "@/lib/visual-asset-integrity";
 import type { VisualAssetManifest } from "@/lib/visual-assets";
 
@@ -224,7 +225,7 @@ export const discoveryMasterAsset: VisualAssetManifest = {
   provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
 };
 
-const rawVisualAssetManifests: VisualAssetManifest[] = [fixtureHeroAsset, heroMasterAsset, lensMasterAsset, relationshipMasterAsset, autopsyMasterAsset, decisionMasterAsset, craftMasterAsset, discoveryMasterAsset, ...filmShareAssets];
+const rawVisualAssetManifests: VisualAssetManifest[] = [fixtureHeroAsset, heroMasterAsset, lensMasterAsset, relationshipMasterAsset, autopsyMasterAsset, decisionMasterAsset, craftMasterAsset, discoveryMasterAsset, ...filmShareAssets, ...filmHomeAssets];
 const knownFilmSlugs = filmPackages.map((filmPackage) => filmPackage.film.slug);
 
 assertValidVisualAssetRegistry(rawVisualAssetManifests, knownFilmSlugs);
@@ -232,7 +233,7 @@ assertValidVisualAssetRegistry(rawVisualAssetManifests, knownFilmSlugs);
 /** Canonical validated read surface for visual assets. */
 export const visualAssetManifests = rawVisualAssetManifests;
 
-export { getFilmShareAsset };
+export { getFilmHomeAsset, getFilmShareAsset };
 
 export function getVisualAssetManifest(id: string) {
   return visualAssetManifests.find((manifest) => manifest.id === id);

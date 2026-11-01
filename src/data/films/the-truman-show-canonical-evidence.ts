@@ -10,29 +10,26 @@
  *
  * - `sceneId` resolves to a VERIFIED canonical scene from
  *   `the-truman-show-scene-inventory.ts`;
- * - `timestampSeconds` is measured from the master's Matroska presentation
- *   origin and falls inside that scene;
- * - `sourceIds` cites the locked `film-edition` source;
+ * - `timestampSeconds` is the ledger's locator on the edition timeline and falls
+ *   inside that scene; old sampled-frame PTS may differ from nominal grid times;
+ * - `sourceIds` cites the locked `film-edition` source, not independent proof of
+ *   the unavailable master or a continuous viewing;
  * - `spoilerLevel` is never lower than the referenced scene's level;
- * - the observation text states only what is on screen or on the subtitle
- *   track at that second — no interpretation, no unverified prop.
+ * - observations should distinguish images, subtitles and interpretation. See
+ *   each record's review basis and docs/63 for the scope of later corrections.
  *
  * Records that failed verification are deliberately absent or rewritten. Two
  * cases have a history worth keeping:
  *
  * - the research-tier «personal rain» record is retired, but *not* because the
- *   beat is absent. A frame pass over the master's 12:41–13:06 window shows the
- *   opposite: a narrow stream of rain falls on the seated Truman, he steps out
- *   from under it, the stream stays where it was, and the rain then widens. The
- *   retired record had two defects — it placed the beat in chapter 08, and it
- *   asserted that the cloud follows the hero. The beat is rewritten here as
- *   `truman-ev-rain`, in the scene where it actually stands;
+ *   beat is absent: a supplied, nominal-grid frame shows Truman under a narrow
+ *   stream. The old ledger described further motion across a 12:41–13:06
+ *   window, but its two recorded observations do not independently establish
+ *   that sequence. The new record is limited to what the available frame shows;
  * - the tunnel in the escape record was not found in picture.
  *
- * A retraction is not permission to overclaim in the other direction: the
- * rewritten record states the stream as observed and names the mechanism
- * («technical failure of the dome») as an interpretation, because no frame shows
- * a mechanism.
+ * A retraction is not permission to overclaim in the other direction: neither
+ * motion nor a mechanism follows from the available single image.
  */
 
 import type { EvidenceRecord } from "@/lib/film-package";
@@ -62,14 +59,24 @@ const record = (
 });
 
 export const trumanCanonicalEvidence: EvidenceRecord[] = [
-  record(
-    "truman-ev-interviews",
-    "Интервью создателя",
-    "truman-sc-prologue",
-    19.1,
-    "NONE",
-    "Фильм открывается не городом, а разговором о герое: зрителям «надоели фальшивые эмоции актёров». Говорящий стоит на фоне, которого нет ни в одном кадре города; кто он и откуда говорит, по этому кадру не установить.",
-  ),
+  {
+    ...record(
+      "truman-ev-interviews",
+      "Начальное интервью: текст субтитров",
+      "truman-sc-prologue",
+      19.1,
+      "NONE",
+      "В первом блоке английских субтитров сказано, что зрителям надоели «фальшивые эмоции» актёров. Имя говорящего в записи не указано; звук и интонацию мы не проверяли.",
+    ),
+    basis: {
+      material: "subtitle-track",
+      window: { from: 19.1, to: 24.474 },
+      observations: 1,
+      outcome: "subtitle",
+      unrecorded: ["reviewer", "date"],
+      note: "SRT, блок 1; текст субтитров не удостоверяет голос или личность говорящего.",
+    },
+  },
   record(
     "truman-ev-daycount",
     "«День 10 909»",
@@ -94,13 +101,32 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "NONE",
     "Соседи, собака и приветствия повторяются в одном и том же порядке, а мир вокруг героя движется по заранее расставленным точкам.",
   ),
+  {
+    ...record(
+      "truman-ev-light",
+      "Прожектор «Сириус»",
+      "truman-sc-day-10909",
+      210,
+      "NONE",
+      "На крупном плане синего осветительного прибора видна надпись «Sirius»; продолжение наклейки закрыто головой Трумана. Номинальная отметка кадра приблизительна.",
+    ),
+    basis: {
+      material: "frames",
+      window: { from: 210, to: 210 },
+      windowApproximate: true,
+      observations: 1,
+      outcome: "seen",
+      unrecorded: ["reviewer", "date"],
+      note: "Проверен файл f_00008 из сетки с номинальной отметкой 210 с; точный PTS исходного мастера не установлен.",
+    },
+  },
   record(
-    "truman-ev-light",
-    "Прожектор «Сириус»",
+    "truman-ev-light-explanation",
+    "Объяснение в тексте субтитров",
     "truman-sc-day-10909",
-    210,
+    230.943,
     "NONE",
-    "На тротуаре лежит студийный прибор с трафаретной надписью «SIRIUS (9 CANIS MAJOR)».",
+    "В тексте английских субтитров обломки объясняются деталями самолёта; звук и говорящий по этой записи не проверены.",
   ),
   record(
     "truman-ev-kaiser",
@@ -145,23 +171,26 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
   /**
    * Written after the lock, so it has no research-era ledger entry to inherit a
    * basis from: the basis is stated here, and it is the one thing this record
-   * knows that the ledger does not. Two frames, 12:41 and 13:06, both watched.
+   * knows that the ledger does not. The old entry listed two observations;
+   * the later audit independently inspected only the supplied nominal-grid still.
    */
   {
     ...record(
       "truman-ev-rain",
-      "Дождь, который стоит на месте",
+      "Кадр с узкой струёй дождя",
       "truman-sc-memories-of-dad",
-      761,
+      750,
       "MINOR",
-      "После разговора у воды начинается дождь: узкая струя падает на сидящего Трумана. Он встаёт и отходит в сторону — струя остаётся на прежнем месте, отдельно от него, — затем возвращается к ней. Через полминуты дождь расширяется на всю сцену. Кадры не показывают ни механизма, ни «тучи, которая следует за героем»: это домысел, а не увиденное.",
+      "На доступном отдельном кадре Труман наклонился под узкой струёй дождя. Это опровергает прежнее отрицание самого эпизода, но не устанавливает дальнейшее движение струи, её расширение или механизм. Номинальная отметка сетки — не проверенный PTS исходного кадра.",
     ),
     basis: {
       material: "frames",
-      window: { from: 761, to: 786 },
-      observations: 2,
+      window: { from: 750, to: 750 },
+      windowApproximate: true,
+      observations: 1,
       outcome: "seen",
       unrecorded: ["reviewer", "date"],
+      note: "Ранний журнал перечисляет две отметки 761–786 с, но не подтверждает последовательность движения. Сейчас отдельно осмотрен кадр сетки с номиналом 750 с; его точный PTS не установлен.",
     },
   },
   record(
@@ -204,22 +233,43 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "MAJOR",
     "В подвале рука прижимает к груди кнопку с надписью «HOW'S IT GOING TO END?» — пальцы при этом скрещены.",
   ),
-  record(
-    "truman-ev-radio",
-    "Чужая частота",
-    "truman-sc-paranoia",
-    1798.265,
-    "MINOR",
-    "Автомобильное радио на 92.5 ловит служебный эфир: голос называет маршрут Трумана и командует статистами.",
-  ),
-  record(
-    "truman-ev-europe",
-    "Первая полоса о бездомных",
-    "truman-sc-paranoia",
-    1830,
-    "MINOR",
-    "В руках у Трумана газета «The Island» с заголовком «CRACKDOWN ON HOMELESS — Enough is Enough!» и фотографией, на которой полицейский уводит человека: ровно та сцена, которую зритель только что видел.",
-  ),
+  {
+    ...record(
+      "truman-ev-radio",
+      "Маршрут в тексте субтитров",
+      "truman-sc-paranoia",
+      1798.265,
+      "MINOR",
+      "В английских субтитрах появляется текст «He's heading west on Stuart. Stand by, all extras». Отдельный кадр показывает Трумана в машине; по нему нельзя установить частоту, говорящего или то, как звучит эфир.",
+    ),
+    basis: {
+      material: "subtitle-track",
+      window: { from: 1798.265, to: 1805.098 },
+      observations: 1,
+      outcome: "subtitle",
+      unrecorded: ["reviewer", "date"],
+      note: "SRT-блок 206; кадр с номинальной отметкой 1800 с — отдельное изображение, не проверка звука или точного PTS.",
+    },
+  },
+  {
+    ...record(
+      "truman-ev-europe",
+      "Первая полоса о бездомных",
+      "truman-sc-paranoia",
+      1830,
+      "MINOR",
+      "Выборочный кадр показывает газету «The Island» с заголовком «CRACKDOWN ON HOMELESS — Enough is Enough!» и фотографией полицейского с человеком. По одному изображению нельзя установить, тот ли это человек, которого Труман видел ранее.",
+    ),
+    basis: {
+      material: "frames",
+      window: { from: 1830, to: 1830 },
+      windowApproximate: true,
+      observations: 1,
+      outcome: "seen",
+      unrecorded: ["reviewer", "date"],
+      note: "Файл сетки f_00062 с номиналом 1830 с; точный PTS исходного мастера не установлен, контактная сетка на том же номинале показывает другой кадр.",
+    },
+  },
   record(
     "truman-ev-elevator",
     "Лифт без кабины",
@@ -242,23 +292,76 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "truman-sc-mococoa",
     3226.152,
     "MAJOR",
-    "Посреди семейной ссоры Мэрил отворачивается к невидимой камере и рекламным голосом расхваливает какао «Мококея».",
+    "В журнале визуальной проверки зафиксирована Мэрил в сцене с рекламой какао. Текст о Mococoa разобран отдельно по субтитрам; интонацию, точный адрес и звук отдельные изображения не устанавливают.",
   ),
   record(
-    "truman-ev-knife",
-    "«Сделай же что-нибудь!»",
+    "truman-ev-cocoa-subtitles",
+    "Какао в английских субтитрах",
     "truman-sc-mococoa",
-    3250,
+    3226.152,
     "MAJOR",
-    "Прижатая вопросами Трумана, Мэрил берёт со стола кухонные инструменты «Chef's Pal» и держит их перед собой, пока камера чередует её лицо и реакцию Трумана. Упаковка до этого лежит на столе: в кадре не нож, не блистер в руках и не он.",
+    "В английских субтитрах записан рекламный текст о какао Mococoa. Текст субтитров не устанавливает говорящего, адресата или интонацию; звук отдельно не проверялся.",
   ),
+  record(
+    "truman-ev-tools-subtitles",
+    "Вопрос об инструментах в субтитрах",
+    "truman-sc-mococoa",
+    3265.943,
+    "MAJOR",
+    "В английских субтитрах записано: «Dice me, slice me or peel me? There's so many choices». Текст не устанавливает говорящего или интонацию; звук отдельно не проверялся.",
+  ),
+  {
+    ...record(
+      "truman-ev-knife",
+      "Упаковка на столе",
+      "truman-sc-mococoa",
+      3255,
+      "MAJOR",
+      "На столе лежит упаковка «Chef's Pal» с кухонным инструментом; рядом видна рука. Этот кадр сам по себе не показывает Мэрил с поднятыми инструментами.",
+    ),
+    basis: {
+      material: "clip-frames", window: { from: 3255, to: 3255 }, windowApproximate: true,
+      observations: 1, outcome: "seen", unrecorded: ["reviewer", "date"],
+      note: "Кадр из предоставленного фрагмента; смещение взято из его манифеста, исходный мастер независимо не пересчитан.",
+    },
+  },
+  {
+    ...record(
+      "truman-ev-knife-tools",
+      "Мэрил держит кухонные инструменты",
+      "truman-sc-mococoa",
+      3265,
+      "MAJOR",
+      "Позже в той же сцене Мэрил держит инструменты перед собой. По отдельным кадрам нельзя определить намерение этого жеста.",
+    ),
+    basis: {
+      material: "clip-frames", window: { from: 3265, to: 3270 }, windowApproximate: true,
+      observations: 2, outcome: "seen", unrecorded: ["reviewer", "date"],
+      note: "Кадры из предоставленного фрагмента; смещение взято из его манифеста, звук не проверен.",
+    },
+  },
+  {
+    ...record(
+      "truman-ev-meryl-held",
+      "Труман удерживает Мэрил",
+      "truman-sc-mococoa",
+      3275,
+      "MAJOR",
+      "На экране, показывающем кухню, Труман удерживает Мэрил руками. Отдельный кадр не устанавливает намерений участников.",
+    ),
+    basis: {
+      material: "clip-frames", window: { from: 3275, to: 3275 }, windowApproximate: true,
+      observations: 1, outcome: "seen", unrecorded: ["reviewer", "date"],
+      note: "Кадр из предоставленного фрагмента; смещение взято из его манифеста, звук не проверен.",
+    },
+  },
   record(
     "truman-ev-knife-call",
     "Крик в пустоту",
     "truman-sc-mococoa",
     3272.199,
     "MAJOR",
-    "Выйдя из роли, Мэрил кричит не Труману, а в пространство: «Сделай же что-нибудь!»",
+    "В английских субтитрах сцены есть просьба: «Сделай же что-нибудь!» Кому именно она адресована, по отдельному кадру не установить.",
   ),
   record(
     "truman-ev-bridge",
@@ -278,27 +381,34 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
   ),
   record(
     "truman-ev-marlon",
-    "«Последнее, что я стал бы делать — врать тебе»",
+    "Обещание в субтитрах к разговору на мосту",
     "truman-sc-father-and-son-reunion",
     3464.272,
     "MAJOR",
-    "Ночью на мосту Марлон говорит: «Последнее, что я стал бы делать, — это врать тебе».",
+    "В субтитрах записано: «Последнее, что я стал бы делать, — это врать тебе». По тексту нельзя надёжно установить повторяющего слова или их интонацию.",
   ),
-  record(
-    "truman-ev-reunion",
-    "Возвращение отца",
-    "truman-sc-father-and-son-reunion",
-    3610,
-    "MAJOR",
-    "Кирк и Труман обнимаются в дверях дома; сцену показывает контрольный центр на мониторе.",
-  ),
+  {
+    ...record(
+      "truman-ev-reunion",
+      "Возвращение отца",
+      "truman-sc-father-and-son-reunion",
+      3591,
+      "MAJOR",
+      "У ограждения моста Труман обнимает Кирка; позднее объятие видно на мониторе аппаратной. Это наблюдение по отдельным кадрам предоставленного фрагмента.",
+    ),
+    basis: {
+      material: "clip-frames", window: { from: 3591, to: 3611 }, windowApproximate: true,
+      observations: 2, outcome: "seen", unrecorded: ["reviewer", "date"],
+      note: "Кадры из предоставленного фрагмента; смещение взято из его манифеста, исходный мастер независимо не пересчитан, звук не проверен.",
+    },
+  },
   record(
     "truman-ev-reunion-amnesia",
     "«Амнезия»",
     "truman-sc-trutalk",
     3880.242,
     "MAJOR",
-    "Через двести семьдесят секунд после объятия контрольный центр объясняет возвращение отца амнезией: «утонул, но выжил и всё забыл».",
+    "В выпуске TruTalk возвращение отца объясняется амнезией: «утонул, но выжил и всё забыл». Непрерывная сверка самого объятия ещё ожидается.",
   ),
   record(
     "truman-ev-trutalk",
@@ -346,7 +456,7 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "truman-sc-hes-gone",
     4840,
     "ENDING",
-    "Контрольный центр перебирает камеры буёв и маяка в поисках Трумана; на мониторе с метками камер показывают город и воду.",
+    "По соседним отметкам журнала сотрудники аппаратной решают, как искать лодку на воде, а затем Кристоф берёт управление на себя. Сам момент между этими отметками отдельно не записан; содержимое конкретных мониторов требует проверки.",
   ),
   record(
     "truman-ev-setting-sail",
@@ -380,14 +490,24 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "ENDING",
     "Нарисованное небо заканчивается плоской панелью, у которой стоит лестница; Труман идёт вдоль края мира.",
   ),
-  record(
-    "truman-ev-dialog",
-    "Разговор с создателем",
-    "truman-sc-final-act",
-    5544.206,
-    "ENDING",
-    "Из-за «неба» звучит голос Кристофа: «Я — создатель телешоу, которое даёт надежду и вдохновение миллионам».",
-  ),
+  {
+    ...record(
+      "truman-ev-dialog",
+      "Финальный разговор: текст субтитров",
+      "truman-sc-final-act",
+      5544.206,
+      "ENDING",
+      "В субтитрах записаны реплики «Я — создатель телешоу», «Ничего не было настоящим?» — «Настоящим был ты», а также слова о внешнем мире. По этому тексту мы не проверяли голоса и интонации.",
+    ),
+    basis: {
+      material: "subtitle-track",
+      window: { from: 5544.206, to: 5593.579 },
+      observations: 8,
+      outcome: "subtitle",
+      unrecorded: ["reviewer", "date"],
+      note: "SRT, блоки 670–677; тире разделяют реплики, но не устанавливают личности говорящих и звучание. Это не прослушанный фрагмент.",
+    },
+  },
   record(
     "truman-ev-nocamera",
     "«У вас не было камеры в моей голове»",
@@ -435,24 +555,34 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "MAJOR",
     "В том же флешбэке мальчик говорит, что хочет стать исследователем, и слышит в ответ: «Исследовать больше нечего» — то есть отказ от мира вложен в него до всякого выбора.",
   ),
-  record(
-    "truman-ev-seahaven-design",
-    "«Сихейвен — это то, каким мир должен быть»",
-    "truman-sc-trutalk",
-    4052.5,
-    "MAJOR",
-    "В студийном эфире Кристоф отвечает на обвинение в эксплуатации: «Мир, в котором вы живёте, — больной. Сихейвен — это то, каким мир должен быть».",
-  ),
+  {
+    ...record(
+      "truman-ev-seahaven-design",
+      "«Сихейвен — это то, каким мир должен быть»",
+      "truman-sc-trutalk",
+      4052.5,
+      "MAJOR",
+      "В двух соседних блоках субтитров записано: «Мир, в котором вы живёте, — больной. Сихейвен — это то, каким мир должен быть». Имя говорящего и интонация в этих блоках не указаны.",
+    ),
+    basis: {
+      material: "subtitle-track",
+      window: { from: 4048.332, to: 4057.924 },
+      observations: 2,
+      outcome: "subtitle",
+      unrecorded: ["reviewer", "date"],
+      note: "SRT, блоки 523–524; субтитры не заменяют проверку звука и не называют говорящего.",
+    },
+  },
   // ---- Second post-lock batch (module audit) ------------------------------
   // Both records replace claims the modules had carried without an anchor: an
   // unverified «earpiece» and a camera count that lived in a secondary source.
   record(
     "truman-ev-marlon-retake",
-    "Обещание, произнесённое дважды",
+    "Обещание, дважды записанное в субтитрах",
     "truman-sc-father-and-son-reunion",
     3459.2,
     "MAJOR",
-    "Ночью на мосту обещание звучит дважды почти дословно: «скорее брошусь под машину» и «последнее, что я стал бы делать, — врать тебе», — и оба раза фраза повторяется через несколько секунд с небольшим изменением. Кто произносит каждый повтор и почему он повторён — по субтитрам не установить: запись фиксирует повтор, а не его причину.",
+    "В субтитрах к сцене на мосту обещание записано дважды почти дословно: «скорее брошусь под машину» и «последнее, что я стал бы делать, — врать тебе», — и оба раза фраза повторяется через несколько секунд с небольшим изменением. Кто произносит каждый повтор и почему он повторён — по субтитрам не установить: запись фиксирует повтор, а не его причину.",
   ),
   record(
     "truman-ev-camera-count",
@@ -481,7 +611,7 @@ export const trumanCanonicalEvidenceSummary = {
    * two halves sit in different scenes.
    */
   split: {
-    "truman-ev-knife": ["truman-ev-knife", "truman-ev-knife-call"],
+    "truman-ev-knife": ["truman-ev-knife", "truman-ev-knife-tools", "truman-ev-knife-call", "truman-ev-meryl-held"],
     "truman-ev-reunion": ["truman-ev-reunion", "truman-ev-reunion-amnesia"],
     // The ledger's boat note already said the sailing footage «must be anchored
     // there when the record is split»; the split was never declared, and the
@@ -490,11 +620,14 @@ export const trumanCanonicalEvidenceSummary = {
   },
   /** Canonical records that have no research-era counterpart. */
   added: [
+    "truman-ev-light-explanation",
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",
     "truman-ev-seahaven-design",
     "truman-ev-marlon-retake",
     "truman-ev-camera-count",
+    "truman-ev-cocoa-subtitles",
+    "truman-ev-tools-subtitles",
   ],
   /**
    * Records added after the edition was LOCKED, in a separate batch, to support
@@ -503,10 +636,13 @@ export const trumanCanonicalEvidenceSummary = {
    * `the-truman-show-visual-verification.ts` and docs/50.
    */
   postLock: [
+    "truman-ev-light-explanation",
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",
     "truman-ev-seahaven-design",
     "truman-ev-marlon-retake",
     "truman-ev-camera-count",
+    "truman-ev-cocoa-subtitles",
+    "truman-ev-tools-subtitles",
   ],
 } as const;

@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { macKeyboardShortcut, settleNativeSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
+import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, settleNativeSpeech, validateVoiceOverSkipLink, warmVoiceOver } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -30,7 +30,7 @@ function checkpoint(next, announce = false) {
   if (announce) console.log(`::notice title=Actual AT phase::${name}: ${phase}`);
 }
 const deadline = setTimeout(() => {
-  const message = `${name}: six-minute scenario deadline at ${phase}`;
+  const message = `${name}: eight-minute scenario deadline at ${phase}`;
   report.failures.push(message);
   report.results = [{ browser: name, version: report.browser?.version ?? "not-started", width: 0,
     route: "/films/the-truman-show/article?spoilers=full", state: "timeout", scope: "actual desktop OS", file: "actual-at.json" }];
@@ -38,7 +38,7 @@ const deadline = setTimeout(() => {
   console.error(workflowError(message));
   server.kill();
   process.exit(1);
-}, 360000);
+}, 480000);
 // Guidepup counts total attempts here: 0 never invokes the macOS delegate.
 // One attempt avoids replaying mutating navigation while actually issuing it.
 const speechOptions = { capture: "initial", timeout: 20000, retries: 1 };
@@ -76,6 +76,47 @@ async function action(label, run, expected) {
   if (expected) for (const pattern of Array.isArray(expected) ? expected : [expected]) {
     assert.match(speech.join(" "), pattern, `${label}: actual spoken output`);
   }
+  return speech;
+}
+// Read-only Describe Item independently names the VoiceOver cursor. The entry
+// and description remain separate recordings; a generic help phrase or DOM
+// focus alone never counts as spoken link semantics.
+async function enterVoiceOverWebArea(prefix, probeKey) {
+  let entrySpeech, describedSpeech, focus;
+  try {
+    entrySpeech = await action(`${prefix} enter web area`, () => perform(reader.keyboardCommands.interactWithItem, navigationOptions), /web content|перейти к содержимому/i);
+    describedSpeech = await action(`${prefix} describe skip link`, () => perform(reader.keyboardCommands.describeItem, navigationOptions), [/перейти к содержимому/i, /link|ссылк/i]);
+  } finally {
+    try { focus = await safari.focus(); }
+    catch (error) { focus = { error: error.message }; }
+    evidence[probeKey] = focus;
+    report[probeKey] = focus;
+    checkpoint(`${prefix} enter web area: native focus probed`);
+  }
+  const observation = validateVoiceOverSkipLink(entrySpeech, describedSpeech, focus);
+  evidence.actions.push({ label: `${prefix} entry speech observation`, ...observation });
+  checkpoint(`${prefix} skip link verified`);
+}
+// Move the real screen-reader cursor through the current table, capturing each
+// utterance. A row may expose text and its disclosure as separate AX objects;
+// hearing the row label alone is not proof that the action is reachable.
+async function advanceUntil(pattern, limit = 24) {
+  for (let step = 0; step < limit; step++) {
+    await perform(reader.keyboardCommands.moveToNext, navigationOptions);
+    if (pattern.test((await reader.spokenPhraseLog()).join(" "))) return;
+  }
+  throw new Error(`Actual screen reader did not reach ${pattern} within ${limit} items`);
+}
+// A caption may contain the header's text. Require the coordinate and label in
+// the same newly spoken item before using NVDA's table row-navigation command.
+async function advanceUntilFirstHeader(pattern, limit = 6) {
+  for (let step = 0; step < limit; step++) {
+    const before = (await reader.spokenPhraseLog()).length;
+    await perform(reader.keyboardCommands.moveToNext, navigationOptions);
+    const speech = (await reader.spokenPhraseLog()).slice(before);
+    if (firstTableHeaderSpoken(speech, pattern)) return;
+  }
+  throw new Error(`Actual screen reader did not reach the first table cell named ${pattern} within ${limit} items`);
 }
 async function screenshot(label) {
   checkpoint(`${label}: capturing screenshot`);
@@ -131,21 +172,9 @@ try {
     await action("VoiceOver Item Chooser", () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), /item chooser|VoiceOver Menu/i);
     await action("VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
     await action("VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
-    // With the real page (no injected marker), interact already reaches its
-    // skip link. An extra next moves into the banner instead of finding h1.
-    let focusProbe;
-    try {
-      await action("VoiceOver enter web area", () => perform(reader.keyboardCommands.interactWithItem, navigationOptions), /перейти к содержимому/i);
-    } finally {
-      // Diagnose native focus separately from speech: a silent name is not the
-      // same defect as focus landing on another control. Never relax the speech
-      // assertion to the generic web-area help phrase.
-      try { focusProbe = await safari.focus(); }
-      catch (error) { focusProbe = { error: error.message }; }
-      evidence.focusProbe = focusProbe;
-      report.focusProbe = focusProbe;
-      checkpoint("VoiceOver enter web area: native focus probed");
-    }
+    // With the real page (no injected marker), interact reaches its skip link.
+    // An extra next would move into the banner instead of finding h1.
+    await enterVoiceOverWebArea("VoiceOver", "focusProbe");
   } else {
     await page.bringToFront();
     await perform(reader.keyboardCommands.exitFocusMode, { capture: false });
@@ -196,12 +225,12 @@ try {
   await action("native table navigation", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/четыре окна/i, /table|таблиц/i]);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   await action("table column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);
-  await action("table row header and value", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /библиотека[\s\S]*0 переходов/i);
+  await action("table row header and value", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), libraryDetectionRowSpeech);
   await screenshot("table-reading");
   if (mac) await action("leave first table interaction", () => perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions), /out of[\s\S]*table|(?:вне|выход)[\s\S]*таблиц/i);
   await action("corrections table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), /пять утверждений/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
-  await action("corrections column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /что в кадре/i);
+  await action("corrections column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /что удалось проверить/i);
   await screenshot("corrections-table-reading");
   if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
 
@@ -234,7 +263,7 @@ try {
     zoom = await geometry();
   }
   assert.ok(zoom.width >= 300 && zoom.width <= 321, `Native reflow320: ${JSON.stringify(zoom)}`);
-  for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"]) {
+  for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making", "/films/the-truman-show?spoilers=none"]) {
     checkpoint(`native zoom: navigating ${route}`);
     await go(route);
     checkpoint(`native zoom: measuring ${route}`);
@@ -242,7 +271,47 @@ try {
     assert.ok(box.scroll <= box.width + 1, `${route}: reflow320 overflow`);
     evidence.actions.push({ label: "native zoom reflow320", route, box });
   }
-  await screenshot("reflow320");
+  // Read the actual responsive film tables using native screen-reader commands
+  // at the measured ~320 CSS-pixel browser UI zoom, not a simulated AT tree.
+  if (mac) {
+    await macOSActivate(MacOSApplications.Safari);
+    await action("mobile VoiceOver Item Chooser", () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), /item chooser|VoiceOver Menu/i);
+    await action("mobile VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
+    await action("mobile VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
+    await enterVoiceOverWebArea("mobile VoiceOver", "mobileFocusProbe");
+  } else {
+    await page.bringToFront();
+    await perform(reader.keyboardCommands.exitFocusMode, { capture: false });
+    await reader.press("Control+Home");
+  }
+  const sceneTableSpeech = await action("mobile scene table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/сцены фильма/i, /table|таблиц/i]);
+  if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
+  // NVDA may enter at a native caption, which is outside the cells. Move into
+  // the actual column header before using Ctrl+Alt+Down to traverse rows.
+  else if (!firstTableCellSpoken(sceneTableSpeech)) {
+    await action("mobile scene column header", () => advanceUntilFirstHeader(/сцена и опоры/i), /сцена и опоры/i);
+  }
+  await action("mobile first scene row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /пролог/i);
+  await action("mobile scene supports row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /день\s*10\s*909/i);
+  await action("mobile scene supports control", () => advanceUntil(/опоры сцены[\s\S]*день\s*10\s*909/i), /опоры сцены[\s\S]*день\s*10\s*909/i);
+  await action("mobile open scene supports", () => reader.press(mac ? "Control+Alt+Space" : "Enter", navigationOptions));
+  const supportState = mac ? await safari.sceneSupport() : await execute("document.querySelector('#scene-truman-sc-day-10909 .filmSceneSupports').open");
+  assert.equal(supportState, true, "The real screen reader must open the named scene disclosure");
+  // Navigate by the real link command: VoiceOver can otherwise read the
+  // summary name one word at a time and falsely stop on its day number.
+  await action("mobile evidence link in scene", () => perform(mac ? reader.keyboardCommands.findNextLink : reader.keyboardCommands.moveToNextLink, navigationOptions),
+    [/день\s*10\s*909/i, /link|ссылк/i]);
+  if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
+  const registerSpeech = await action("mobile evidence register name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/реестр проверок/i, /table|таблиц/i]);
+  if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
+  else if (!firstTableCellSpoken(registerSpeech)) {
+    await action("mobile evidence column header", () => advanceUntilFirstHeader(/запись/i), /запись/i);
+  }
+  await action("mobile evidence observation", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /начальное интервью/i);
+  await action("mobile evidence basis", () => advanceUntil(/основа/i, 24), /основа/i);
+  await action("mobile evidence outcome", () => advanceUntil(/итог/i, 24), /итог/i);
+  if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
+  await screenshot("reflow320-film-tables");
   await reader.press(mac ? "Meta+0" : "Control+0", { capture: false });
   report.results.push({ browser: name, version: report.browser.version, width: original.width,
     route: "/films/the-truman-show/article?spoilers=full", state: "real-AT-native-zoom", scope: "desktop OS", file: "actual-at.json" });

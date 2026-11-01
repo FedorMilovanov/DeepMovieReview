@@ -84,6 +84,7 @@
 
 .filmSceneTable table {
   width: 100%;
+  min-width: 40rem;
   border-collapse: collapse;
   font-size: 0.92rem;
 }
@@ -130,28 +131,23 @@
   text-align: right;
 }
 
-/* A 390px screen cannot hold five columns of padded table: the shell clips, the
-   reader loses the last column, and the audit sees content wider than its box.
-   Below the tablet breakpoint the cells wrap instead of holding a line, and the
-   padding shrinks — the table stays a table, it just stops pretending to be wide. */
-@media (max-width: 760px) {
-  .filmSceneTable thead th,
-  .filmSceneTable tbody th,
-  .filmSceneTable tbody td {
-    padding: 0.55rem 0.5rem;
-  }
+.filmSceneSupports summary { cursor: pointer; }
+.filmSceneSupports ul {
+  max-width: 16rem;
+  margin: 0.6rem 0 0;
+  padding-left: 1rem;
+  text-align: left;
+  white-space: normal;
+}
+.filmSceneSupports li + li { margin-top: 0.45rem; }
+.filmSceneSupports a { display: inline-block; min-height: 2.75rem; padding: 0.6rem 0; color: var(--ink-2); text-decoration: underline; }
+.filmSceneTable tbody tr { scroll-margin-top: 6rem; }
+.filmSceneTable tbody tr:target { background: var(--surface-2); }
 
-  .filmSceneIndex,
-  .filmSceneTime,
-  .filmSceneSupports,
-  .filmSceneState {
-    white-space: normal;
-  }
-
-  .filmSceneTable tbody th,
-  .filmSceneTable tbody td {
-    overflow-wrap: anywhere;
-  }
+/* Keep words and timecodes intact. The focusable wrapper scrolls, not the page. */
+.filmSceneTableWrap:focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
 }
 
 .filmSceneState {
@@ -180,3 +176,62 @@
     transform: none;
   }
 }
+
+/* Registered conceptual illustrations, never represented as evidence or stills. */
+.characterVisual { width: min(100%, 17rem); margin: 0 0 1.25rem; }
+.characterVisual img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; }
+.characterVisual figcaption { margin-top: 0.4rem; color: var(--ink-3); font-size: 0.72rem; line-height: 1.4; }
+@media (min-width: 701px) {
+  .characterCard { display: flow-root; }
+  .characterVisual { float: right; width: 40%; margin: 0 0 1rem 1.25rem; }
+}
+
+.sceneLensDetails {
+  margin-top: 1.5rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--stroke-default);
+  background: var(--surface-1);
+  scroll-margin-top: 6rem;
+}
+
+.sceneLensDetails > summary {
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--ink-1);
+  font-weight: 600;
+}
+
+.sceneLensDetails > p,
+.sceneLensDetails li p { color: var(--ink-2); line-height: 1.55; }
+.sceneLensDetails ul { margin: 1rem 0 0; padding: 0; list-style: none; }
+.sceneLensDetails li { padding: 1rem 0; border-top: 1px solid var(--stroke-subtle); }
+.sceneLensDetails li p { margin: 0.4rem 0; }
+.sceneLensDetails li a { display: inline-block; min-height: 2.75rem; padding: 0.6rem 0.7rem 0.6rem 0; color: var(--ink-1); text-underline-offset: 3px; }
+
+.characterCard[id] { scroll-margin-top: 6rem; }
+
+/* Scene actions live in the row header, so they are never a hidden last column. */
+.filmSceneName { display: block; color: var(--ink-1); }
+.filmSceneMobileMeta { display: none; }
+.filmSceneSupports { margin-top: 0.45rem; text-align: left; white-space: normal; }
+.filmSceneSupports summary { display: list-item; width: fit-content; min-height: 2.75rem; padding: 0.6rem 0; color: var(--ink-1); text-decoration: underline; text-underline-offset: 0.2em; }
+.filmSceneSupports summary:focus-visible, .filmSceneReadingsLink:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }
+.filmSceneNoSupports { display: block; margin-top: 0.5rem; color: var(--ink-3); font-size: 0.8rem; }
+.filmSceneReadingsLink { display: inline-block; padding: 0.5rem 0; color: var(--ink-1); text-underline-offset: 0.2em; }
+.filmSceneTable tbody tr:focus-visible { outline: 2px solid var(--focus-color); outline-offset: -2px; }
+
+@media (max-width: 720px) {
+  .filmSceneTable table { min-width: 0; table-layout: fixed; }
+  .filmSceneTable .filmSceneExtra { display: none; }
+  .filmSceneMobileMeta { display: block; margin-top: 0.35rem; color: var(--ink-3); font-family: var(--font-meta); font-size: 0.75rem; }
+  .filmSceneSupports ul { max-width: none; overflow-wrap: anywhere; }
+}
+
+.filmCraftDetail { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--stroke-subtle); }
+.filmCraftDetail summary { min-height: 2.75rem; padding: 0.5rem 0; cursor: pointer; color: var(--ink-1); text-decoration: underline; text-underline-offset: 0.2em; }
+.filmCraftDetail summary:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }
+.filmCraftDetail p, .filmCraftDetail blockquote { color: var(--ink-2); line-height: 1.55; }
+.filmCraftDetail blockquote { margin: 0.75rem 0; padding-inline-start: 0.8rem; border-inline-start: 2px solid var(--stroke-warm); }
+.filmCraftDetail cite { font-style: normal; color: var(--ink-3); }
+.filmCraftSources { margin-top: 1rem; color: var(--ink-3); font-size: 0.8rem; line-height: 1.5; }
+.filmCraftSources a { color: var(--ink-1); text-underline-offset: 0.2em; }

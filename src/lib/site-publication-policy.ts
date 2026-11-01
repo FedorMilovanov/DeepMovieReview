@@ -26,15 +26,16 @@ export function canIndexSite({
  * The flag is a switch, not a requirement: a real deployment on a real host is
  * treated as public, because nobody should have to set a variable to be found.
  *
- * A preview deployment is a hard floor, not a default. Preview URLs must never
- * compete with production in an index, and a stray `DMR_SITE_INDEXING_ENABLED=true`
- * in a shared environment must not be able to open one — a rule that a variable can
- * override is not a rule. Everywhere else the flag wins in both directions.
+ * A Vercel preview deployment is a hard floor, not a default: even a stray
+ * `DMR_SITE_INDEXING_ENABLED=true` in its environment cannot open one. A build
+ * that enables preview content is also closed by `canIndexSite`. Other preview
+ * hosts must explicitly set `DMR_SITE_INDEXING_ENABLED=false`; a configured
+ * `DMR_SITE_URL` otherwise opts in by default. The flag wins on other hosts.
  */
 export function resolveIndexingRequest(
   env: Record<string, string | undefined> = process.env,
 ): boolean {
-  // A preview deployment never indexes, whatever the flag says.
+  // A Vercel preview deployment never indexes, whatever the flag says.
   if (env.VERCEL_ENV?.trim().toLowerCase() === "preview") return false;
 
   const explicit = env.DMR_SITE_INDEXING_ENABLED?.trim().toLowerCase();

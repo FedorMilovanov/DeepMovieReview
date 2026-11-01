@@ -10,23 +10,13 @@ import { safariDriverLog, safariDriverPids, safariListenerPids, safariHttpServic
 import { setTimeout as delay } from "node:timers/promises";
 
 export function safariRequestTimeout(path) {
-  return path === "/session" || path.endsWith("/url") ? 90000 : path === "/status" ? 1500 : 30000;
+  // A hosted cold Simulator timed out one 30s execute request on 18ba586;
+  // allow a bounded minute, without replaying the command or its input.
+  return path === "/session" || path.endsWith("/url") ? 90000 : path === "/status" ? 1500 :
+    path.endsWith("/execute/sync") ? 60000 : 30000;
 }
 
-// Observe asynchronous native browser/UI completion; never replay the input.
-export async function waitForNativeValue(read, expected, { timeout = 10000, now = Date.now, pause = () => delay(100) } = {}) {
-  const deadline = now() + timeout;
-  let actual;
-  do {
-    actual = await read();
-    if (Object.is(actual, expected)) return actual;
-    await pause();
-  } while (now() < deadline);
-  assert.equal(actual, expected, "Native UI state did not reach the expected value before its deadline");
-}
-
-// Observe scrolling, font and visual-viewport completion before ONE native input.
-// Never replay a gesture because its postcondition failed.
+// Observe scrolling, font and visual-viewport completion without sending input.
 export async function waitForStableNativeTarget(read, { timeout = 10000, now = Date.now, pause = () => delay(100) } = {}) {
   const deadline = now() + timeout;
   let previous, stable = 0;
@@ -38,7 +28,7 @@ export async function waitForStableNativeTarget(read, { timeout = 10000, now = D
     if (stable >= 2) return target;
     await pause();
   }
-  throw new Error("Native touch target did not settle or remained occluded before input");
+  throw new Error("Native target did not settle or remained occluded");
 }
 
 export async function nativeSafari(capabilities = {}, { beforeSession = async () => {}, retrySetup = async () => {} } = {}) {
@@ -64,7 +54,6 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
   });
   driver.on("error", error => { lastError = error; });
   let session;
-  const inputs = [];
   async function request(path, body, method = body === undefined ? "GET" : "POST") {
     try {
       const response = await fetch(`http://127.0.0.1:${port}${path}`, {
@@ -121,49 +110,6 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
     return {
       version: result.capabilities.browserVersion,
       capabilities: result.capabilities,
-      inputs,
-      async click(selector) {
-        const element = await request(`${path}/element`, { using: "css selector", value: selector });
-        if (capabilities.platformName?.toLowerCase() === "ios") {
-          // Mobile Safari element/click can deliver a move without a tap.
-          // Use a real W3C touch gesture; release is required to dispatch up.
-          await request(`${path}/execute/sync`, {
-            script: "arguments[0].scrollIntoView({block:'center',behavior:'instant'})", args: [element],
-          });
-          const point = await waitForStableNativeTarget(() => request(`${path}/execute/sync`, {
-            script: `const el=arguments[0],r=el.getBoundingClientRect(),v=visualViewport;
-              const point={x:Math.round(r.x+r.width/2),y:Math.round(r.y+r.height/2)};
-              const hit=document.elementFromPoint(point.x,point.y);
-              // The gesture now uses the element as its W3C origin, so the
-              // driver resolves the centre itself. Readiness waits for a stable
-              // box in a settled document; the hit-test is recorded, not used as
-              // a precondition on coordinates this driver does not honour.
-              return {ready:el.isConnected&&document.readyState==='complete'&&document.fonts.status==='loaded'&&
-                point.x>=0&&point.x<innerWidth&&point.y>=0&&point.y<innerHeight,
-                point,hitContained:!!hit&&el.contains(hit),rect:r.toJSON(),scroll:{x:scrollX,y:scrollY},
-                viewport:v?{x:v.offsetLeft,y:v.offsetTop,width:v.width,height:v.height,scale:v.scale}:null};`,
-            args: [element],
-          }));
-          inputs.push({ selector, ...point, gesture: "single native touch after stable hit-test" });
-          try {
-            // Absolute viewport coordinates from this driver landed on a
-            // different element (measured: a touch aimed at y=32 reached
-            // appShell). Give the driver the element itself as the W3C origin
-            // so it resolves its own centre; still one native touch.
-            return await request(`${path}/actions`, { actions: [{ type: "pointer", id: "finger", parameters: { pointerType: "touch" }, actions: [
-              { type: "pointerMove", duration: 0, origin: element, x: 0, y: 0 }, { type: "pointerDown", button: 0 },
-              { type: "pause", duration: 80 }, { type: "pointerUp", button: 0 },
-            ] }] });
-          } finally { await request(`${path}/actions`, undefined, "DELETE"); }
-        }
-        return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
-      },
-      // Standard W3C element activation, used only when a delivered touch is
-      // proven absent by a DOM event probe. Never a JS .click() substitute.
-      async elementClick(selector) {
-        const element = await request(`${path}/element`, { using: "css selector", value: selector });
-        return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
-      },
       execute: script => request(`${path}/execute/sync`, { script, args: [] }),
       goto: url => request(`${path}/url`, { url }),
       screenshot: () => request(`${path}/screenshot`),

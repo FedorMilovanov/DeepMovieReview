@@ -1,3 +1,4 @@
+import { expectedDocument404Log } from "../scripts/lib/browser-audit-exceptions.mjs";
 import postcss from "postcss";
 import tailwind from "@tailwindcss/postcss";
 import { hasUnprefixedDeclaration } from "../scripts/lib/style-compat.mjs";
@@ -8,8 +9,102 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { readStylesheet } from "../scripts/lib/style-sources.mjs";
+import { measureHtmlSize } from "../scripts/lib/html-size.mjs";
+import { checkPageCanonical, checkPageIndexability } from "../scripts/lib/page-indexability.mjs";
+import { gzipSync } from "node:zlib";
 
 const script = resolve("scripts/style-contract.mjs");
+
+test("HTML budgets distinguish UTF-16 units, UTF-8 bytes and estimated gzip bytes", () => {
+  const html = "А😀";
+  const size = measureHtmlSize(html);
+  assert.equal(size.utf16CodeUnits, 3);
+  assert.equal(size.utf8Bytes, 6);
+  assert.equal(size.gzipBytes, gzipSync(Buffer.from(html, "utf8")).length);
+  assert.throws(() => measureHtmlSize(null), /HTML must be a string/);
+});
+
+test("article metadata audit distinguishes preview and published indexable builds", () => {
+  const pathname = "/films/the-truman-show/article";
+  const canonical = `https://example.test${pathname}`;
+  const html = `<link href="${canonical}" rel="canonical">`;
+  const noindex = `${html}<meta content="noindex, nofollow" name="robots">`;
+  const open = "User-Agent: *\nAllow: /\nDisallow: /labs/\n";
+  const closed = "User-Agent: *\nDisallow: /\n";
+  const xml = ' xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
+  const empty = `<urlset${xml}></urlset>`;
+  const listed = `<urlset${xml}><url><loc>${canonical}</loc></url></urlset>`;
+  assert.equal(checkPageCanonical(html, pathname), true);
+  assert.equal(checkPageIndexability(noindex, closed, empty, pathname), true);
+  assert.equal(checkPageIndexability(html, open, listed, pathname), true);
+  const home = '<link rel="canonical" href="https://example.test/">';
+  assert.equal(checkPageIndexability(`${home}<meta name="robots" content="noindex, nofollow">`, closed, empty, "/"), true);
+  assert.equal(checkPageIndexability(home, open, `<urlset${xml}><url><loc>https://example.test/</loc></url></urlset>`, "/"), true);
+  assert.notEqual(checkPageIndexability(home, open, `<urlset${xml}><url><loc>https://wrong.test/</loc></url></urlset>`, "/"), true);
+  for (const [page, robots, sitemap] of [
+    [html, closed, empty], [noindex, open, listed], [html, open, empty],
+    [noindex, closed, listed], [noindex, "", empty], [noindex, closed, "broken"],
+    [noindex, closed, `<urlset${xml}><url><loc>https://wrong.test${pathname}</loc></url></urlset>`],
+    [html, open, `<urlset${xml}><url><loc>https://wrong.test${pathname}</loc></url></urlset>`],
+  ]) assert.notEqual(checkPageIndexability(page, robots, sitemap, pathname), true);
+  for (const href of ["", "https://example.test/films/the-truman-show", `${canonical}?spoilers=full`, `${canonical}#section`]) {
+    assert.notEqual(checkPageCanonical(`<link rel="canonical" href="${href}">`, pathname), true);
+  }
+});
+
+test("indexability audit checks the actual URL and never borrows another crawler's policy", () => {
+  const pathname = "/films/the-truman-show/article";
+  const canonical = `https://example.test${pathname}`;
+  const html = `<link rel="canonical" href="${canonical}">`;
+  const noindex = `${html}<meta name="robots" content="noindex, nofollow">`;
+  const xml = ' xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
+  const listed = `<urlset${xml}><url><loc>${canonical}</loc></url></urlset>`;
+  const empty = `<urlset${xml}></urlset>`;
+
+  for (const robots of [
+    "User-Agent: *\nAllow: /\nDisallow: /films/",
+    "User-Agent: *\nAllow: /\nDisallow: /films/*/article$",
+    "User-Agent: Googlebot\nDisallow: /films/\n\nUser-Agent: *\nAllow: /",
+    "User-Agent: ExampleBot\nAllow: /\n\nUser-Agent: *\nDisallow: /films/",
+    "Allow: /\nDisallow: /labs/",
+    "User-Agent: *\nAllow: /\nDisallow: /fi%6cms/",
+    "User-Agent: *\nAllow: /\nSitemap: https://wrong.test/sitemap.xml",
+  ]) assert.notEqual(checkPageIndexability(html, robots, listed, pathname), true, robots);
+
+  assert.notEqual(checkPageIndexability(noindex,
+    "User-Agent: *\nDisallow: /\nAllow: /films/the-truman-show/article$", empty, pathname), true);
+  assert.notEqual(checkPageIndexability(`${html}<link rel="canonical" href="https://wrong.test/">`,
+    "User-Agent: *\nAllow: /", listed, pathname), true);
+  assert.equal(checkPageIndexability(html,
+    "User-Agent: *\nAllow: /\nDisallow: /films/\nAllow: /films/the-truman-show/article", listed, pathname), true);
+  assert.equal(checkPageIndexability(html,
+    "User-Agent: *\nAllow: /\nDisallow: /films/the-truman-show/article/", listed, pathname), true);
+});
+
+test("indexability audit rejects malformed XML, wrong sitemap structure and ambiguous wildcard conflicts", () => {
+  const pathname = "/page.htm", canonical = `https://example.test${pathname}`;
+  const html = `<link rel="canonical" href="${canonical}">`;
+  const robots = "User-Agent: *\nAllow: /";
+  const xml = ' xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"';
+  const valid = `<urlset${xml}><url><loc>${canonical}</loc></url></urlset>`;
+  assert.equal(checkPageIndexability(html, robots, valid, pathname), true);
+  assert.equal(checkPageIndexability(html, robots,
+    `<sm:urlset xmlns:sm="http://www.sitemaps.org/schemas/sitemap/0.9"><sm:url><sm:loc>${canonical}</sm:loc><sm:lastmod>2026-10-31</sm:lastmod></sm:url></sm:urlset>`, pathname), true);
+  for (const invalid of [
+    `<urlset${xml}><url><loc>${canonical}</loc></urlset>`,
+    `<urlset${xml}><loc>${canonical}</loc></urlset>`,
+    `<urlset><url><loc>${canonical}</loc></url></urlset>`,
+    `<urlset${xml}><url><loc>${canonical}</loc><loc>${canonical}</loc></url></urlset>`,
+    `<urlset${xml}><url>unexpected<loc>${canonical}</loc></url></urlset>`,
+    `<urlset${xml}><url><loc>${canonical}</loc></url><![CDATA[unexpected]]></urlset>`,
+    `<urlset${xml}><url><loc>${canonical}</loc></url><url><loc>https://wrong.test/other</loc></url></urlset>`,
+    `<!DOCTYPE urlset><urlset${xml}><url><loc>${canonical}</loc></url></urlset>`,
+  ]) assert.notEqual(checkPageIndexability(html, robots, invalid, pathname), true, invalid);
+  // Google uses the full rule length (including '*'): /*.htm beats /page.
+  // Do not silently pass conflicting wildcard rules with crawler-dependent semantics.
+  assert.notEqual(checkPageIndexability(html,
+    "User-Agent: *\nAllow: /\nAllow: /page\nDisallow: /*.htm", valid, pathname), true);
+});
 
 function fixture(run) {
   const root = mkdtempSync(join(tmpdir(), "dmr-style-contract-"));
@@ -205,7 +300,7 @@ test("Safari diagnostics are bounded and isolated to the actual driver pid", asy
 test("VoiceOver shortcuts retain native command codes without app activation", async () => {
   const { macKeyboardShortcut } = await import("../scripts/lib/assistive-commands.mjs");
   const { voiceOverKeyCodeCommands: commands, MacOSKeyCodes } = await import("@guidepup/guidepup");
-  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "moveToNextColumn", "moveDown", "describeItem"]) {
+  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "findNextLink", "moveToNextColumn", "moveDown", "moveToNext", "describeItem"]) {
     const command = commands[name];
     const parts = macKeyboardShortcut(command).split("+");
     assert.equal(MacOSKeyCodes[parts.pop()], command.keyCode);
@@ -269,7 +364,7 @@ test("native navigation has its own bounded deadline, not a generic 30s command 
   assert.equal(safariRequestTimeout("/session"), 90000);
   assert.equal(safariRequestTimeout("/session/id/url"), 90000);
   assert.equal(safariRequestTimeout("/status"), 1500);
-  assert.equal(safariRequestTimeout("/session/id/execute/sync"), 30000);
+  assert.equal(safariRequestTimeout("/session/id/execute/sync"), 60000);
   assert.equal(safariRequestTimeout("/session/id/screenshot"), 30000);
 });
 
@@ -343,6 +438,21 @@ test("late native VoiceOver speech is awaited without replaying navigation", asy
   assert.deepEqual(result.readErrors, []);
 });
 
+test("VoiceOver entry and on-demand skip-link description remain distinct, with native focus required", async () => {
+  const { validateVoiceOverSkipLink } = await import("../scripts/lib/assistive-commands.mjs");
+  const focus = { tag: "A", text: "Перейти к содержимому", href: "#main" };
+  const description = ["Перейти к содержимому link is in the VoiceOver cursor"];
+  assert.deepEqual(validateVoiceOverSkipLink(["You are currently on a link, inside of web content"], description, focus),
+    { automaticNameObserved: false });
+  assert.deepEqual(validateVoiceOverSkipLink(["web content link Перейти к содержимому"], description, focus),
+    { automaticNameObserved: true });
+  assert.throws(() => validateVoiceOverSkipLink(["web content"], ["link"], focus), /must speak the link name/);
+  assert.throws(() => validateVoiceOverSkipLink(["web content"], ["Перейти к содержимому"], focus), /must speak the link role/);
+  assert.throws(() => validateVoiceOverSkipLink(["window"], description, focus), /must enter web content/);
+  assert.throws(() => validateVoiceOverSkipLink(["web content"], description, { ...focus, href: "#elsewhere" }), /must target main/);
+  assert.throws(() => validateVoiceOverSkipLink(["web content"], description, { ...focus, text: "другая ссылка" }), /named skip link/);
+});
+
 test("native speech timeout never manufactures a semantic pass", async () => {
   const { settleNativeSpeech } = await import("../scripts/lib/assistive-commands.mjs");
   let clock = 0;
@@ -351,6 +461,40 @@ test("native speech timeout never manufactures a semantic pass", async () => {
   assert.deepEqual(result.speech, ["Page Menu"]);
   assert.ok(result.readErrors.length > 0);
   assert.doesNotMatch(result.speech.join(" "), /VoiceOver Menu/);
+});
+
+test("NVDA table captions are not mistaken for an active table cell", async () => {
+  const { firstTableCellSpoken, firstTableHeaderSpoken } = await import("../scripts/lib/assistive-commands.mjs");
+  // These two are actual utterances from 4ec11cb; the second caption has no
+  // literal "caption" word even though row navigation says "Not in a table cell".
+  assert.equal(firstTableCellSpoken(["table, with 7 rows and 1 column, caption, Сцены фильма"]), false);
+  assert.equal(firstTableCellSpoken(["table, with 8 rows and 1 column, Реестр проверок: таймкод, сцена, запись"]), false);
+  assert.equal(firstTableCellSpoken(["out of caption, row 1, column 1, ЗАПИСЬ"]), true);
+  assert.equal(firstTableCellSpoken(["строка 1, столбец 1, Запись"]), true);
+  assert.equal(firstTableHeaderSpoken(["caption, Реестр проверок: таймкод, сцена, запись"], /запись/i), false);
+  assert.equal(firstTableHeaderSpoken(["caption, Реестр проверок: запись", "row 1, column 1, ВРЕМЯ"], /запись/i), false);
+  assert.equal(firstTableHeaderSpoken(["out of caption, row 1, column 1, ЗАПИСЬ"], /запись/i), true);
+});
+
+test("actual screen reader table assertion requires the named row and detected count", async () => {
+  const { libraryDetectionRowSpeech } = await import("../scripts/lib/assistive-commands.mjs");
+  // Actual speech from the c3f1771 NVDA and VoiceOver runs; neither is a mock
+  // substitute for running the real AT scenario after a change.
+  assert.match("Библиотека: Труман, посетители и девушка в красном 22:00–23:00 1:00 0,0 перехода в минуту, row 2, 0 обнаруженных переходов", libraryDetectionRowSpeech);
+  assert.match("row 2 of 5 Библиотека: Труман, посетители и девушка в красном and 22:00–23:00 · 1:00 · 0,0 перехода в минуту 0 обнаруженных переходов", libraryDetectionRowSpeech);
+  assert.doesNotMatch("Библиотека · 0,0 перехода в минуту", libraryDetectionRowSpeech);
+  assert.doesNotMatch("Библиотека · 10 обнаруженных переходов", libraryDetectionRowSpeech);
+  assert.doesNotMatch("Стена · 0 обнаруженных переходов", libraryDetectionRowSpeech);
+  assert.doesNotMatch("Библиотека · 0 переходов", libraryDetectionRowSpeech);
+});
+
+test("scoped rendered contrast bounds skip unrelated page tiles without changing whole-document scope", async () => {
+  const { restrictContrastToTargets } = await import("../scripts/lib/rendered-contrast.mjs");
+  assert.equal(restrictContrastToTargets("document", false), false);
+  assert.equal(restrictContrastToTargets("document", true), true); // Film BATTLE-only assessment.
+  assert.equal(restrictContrastToTargets(".siteHeader", false), true);
+  assert.equal(restrictContrastToTargets(".articleAnalysis", false), true);
+  assert.equal(restrictContrastToTargets(".readingOutline", false), true);
 });
 
 test("rendered contrast bounds use every background pixel, not averages or rounding", async () => {
@@ -503,12 +647,52 @@ test("real VoiceOver CI preflight starts once and waits for actual service outpu
 });
 
 
-test("native UI observation waits without replaying input and fails a persistent state", async () => {
-  const { waitForNativeValue } = await import("../scripts/lib/native-safari.mjs");
+test("reader image check waits for intrinsic data and rejects a blank render", async () => {
+  const { waitForImageResource, waitForImagePaint, hasVariedImagePixels, imagePixelSample } = await import("../scripts/lib/reader-image.mjs");
+  const { PNG } = await import("pngjs");
   let clock = 0, reads = 0;
-  assert.equal(await waitForNativeValue(async () => ++reads < 3 ? "true" : "false", "false", { now: () => clock++, pause: async () => {}, timeout: 10 }), "false");
-  assert.equal(reads, 3);
-  await assert.rejects(waitForNativeValue(async () => "true", "false", { now: () => clock++, pause: async () => {}, timeout: 3 }), /Native UI state/);
+  const loaded = await waitForImageResource(async () => ++reads < 3
+    ? { complete: false, width: 0, height: 0 } : { complete: true, width: 800, height: 450 },
+  { now: () => clock++, pause: async () => {}, timeout: 10 });
+  assert.equal(loaded.width, 800);
+  await assert.rejects(waitForImageResource(async () => ({ complete: true, width: 0, height: 0 }),
+    { now: () => clock++, pause: async () => {}, timeout: 2 }), /did not load/);
+  const image = new PNG({ width: 16, height: 16 });
+  for (let i = 0; i < image.data.length; i += 4) image.data[i + 3] = 255;
+  const blank = PNG.sync.write(image);
+  assert.equal(hasVariedImagePixels(blank), false);
+  assert.deepEqual(imagePixelSample(blank), { width: 16, height: 16, colors: ["0:0:0"], varied: false });
+  for (let i = 0; i < image.data.length; i += 4) image.data[i] = (i / 4) % 256;
+  const painted = PNG.sync.write(image);
+  assert.equal(hasVariedImagePixels(painted), true);
+  let captures = 0;
+  assert.equal((await waitForImagePaint(async () => ++captures === 1 ? blank : painted, { pause: async () => {} })).attempts, 2);
+  assert.equal((await waitForImagePaint(async () => blank, { pause: async () => {} })).varied, false);
+});
+
+test("iOS spoiler audit requires the exact NONE projection, not just a changed URL", async () => {
+  const { noneArticleProjectionReached, parseArticleSectionIds } = await import("../scripts/lib/ios-spoiler-observation.mjs");
+  const expectedUrl = "http://127.0.0.1:3213/films/the-truman-show/article";
+  const baseline = '<html><body><section class="sectionShell articleSection" id="method"></section></body></html>';
+  const expectedSectionIds = parseArticleSectionIds(baseline);
+  assert.deepEqual(expectedSectionIds, ["method"]);
+  assert.throws(() => parseArticleSectionIds('<html><body><section class="articleSection"></section></body></html>'), /id/i);
+  assert.throws(() => parseArticleSectionIds('<html><body><section class="articleSection" id="x"></section><section class="articleSection" id="x"></section></body></html>'), /duplicat/i);
+  const options = { expectedUrl, beforeSections: 11, expectedSectionIds };
+  const ready = { url: expectedUrl, sectionIds: ["method"], noneSelected: true, lastSectionPresent: false };
+  assert.equal(noneArticleProjectionReached(ready, options), true);
+  assert.equal(noneArticleProjectionReached({ ...ready, url: `${expectedUrl}?spoilers=NONE` }, options), true);
+  for (const partial of [
+    { ...ready, sectionIds: ["method", "ending"], lastSectionPresent: true }, // URL changed before React content.
+    { ...ready, sectionIds: ["method", "major"] }, // Partially projected is still not NONE.
+    { ...ready, url: `${expectedUrl}?spoilers=full` },
+    { ...ready, url: `${expectedUrl}?spoilers=none&spoilers=full` },
+    { ...ready, url: "https://other.test/films/the-truman-show/article" },
+    { ...ready, url: "http://127.0.0.1:3213/films/the-truman-show" },
+    { ...ready, sectionIds: [] }, { ...ready, sectionIds: ["different"] },
+    { ...ready, noneSelected: false }, { ...ready, lastSectionPresent: true },
+    { ...ready, lastSectionPresent: undefined },
+  ]) assert.equal(noneArticleProjectionReached(partial, options), false, JSON.stringify(partial));
 });
 
 test("reading layout wraps inset artwork and preserves accessible navigation", () => {
@@ -550,6 +734,20 @@ test("disclosure touch policy is scoped to controls, not article selection", () 
     assert.ok(rule.nodes.some(node => node.prop === "-webkit-user-select" && node.value === "none"));
   });
   assert.ok(found);
+});
+
+test("spoiler and scene links do not restrict native touch and zoom", () => {
+  for (const [file, pattern] of [
+    ["src/styles/spoilers.css", /\.spoilerOption/],
+    ["src/styles/modules/surfaces.css", /\.filmSceneSupports/],
+  ]) {
+    const css = postcss.parse(readStylesheet(file));
+    css.walkRules(rule => {
+      if (!pattern.test(rule.selector)) return;
+      rule.walkDecls(decl => assert.ok(!/^(touch-action|(?:-webkit-)?user-select|-webkit-touch-callout)$/.test(decl.prop),
+        `${rule.selector} must leave native gestures, selection and callouts alone`));
+    });
+  }
 });
 
 test("counterevidence retains high-contrast secondary text", () => {
@@ -622,18 +820,22 @@ test("contrast sampling snaps to whole exposed pixel rows", async () => {
   assert.deepEqual([rowOrigin + band[0], rowOrigin + band[1]], [64, 78]);
 });
 
-test("renderer mask fallback hides only visible text owners, never moves boxes", async () => {
+test("renderer mask fallback never hides an owner's gradient, pseudo-element or descendants", async () => {
   const { hardMaskTextPaint } = await import("../scripts/lib/rendered-contrast.mjs");
+  const { runInNewContext } = await import("node:vm");
   const calls = [];
-  const state = {
-    visibleIds: new Set([1]),
-    records: [
-      { id: 1, element: { style: { setProperty: (property, value) => calls.push([property, value]) } } },
-      { id: 2, element: { style: { setProperty: () => { throw new Error("invisible record touched"); } } } },
-    ],
-  };
-  hardMaskTextPaint(state);
-  assert.deepEqual(calls, [["visibility", "hidden"]]);
+  const owners = ["plain", "gradient", "pseudo", "child", "solid"].map(name => ({
+    name, namespaceURI: "http://www.w3.org/1999/xhtml", children: name === "child" ? [{}] : [],
+    style: { setProperty: (property, value) => calls.push([name, property, value]) },
+  }));
+  const state = { visibleIds: new Set([0, 1, 2, 3, 4]), records: owners.map((element, id) => ({ id, element })) };
+  const getComputedStyle = (element, pseudo) => pseudo
+    ? { content: element.name === "pseudo" && pseudo === "::before" ? '""' : "none", display: "block", visibility: "visible" }
+    : { backgroundColor: element.name === "solid" ? "rgb(238, 238, 238)" : "rgba(0, 0, 0, 0)",
+        backgroundImage: element.name === "gradient" ? "linear-gradient(rgb(238, 238, 238), rgb(238, 238, 238))" : "none" };
+  runInNewContext(`(${hardMaskTextPaint.toString()})(state)`, { state, getComputedStyle });
+  assert.deepEqual(calls, [["plain", "visibility", "hidden"]]);
+  assert.deepEqual([...state.protectedMaskIds], [1, 2, 3, 4]);
   assert.equal(state.usedHardMask, true);
 });
 
@@ -654,4 +856,16 @@ test("page-serialised probes never reference module-scope helpers", async () => 
       assert.ok(!source.includes(`${helper}(`), `${name} must not call ${helper}`);
     }
   }
+});
+
+
+test("browser audit exempts only the console log correlated to the requested 404 document", () => {
+  const path = "/films/not-a-film";
+  const response = { status: 404, type: "Document", url: `https://example.test${path}`, requestId: "request-1" };
+  const log = { type: "log", source: "network", url: response.url, requestId: "request-1" };
+  assert.equal(expectedDocument404Log(log, [response], path), true);
+  assert.equal(expectedDocument404Log({ ...log, requestId: "missing-asset" }, [response], path), false);
+  assert.equal(expectedDocument404Log({ ...log, source: "javascript" }, [response], path), false);
+  assert.equal(expectedDocument404Log({ ...log, url: "https://example.test/missing.js" }, [response], path), false);
+  assert.equal(expectedDocument404Log(log, [{ ...response, type: "Script" }], path), false);
 });

@@ -212,6 +212,11 @@ Requires the GitHub Actions publisher, its evidence check name, completed transp
 explicit full revision, matching check head, exactly ordered unique chunks, canonical
 base64, compressed length/SHA256, bounded gzip expansion and payload revision.
 Writes a new output only after validation; never overwrites an existing receipt.
+Receipts larger than 1000 chunks are split into a bounded list of checks: use the
+primary check ID, and the reader validates every part's ID, app, head, name, manifest,
+ordered chunks and the overall compressed SHA256 before restoring the same JSON.
+The source payload and screenshots are never truncated; missing, stale, failed or
+corrupt parts reject the whole receipt. Single-check receipts remain compatible.
 For deliberately historical evidence published on another head, a fourth argument
 must explicitly supply EXPECTED_CHECK_HEAD; historical data is never promoted to fresh.
 Tests reject wrong publisher/head, incomplete transport, absent/duplicate/corrupt chunks,

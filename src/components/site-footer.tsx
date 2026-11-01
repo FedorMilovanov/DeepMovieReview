@@ -25,7 +25,7 @@ export function SiteFooter() {
         <Link href="/methodology">Методология</Link>
       </nav>
       <div className="footerMeta">
-        <p>Предзапуск · опубликовано: {publishedCount} {pluralRu(publishedCount, "разбор", "разбора", "разборов")}</p>
+        <p>Опубликовано: {publishedCount} {pluralRu(publishedCount, "разбор", "разбора", "разборов")}</p>
         <p>© 2026 Deep Waters · Черновики не являются опубликованными суждениями.</p>
       </div>
       <ExperienceControls />

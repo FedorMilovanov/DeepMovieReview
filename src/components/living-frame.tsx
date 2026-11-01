@@ -14,7 +14,7 @@ import { useExperienceQuality } from "@/components/experience/experience-quality
 export type LensCursorState = "examine" | "trace" | "weigh" | "open";
 
 export type LivingFrameProps = {
-  art: StaticImageData;
+  art: StaticImageData | string;
   alt: string;
   priority?: boolean;
   sizes?: string;
@@ -209,7 +209,7 @@ export function LivingFrame({
           fill
           sizes={sizes}
           priority={priority}
-          placeholder="blur"
+          placeholder={typeof art === "string" ? "empty" : "blur"}
           className="lfImage"
         />
       </div>

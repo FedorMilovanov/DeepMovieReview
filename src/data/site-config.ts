@@ -6,28 +6,23 @@ export const homepageFeaturedFilmSlug = "the-truman-show";
 
 
 /**
- * Drafts and structural fixtures are preview content, not merely noindex pages.
- * They are available in local development and only in production builds that
- * explicitly opt into preview content.
- */
-/**
- * Publication of frames of the film.
- *
- * Four stills, 800×450, at a 30-second grid, each carrying its second, the master
- * digest and a SHA-256 of the file: a quotation for a critical reading, not a
- * redistribution of the film. The edition is published and the owner asked for the
- * frames, so they are served. The switch stays here, not in a comment, because the
- * decision is reversible in one line and because a build that cannot serve them must
- * drop the pictures rather than ship broken images.
- *
- * The credit line travels with each still and says whose rights these are.
+ * The editor has chosen to show selected low-resolution frames in the analysis.
+ * Metadata and credits do not establish rights clearance or independently prove
+ * origin from the absent master. The global off switch wins over preview content:
+ * set DMR_FILM_STILLS_ENABLED=false for both the build and its running server.
+ * This does not make historical files in the public Git repository private.
  */
 export const publishedFilmStillsEnabled = true;
 
 export function filmStillsServable(): boolean {
-  return publishedFilmStillsEnabled || isPreviewContentEnabled();
+  return publishedFilmStillsEnabled && process.env.DMR_FILM_STILLS_ENABLED !== "false";
 }
 
+/**
+ * Drafts and structural fixtures are preview content, not merely noindex pages.
+ * They are available in local development and only in production builds that
+ * explicitly opt into preview content. This never overrides the stills switch.
+ */
 export function isPreviewContentEnabled(): boolean {
   return process.env.NODE_ENV !== "production" || process.env.DMR_PREVIEW_CONTENT_ENABLED === "true";
 }

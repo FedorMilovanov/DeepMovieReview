@@ -1,12 +1,22 @@
 import type { LensKey, NarrativePermissionState, ShellFilm } from "@/lib/content";
-import type { Confidence, FilmModule, FilmModuleKind, FilmPackage } from "@/lib/film-package";
+import type { ArticleSceneStill, Confidence, FilmModule, FilmModuleKind, FilmPackage } from "@/lib/film-package";
+import { projectArticleSections } from "./film-article";
 import { projectFilmModules } from "./film-module-projection";
+import { canRevealSpoiler } from "./spoilers";
 
 export type HomepageViewModel = {
   featuredFilm: ShellFilm;
   lenses: Array<{ key: LensKey; label: string; prompt: string }>;
   storyBeats: Array<{ label: string; summary: string; spoilerSafe: boolean }>;
-  characters: Array<{ id: string; name: string; wants: string; fears: string; contradiction: string }>;
+  characters: Array<{ id: string; name: string; wants: string; fears: string; contradiction: string;
+    visual?: { assetId: string; caption: string } }>;
+  paths: { storyId?: string; charactersId?: string; hasScenes: boolean; relationshipId?: string; hasRelationships: boolean; comparisonId?: string; hasComparison: boolean };
+  sceneExample: {
+    sceneId: string;
+    sceneLabel: string;
+    still?: ArticleSceneStill;
+    readings: Array<{ lens: LensKey; text: string; evidence: Array<{ id: string; label: string }>; counterevidence: Array<{ id: string; label: string }> }>;
+  } | null;
   /**
    * Null when the relationship module sits above the homepage's spoiler budget.
    * The homepage stops at NONE, and a film whose relationship module is MAJOR has
@@ -64,12 +74,48 @@ function moduleOfKind<K extends FilmModuleKind>(filmPackage: FilmPackage, kind: 
   return filmModule;
 }
 
+function projectSceneExample(filmPackage: FilmPackage, stills: boolean): HomepageViewModel["sceneExample"] {
+  const requiredLenses = new Set(lenses.map((lens) => lens.key));
+  const scene = filmPackage.scenes?.find((item) =>
+    canRevealSpoiler("NONE", item.spoilerLevel) &&
+    item.lensReadings?.filter((reading) => canRevealSpoiler("NONE", reading.spoilerLevel)).length === requiredLenses.size,
+  );
+  if (!scene?.lensReadings) return null;
+  const safeReadings = scene.lensReadings.filter((reading) => canRevealSpoiler("NONE", reading.spoilerLevel));
+  if (new Set(safeReadings.map((reading) => reading.lens)).size !== requiredLenses.size ||
+      safeReadings.some((reading) => !requiredLenses.has(reading.lens))) return null;
+  const evidence = new Map((filmPackage.evidence ?? [])
+    .filter((record) => record.sceneId === scene.id && canRevealSpoiler("NONE", record.spoilerLevel))
+    .map((record) => [record.id, record]));
+  const readings = safeReadings.map((reading) => ({
+    lens: reading.lens,
+    text: reading.text,
+    evidence: reading.support.evidenceIds.flatMap((id) => {
+      const record = evidence.get(id);
+      return record ? [{ id: record.id, label: record.label }] : [];
+    }),
+    counterevidence: (reading.support.counterevidenceIds ?? []).flatMap((id) => {
+      const record = evidence.get(id);
+      return record ? [{ id: record.id, label: record.label }] : [];
+    }),
+  }));
+  // Fail closed even if called with an unvalidated package.
+  if (readings.some((reading, index) => reading.evidence.length !== safeReadings[index]!.support.evidenceIds.length || reading.evidence.length === 0 ||
+      reading.counterevidence.length !== (safeReadings[index]!.support.counterevidenceIds ?? []).length)) return null;
+  const evidenceIds = new Set(readings.flatMap((reading) => reading.evidence.map((record) => record.id)));
+  const sections = filmPackage.article ? projectArticleSections(filmPackage.article, "NONE", { stills }).visibleSections : [];
+  const still = sections.flatMap((section) => section.blocks.flatMap((block) =>
+    block.kind === "timeline" ? block.items.filter((item) => evidenceIds.has(item.evidenceId) && item.still).map((item) => item.still) : [],
+  ))[0];
+  return { sceneId: scene.id, sceneLabel: scene.shortLabel, readings, still };
+}
+
 /**
  * Homepage is a read-model projected from the canonical FilmPackage.
  * Synthetic fixtures may expose the whole shell; real film content is always
  * reduced to spoiler-safe NONE data before homepage composition.
  */
-export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
+export function projectHomepage(filmPackage: FilmPackage, options: { stills?: boolean } = {}): HomepageViewModel {
   const homepageModules =
     filmPackage.film.status === "fixture"
       ? filmPackage.modules
@@ -109,7 +155,17 @@ export function projectHomepage(filmPackage: FilmPackage): HomepageViewModel {
       summary: beat.summary,
       spoilerSafe: beat.spoilerLevel === "NONE",
     })),
-    characters: characters.characters.map(({ id, name, wants, fears, contradiction }) => ({ id, name, wants, fears, contradiction })),
+    characters: characters.characters.map(({ id, name, wants, fears, contradiction, visual }) => ({ id, name, wants, fears, contradiction, visual })),
+    paths: {
+      storyId: story.id,
+      charactersId: characters.id,
+      hasScenes: (filmPackage.scenes ?? []).some((scene) => canRevealSpoiler("NONE", scene.spoilerLevel)),
+      relationshipId: relationship?.id,
+      hasRelationships: filmPackage.modules.some((module) => module.kind === "relationship"),
+      comparisonId: filmPackage.comparison && canRevealSpoiler("NONE", filmPackage.comparison.spoilerLevel) ? filmPackage.comparison.id : undefined,
+      hasComparison: Boolean(filmPackage.comparison),
+    },
+    sceneExample: projectSceneExample(filmPackage, options.stills === true),
     relationship: relationship
       ? {
           id: relationship.id,

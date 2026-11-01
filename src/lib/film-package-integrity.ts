@@ -1,5 +1,6 @@
 import type {
   ArticleMeasurementRef,
+  ArticleMeasurementMetadata,
   ClaimSupport,
   EvidenceRecord,
   FilmModule,
@@ -8,6 +9,7 @@ import type {
   SourcesMethodModule,
 } from "@/lib/film-package";
 import { validateFilmArticle } from "./film-article-integrity";
+import { COMPARISON_DIMENSIONS } from "./film-package";
 import { canRevealSpoiler, type SpoilerLevel } from "./spoilers";
 
 const ROUTE_SAFE_FILM_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -136,9 +138,11 @@ function sourceModules(filmPackage: FilmPackage): SourcesMethodModule[] {
  * rather than silently accepted.
  */
 export type FilmPackageValidationOptions = {
-  resolveArticleMeasurement?: (ref: ArticleMeasurementRef) => boolean;
+  resolveArticleMeasurement?: (ref: ArticleMeasurementRef, filmSlug: string) => ArticleMeasurementMetadata | undefined;
   /** Digit strings the master measured; prose may not retype them. */
   articleMeasuredValues?: string[];
+  /** Per-film dossier source resolver; avoids treating ideas as film evidence. */
+  resolveArticleContextSources?: (slug: string) => ReadonlySet<string> | undefined;
   /**
    * Looks up a declared illustration by asset id. The registry lives with the
    * image data, not in this schema module, so it is injected; without it an
@@ -233,6 +237,7 @@ export function validateFilmPackage(
     errors.push("published package requires a final-synthesis module.");
   }
 
+  const sceneLensKeys = new Set(["story", "people", "relationships", "ideas", "moral-world", "craft"]);
   for (const scene of scenes) {
     if (isBlank(scene.id)) errors.push("scenes: scene id is required.");
     if (published && realFilm && scene.verificationState !== "VERIFIED") {
@@ -251,6 +256,24 @@ export function validateFilmPackage(
       }
     } else if (scene.verificationState === "VERIFIED") {
       errors.push(`scene/${scene.id}: VERIFIED scene requires endTimestampSeconds.`);
+    }
+    for (const lens of duplicateIds((scene.lensReadings ?? []).map((reading) => reading.lens))) {
+      errors.push(`scene/${scene.id}: duplicate lens reading "${lens}".`);
+    }
+    for (const reading of scene.lensReadings ?? []) {
+      const path = `scene/${scene.id}/lens/${reading.lens}`;
+      if (!sceneLensKeys.has(reading.lens)) errors.push(`${path}: unknown lens.`);
+      if (isBlank(reading.text)) errors.push(`${path}: reading text is required.`);
+      if (!canRevealSpoiler(reading.spoilerLevel, scene.spoilerLevel)) {
+        errors.push(`${path}: reading cannot be less spoiler-restricted than its scene.`);
+      }
+      checkScopedSupport(reading.support, path, reading.spoilerLevel, true);
+      for (const evidenceId of [...(reading.support?.evidenceIds ?? []), ...(reading.support?.counterevidenceIds ?? [])]) {
+        const record = evidenceById.get(evidenceId);
+        if (record && record.sceneId !== scene.id) {
+          errors.push(`${path}: evidence "${evidenceId}" must belong to this scene.`);
+        }
+      }
     }
   }
 
@@ -587,7 +610,7 @@ export function validateFilmPackage(
             realFilm,
           );
 
-          const hasInterpretiveFields = [item.believes, item.selfDeception, item.arcSummary, item.roleInArgument]
+          const hasInterpretiveFields = [item.believes, item.selfDeception, item.arcSummary, item.roleInArgument, item.counterpoint]
             .some((value) => !isBlank(value));
           checkScopedSupport(
             item.interpretiveSupport,
@@ -595,6 +618,13 @@ export function validateFilmPackage(
             interpretiveLevel,
             realFilm && hasInterpretiveFields,
           );
+
+          if (item.visual) {
+            const visual = options.resolveIllustration?.(item.visual.assetId);
+            if (!visual || visual.role !== "illustration" || visual.sourceKind !== "generated" || isBlank(visual.alt) || isBlank(item.visual.caption) || !/не кадр/i.test(item.visual.caption)) {
+              errors.push(`${filmModule.id}/${item.id}: character visual requires a registered generated illustration with alt and a caption that says it is not a frame.`);
+            }
+          }
 
           if (filmPackage.ingest?.edition?.state === "LOCKED") {
             const required = [
@@ -667,6 +697,9 @@ export function validateFilmPackage(
         break;
       case "meaning":
         checkScopedSupport(filmModule.support, filmModule.id, filmModule.spoilerLevel, realFilm);
+        if (filmModule.additionalReading) {
+          checkScopedSupport(filmModule.additionalReading.support, `${filmModule.id}/additional-reading`, filmModule.additionalReading.spoilerLevel, realFilm);
+        }
         break;
       case "teaching-signals":
         for (const item of filmModule.signals) checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, realFilm);
@@ -681,7 +714,23 @@ export function validateFilmPackage(
         const observationsById = new Map(filmModule.observations.map((item) => [item.id, item]));
         const observationIds = new Set(observationsById.keys());
         for (const item of filmModule.observations) {
-          checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, realFilm);
+          const itemPath = `${filmModule.id}/${item.id}`;
+          checkScopedSupport(item.support, itemPath, item.spoilerLevel, realFilm);
+          for (const id of duplicateIds(item.contextSourceIds ?? [])) errors.push(`${itemPath}: duplicate context source "${id}".`);
+          for (const id of item.contextSourceIds ?? []) {
+            const source = sourcesById.get(id);
+            if (!source) errors.push(`${itemPath}: unknown context source "${id}".`);
+            else if (!canRevealSpoiler(item.spoilerLevel, source.spoilerLevel ?? "FULL")) {
+              errors.push(`${itemPath}: context source "${id}" exceeds observation spoiler level.`);
+            }
+            if (source && !source.href) errors.push(`${itemPath}: production context source "${id}" needs a link.`);
+          }
+          if (item.detail) {
+            if (!(item.contextSourceIds?.length)) errors.push(`${itemPath}: craft detail requires a context source.`);
+            for (const [key, value] of Object.entries(item.detail)) {
+              if (isBlank(value)) errors.push(`${itemPath}: craft detail ${key} is required.`);
+            }
+          }
         }
         for (const item of filmModule.pressureAssessments ?? []) {
           if (published && item.craftObservationIds.length === 0) {
@@ -859,6 +908,53 @@ export function validateFilmPackage(
     }
   }
 
+  const comparison = filmPackage.comparison;
+  if (comparison) {
+    const path = `comparison/${comparison.id}`;
+    if (!ROUTE_SAFE_FILM_SLUG.test(comparison.id) || isBlank(comparison.heading) ||
+        isBlank(comparison.introduction) || isBlank(comparison.limitation)) {
+      errors.push(`${path}: a route-safe id, heading, introduction and limitation are required.`);
+    }
+    if (comparison.sides.length < 2) errors.push(`${path}: at least two sides are required.`);
+    for (const id of duplicateIds(comparison.sides.map(side => side.id))) errors.push(`${path}: duplicate side "${id}".`);
+    for (const id of duplicateIds(comparison.sources.map(source => source.id))) errors.push(`${path}: duplicate source "${id}".`);
+    const comparisonSources = new Set(comparison.sources.map(source => source.id));
+    const usedComparisonSources = new Set<string>();
+    for (const source of comparison.sources) {
+      if (isBlank(source.label) || isBlank(source.scope) || !source.url.startsWith("https://") || !isSafeSourceHref(source.url)) {
+        errors.push(`${path}/source/${source.id}: label, scope and an absolute HTTPS URL are required.`);
+      }
+    }
+    for (const side of comparison.sides) {
+      const sidePath = `${path}/${side.id}`;
+      if (!ROUTE_SAFE_FILM_SLUG.test(side.id) || isBlank(side.name) || isBlank(side.context)) errors.push(`${sidePath}: id, name and context are required.`);
+      if (side.kind === "FICTIONAL" && (!side.characterId || !characterIds.has(side.characterId))) {
+        errors.push(`${sidePath}: fictional sides must resolve to a canonical character.`);
+      }
+      if (side.kind === "HISTORICAL" && side.characterId) errors.push(`${sidePath}: historical people are not film characters.`);
+      for (const dimension of COMPARISON_DIMENSIONS) {
+        const cell = side.cells[dimension];
+        if (!cell || isBlank(cell.text)) { errors.push(`${sidePath}/${dimension}: a substantive reading is required.`); continue; }
+        if (side.kind === "FICTIONAL" && !(cell.evidenceIds?.length)) errors.push(`${sidePath}/${dimension}: film evidence is required.`);
+        if (side.kind === "HISTORICAL" && !(cell.sourceIds?.length)) errors.push(`${sidePath}/${dimension}: historical sources are required.`);
+        for (const id of cell.evidenceIds ?? []) {
+          const record = evidenceById.get(id);
+          if (!record) errors.push(`${sidePath}/${dimension}: unknown evidence "${id}".`);
+          else if (!canRevealSpoiler(comparison.spoilerLevel, record.spoilerLevel)) {
+            errors.push(`${sidePath}/${dimension}: evidence "${id}" exceeds the comparison spoiler level.`);
+          }
+        }
+        for (const id of cell.sourceIds ?? []) {
+          usedComparisonSources.add(id);
+          if (!comparisonSources.has(id)) errors.push(`${sidePath}/${dimension}: unknown historical source "${id}".`);
+        }
+      }
+    }
+    for (const source of comparison.sources) {
+      if (!usedComparisonSources.has(source.id)) errors.push(`${path}/source/${source.id}: source is not cited.`);
+    }
+  }
+
   errors.push(
     ...validateFilmArticle(filmPackage.article, {
       evidenceById,
@@ -867,8 +963,11 @@ export function validateFilmPackage(
       realFilm,
       published,
       editorialRevision: sourcesModules[0]?.editorialRevision,
-      resolveMeasurement: options.resolveArticleMeasurement,
+      resolveMeasurement: options.resolveArticleMeasurement
+        ? (ref) => options.resolveArticleMeasurement!(ref, filmPackage.film.slug)
+        : undefined,
       measuredValues: options.articleMeasuredValues,
+      contextSourceIds: options.resolveArticleContextSources?.(filmPackage.film.slug),
       moduleLevels: new Map(filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.spoilerLevel])),
       // Illustrations are declared once, in their own registry: the package only
       // points at them by id, so a picture can never be invented inline.

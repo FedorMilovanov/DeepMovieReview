@@ -16,7 +16,9 @@ concurrency:
 jobs:
   app-shell:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Three real reader engines, the full browser audit, axe, and a second
+    # public build share this job. Leave time to publish failure evidence too.
+    timeout-minutes: 40
     permissions:
       contents: read
       actions: read
@@ -58,8 +60,27 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Audit all locked dependencies
+        run: npm audit --audit-level=info
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=info
+
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Install and verify FFmpeg for evidence regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Hosted images do not promise FFmpeg/ffprobe, and npm lifecycle scripts
+          # remain disabled for ffmpeg-static. Install the OS package explicitly.
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
+          ffmpeg -version
+          ffprobe -version
 
       - name: Domain regression tests
         run: npm test
@@ -215,6 +236,20 @@ jobs:
             echo "Published film route must advertise its canonical public URL."
             exit 1
           fi
+          # Each route can override the layout's metadata independently. In
+          # particular, the production dossier once silently dropped noindex.
+          for suffix in article making; do
+            preview_film_page="/tmp/truman-preview-${suffix}.html"
+            curl --fail --silent --show-error "http://127.0.0.1:3210/films/the-truman-show/${suffix}" > "$preview_film_page"
+            if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' "$preview_film_page"; then
+              echo "Published film ${suffix} route must remain noindex/nofollow in a preview build."
+              exit 1
+            fi
+            if ! grep -Eq "rel=\"canonical\"[^>]*href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"|href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"[^>]*rel=\"canonical\"" "$preview_film_page"; then
+              echo "Published film ${suffix} route must advertise its canonical public URL."
+              exit 1
+            fi
+          done
           if grep -Eiq 'rel="canonical"' /tmp/fast-draft.html; then
             echo "Research draft must not advertise a canonical public film URL."
             exit 1
@@ -255,6 +290,7 @@ jobs:
         run: npx playwright-core install --with-deps chromium firefox webkit
 
       - name: Browser visual and accessibility audit
+        id: browser_audit
         shell: bash
         run: |
           set -euo pipefail
@@ -282,8 +318,36 @@ jobs:
             exit 1
           fi
 
-          BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs
-          BASE_URL=http://127.0.0.1:3212 npm run test:a11y
+          echo '::notice title=CI progress::Calibrating the passive native-iOS observer in Chromium (not an iOS test)'
+          BASE_URL=http://127.0.0.1:3212 node scripts/ios-observer-smoke.mjs
+          echo '::notice title=CI progress::Starting three-engine reader regression'
+          for engine in chromium firefox webkit; do
+            echo "::notice title=Reader engine::Starting $engine (8 minute deadline)"
+            set +e
+            timeout 8m env BASE_URL=http://127.0.0.1:3212 READER_BROWSERS="$engine" READER_AUDIT_DIR="browser-audit/reader-$engine" node scripts/reader-regression.mjs 2>&1 | tee "/tmp/dmr-reader-$engine.log"
+            statuses=("${PIPESTATUS[@]}")
+            status=${statuses[0]}
+            set -e
+            if [[ "$status" -eq 0 && "${statuses[1]}" -ne 0 ]]; then
+              echo "::error title=Reader diagnostics::Could not record $engine output (exit ${statuses[1]})"
+              exit "${statuses[1]}"
+            fi
+            if [[ "$status" -ne 0 ]]; then
+              echo "::error title=Reader engine::$engine failed or exceeded its deadline (exit $status)"
+              exit "$status"
+            fi
+            echo "::notice title=Reader engine::Completed $engine; checking mobile scene/evidence paths"
+            timeout 3m env BASE_URL=http://127.0.0.1:3212 MOBILE_BROWSER="$engine" MOBILE_AUDIT_DIR="browser-audit/mobile-$engine" node scripts/mobile-path-audit.mjs 2>&1 | tee "/tmp/dmr-mobile-$engine.log"
+          done
+          echo '::notice title=CI progress::Reader regression finished; starting browser audit'
+          BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs 2>&1 | tee /tmp/dmr-browser-audit.log
+          echo '::notice title=CI progress::Browser audit finished; starting axe scans'
+          BASE_URL=http://127.0.0.1:3212 npm run test:a11y 2>&1 | tee /tmp/dmr-axe-audit.log
+          echo '::notice title=CI progress::Browser and accessibility audits finished'
+
+      - name: Preserve interrupted reader diagnostics
+        if: always() && steps.browser_audit.outcome == 'failure'
+        run: node scripts/report-interrupted-reader.mjs
 
       # Historical recovery is informational, never a substitute for current-head tests.
       - name: Recover previous successful accessibility evidence
@@ -447,6 +511,18 @@ jobs:
             exit 1
           fi
           grep -Fq 'Труман Бёрбанк' /tmp/public-truman-route.html
+          for suffix in article making; do
+            public_film_page="/tmp/truman-public-${suffix}.html"
+            curl --fail --silent --show-error "http://127.0.0.1:3211/films/the-truman-show/${suffix}" > "$public_film_page"
+            if grep -Eiq 'name="robots"[^>]*content="noindex|content="noindex[^>]*name="robots"' "$public_film_page"; then
+              echo "Published film ${suffix} route is noindex on a site that allows indexing."
+              exit 1
+            fi
+            if ! grep -Eq "rel=\"canonical\"[^>]*href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"|href=\"https://deepwaters\\.example\\.test/films/the-truman-show/${suffix}\"[^>]*rel=\"canonical\"" "$public_film_page"; then
+              echo "Published film ${suffix} route is missing its canonical URL."
+              exit 1
+            fi
+          done
 
           fast_status=$(curl --silent --output /tmp/public-fast-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/the-fast-and-the-furious)
           if [[ "$fast_status" != "200" && "$fast_status" != "404" ]]; then
@@ -539,9 +615,12 @@ jobs:
   native-ios:
     name: Native iOS Safari
     runs-on: macos-26
-    timeout-minutes: 20
+    # Includes a separately built XCUITest runner for the real native gesture;
+    # a missing, skipped or failed gesture remains a failing native-iOS job.
+    timeout-minutes: 30
     permissions:
       contents: read
+      actions: read
       checks: write
     env:
       DMR_PREVIEW_CONTENT_ENABLED: "true"
@@ -551,11 +630,27 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Verify exact native checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git rev-parse HEAD)"
+          echo "Native iOS revision: $actual"
+          test "$actual" = "$expected"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Optional historical OS-log excerpt cannot pass or change the current test.
+      - name: Inspect the previous failed native touch, if retained
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/recover-prior-ios-touch.mjs
       - name: Enable installed Safari WebDriver
         run: sudo /usr/bin/safaridriver --enable
       - run: npm run build
@@ -566,14 +661,26 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/publish-a11y-evidence.mjs at-report/ios-safari ios-safari
+      - name: Publish native gesture trace and XCTest screenshots separately
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-a11y-evidence.mjs at-report/ios-gesture ios-gesture
       - name: Upload native iOS evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: actual-ios-${{ github.event.pull_request.head.sha || github.sha }}
-          path: at-report/ios-safari/
+          path: |
+            at-report/ios-safari/
+            at-report/ios-gesture/
           if-no-files-found: error
           retention-days: 7
+      - name: Recover bounded prior CI diagnostics
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/recover-ios-transport-history.mjs
 
   rendered-contrast:
     name: Rendered contrast (${{ matrix.browser }})
@@ -603,7 +710,7 @@ jobs:
       - name: Install the actual engine under assessment
         run: npx playwright-core install --with-deps ${{ matrix.browser }}
       - run: npm run build
-      - name: Assess all current incomplete text-range backgrounds
+      - name: Assess configured contrast states (film page comparison and scoped navigation)
         run: node scripts/run-contrast-audit.mjs
       - name: Publish measured bounds without relabeling incomplete as pass
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)

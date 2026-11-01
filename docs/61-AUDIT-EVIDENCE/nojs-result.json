@@ -1,0 +1,87 @@
+[
+  {
+    "route": "/",
+    "status": 200,
+    "bodyText": "Перейти к содержимому\nМЕНЮ\nИССЛЕДОВАНИЕ КИНО ЧЕРЕЗ БИБЛЕЙСКУЮ КАРТИНУ МИРА · ИЗБРАННЫЙ РАЗБОР\n\n1998 · ПИТЕР УИР · ДРАМА, КОМЕДИЯ, АНТИУТОПИЯ\n\nШОУ ТРУМАНА\n\nЧто дороже: безопасная клетка, где всё устроено, — или истина, за которую п",
+    "skeletons": 0,
+    "h1Text": "Шоу Трумана",
+    "h1Visible": true,
+    "articleCount": 0,
+    "articleVisible": false,
+    "height": 6147
+  },
+  {
+    "route": "/films",
+    "status": 200,
+    "bodyText": "Перейти к содержимому\nМЕНЮ\nФИЛЬМЫ / ИНДЕКС\nФИЛЬМЫ\n\nОпубликованные разборы связывают историю, людей, отношения, идеи, форму, моральную аргументацию и библейский синтез.\n\nПОИСК ПО ИНДЕКСУ\n\nПоказано 1 из 1\n\n001\nШоу Трумана\n1998 · опу",
+    "skeletons": 0,
+    "h1Text": "Фильмы",
+    "h1Visible": true,
+    "articleCount": 0,
+    "articleVisible": false,
+    "height": 1140
+  },
+  {
+    "route": "/films/the-truman-show",
+    "status": 200,
+    "bodyText": "Перейти к содержимому\nМЕНЮ\nФИЛЬМ / ЗАГРУЗКА\n\nГОТОВИМ РАЗБОР ФИЛЬМА…\n\nDeep Waters · Сначала фильм. Доказательства — потом вердикт.\n\nИсследование кино через библейскую картину мира: история, люди, смысл, моральная аргументация и син",
+    "skeletons": 1,
+    "h1Visible": false,
+    "articleCount": 0,
+    "articleVisible": false,
+    "height": 1354
+  },
+  {
+    "route": "/films/the-truman-show?spoilers=none",
+    "status": 200,
+    "bodyText": "Перейти к содержимому\nМЕНЮ\nФИЛЬМ / ЗАГРУЗКА\n\nГОТОВИМ РАЗБОР ФИЛЬМА…\n\nDeep Waters · Сначала фильм. Доказательства — потом вердикт.\n\nИсследование кино через библейскую картину мира: история, люди, смысл, моральная аргументация и син",
+    "skeletons": 1,
+    "h1Visible": false,
+    "articleCount": 0,
+    "articleVisible": false,
+    "height": 1354
+  },
+  {
+    "route": "/films/the-truman-show/article",
+    "status": 200,
+    "bodyText": "Перейти к содержимому\nМЕНЮ\nФИЛЬМ / ЗАГРУЗКА\n\nГОТОВИМ РАЗБОР ФИЛЬМА…\n\nDeep Waters · Сначала фильм. Доказательства — потом вердикт.\n\nИсследование кино через библейскую картину мира: история, люди, смысл, моральная аргументация и син",
+    "skeletons": 1,
+    "h1Visible": false,
+    "articleCount": 1,
+    "articleVisible": false,
+    "hiddenAncestor": "<div hidden=\"\" id=\"S:0\"><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":",
+    "height": 1354
+  },
+  {
+    "route": "/films/the-truman-show/article?spoilers=full",
+    "status": 200,
+    "bodyText": "Перейти к содержимому\nМЕНЮ\nФИЛЬМ / ЗАГРУЗКА\n\nГОТОВИМ РАЗБОР ФИЛЬМА…\n\nDeep Waters · Сначала фильм. Доказательства — потом вердикт.\n\nИсследование кино через библейскую картину мира: история, люди, смысл, моральная аргументация и син",
+    "skeletons": 1,
+    "h1Visible": false,
+    "articleCount": 11,
+    "articleVisible": false,
+    "hiddenAncestor": "<div hidden=\"\" id=\"S:0\"><script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":",
+    "height": 1354
+  },
+  {
+    "route": "/films/the-truman-show/making",
+    "status": 200,
+    "bodyText": "Перейти к содержимому\nМЕНЮ\nФИЛЬМ / ЗАГРУЗКА\n\nГОТОВИМ РАЗБОР ФИЛЬМА…\n\nDeep Waters · Сначала фильм. Доказательства — потом вердикт.\n\nИсследование кино через библейскую картину мира: история, люди, смысл, моральная аргументация и син",
+    "skeletons": 1,
+    "h1Visible": false,
+    "articleCount": 12,
+    "articleVisible": false,
+    "hiddenAncestor": "<div hidden=\"\" id=\"S:0\"><article class=\"articleShell productionShell\"><header class=\"sectionShell ar",
+    "height": 1354
+  },
+  {
+    "route": "/films/not-a-film",
+    "status": 200,
+    "bodyText": "Перейти к содержимому\nМЕНЮ\nФИЛЬМ / ЗАГРУЗКА\n\nГОТОВИМ РАЗБОР ФИЛЬМА…\n\nDeep Waters · Сначала фильм. Доказательства — потом вердикт.\n\nИсследование кино через библейскую картину мира: история, люди, смысл, моральная аргументация и син",
+    "skeletons": 1,
+    "h1Visible": false,
+    "articleCount": 0,
+    "articleVisible": false,
+    "height": 1354
+  }
+]

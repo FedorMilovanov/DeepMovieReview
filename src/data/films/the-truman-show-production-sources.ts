@@ -17,9 +17,8 @@ import type { ProductionClaim, ProductionSource } from "../../lib/production-dos
  *               usually told"; never enough on their own to make a claim
  *               CONFIRMED.
  *
- * Everything here was opened on 2026-10-28 from the working environment. That
- * timestamp is the same for the whole register because it was read in one sitting,
- * and it is the honest thing to record: a link is a claim about reachability too.
+ * Each source records its own checkedOn date. A source's reachability and
+ * editorial claim status are not a guarantee that it supports every clause.
  */
 
 export const trumanProductionSources: ProductionSource[] = [
@@ -58,13 +57,13 @@ export const trumanProductionSources: ProductionSource[] = [
   },
   {
     id: "src-paramount-site",
-    label: "The Truman Show — официальный сайт фильма (архив Paramount)",
-    publisher: "Paramount Pictures",
+    label: "The Truman Show — сайт с архивом и сторонними материалами",
+    publisher: "Truman-Show.com (текущий издатель не установлен)",
     url: "https://www.truman-show.com/",
-    tier: "PRIMARY",
-    checkedOn: "2026-10-28",
+    tier: "TERTIARY",
+    checkedOn: "2026-10-30",
     supports:
-      "Официальные данные студии: режиссёр, продюсеры, исполнительный продюсер, состав и перечень наград в том виде, в каком их заявляла студия.",
+      "Сайт сообщает, что ранее был официальным, и содержит архивные и сторонние материалы. Происхождение каждого фрагмента и нынешний издатель не установлены; не считаем всю страницу первичным документом Paramount.",
   },
   {
     id: "src-newsherald-photos",
@@ -80,6 +79,25 @@ export const trumanProductionSources: ProductionSource[] = [
 
   // ---- Secondary -----------------------------------------------------------
   {
+    id: "src-galaxy-pohl",
+    label: "The Tunnel Under the World — текст из Galaxy Science Fiction",
+    publisher: "Project Gutenberg",
+    url: "https://www.gutenberg.org/ebooks/31979",
+    tier: "SECONDARY",
+    checkedOn: "2026-10-30",
+    supports: "Электронная публикация указывает источником январский номер Galaxy за 1955 год и воспроизводит рассказ Фредерика Пола.",
+  },
+  {
+    id: "src-variety-treatment",
+    label: "‘Truman’ suit retort",
+    publisher: "Variety",
+    url: "https://variety.com/1998/film/news/truman-suit-retort-1117477740/",
+    tier: "SECONDARY",
+    publishedAt: "1998-06-22",
+    checkedOn: "2026-10-30",
+    supports: "Со слов бывшего менеджера Никкола и по показанным Variety документам: изложение идеи в мае 1991 года, одностраничный тритмент неделей позже; общая сделка Paramount в октябре 1993-го и первоначальный пункт о режиссуре.",
+  },
+  {
     id: "src-wikipedia-truman",
     label: "The Truman Show",
     publisher: "Wikipedia (English)",
@@ -87,7 +105,7 @@ export const trumanProductionSources: ProductionSource[] = [
     tier: "SECONDARY",
     checkedOn: "2026-10-28",
     supports:
-      "Сводная хроника разработки и кастинга со сносками: одноактный тритмент 1991-го, покупка сценария осенью 1993-го, оценки бюджета, список режиссёров, 16 драфтов, съёмки 09.12.1996–21.04.1997, Хоппер и Харрис, Линни и каталоги Sears, локации, CGI, музыка.",
+      "Сводная хроника разработки и кастинга со сносками: одностраничный тритмент 1991-го, покупка сценария осенью 1993-го, оценки бюджета, список режиссёров, 16 драфтов, съёмки 09.12.1996–21.04.1997, Хоппер и Харрис, Линни и каталоги Sears, локации, CGI, музыка.",
   },
   {
     id: "src-wikipedia-seaside",
@@ -554,7 +572,7 @@ export const trumanProductionSources: ProductionSource[] = [
     url: "https://alchetron.com/The-Truman-Show",
     tier: "TERTIARY",
     checkedOn: "2026-10-28",
-    supports: "Пересказ англоязычной статьи: тритмент 1991-го, покупка Рaдином, оценки бюджета, 16 драфтов.",
+    supports: "Пересказ англоязычной статьи: тритмент 1991-го, покупка Рудином, оценки бюджета, 16 драфтов.",
   },
   {
     id: "src-baike",
@@ -573,7 +591,7 @@ export const trumanProductionSources: ProductionSource[] = [
     tier: "TERTIARY",
     checkedOn: "2026-10-28",
     supports:
-      "Учебное пособие: Уир искал проект, устав от «предсказуемых» сценариев; Рaдин о «мирах одновременно правдоподобных и сюрреалистичных»; ссылка на репортаж Вайнрауба.",
+      "Учебное пособие: Уир искал проект, устав от «предсказуемых» сценариев; Рудин о «мирах одновременно правдоподобных и сюрреалистичных»; ссылка на репортаж Вайнрауба.",
   },
   {
     id: "src-florida-scout",
@@ -1018,14 +1036,14 @@ export const trumanProductionSources: ProductionSource[] = [
 export const trumanProductionClaims: ProductionClaim[] = [
   {
     id: "claim-treatment-1991",
-    text: "Никкол написал одноактный тритмент под названием «The Malcolm Show» в мае 1991 года; изначально это был научно-фантастический триллер в Нью-Йорке, а не комедия в идиллическом пригороде.",
-    sourceIds: ["src-wikipedia-truman", "src-wikipedia-special-service", "src-industriamovies", "src-bfi-niccol"],
+    text: "По документам, показанным Variety, в мае 1991 года Никкол изложил бывшему менеджеру идею «The Malcolm Show» и неделей позже отправил одностраничный тритмент; в BFI он отдельно описывает ранний сценарий как более мрачный и перенесённый в Нью-Йорк.",
+    sourceIds: ["src-variety-treatment", "src-bfi-niccol"],
     status: "CONFIRMED",
   },
   {
     id: "claim-rudin-buy",
-    text: "Осенью 1993 года продюсер Скотт Рaдин купил сценарий «чуть больше чем за миллион долларов», и Paramount сразу согласилась на прокат.",
-    sourceIds: ["src-wikipedia-truman", "src-gradesaver", "src-alchetron"],
+    text: "По Variety, в октябре 1993 года Paramount приобрела сценарий для продюсера Скотта Рудина; общая стоимость сделки составляла 1,5 миллиона долларов и включала впоследствии отменённое условие о режиссуре Никкола.",
+    sourceIds: ["src-variety-treatment"],
     status: "CONFIRMED",
   },
   {
@@ -1036,8 +1054,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-director-lineup",
-    text: "До Уира проект проходили Де Пальма (переговоры до его ухода из UTA в марте 1994-го), затем Бертон, Рэйми, Гиллиам, Кроненберг, Сонненфельд и Спилберг; Брайан Сингер тоже хотел ставить фильм, но студия выбрала более опытного режиссёра.",
-    sourceIds: ["src-wikipedia-truman", "src-tcm", "src-fandom-total"],
+    text: "Сводные источники упоминают в связи с проектом нескольких режиссёров. Никкол отдельно говорил BFI, что Де Пальма не видел Джима Керри в роли; точную роль и порядок всех названных кандидатов эти источники не устанавливают.",
+    sourceIds: ["src-wikipedia-truman", "src-tcm", "src-fandom-total", "src-bfi-niccol"],
     status: "CONFIRMED",
   },
   {
@@ -1049,7 +1067,7 @@ export const trumanProductionClaims: ProductionClaim[] = [
   {
     id: "claim-sixteen-drafts",
     text: "К началу съёмок Никкол написал не меньше шестнадцати драфтов, хотя часть источников говорит о четырнадцати; сам он называет процесс «допросом материала на правду».",
-    sourceIds: ["src-bfi-niccol", "src-wikipedia-truman", "src-baike", "src-mentalfloss-truths"],
+    sourceIds: ["src-bfi-niccol", "src-wikipedia-truman", "src-baike", "src-mentalfloss-truths", "src-alchetron"],
     status: "CONFIRMED",
   },
   {
@@ -1108,7 +1126,7 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-hopper-two-days",
-    text: "Сам Хоппер говорил, что его уволили через два дня, потому что Уир и Рaдин договорились менять актёра, если оба не одобрят его игру.",
+    text: "Сам Хоппер говорил, что его уволили через два дня, потому что Уир и Рудин договорились менять актёра, если оба не одобрят его игру.",
     sourceIds: ["src-wikipedia-truman", "src-simple-wiki"],
     status: "CONFIRMED",
   },
@@ -1330,8 +1348,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-special-service-date",
-    text: "Эпизод «Сумеречной зоны» «Special Service» вышел 8 апреля 1989 года; его сценарий написал Дж. Майкл Стражински, и именно на него обычно указывают как на ближайшего предшественника замысла.",
-    sourceIds: ["src-wikipedia-special-service", "src-jaced"],
+    text: "Эпизод «Special Service» по сценарию Дж. Майкла Стражински вышел в 1989 году и имеет сюжетное сходство с фильмом; Никкол отрицал вдохновение «Сумеречной зоной» в интервью BFI.",
+    sourceIds: ["src-wikipedia-special-service", "src-jaced", "src-bfi-niccol"],
     status: "CONFIRMED",
   },
   {
@@ -1444,8 +1462,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-rosenbaum-lineage",
-    text: "Розенбаум указал на два литературных предшественника: рассказ Хайнлайна «They» (1941) и «The Tunnel Under the World» Пола (1954), где город оказывается полигоном для проверки рекламы.",
-    sourceIds: ["src-rosenbaum"],
+    text: "Розенбаум указал на два литературных предшественника: рассказ Хайнлайна «They» (1941) и «The Tunnel Under the World» Фредерика Пола (Розенбаум указывает 1954 год; рассказ опубликован в январском номере Galaxy за 1955 год), где город оказывается полигоном для проверки рекламы.",
+    sourceIds: ["src-rosenbaum", "src-galaxy-pohl"],
     status: "CONFIRMED",
   },
   {
@@ -1510,7 +1528,7 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-hopper-was-fired-or-left",
-    text: "Официальная формулировка — «творческие разногласия»; версия самого Хоппера — увольнение через два дня по договорённости Уира и Рaдина; версии не согласуются в том, кто принял решение.",
+    text: "Официальная формулировка — «творческие разногласия»; версия самого Хоппера — увольнение через два дня по договорённости Уира и Рудина; версии не согласуются в том, кто принял решение.",
     sourceIds: ["src-wikipedia-truman", "src-simple-wiki", "src-unspooled-weir"],
     status: "DISPUTED",
   },
@@ -1571,7 +1589,7 @@ export const trumanProductionClaims: ProductionClaim[] = [
   {
     id: "claim-secret-cinema-denial",
     text: "Сценарий сравнивали с «Секретным кино» Пола Бартеля и эпизодами «Сумеречной зоны»; Никкол говорил, что ни того, ни другого не знал, когда писал. Проверить это утверждение нельзя ни в одну сторону.",
-    sourceIds: ["src-neatorama-truths", "src-wikipedia-special-service"],
+    sourceIds: ["src-neatorama-truths", "src-wikipedia-special-service", "src-bfi-niccol"],
     status: "DISPUTED",
   },
   {

@@ -1,4 +1,4 @@
-import type { FilmModule } from "@/lib/film-package";
+import type { FilmComparison, FilmModule } from "@/lib/film-package";
 import { canRevealSpoiler, filterBySpoilerLevel, type SpoilerLevel } from "./spoilers";
 
 /** Hidden nested content is removed before it can enter the render tree. */
@@ -17,7 +17,8 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
           level,
           character.interpretiveSpoilerLevel ?? character.profileSpoilerLevel ?? module.spoilerLevel,
         );
-        if (interpretationAllowed) return [character];
+        const visual = character.visual && canRevealSpoiler(level, character.visual.spoilerLevel) ? character.visual : undefined;
+        if (interpretationAllowed) return [{ ...character, visual }];
 
         // Only the interpretation is hidden at this level. The profile keeps its
         // own support: dropping it here is what made a card look like a slogan
@@ -35,6 +36,7 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
           profileSpoilerLevel: character.profileSpoilerLevel,
           interpretiveSpoilerLevel: character.interpretiveSpoilerLevel,
           profileSupport: character.profileSupport,
+          visual,
         }];
       });
       return characters.length > 0 ? { ...module, characters } : null;
@@ -80,11 +82,23 @@ export function projectFilmModule(module: FilmModule, level: SpoilerLevel): Film
       const events = filterBySpoilerLevel(module.events, level);
       return events.length > 0 || module.summary ? { ...module, events } : null;
     }
+    case "sources-method": {
+      // Titles, locators and even URLs can disclose a twist independently of
+      // the evidence they support. Unreviewed sources must fail closed.
+      const sources = module.sources.filter((source) =>
+        canRevealSpoiler(level, source.spoilerLevel ?? "FULL"),
+      );
+      return { ...module, sources, hiddenSourceCount: module.sources.length - sources.length };
+    }
     case "meaning":
+      return {
+        ...module,
+        additionalReading: module.additionalReading && canRevealSpoiler(level, module.additionalReading.spoilerLevel)
+          ? module.additionalReading : undefined,
+      };
     case "autopsy":
     case "biblical-synthesis":
     case "final-synthesis":
-    case "sources-method":
       return module;
   }
 }
@@ -94,4 +108,9 @@ export function projectFilmModules(modules: FilmModule[], level: SpoilerLevel): 
     const projected = projectFilmModule(module, level);
     return projected ? [projected] : [];
   });
+}
+
+/** A comparison contains ending-level facts and must not reach client props early. */
+export function projectFilmComparison(comparison: FilmComparison | undefined, level: SpoilerLevel): FilmComparison | null {
+  return comparison && canRevealSpoiler(level, comparison.spoilerLevel) ? comparison : null;
 }

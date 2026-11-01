@@ -27,8 +27,9 @@
 #   03-subs-en.srt            embedded English subtitle track
 #   04-cuts.csv               shot-boundary candidates: time_s,score
 #   05-frames/f_%05d.jpg      one still every GRID_STEP seconds (default 30)
-#   06-sheets/sheet_%03d.jpg  contact sheets, SHEET_TILE tiles, one tile per
-#                             SHEET_STEP seconds; sheet N starts at (N-1)*SHEET_CHUNK
+#   06-sheets/sheet_%03d.jpg  contact sheets, SHEET_TILE tiles
+#   05-frame-times.csv        selected frame PTS by filename
+#   06-sheet-times.csv        selected PTS by filename and row-major tile
 #   07-srt-plain.txt          subtitle dialogue text only
 #
 set -u -o pipefail
@@ -46,7 +47,7 @@ EXPECTED_SHA256="${EXPECTED_SHA256:-E8543F612DA5063D94A11DBC5D434489B8C24718932A
 GRID_STEP="${GRID_STEP:-30}"        # seconds between individual stills
 SHEET_STEP="${SHEET_STEP:-10}"      # seconds between contact-sheet thumbnails
 SHEET_TILE="${SHEET_TILE:-6x5}"     # contact-sheet grid
-SHEET_CHUNK="${SHEET_CHUNK:-$((SHEET_STEP * 30))}"  # implied sheet length
+# Derived after validating the grid; a custom tile count must not inherit 30.
 FRAME_W="${FRAME_W:-800}"           # individual still width
 THUMB_W="${THUMB_W:-360}"           # contact-sheet thumb width
 SCENE_THRESHOLD="${SCENE_THRESHOLD:-0.32}"
@@ -55,6 +56,14 @@ SCENE_THRESHOLD="${SCENE_THRESHOLD:-0.32}"
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 step() { printf '\n[%s] %s\n' "$1" "$2"; }
 
+[[ "$SHEET_TILE" =~ ^([1-9][0-9]*)x([1-9][0-9]*)$ ]] || die "SHEET_TILE must be a positive WxH grid"
+TILES_PER_SHEET=$(( BASH_REMATCH[1] * BASH_REMATCH[2] ))
+[[ "$GRID_STEP" =~ ^[0-9]+([.][0-9]+)?$ && "$SHEET_STEP" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "GRID_STEP and SHEET_STEP must be positive numbers"
+awk -v g="$GRID_STEP" -v s="$SHEET_STEP" 'BEGIN { exit !(g > 0 && s > 0) }' || die "GRID_STEP and SHEET_STEP must be positive"
+[[ "$SCENE_THRESHOLD" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "SCENE_THRESHOLD must be between 0 and 1"
+awk -v t="$SCENE_THRESHOLD" 'BEGIN { exit !(t >= 0 && t <= 1) }' || die "SCENE_THRESHOLD must be between 0 and 1"
+[[ "$FRAME_W" =~ ^[1-9][0-9]*$ && "$THUMB_W" =~ ^[1-9][0-9]*$ ]] || die "FRAME_W and THUMB_W must be positive integers"
+SHEET_CHUNK="$(awk -v s="$SHEET_STEP" -v n="$TILES_PER_SHEET" 'BEGIN { print s*n }')"
 [ -n "$IN" ] || die "usage: bash $0 \"<input.mkv>\" [outdir] [subtitle-map]"
 [ -f "$IN" ] || die "input file not found: $IN"
 command -v ffmpeg  >/dev/null 2>&1 || die "ffmpeg not found on PATH"
@@ -127,8 +136,10 @@ rm -f "$OUT/.chapters.raw"
 
 # ----------------------------------------------------------- 3. subtitles ----
 step 3 "subtitles (\$SUB_MAP=$SUB_MAP) -> 03-subs-en.srt"
+SUBTITLE_STATUS="failed"
 if ffmpeg -nostdin -y -hide_banner -loglevel error -i "$IN" -map "$SUB_MAP" \
      -c:s srt "$OUT/03-subs-en.srt" 2>"$OUT/.subs.err"; then
+  SUBTITLE_STATUS="complete"
   grep -v -- '-->' "$OUT/03-subs-en.srt" \
     | grep -vE '^[[:space:]]*[0-9]+[[:space:]]*$' \
     | sed '/^[[:space:]]*$/d' > "$OUT/07-srt-plain.txt" || true
@@ -142,33 +153,57 @@ rm -f "$OUT/.subs.err"
 
 # ------------------------------------------------------ 4. shot boundaries ---
 step 4 "shot-boundary scan -> 04-cuts.csv (full decode)"
+SCAN_STATUS="failed"
+printf 'time_s,score\n' > "$OUT/04-cuts.csv"
 if ffmpeg -nostdin -hide_banner -loglevel error -i "$IN" \
      -vf "select='gt(scene,$SCENE_THRESHOLD)',metadata=print:file=-" \
      -an -f null - 2>"$OUT/.cuts.log" | awk '
     /^frame:/ { for (i=1;i<=NF;i++) if ($i ~ /^pts_time:/) { split($i,a,":"); t=a[2] } }
     /lavfi.scene_score=/ { split($0,b,"="); if (t != "") { printf "%.3f,%.4f\n", t, b[2]; t="" } }
-  ' > "$OUT/04-cuts.csv"; then
-  printf '   cut candidates: %s\n' "$(wc -l < "$OUT/04-cuts.csv" | tr -d ' ')"
+  ' >> "$OUT/04-cuts.csv"; then
+  SCAN_STATUS="complete"
+  printf '   cut candidates: %s\n' "$(awk 'END { print NR-1 }' "$OUT/04-cuts.csv")"
 else
   printf '   WARNING: scene scan failed\n'
   sed -n 1,4p "$OUT/.cuts.log" 2>/dev/null | sed 's/^/   /' || true
-  : > "$OUT/04-cuts.csv"
+  printf 'time_s,score\n' > "$OUT/04-cuts.csv"
 fi
 rm -f "$OUT/.cuts.log"
 
 # ------------------------------------------- 5+6. stills and contact sheets ---
 step 5 "stills + contact sheets -> 05-frames + 06-sheets (single full decode)"
-if ffmpeg -nostdin -y -hide_banner -loglevel error -i "$IN" -filter_complex \
-     "[0:v]split=2[g][s];[g]fps=1/$GRID_STEP,scale=${FRAME_W}:-2[grid];[s]fps=1/$SHEET_STEP,scale=${THUMB_W}:-2,tile=${SHEET_TILE}[sheet]" \
+FRAME_STATUS="incomplete"
+if ffmpeg -nostdin -y -hide_banner -loglevel info -i "$IN" -filter_complex \
+     "[0:v]split=2[g][s];[g]select='isnan(prev_selected_t)+gte(t-prev_selected_t,$GRID_STEP)',showinfo@grid,scale=${FRAME_W}:-2[grid];[s]select='isnan(prev_selected_t)+gte(t-prev_selected_t,$SHEET_STEP)',showinfo@sheet,scale=${THUMB_W}:-2,tile=${SHEET_TILE}[sheet]" \
      -map "[grid]"  -q:v 4 -fps_mode passthrough "$OUT/05-frames/f_%05d.jpg" \
-     -map "[sheet]" -q:v 4 -fps_mode passthrough "$OUT/06-sheets/sheet_%03d.jpg" 2>"$OUT/.frames.err"; then
-  printf '   stills: %s\n' "$(ls -1 "$OUT/05-frames" 2>/dev/null | wc -l | tr -d ' ')"
-  printf '   sheets: %s\n' "$(ls -1 "$OUT/06-sheets" 2>/dev/null | wc -l | tr -d ' ')"
+     -map "[sheet]" -q:v 4 -fps_mode passthrough "$OUT/06-sheets/sheet_%03d.jpg" 2>"$OUT/.frames.log"; then
+  FRAME_STATUS="complete"
 else
   printf '   WARNING: still extraction failed\n'
-  sed -n 1,6p "$OUT/.frames.err" 2>/dev/null | sed 's/^/   /' || true
+  tail -n 6 "$OUT/.frames.log" 2>/dev/null | sed 's/^/   /' || true
 fi
-rm -f "$OUT/.frames.err"
+# showinfo occurs before scaling/tile. Index the selected source PTS, not the
+# output of fps=1/step, whose timestamp can describe a different input frame.
+awk '/showinfo@grid/ && /pts_time:/ && / n:/ {
+  n=""; t=""; for (i=1;i<=NF;i++) {if ($i=="n:") n=$(i+1); if ($i ~ /^pts_time:/) {split($i,a,":"); t=a[2]}}
+  if (n!="" && t!="") printf "f_%05d.jpg,%s\n", n+1, t
+}' "$OUT/.frames.log" > "$OUT/.grid-times.raw"
+awk -v tiles="$TILES_PER_SHEET" '/showinfo@sheet/ && /pts_time:/ && / n:/ {
+  n=""; t=""; for (i=1;i<=NF;i++) {if ($i=="n:") n=$(i+1); if ($i ~ /^pts_time:/) {split($i,a,":"); t=a[2]}}
+  if (n!="" && t!="") printf "sheet_%03d.jpg,%d,%s\n", int(n/tiles)+1, n%tiles, t
+}' "$OUT/.frames.log" > "$OUT/.sheet-times.raw"
+{ printf 'file,pts_time_s\n'; cat "$OUT/.grid-times.raw"; } > "$OUT/05-frame-times.csv"
+{ printf 'file,tile_index,pts_time_s\n'; cat "$OUT/.sheet-times.raw"; } > "$OUT/06-sheet-times.csv"
+GRID_ROWS="$(wc -l < "$OUT/.grid-times.raw" | tr -d ' ')"
+SHEET_ROWS="$(wc -l < "$OUT/.sheet-times.raw" | tr -d ' ')"
+FRAME_COUNT="$(find "$OUT/05-frames" -maxdepth 1 -type f -name 'f_*.jpg' | wc -l | tr -d ' ')"
+SHEET_COUNT="$(find "$OUT/06-sheets" -maxdepth 1 -type f -name 'sheet_*.jpg' | wc -l | tr -d ' ')"
+if [ "$GRID_ROWS" -ne "$FRAME_COUNT" ] || [ "$FRAME_COUNT" -eq 0 ] || [ "$(( (SHEET_ROWS + TILES_PER_SHEET - 1) / TILES_PER_SHEET ))" -ne "$SHEET_COUNT" ]; then
+  FRAME_STATUS="incomplete"
+  printf '   WARNING: frame timestamp index incomplete; do not use the stills as timed evidence\n'
+fi
+printf '   stills: %s\n   sheets: %s\n' "$FRAME_COUNT" "$SHEET_COUNT"
+rm -f "$OUT/.frames.log" "$OUT/.grid-times.raw" "$OUT/.sheet-times.raw"
 
 # ------------------------------------------------------------- 7. manifest ---
 {
@@ -181,6 +216,9 @@ rm -f "$OUT/.frames.err"
   echo "input_sha256: ${SHA256:-UNKNOWN}"
   echo "identity_vs_recorded_master: $IDENTITY"
   echo "subtitle_map: $SUB_MAP"
+  echo "subtitle_extraction_status: $SUBTITLE_STATUS"
+  echo "scene_scan_status: $SCAN_STATUS"
+  echo "frame_timestamp_status: $FRAME_STATUS"
   echo "grid_step_seconds: $GRID_STEP"
   echo "sheet_step_seconds: $SHEET_STEP"
   echo "sheet_tile: $SHEET_TILE"
@@ -191,8 +229,9 @@ rm -f "$OUT/.frames.err"
   echo "ffmpeg: $FFVER"
   echo "ffprobe: $FPVER"
   echo
-  echo "mapping_stills: f_00001.jpg = t=0s, f_0000N.jpg = t=(N-1)*${GRID_STEP}s"
-  echo "mapping_sheets: sheet_N tile k (row-major, 0-based) = (N-1)*${SHEET_CHUNK} + k*${SHEET_STEP}s"
+  echo "timestamp_convention: selected decoded presentation PTS after ffmpeg input-start normalization; not raw container PTS"
+  echo "mapping_stills: 05-frame-times.csv records actual selected PTS, not a nominal grid"
+  echo "mapping_sheets: 06-sheet-times.csv records actual selected PTS per row-major tile"
 } > "$OUT/00-manifest.txt"
 
 step 6 "done"

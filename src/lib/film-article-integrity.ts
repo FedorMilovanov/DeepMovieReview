@@ -2,6 +2,7 @@ import type {
   ArticleBlock,
   ArticleCorrectionRow,
   ArticleMeasurementRef,
+  ArticleMeasurementMetadata,
   ArticleSection,
   ClaimSupport,
   EvidenceRecord,
@@ -9,7 +10,7 @@ import type {
   FilmSceneRecord,
   FilmArticle,
 } from "@/lib/film-package";
-import { canRevealSpoiler, type SpoilerLevel } from "./spoilers";
+import { canRevealSpoiler, isSpoilerLevel, type SpoilerLevel } from "./spoilers";
 
 /**
  * Article integrity.
@@ -116,9 +117,11 @@ export type ArticleIntegrityContext = {
   /** `editorialRevision` of the package's sources-method module, when present. */
   editorialRevision?: string;
   /** Resolves a measurement reference against the committed dataset. */
-  resolveMeasurement?: (ref: ArticleMeasurementRef) => boolean;
+  resolveMeasurement?: (ref: ArticleMeasurementRef) => ArticleMeasurementMetadata | undefined;
   /** Spoiler level of every module in the package, keyed by module id. */
   moduleLevels?: Map<string, SpoilerLevel>;
+  /** Historical/idea sources are distinct from canonical film evidence. */
+  contextSourceIds?: ReadonlySet<string>;
   /**
    * Digit strings the master measured (1019, 6177.792, 124.75 …). Prose may not
    * contain any of them: measured numbers are rendered from the dataset so they
@@ -167,9 +170,19 @@ function checkSupport(
   }
 }
 
+/** Authored text and dataset labels have separate editorial ceilings. */
+function checkContentLevel(value: unknown, path: string, sectionLevel: SpoilerLevel, errors: string[]) {
+  if (!isSpoilerLevel(value) || value !== String(value).toUpperCase()) {
+    errors.push(`${path}: valid content spoiler metadata is required.`);
+  } else if (!canRevealSpoiler(sectionLevel, value)) {
+    errors.push(`${path}: content spoiler level "${value}" exceeds section level "${sectionLevel}".`);
+  }
+}
+
 function checkMeasurementRef(
   ref: ArticleMeasurementRef,
   path: string,
+  sectionLevel: SpoilerLevel,
   context: ArticleIntegrityContext,
   errors: string[],
 ) {
@@ -181,8 +194,36 @@ function checkMeasurementRef(
     errors.push(`${path}: article measurements require a measurement dataset to resolve against.`);
     return;
   }
-  if (!context.resolveMeasurement(ref)) {
+  const metadata = context.resolveMeasurement(ref);
+  if (!metadata) {
     errors.push(`${path}: unknown ${ref.table} measurement "${ref.id}".`);
+    return;
+  }
+  checkContentLevel(metadata.spoilerLevel, `${path}/display`, sectionLevel, errors);
+  const range = metadata.context;
+  if (!range || (ref.table === "totals" ? range.kind !== "aggregate" : range.kind !== "span")) {
+    errors.push(`${path}: measurement needs valid aggregate or span context metadata.`);
+    return;
+  }
+  if (range.kind === "span") {
+    if (!Number.isFinite(range.from) || !Number.isFinite(range.to) || range.from < 0 || range.to <= range.from) {
+      errors.push(`${path}: measurement span must have finite, increasing nonnegative bounds.`);
+      return;
+    }
+    // Check all intersected scenes, including intermediate ones: endpoints alone
+    // are insufficient when a window crosses more than two scene boundaries.
+    const scenes = [...context.sceneById.values()].filter((scene) =>
+      scene.endTimestampSeconds !== undefined && scene.startTimestampSeconds < range.to && scene.endTimestampSeconds > range.from,
+    ).sort((a, b) => a.startTimestampSeconds - b.startTimestampSeconds);
+    let coveredUntil = range.from;
+    for (const scene of scenes) {
+      if (scene.startTimestampSeconds > coveredUntil + 1e-6) break;
+      coveredUntil = Math.max(coveredUntil, scene.endTimestampSeconds ?? coveredUntil);
+      if (!canRevealSpoiler(sectionLevel, scene.spoilerLevel)) {
+        errors.push(`${path}: context scene "${scene.id}" spoiler level "${scene.spoilerLevel}" exceeds section level "${sectionLevel}".`);
+      }
+    }
+    if (coveredUntil + 1e-6 < range.to) errors.push(`${path}: measurement span is not fully covered by scene context.`);
   }
 }
 
@@ -231,16 +272,16 @@ function checkProse(
 function checkCorrectionRow(
   row: ArticleCorrectionRow,
   path: string,
+  sectionLevel: SpoilerLevel,
   context: ArticleIntegrityContext,
   errors: string[],
 ) {
   if (isBlank(row.commonClaim)) errors.push(`${path}: commonClaim is required.`);
   if (isBlank(row.onScreen)) errors.push(`${path}: onScreen is required.`);
-  const cited = [
-    row.evidenceId ? "evidence" : null,
-    row.measurement ? "measurement" : null,
-    row.absentFromMaster ? "absent" : null,
-  ].filter(Boolean);
+  checkContentLevel(row.contentSpoilerLevel, `${path}/content`, sectionLevel, errors);
+  const refs = [...(row.evidenceId ? [row.evidenceId] : []), ...(row.evidenceIds ?? [])];
+  if (row.evidenceIds && row.evidenceIds.length === 0) errors.push(`${path}: evidenceIds must not be empty.`);
+  const cited = [refs.length ? "evidence" : null, row.measurement ? "measurement" : null, row.absentFromMaster ? "absent" : null].filter(Boolean);
   if (cited.length === 0) {
     errors.push(`${path}: a correction must cite evidence, a measurement, or declare absentFromMaster.`);
     return;
@@ -248,12 +289,15 @@ function checkCorrectionRow(
   if (row.absentFromMaster && cited.length > 1) {
     errors.push(`${path}: a correction for an absent beat cannot also cite evidence or a measurement.`);
   }
-  if (row.evidenceId) {
-    if (!context.evidenceById.has(row.evidenceId)) {
-      errors.push(`${path}: unknown evidence id "${row.evidenceId}".`);
+  for (const id of duplicates(refs)) errors.push(`${path}: duplicate evidence reference "${id}".`);
+  for (const id of refs) {
+    const evidence = context.evidenceById.get(id);
+    if (!evidence) errors.push(`${path}: unknown evidence id "${id}".`);
+    else if (!canRevealSpoiler(sectionLevel, evidence.spoilerLevel)) {
+      errors.push(`${path}: evidence "${id}" spoiler level "${evidence.spoilerLevel}" exceeds section level "${sectionLevel}".`);
     }
   }
-  if (row.measurement) checkMeasurementRef(row.measurement, `${path}/measurement`, context, errors);
+  if (row.measurement) checkMeasurementRef(row.measurement, `${path}/measurement`, sectionLevel, context, errors);
 }
 
 function checkBlock(
@@ -263,6 +307,15 @@ function checkBlock(
   context: ArticleIntegrityContext,
   errors: string[],
 ) {
+  if (block.kind === "paragraph" && block.contextSourceIds?.length) {
+    if (!context.contextSourceIds) errors.push(`${path}: context source registry is required.`);
+    for (const id of duplicates(block.contextSourceIds)) errors.push(`${path}: duplicate context source id "${id}".`);
+    for (const id of block.contextSourceIds) {
+      if (!id.trim()) errors.push(`${path}: context source id must not be blank.`);
+      else if (context.contextSourceIds && !context.contextSourceIds.has(id)) errors.push(`${path}: unknown context source id "${id}".`);
+    }
+  }
+
   if (proseKinds.has(block.kind)) {
     checkProse(
       blockText(block),
@@ -341,7 +394,7 @@ function checkBlock(
           const frame = item.still;
           if (context.edition?.state !== "LOCKED" || frame.sourceId !== context.edition.sourceId ||
               String(frame.masterDigest).toLowerCase() !== context.edition.masterDigest?.toLowerCase()) {
-            errors.push(`${itemPath}: still must belong to the locked master.`);
+            errors.push(`${itemPath}: still must reference the locked edition metadata.`);
           }
           if (!/^\/film-stills\/[a-z0-9-]+\.jpg$/.test(frame.src) || !/^[a-f0-9]{64}$/.test(frame.imageSha256) ||
               frame.avifSrc !== frame.src.replace(/\.jpg$/, ".avif") || !/^[a-f0-9]{64}$/.test(frame.avifSha256)) {
@@ -350,12 +403,30 @@ function checkBlock(
           if (!Number.isFinite(frame.sampleTimeSeconds) || !scene || scene.endTimestampSeconds === undefined ||
               frame.sampleTimeSeconds - 15 < scene.startTimestampSeconds || frame.sampleTimeSeconds + 15 > scene.endTimestampSeconds ||
               Math.abs(frame.sampleTimeSeconds - item.timestampSeconds) > 15) {
-            errors.push(`${itemPath}: still must show the cited scene near its anchor; disclose its nominal grid time.`);
+            errors.push(`${itemPath}: still must show the cited scene near its anchor; disclose its approximate time.`);
           }
           if (!Number.isInteger(frame.width) || !Number.isInteger(frame.height) || frame.width < 1 ||
-              frame.height < 1 || frame.samplingIntervalSeconds !== 30 || frame.sampleTimeSeconds % 30 !== 0 || frame.width > 1280 || frame.height > 720 ||
-              isBlank(frame.alt) || isBlank(frame.credit) || frame.use !== "critical-review") {
-            errors.push(`${itemPath}: still needs bounded dimensions, alt, credit, declared 30s sampling and critical-review use.`);
+              frame.height < 1 || frame.width > 1280 || frame.height > 720 ||
+              isBlank(frame.alt) || isBlank(frame.caption) || isBlank(frame.credit) || frame.use !== "critical-review") {
+            errors.push(`${itemPath}: still needs bounded dimensions, alt, caption, credit and critical-review use.`);
+          }
+          if (frame.samplingKind === "grid") {
+            if (frame.samplingIntervalSeconds !== 30 || frame.sampleTimeSeconds % 30 !== 0 || frame.clip !== undefined) {
+              errors.push(`${itemPath}: grid still needs declared 30s sampling and a nominal grid time.`);
+            }
+          } else if (frame.samplingKind === "clip") {
+            const clip = frame.clip;
+            if (!clip || frame.samplingIntervalSeconds !== undefined ||
+                !/^[a-z0-9-]+\.mp4$/.test(clip.file) || !/^[a-f0-9]{64}$/.test(clip.sha256) ||
+                !Number.isFinite(clip.sourceStartSeconds) || clip.sourceStartSeconds < 0 ||
+                !Number.isFinite(clip.sourceEndSeconds) || clip.sourceEndSeconds <= clip.sourceStartSeconds ||
+                !Number.isFinite(clip.offsetSeconds) || clip.offsetSeconds < 0 ||
+                clip.sourceStartSeconds + clip.offsetSeconds >= clip.sourceEndSeconds ||
+                Math.abs(frame.sampleTimeSeconds - (clip.sourceStartSeconds + clip.offsetSeconds)) > 0.001) {
+              errors.push(`${itemPath}: clip still needs a file, SHA-256, valid manifest range and matching approximate offset.`);
+            }
+          } else {
+            errors.push(`${itemPath}: still needs a declared sampling kind.`);
           }
         }
         if (context.realFilm && !canRevealSpoiler(sectionLevel, evidence.spoilerLevel)) {
@@ -370,18 +441,21 @@ function checkBlock(
       return;
     }
     case "measurement": {
-      checkMeasurementRef(block.measurement, `${path}/measurement`, context, errors);
+      checkContentLevel(block.contentSpoilerLevel, `${path}/content`, sectionLevel, errors);
+      checkMeasurementRef(block.measurement, `${path}/measurement`, sectionLevel, context, errors);
       checkProse(block.text, `${path}/text`, context, errors);
       checkSupport(block.support, path, sectionLevel, context, errors, false);
       return;
     }
     case "measurement-table": {
+      checkContentLevel(block.contentSpoilerLevel, `${path}/content`, sectionLevel, errors);
       if (isBlank(block.caption)) errors.push(`${path}: caption is required.`);
       if (block.rows.length === 0) errors.push(`${path}: a measurement table needs at least one row.`);
       for (const row of block.rows) {
         const rowPath = `${path}/${row.id}`;
         if (isBlank(row.label)) errors.push(`${rowPath}: label is required.`);
-        checkMeasurementRef(row.measurement, `${rowPath}/measurement`, context, errors);
+        checkContentLevel(row.contentSpoilerLevel, `${rowPath}/content`, sectionLevel, errors);
+        checkMeasurementRef(row.measurement, `${rowPath}/measurement`, sectionLevel, context, errors);
       }
       return;
     }
@@ -406,10 +480,11 @@ function checkBlock(
       return;
     }
     case "corrections": {
+      checkContentLevel(block.contentSpoilerLevel, `${path}/content`, sectionLevel, errors);
       if (isBlank(block.caption)) errors.push(`${path}: caption is required.`);
       if (block.rows.length === 0) errors.push(`${path}: a corrections block needs at least one row.`);
       for (const row of block.rows) {
-        checkCorrectionRow(row, `${path}/${row.id}`, context, errors);
+        checkCorrectionRow(row, `${path}/${row.id}`, sectionLevel, context, errors);
       }
       return;
     }

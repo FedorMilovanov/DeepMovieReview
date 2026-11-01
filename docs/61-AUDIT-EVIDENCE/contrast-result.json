@@ -1,0 +1,234 @@
+[
+  {
+    "name": "control-color",
+    "color": {
+      "bg": "rgb(238, 238, 238)",
+      "image": "none",
+      "fg": "rgb(255, 255, 255)"
+    },
+    "pass": false,
+    "maskEscalations": [],
+    "verifications": [
+      {
+        "tile": 0,
+        "ids": [
+          0
+        ],
+        "captures": [
+          "control-color-0-0-verified.png",
+          "control-color-0-1-verified.png"
+        ],
+        "before": [
+          {
+            "id": 0,
+            "line": 0,
+            "minimum": 1.1602304710270739
+          }
+        ],
+        "applied": [
+          0
+        ],
+        "after": [
+          {
+            "id": 0,
+            "line": 0,
+            "minimum": 1.1602304710270739
+          }
+        ]
+      }
+    ],
+    "ranges": [
+      {
+        "minimum": 1.1602304710270739,
+        "pass": false,
+        "threshold": 4.5,
+        "worstBackground": {
+          "rgb": [
+            238,
+            238,
+            238
+          ],
+          "x": 0,
+          "y": 1
+        }
+      }
+    ],
+    "missing": []
+  },
+  {
+    "name": "own-solid-gradient",
+    "color": {
+      "bg": "rgba(0, 0, 0, 0)",
+      "image": "linear-gradient(rgb(238, 238, 238), rgb(238, 238, 238))",
+      "fg": "rgb(255, 255, 255)"
+    },
+    "pass": true,
+    "maskEscalations": [],
+    "verifications": [
+      {
+        "tile": 0,
+        "ids": [
+          0
+        ],
+        "captures": [
+          "own-solid-gradient-0-0-verified.png",
+          "own-solid-gradient-0-1-verified.png"
+        ],
+        "before": [
+          {
+            "id": 0,
+            "line": 0,
+            "minimum": 1.1602304710270739
+          }
+        ],
+        "applied": [
+          0
+        ],
+        "after": [
+          {
+            "id": 0,
+            "line": 0,
+            "minimum": 21
+          }
+        ]
+      }
+    ],
+    "ranges": [
+      {
+        "minimum": 21,
+        "pass": true,
+        "threshold": 4.5,
+        "worstBackground": {
+          "rgb": [
+            0,
+            0,
+            0
+          ],
+          "x": 0,
+          "y": 1
+        }
+      }
+    ],
+    "missing": []
+  },
+  {
+    "name": "own-white-gradient",
+    "color": {
+      "bg": "rgba(0, 0, 0, 0)",
+      "image": "linear-gradient(rgb(255, 255, 255), rgb(255, 255, 255))",
+      "fg": "rgb(255, 255, 255)"
+    },
+    "pass": true,
+    "maskEscalations": [
+      {
+        "tile": 0,
+        "escalated": [
+          0
+        ],
+        "unresolved": []
+      }
+    ],
+    "verifications": [],
+    "ranges": [
+      {
+        "minimum": 21,
+        "pass": true,
+        "threshold": 4.5,
+        "worstBackground": {
+          "rgb": [
+            0,
+            0,
+            0
+          ],
+          "x": 0,
+          "y": 1
+        }
+      }
+    ],
+    "missing": []
+  },
+  {
+    "name": "parent-gradient",
+    "color": {
+      "bg": "rgba(0, 0, 0, 0)",
+      "image": "none",
+      "fg": "rgb(255, 255, 255)"
+    },
+    "pass": false,
+    "maskEscalations": [],
+    "verifications": [
+      {
+        "tile": 0,
+        "ids": [
+          0
+        ],
+        "captures": [
+          "parent-gradient-0-0-verified.png",
+          "parent-gradient-0-1-verified.png"
+        ],
+        "before": [
+          {
+            "id": 0,
+            "line": 0,
+            "minimum": 1.1602304710270739
+          }
+        ],
+        "applied": [
+          0
+        ],
+        "after": [
+          {
+            "id": 0,
+            "line": 0,
+            "minimum": 1.1602304710270739
+          }
+        ]
+      }
+    ],
+    "ranges": [
+      {
+        "minimum": 1.1602304710270739,
+        "pass": false,
+        "threshold": 4.5,
+        "worstBackground": {
+          "rgb": [
+            238,
+            238,
+            238
+          ],
+          "x": 0,
+          "y": 1
+        }
+      }
+    ],
+    "missing": []
+  },
+  {
+    "name": "high-contrast",
+    "color": {
+      "bg": "rgb(0, 0, 0)",
+      "image": "none",
+      "fg": "rgb(255, 255, 255)"
+    },
+    "pass": true,
+    "maskEscalations": [],
+    "verifications": [],
+    "ranges": [
+      {
+        "minimum": 21,
+        "pass": true,
+        "threshold": 4.5,
+        "worstBackground": {
+          "rgb": [
+            0,
+            0,
+            0
+          ],
+          "x": 0,
+          "y": 1
+        }
+      }
+    ],
+    "missing": []
+  }
+]

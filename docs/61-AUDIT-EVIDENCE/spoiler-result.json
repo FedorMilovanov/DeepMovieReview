@@ -1,0 +1,38 @@
+{
+  "audited_sha": "8f72e9a3e89844687fa6912744ab0275f53e0b1d",
+  "viewport": "390x844",
+  "browser": "Chromium 153.0.8010.0",
+  "notes": "Local production build. Tests exact observed phrases; making is a violation only when the exact no-spoiler promise is also visible. Not a complete semantic spoiler or warning audit.",
+  "checks": [
+    {
+      "path": "/",
+      "phrase": "выходу из клетки он придаёт ликование большого финала",
+      "visible": true,
+      "incompatiblePromiseVisible": null,
+      "violation": true
+    },
+    {
+      "path": "/films/the-truman-show?spoilers=NONE",
+      "phrase": "выходу из клетки он придаёт ликование большого финала",
+      "visible": true,
+      "incompatiblePromiseVisible": null,
+      "violation": true
+    },
+    {
+      "path": "/films/the-truman-show?spoilers=NONE",
+      "phrase": "Финал: поклон, дверь, зрители",
+      "visible": true,
+      "incompatiblePromiseVisible": null,
+      "violation": true
+    },
+    {
+      "path": "/films/the-truman-show/making",
+      "phrase": "Финальный побег",
+      "incompatiblePromise": "Здесь нет ни одного спойлера",
+      "visible": true,
+      "incompatiblePromiseVisible": true,
+      "violation": true
+    }
+  ],
+  "expected_exit_code_on_audited_sha": 1
+}

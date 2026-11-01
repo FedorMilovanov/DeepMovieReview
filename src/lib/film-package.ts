@@ -1,4 +1,4 @@
-import type { NarrativePermissionState, ShellFilm } from "@/lib/content";
+import type { LensKey, NarrativePermissionState, ShellFilm } from "@/lib/content";
 import type { SpoilerLevel } from "@/lib/spoilers";
 
 export type Confidence = "HIGH" | "MEDIUM" | "LOW";
@@ -18,20 +18,28 @@ export type Confidence = "HIGH" | "MEDIUM" | "LOW";
  */
 export type EvidenceReviewBasis = {
   /** The material that was actually examined. */
-  material: "frames" | "subtitle-track";
+  material: "frames" | "clip-frames" | "subtitle-track";
   /**
    * Seconds of the master the examination covered: the first and the last
    * observation in the ledger. Absent when the ledger records no times.
    */
   window?: { from: number; to: number };
+  /** A derived clip's manifest supplies an approximate master-time mapping. */
+  windowApproximate?: boolean;
+  /** Individual nominal frame times in the ledger, not a continuous viewing. */
+  observationTimes?: number[];
+  /** Relation of the cited second to recorded frame times, not proof of exact master PTS. */
+  anchorRelation?: "listed" | "between" | "outside";
+  /** Provenance and limits of a post-lock observation, when recorded. */
+  note?: string;
   /** How many separate observations the ledger lists. */
   observations: number;
   /**
    * What the check concluded. `pending` means the check exists for the compound
-   * record, but nothing was recorded at this record's own second — the honest
-   * state of a half that inherited its parent's review.
+   * record, but nothing was recorded at this record's own second — even when
+   * that second lies between, rather than on, two frame observations.
    */
-  outcome: "seen" | "heard" | "refused" | "pending";
+  outcome: "seen" | "subtitle" | "refused" | "pending";
   /**
    * Fields the ledger does not record. Reported, not guessed: an empty list means
    * the basis is complete, and a non-empty one is shown to the reader as-is.
@@ -39,8 +47,8 @@ export type EvidenceReviewBasis = {
   unrecorded?: ("reviewer" | "date")[];
   /**
    * Research record this one was split from. The check was performed once, on the
-   * compound record, so a half may only claim the parent's window when its own
-   * second actually falls inside it.
+   * compound record. A parent window describes only the observed endpoints, not
+   * every intermediate second or an additional independent check.
    */
   inheritedFrom?: string;
   /**
@@ -68,6 +76,14 @@ export type EvidenceRecord = {
 
 export type FilmSceneVerificationState = "DRAFT" | "VERIFIED";
 
+/** A scene-specific interpretation with its own spoiler boundary and evidence. */
+export type FilmSceneReading = {
+  lens: LensKey;
+  text: string;
+  spoilerLevel: SpoilerLevel;
+  support: ClaimSupport;
+};
+
 export type FilmSceneRecord = {
   id: string;
   sequenceIndex: number;
@@ -79,6 +95,8 @@ export type FilmSceneRecord = {
   spoilerLevel: SpoilerLevel;
   summary?: string;
   verificationState: FilmSceneVerificationState;
+  /** Optional interpretations of this scene; never substitute for its evidence. */
+  lensReadings?: FilmSceneReading[];
 };
 
 export type ClaimSupport = {
@@ -265,6 +283,10 @@ export type CharactersModule = FilmModuleBase & {
     /** Whether the arc reads as psychologically credible, with the reason. */
     arcCredibility?: { level: ArcCredibility; note: string };
     roleInArgument?: string;
+    /** A limit or counter-reading, supported by interpretiveSupport. */
+    counterpoint?: string;
+    /** A registered generated illustration, separately spoiler-scoped. */
+    visual?: { assetId: string; spoilerLevel: SpoilerLevel; caption: string };
     /** Evidence for the spoiler-safe/base profile fields. */
     profileSupport?: ClaimSupport;
     /** Evidence for believes/self-deception/arc/argument interpretation. */
@@ -314,6 +336,8 @@ export type MeaningModule = FilmModuleBase & {
   question: string;
   apparentClaim: string;
   counterevidence: string;
+  /** Optional ending-specific reading and its own evidence; projected server-side. */
+  additionalReading?: { text: string; spoilerLevel: SpoilerLevel; support: ClaimSupport };
   confidence: Confidence;
   support?: ClaimSupport;
 };
@@ -355,6 +379,17 @@ export type CraftModule = FilmModuleBase & {
     interpretiveEffect: string;
     confidence: Confidence;
     support?: ClaimSupport;
+    /** Production/context sources, distinct from the on-screen evidence. */
+    contextSourceIds?: string[];
+    /** Optional static, source-attributed explanation of a specific craft example. */
+    detail?: {
+      summary: string;
+      screen: string;
+      production: string;
+      postProduction: string;
+      quote: string;
+      attribution: string;
+    };
     spoilerLevel: SpoilerLevel;
   }>;
   pressureAssessments?: Array<{
@@ -504,9 +539,14 @@ export type SourcesMethodModule = FilmModuleBase & {
     kind: "film-edition" | "scripture" | "reference" | "editorial-note";
     /** Editorial role of a secondary research reference; not a numeric quality score. */
     researchRole?: ResearchSourceRole;
+    /** A source title, URL or locator can itself reveal the plot. Unreviewed
+     * sources default to FULL in the server projection. */
+    spoilerLevel?: SpoilerLevel;
     locator?: string;
     href?: string;
   }>;
+  /** Projection-only count; the original package is never modified. */
+  hiddenSourceCount?: number;
 };
 
 /* ------------------------------------------------------------------------- *
@@ -528,7 +568,15 @@ export type ArticleMeasurementRef = {
   id: string;
 };
 
-/** A small editorial quotation from the measured master, never generated artwork. */
+/** Spoiler boundary of *all* formatted measurement fields, including titles.
+ * A span is [from,to); the validator also checks every scene it intersects.
+ * Aggregate figures contain no scene-specific display context. */
+export type ArticleMeasurementMetadata = {
+  spoilerLevel: SpoilerLevel;
+  context: { kind: "aggregate" } | { kind: "span"; from: number; to: number };
+};
+
+/** A small editorial quotation from supplied film imagery, never generated artwork. */
 export type ArticleSceneStill = {
   src: string;
   avifSrc: string;
@@ -536,15 +584,35 @@ export type ArticleSceneStill = {
   width: number;
   height: number;
   alt: string;
-  /** Nominal output-grid time; not the selected source frame PTS. */
+  caption: string;
+  /** Nominal grid time or estimated master time from the clip manifest, not source PTS. */
   sampleTimeSeconds: number;
-  samplingIntervalSeconds: 30;
   sourceId: string;
+  /** The edition named by the supplied material; not independent proof of its origin. */
   masterDigest: string;
   imageSha256: string;
   credit: string;
   use: "critical-review";
-};
+} & (
+  | {
+      samplingKind: "grid";
+      samplingIntervalSeconds: 30;
+      clip?: never;
+    }
+  | {
+      samplingKind: "clip";
+      samplingIntervalSeconds?: never;
+      clip: {
+        file: string;
+        sha256: string;
+        /** These offsets are stated in the supplied clip archive's manifest. */
+        sourceStartSeconds: number;
+        sourceEndSeconds: number;
+        /** Requested position within the transcoded clip, not verified master PTS. */
+        offsetSeconds: number;
+      };
+    }
+);
 
 export type ArticleTimelineItem = {
   id: string;
@@ -559,10 +627,14 @@ export type ArticleCorrectionRow = {
   id: string;
   /** The claim that circulates in secondary texts. */
   commonClaim: string;
-  /** What the locked master actually shows or says. */
+  /** What the available material shows or says, with its limitations. */
   onScreen: string;
-  /** Canonical evidence for an observable correction. */
+  /** Editorial ceiling for both the claim and the correction as displayed. */
+  contentSpoilerLevel: SpoilerLevel;
+  /** Canonical evidence for an observable correction (legacy single citation). */
   evidenceId?: string;
+  /** Multiple independently linked pieces of evidence for compound corrections. */
+  evidenceIds?: string[];
   /** …or a measured pointer, for corrections the master proves by counting. */
   measurement?: ArticleMeasurementRef;
   /**
@@ -585,6 +657,8 @@ export type ArticleTableRow = {
   id: string;
   /** Left column: what the article asserts about this row. */
   label: string;
+  /** Ceiling for the authored row label, independently of the measured view. */
+  contentSpoilerLevel: SpoilerLevel;
   /** Right column: measured values, filled from the measurement dataset. */
   measurement: ArticleMeasurementRef;
 };
@@ -595,6 +669,8 @@ export type ArticleBlock =
       id: string;
       text: string;
       support?: ClaimSupport;
+      /** IDs in this film's production source register; context, not film evidence. */
+      contextSourceIds?: string[];
       /**
        * Scripture references that appear verbatim in `text`. Declared so the
        * validator can tell «Деяния 17:26» from a film timecode: prose may not
@@ -666,6 +742,8 @@ export type ArticleBlock =
       kind: "measurement";
       id: string;
       measurement: ArticleMeasurementRef;
+      /** Ceiling for the authored caption, independently of the measured view. */
+      contentSpoilerLevel: SpoilerLevel;
       text: string;
       support?: ClaimSupport;
     }
@@ -674,12 +752,16 @@ export type ArticleBlock =
       kind: "measurement-table";
       id: string;
       caption: string;
+      /** Ceiling for caption and column headings. */
+      contentSpoilerLevel: SpoilerLevel;
       columns: [string, string, string];
       rows: ArticleTableRow[];
     }
   | {
       kind: "corrections";
       id: string;
+      /** Ceiling for the table caption. */
+      contentSpoilerLevel: SpoilerLevel;
       caption: string;
       rows: ArticleCorrectionRow[];
     }
@@ -876,6 +958,28 @@ export type FilmModule =
   | FinalSynthesisModule
   | SourcesMethodModule;
 
+export const COMPARISON_DIMENSIONS = ["knowledge", "pressure", "options", "decision", "cost", "consequences", "counterpoint"] as const;
+export type ComparisonDimension = (typeof COMPARISON_DIMENSIONS)[number];
+
+/** A comparison is a sourced editorial argument, not a score or a verdict. */
+export type FilmComparison = {
+  id: string;
+  heading: string;
+  spoilerLevel: SpoilerLevel;
+  introduction: string;
+  limitation: string;
+  sources: Array<{ id: string; label: string; url: string; scope: string }>;
+  sides: Array<{
+    id: string;
+    name: string;
+    kind: "FICTIONAL" | "HISTORICAL";
+    /** Fictional sides resolve to the package's canonical character registry. */
+    characterId?: string;
+    context: string;
+    cells: Record<ComparisonDimension, { text: string; evidenceIds?: string[]; sourceIds?: string[] }>;
+  }>;
+};
+
 export type FilmPackage = {
   schemaVersion: 1;
   film: ShellFilm;
@@ -902,6 +1006,8 @@ export type FilmPackage = {
   scenes?: FilmSceneRecord[];
   /** Stable evidence graph shared by every analytical module. */
   evidence?: EvidenceRecord[];
+  /** Optional, server-projected comparison of decisions; never an automatic verdict. */
+  comparison?: FilmComparison;
   modules: FilmModule[];
 };
 

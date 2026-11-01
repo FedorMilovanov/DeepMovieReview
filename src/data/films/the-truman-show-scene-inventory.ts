@@ -112,7 +112,7 @@ export const trumanCanonicalScenes: TrumanCanonicalScene[] = [
     chapterIds: ["truman-ch-06"],
     verificationState: "VERIFIED",
     note:
-      "Longest research-era chapter; it holds both the origin of the water trauma and the first crack in the story world — the rain that falls on one man and then on the whole street.",
+      "Longest research-era chapter; the supplied rain still shows a narrow stream on Truman, not its subsequent movement or coverage.",
   },
   {
     id: "truman-sc-lauren-sylvia",

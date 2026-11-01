@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { useRouter } from "next/navigation";
 import { animateView } from "motion";
-import { type MouseEvent, type ReactNode } from "react";
+import { type MouseEvent, type ReactNode, useState } from "react";
 import { useExperienceQuality } from "@/components/experience/experience-quality-provider";
 
 type FilmTransitionLinkProps = {
@@ -49,6 +49,11 @@ function shouldUseNativeLink(event: MouseEvent<HTMLAnchorElement>): boolean {
   );
 }
 
+function NavigationStatus({ manualPending }: { manualPending: boolean }) {
+  const { pending } = useLinkStatus();
+  return <span className="filmLinkPending" role="status" aria-live="polite">{pending || manualPending ? "Открываем разбор…" : ""}</span>;
+}
+
 export function FilmTransitionLink({
   href,
   slug,
@@ -56,6 +61,7 @@ export function FilmTransitionLink({
   children,
 }: FilmTransitionLinkProps) {
   const router = useRouter();
+  const [manualPending, setManualPending] = useState(false);
   const { reducedMotion } = useExperienceQuality();
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -64,6 +70,7 @@ export function FilmTransitionLink({
     }
 
     event.preventDefault();
+    setManualPending(true);
     const target = new URL(href, window.location.href);
     const selector = `[data-film-transition-media="${CSS.escape(slug)}"]`;
     // The index row (div) and the film hero (figure) share the transition
@@ -90,6 +97,7 @@ export function FilmTransitionLink({
 
         await new Promise((resolve) => window.setTimeout(resolve, 520));
       } finally {
+        setManualPending(false);
         delete document.documentElement.dataset.routeTransition;
       }
     })();
@@ -98,6 +106,7 @@ export function FilmTransitionLink({
   return (
     <Link className={className} href={href} onClick={handleClick} data-lens-cursor="open">
       {children}
+      <NavigationStatus manualPending={manualPending} />
     </Link>
   );
 }

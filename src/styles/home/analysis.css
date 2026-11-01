@@ -424,3 +424,19 @@
   color: var(--ink-3);
 }
 
+
+/* A scene's still is evidence, not the animated illustration used in the demo. */
+.lensEvidenceFigure { margin: 0; border: 1px solid var(--stroke-default); background: var(--surface-1); }
+.lensEvidenceFigure picture, .lensEvidenceFigure img { display: block; width: 100%; height: auto; }
+.lensEvidenceFigure figcaption { display: grid; gap: 0.45rem; padding: 1rem 1.1rem; color: var(--ink-2); font-size: 0.78rem; line-height: 1.45; }
+.lensEvidenceFigure figcaption strong { color: var(--ink-1); font-size: 0.9rem; }
+.lensFallbackNote { display: none; margin: 0; color: var(--ink-2); }
+.lensEvidenceLinks { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-top: 1rem; }
+.lensEvidenceLinks a, .lensSceneLink { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-1); text-underline-offset: 4px; padding-block: 0.45rem; line-height: 1.4; }
+.lensSceneLink { align-self: flex-start; }
+
+.standEntryLink { display: inline-block; margin-top: 1rem; padding: 0.65rem 0; color: var(--ink-1); text-underline-offset: 4px; }
+.characterGridSingle { grid-template-columns: minmax(0, 1fr); }
+.homeCharacterVisual { float: right; width: min(45%, 30rem); margin: 0 0 1rem 2rem; }
+.homeCharacterVisual img { display: block; width: 100%; height: auto; }
+.homeCharacterVisual figcaption { padding-top: 0.6rem; color: var(--ink-2); font-size: 0.78rem; line-height: 1.45; }
