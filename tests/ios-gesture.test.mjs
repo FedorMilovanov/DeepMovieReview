@@ -5,7 +5,7 @@ import { once } from "node:events";
 import vm from "node:vm";
 import { nativeArticlePath, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeSceneTrace, validateXCTestSummary } from "../scripts/lib/ios-gesture-probe.mjs";
-import { shouldRunGestureAfterDriverFailure } from "../scripts/lib/ios-xctest-gesture.mjs";
+import { shouldRunGestureAfterDriverFailure, validateSceneNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
 
 const origin = "http://127.0.0.1:1234";
 const rail = { expanded: "false", hitContained: true, rect: { left: 320, top: 640, right: 390, bottom: 690, width: 70, height: 50 } };
@@ -66,6 +66,16 @@ test("native scene trace requires trusted touches, the real disclosure, visible 
     { ...base, seq: 9, kind: "scene-evidence-arrived", url: `${origin}${nativeScenePath}?spoilers=none#evidence-truman-ev-daycount` },
   ];
   assert.equal(validateNativeSceneTrace(trace().reverse(), origin).opened.scene.open, true);
+  const timeout = Object.assign(new Error("simctl navigation timed out"), {
+    stderr: "An error was encountered processing the command (domain=NSPOSIXErrorDomain, code=60): Operation timed out",
+  });
+  assert.equal(validateSceneNavigationOutcome({ error: timeout, events: trace(), baseUrl: origin }).status,
+    "simctl-timed-out-but-scene-independently-observed");
+  assert.equal(validateSceneNavigationOutcome({ events: trace(), baseUrl: origin }).status, "simctl-completed");
+  assert.throws(() => validateSceneNavigationOutcome({ error: new Error("permission denied"), events: trace(), baseUrl: origin }), /permission denied/);
+  assert.throws(() => validateSceneNavigationOutcome({ error: Object.assign(new Error("other"), { stderr: "code=60: timeout" }), events: trace(), baseUrl: origin }));
+  assert.throws(() => validateSceneNavigationOutcome({ error: timeout, events: trace().slice(0, -1), baseUrl: origin }), /destination|arriv|evidence/i,
+    "A timeout is never enough without the complete independent scene trace");
   for (const [name, change] of [
     ["untrusted support touch", rows => { rows[1].trusted = false; }],
     ["support touch cancelled", rows => { rows[2].kind = "touchcancel"; }],

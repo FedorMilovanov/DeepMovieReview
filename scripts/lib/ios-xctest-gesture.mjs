@@ -19,6 +19,20 @@ export function shouldRunGestureAfterDriverFailure(report, gestureReport) {
     gestureReport.phase === "not started" && gestureReport.attempted !== true);
 }
 
+// simctl can report its own CoreSimulator timeout even when the navigation
+// subsequently completes. Do not infer success from that error or from XCTest
+// alone: the complete, ordered, trusted scene trace is still mandatory. Other
+// errors, missing events and failed UI tests remain failures.
+export function validateSceneNavigationOutcome({ error, events, baseUrl }) {
+  if (error) {
+    const detail = String(error.stderr ?? error.message ?? error);
+    if (!/domain=NSPOSIXErrorDomain, code=60/.test(detail) || !/operation timed out/i.test(detail)) throw error;
+  }
+  const scene = validateNativeSceneTrace(events, baseUrl);
+  return { scene, status: error ? "simctl-timed-out-but-scene-independently-observed" : "simctl-completed",
+    ...(error ? { commandError: String(error.message ?? error) } : {}) };
+}
+
 async function runXcodebuild(args, logFile, deadlineMs = 480000) {
   const output = createWriteStream(logFile, { flags: "wx" });
   const child = spawn("xcodebuild", args, { stdio: ["ignore", "pipe", "pipe"] });
@@ -59,8 +73,8 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
       // scene touch, and the observer independently verifies every resulting event.
       sceneNavigation = delay(5000).then(async () => {
         const sceneUrl = `${proxy.baseUrl}${nativeScenePath}?spoilers=none#scene-truman-sc-day-10909`;
-        await exec("xcrun", ["simctl", "openurl", device.udid, sceneUrl], { timeout: 60000 });
         report.sceneNavigation = { method: "simctl openurl after rail screenshot", url: sceneUrl };
+        await exec("xcrun", ["simctl", "openurl", device.udid, sceneUrl], { timeout: 60000 });
       }).catch(error => { sceneNavigationError = error; });
     } });
   } catch (error) { rmSync(derivedData, { recursive: true, force: true }); throw error; }
@@ -84,13 +98,15 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     assert.equal(run.code, 0, `XCUITest failed or timed out: ${JSON.stringify({ code: run.code, signal: run.signal, timedOut: run.timedOut })}`);
     assert.ok(sceneNavigation, "The observed rail opening must trigger the separate scene navigation");
     await sceneNavigation;
-    if (sceneNavigationError) throw sceneNavigationError;
     const summaryText = await exec("xcrun", ["xcresulttool", "get", "test-results", "summary", "--path", bundle], { timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
     report.xctestSummary = JSON.parse(summaryText.stdout);
     validateXCTestSummary(report.xctestSummary, device.udid);
     assert.deepEqual(proxy.errors, [], "Observer transport must not lose or reject data");
     report.observedGesture = validateNativeGestureTrace(proxy.events, proxy.baseUrl);
-    report.observedScene = validateNativeSceneTrace(proxy.events, proxy.baseUrl);
+    const navigation = validateSceneNavigationOutcome({ error: sceneNavigationError, events: proxy.events, baseUrl: proxy.baseUrl });
+    report.observedScene = navigation.scene;
+    report.sceneNavigation = { ...report.sceneNavigation, status: navigation.status,
+      ...(navigation.commandError ? { commandError: navigation.commandError } : {}) };
     evidence.actions.push({ route: `${nativeArticlePath}?spoilers=full`,
       label: "XCUITest native scroll and post-scroll rail input; passive DOM observation", ...report.observedGesture });
     evidence.actions.push({ route: `${nativeScenePath}?spoilers=none`,
