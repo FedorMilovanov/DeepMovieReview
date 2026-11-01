@@ -131,6 +131,8 @@
   text-align: right;
 }
 
+/* These native controls keep panning and pinch zoom, but need no double-tap delay. */
+.filmSceneSupports summary, .filmSceneSupports a { touch-action: manipulation; }
 .filmSceneSupports summary { cursor: pointer; }
 .filmSceneSupports ul {
   max-width: 16rem;

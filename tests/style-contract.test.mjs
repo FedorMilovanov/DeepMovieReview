@@ -779,6 +779,20 @@ test("disclosure touch policy is scoped to controls, not article selection", () 
   assert.ok(found);
 });
 
+test("spoiler and scene controls retain pan and pinch gestures without a double-tap delay", () => {
+  for (const [file, selector] of [
+    ["src/styles/spoilers.css", ".spoilerOption"],
+    ["src/styles/modules/surfaces.css", ".filmSceneSupports summary, .filmSceneSupports a"],
+  ]) {
+    const css = postcss.parse(readStylesheet(file));
+    const declarations = [];
+    css.walkRules(rule => { if (rule.selector === selector) declarations.push(...rule.nodes); });
+    const gestures = declarations.filter(node => node.prop === "touch-action");
+    assert.ok(gestures.length > 0 && gestures.every(node => node.value === "manipulation"), `${selector} touch policy missing or overridden`);
+    assert.ok(!declarations.some(node => /user-select|touch-callout/.test(node.prop)), "native selection and callouts must remain available");
+  }
+});
+
 test("counterevidence retains high-contrast secondary text", () => {
   const css = postcss.parse(readStylesheet("src/styles/modules/analysis.css"));
   const rule = css.nodes.find(node => node.type === "rule" && node.selector === ".filmCounterevidence");

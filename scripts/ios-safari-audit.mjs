@@ -144,13 +144,15 @@ try {
   // back to the standard W3C element activation once and keep both facts. A
   // touch that WAS delivered but did not change state is a real failure.
   const activate = async (selector, read, expected, timeout = 10000, { scroll = true } = {}) => {
-    await safari.execute(`window.__inputProbe = { events: [] };
+    await safari.execute(`window.__inputProbeAbort?.abort();
+      window.__inputProbeAbort = new AbortController(); window.__inputProbe = { events: [] };
       for (const type of ["touchstart", "touchend", "touchcancel", "click", "pointerdown", "pointerup", "pointercancel"])
         document.addEventListener(type, e => { const touch = e.changedTouches?.[0]; __inputProbe.events.push({ type, trusted: e.isTrusted,
           target: (e.target.className || e.target.tagName).toString().slice(0, 40),
           href: e.target.closest?.("a")?.getAttribute("href") ?? null,
           x: Number.isFinite(e.clientX) ? e.clientX : touch?.clientX ?? null,
-          y: Number.isFinite(e.clientY) ? e.clientY : touch?.clientY ?? null }); }, { capture: true, once: true });`);
+          y: Number.isFinite(e.clientY) ? e.clientY : touch?.clientY ?? null }); },
+          { capture: true, once: true, signal: __inputProbeAbort.signal });`);
     const readProbe = () => safari.execute("return window.__inputProbe ? { ...window.__inputProbe, url: location.href } : { lostAfterNavigation: true, url: location.href }");
     await safari.click(selector, { scroll });
     let method = "native touch";

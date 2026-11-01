@@ -67,20 +67,61 @@ async function exposedCells(viewport) {
           rects.push(...[...range.getClientRects()].filter((r) => r.width > 0 && r.height > 0));
         }
         return { id: `${ri}:${ci}`, visible: rects.length > 0 && rects.every((r) =>
-          r.left >= left - 1 && r.right <= view.right + 1) };
+          r.left >= left - 1 && r.right <= view.right + 1),
+          leftGap: rects.length ? Math.round((Math.min(...rects.map((r) => r.left)) - left) * 10) / 10 : null,
+          rightGap: rects.length ? Math.round((view.right - Math.max(...rects.map((r) => r.right))) * 10) / 10 : null,
+          header: pinned ? "sticky" : "static" };
       });
     });
   });
 }
 async function checkAllCellsByKeyboard(page, viewport) {
   await viewport.focus();
-  const seen = new Set(); let ids = [];
-  for (let i = 0; i <= 26; i++) {
+  assert.equal(await viewport.evaluate((el) => document.activeElement === el), true, "table viewport must receive keyboard focus");
+  const seen = new Set(), history = []; let ids = [];
+  const position = () => viewport.evaluate((el) => ({ left: el.scrollLeft, max: el.scrollWidth - el.clientWidth }));
+  // Firefox and Chromium animate keyboard scrolling differently. Sampling only
+  // every 30 ms while repeatedly pressing right can jump over the narrow window
+  // in which a middle column is readable. Observe each real key at rest, then
+  // try the other direction if necessary; never set scrollLeft programmatically.
+  const settle = async (beforeKey) => {
+    let last = (await position()).left, stableSince = Date.now();
+    let moved = beforeKey === undefined || Math.abs(last - beforeKey) > 0.05;
+    const deadline = stableSince + 1500;
+    while (Date.now() < deadline) {
+      // Keep the timer on the test side: page callbacks do not run with JS off.
+      await page.waitForTimeout(40);
+      const now = Date.now(), next = (await position()).left;
+      if (Math.abs(next - last) > 0.05) { last = next; stableSince = now; }
+      if (beforeKey !== undefined && Math.abs(next - beforeKey) > 0.05) moved = true;
+      if (moved && now - stableSince >= 120) return true;
+    }
+    return false;
+  };
+  const sample = async () => {
     const cells = await exposedCells(viewport); ids = cells.map((cell) => cell.id);
     cells.filter((cell) => cell.visible).forEach((cell) => seen.add(cell.id));
-    await page.keyboard.press("ArrowRight"); await page.waitForTimeout(30);
+    history.push({ ...(await position()), cells });
+  };
+  assert.equal(await settle(), true, "table scrolling must settle before measurement");
+  await sample();
+  for (const [key, destination] of [["ArrowRight", "right"], ["ArrowLeft", "left"], ["ArrowRight", "right"]]) {
+    for (let i = 0; i < 60; i++) {
+      const { left, max } = await position();
+      if (destination === "right" ? left >= max - 1 : left <= 1) break;
+      await page.keyboard.press(key);
+      assert.equal(await settle(left), true, "keyboard scrolling must move and settle before measurement");
+      await sample();
+    }
+    const { left, max } = await position();
+    assert.ok(destination === "right" ? left >= max - 2 : left <= 2,
+      `keyboard must reach the ${destination} edge: ${JSON.stringify({ left, max })}`);
+    if (destination === "right" && ids.every((id) => seen.has(id))) break;
   }
-  assert.deepEqual(ids.filter((id) => !seen.has(id)), [], "every data cell must become readable without being hidden by the row header");
+  const missing = ids.filter((id) => !seen.has(id));
+  assert.deepEqual(missing, [], `every data cell must become readable without being hidden by the row header; ` +
+    `keyboard samples: ${JSON.stringify(history.map(({ left, max, cells }) => ({ left, max, cells: cells.filter((cell) => missing.includes(cell.id)) })))}`);
+  return { min: Math.min(...history.map((sample) => sample.left)), max: Math.max(...history.map((sample) => sample.left)) };
 }
 try {
   for (const width of [320, 390]) for (const js of [false, true]) {
@@ -212,10 +253,8 @@ try {
     await page.addStyleTag({ content: "html { zoom: 2 }" });
     const viewport = page.locator(".articleTableViewport").first();
     await viewport.scrollIntoViewIfNeeded();
-    const before = await viewport.evaluate((el) => el.scrollLeft);
-    await checkAllCellsByKeyboard(page, viewport);
-    const after = await viewport.evaluate((el) => el.scrollLeft);
-    assert.ok(after > before, `keyboard scrolling must work under CSS zoom: ${before} → ${after}`);
+    const positions = await checkAllCellsByKeyboard(page, viewport);
+    assert.ok(positions.max > positions.min, `keyboard scrolling must work under CSS zoom: ${JSON.stringify(positions)}`);
     assert.ok(await page.locator(".articleTableScrollHint").first().isVisible());
   });
   await context.close();
