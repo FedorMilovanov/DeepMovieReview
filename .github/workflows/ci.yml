@@ -60,6 +60,12 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Audit all locked dependencies
+        run: npm audit --audit-level=info
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=info
+
       - name: Typecheck
         run: npm run typecheck
 

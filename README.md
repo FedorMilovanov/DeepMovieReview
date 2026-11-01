@@ -47,8 +47,15 @@ For the full local quality gate, install **FFmpeg and ffprobe** on your PATH;
 npm test
 npm run typecheck
 npm run lint
+npm audit --audit-level=info
+npm audit --omit=dev --audit-level=info
 npm run build
 ```
+
+A temporary, tested dev-only adapter routes the pinned ESLint toolchain's legacy
+`minimatch` calls to a fixed upstream version. Its limited compatibility surface,
+removal criteria and remaining ESLint support warning are documented in
+[docs/69-DEPENDENCY-SECURITY.md](docs/69-DEPENDENCY-SECURITY.md).
 
 Do not bypass the runtime contract with `--force` or by disabling `engine-strict`; use Node 24.x locally, matching CI.
 
