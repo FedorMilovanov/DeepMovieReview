@@ -64,6 +64,24 @@ final class NativeGestureTests: XCTestCase {
         tapVisibleCenter(link, in: safari, name: "Scene evidence link")
         Thread.sleep(forTimeInterval: 2)
         capture("DMR-scene-evidence")
+
+        // The harness returns to a fresh FULL article after the evidence
+        // screenshot. Its only automatic action is navigation to FULL: this
+        // test performs the one native NONE tap, and the passive observer must
+        // independently see touchstart/end, a trusted click and the exact NONE
+        // server projection. XCTest success or the screenshot is not enough.
+        let fullMarker = safari.links.matching(NSPredicate(format: "label CONTAINS %@", "Редакционная оценка")).firstMatch
+        XCTAssertTrue(fullMarker.waitForExistence(timeout: 90), "The fresh FULL article did not appear after the scene")
+        let noSpoilers = safari.links.matching(NSPredicate(format: "label CONTAINS %@", "Без спойлеров")).firstMatch
+        XCTAssertTrue(noSpoilers.waitForExistence(timeout: 20), "The NONE spoiler option is absent from Mobile Safari's accessibility tree")
+        Thread.sleep(forTimeInterval: 2)
+        capture("DMR-spoiler-before-full")
+        tapVisibleCenter(noSpoilers, in: safari, name: "NONE spoiler option")
+        let disappeared = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: fullMarker)
+        XCTAssertEqual(XCTWaiter.wait(for: [disappeared], timeout: 60), .completed,
+                       "The FULL-only article link remained after the native NONE tap")
+        Thread.sleep(forTimeInterval: 1)
+        capture("DMR-spoiler-after-none")
     }
 
     @MainActor

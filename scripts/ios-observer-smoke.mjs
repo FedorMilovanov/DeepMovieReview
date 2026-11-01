@@ -3,10 +3,18 @@
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
-import { nativeArticlePath, nativeScenePath, startNativeObservationProxy, validateNativeGestureTrace, validateNativeSceneTrace } from "./lib/ios-gesture-probe.mjs";
+import { nativeArticlePath, nativeScenePath, startNativeObservationProxy, validateNativeGestureTrace, validateNativeSceneTrace,
+  validateNativeSpoilerTrace } from "./lib/ios-gesture-probe.mjs";
+import { parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 
 const upstream = process.env.BASE_URL ?? "http://127.0.0.1:3212";
-const proxy = await startNativeObservationProxy({ upstream });
+async function sections(url) {
+  const response = await fetch(url); assert.equal(response.status, 200);
+  return parseArticleSectionIds(await response.text());
+}
+const fullSectionIds = await sections(`${upstream}${nativeArticlePath}?spoilers=full`);
+const expectedSectionIds = await sections(`${upstream}${nativeArticlePath}`);
+const proxy = await startNativeObservationProxy({ upstream, spoilerLastSectionId: fullSectionIds.at(-1) });
 let browser;
 async function until(read, message) {
   const deadline = Date.now() + 15000;
@@ -49,13 +57,21 @@ try {
   await page.locator('#scene-truman-sc-day-10909 .filmSceneSupports a[href="#evidence-truman-ev-daycount"]').tap();
   await until(() => proxy.events.some(event => event.pageId === sceneReady.pageId && event.kind === "scene-evidence-arrived"), "Evidence anchor not observed");
   const sceneMeasured = validateNativeSceneTrace(proxy.events, proxy.baseUrl);
+  await page.goto(url, { waitUntil: "load" });
+  const spoilerReady = await until(() => proxy.events.find(event => event.kind === "ready" && event.pageId !== ready.pageId &&
+    event.timestamp > sceneMeasured.arrived.timestamp && event.url === url), "Fresh FULL article not observed");
+  await page.locator('.spoilerOption').first().tap();
+  await until(() => proxy.events.some(event => event.kind === "ready" && event.pageId !== spoilerReady.pageId &&
+    event.url === `${proxy.baseUrl}${nativeArticlePath}`), "NONE article not observed after touch");
+  const spoilerMeasured = validateNativeSpoilerTrace(proxy.events, proxy.baseUrl, { fullSectionIds, expectedSectionIds, afterScene: sceneMeasured.arrived });
   assert.deepEqual(proxy.errors, []); assert.deepEqual(browserErrors, [], "The observer must not break hydration or page scripts");
 
   // JS scroll and click can change the same DOM state. They must never satisfy
   // the native-input oracle in place of the trusted touch sequence above.
   const negative = await context.newPage();
+  const negativeRailStart = proxy.events.length;
   await negative.goto(url, { waitUntil: "load" });
-  const second = await until(() => proxy.events.find(event => event.kind === "ready" && event.pageId !== ready.pageId), "Second document not observed");
+  const second = await until(() => proxy.events.slice(negativeRailStart).find(event => event.kind === "ready"), "Second document not observed");
   await negative.evaluate(() => window.scrollTo(0, 250));
   await negative.locator(".readingOutlineTrigger").evaluate(element => element.click());
   await until(() => proxy.events.some(event => event.pageId === second.pageId && event.kind === "rail-state" && event.rail?.expanded === "true"),
@@ -69,8 +85,19 @@ try {
   await syntheticScene.locator('#scene-truman-sc-day-10909 .filmSceneSupports a[href="#evidence-truman-ev-daycount"]').evaluate(element => element.click());
   await until(() => proxy.events.some(event => event.pageId === syntheticReady.pageId && event.kind === "scene-evidence-arrived"), "Synthetic scene anchor not observed");
   assert.throws(() => validateNativeSceneTrace(proxy.events, proxy.baseUrl));
+  const negativeStart = proxy.events.length;
+  const syntheticSpoiler = await context.newPage();
+  await syntheticSpoiler.goto(url, { waitUntil: "load" });
+  const syntheticFull = await until(() => proxy.events.slice(negativeStart).find(event => event.kind === "ready"), "Synthetic spoiler document not observed");
+  await syntheticSpoiler.locator('.spoilerOption').first().evaluate(element => element.click());
+  await until(() => proxy.events.slice(negativeStart).some(event => event.kind === "ready" && event.pageId !== syntheticFull.pageId &&
+    event.url === `${proxy.baseUrl}${nativeArticlePath}`), "Synthetic spoiler click did not reach NONE");
+  assert.throws(() => validateNativeSpoilerTrace(proxy.events.slice(negativeStart), proxy.baseUrl,
+    { fullSectionIds, expectedSectionIds, afterScene: sceneMeasured.arrived }));
+  assert.deepEqual(proxy.errors, []); assert.deepEqual(browserErrors, []);
   console.log(JSON.stringify({ calibration: "Chromium CDP touch; not iOS", before: measured.touch.scrollY,
     scroll: measured.scroll.scrollY, railOpened: measured.opened.rail.expanded,
-    sceneOpened: sceneMeasured.opened.scene.open, evidence: new URL(sceneMeasured.arrived.url).hash, syntheticControl: "rejected",
+    sceneOpened: sceneMeasured.opened.scene.open, evidence: new URL(sceneMeasured.arrived.url).hash,
+    spoilerSections: [spoilerMeasured.before.sectionIds.length, spoilerMeasured.after.sectionIds.length], syntheticControls: "rejected",
     browserErrors, observerErrors: proxy.errors }, null, 2));
 } finally { await browser?.close(); await proxy.close(); }

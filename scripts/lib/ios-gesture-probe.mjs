@@ -5,17 +5,20 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import http from "node:http";
 import { once } from "node:events";
+import { noneArticleProjectionReached } from "./ios-spoiler-observation.mjs";
 
 export const nativeArticlePath = "/films/the-truman-show/article";
 export const nativeScenePath = "/films/the-truman-show";
 const scriptPath = "/__dmr_native_ios_observer.js";
 const eventPath = "/__dmr_native_ios_event";
 
-export function nativeObservationScript(token) {
+export function nativeObservationScript(token, { spoilerLastSectionId = null } = {}) {
   assert.match(token, /^[a-f0-9]{32}$/);
+  assert.ok(spoilerLastSectionId === null || (typeof spoilerLastSectionId === "string" && spoilerLastSectionId.length > 0));
   return `(() => {
     'use strict';
     const token = ${JSON.stringify(token)};
+    const lastFullSectionId = ${JSON.stringify(spoilerLastSectionId)};
     const pageId = String(performance.timeOrigin) + '-' + Math.random().toString(36).slice(2);
     let seq = 0, moved = false, lastScroll = -Infinity;
     function railState() {
@@ -31,6 +34,13 @@ export function nativeObservationScript(token) {
       const rect = el.getBoundingClientRect(), hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
       return { rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
         hitContained: !!hit && el.contains(hit) };
+    }
+    function spoilerState() {
+      const options = document.querySelectorAll('.spoilerOption');
+      if (options.length !== 5) return null;
+      return { noneSelected: options[0].getAttribute('aria-current') === 'true',
+        fullSelected: options[4].getAttribute('aria-current') === 'true', target: box(options[0]),
+        lastSectionPresent: lastFullSectionId ? !!document.getElementById(lastFullSectionId) : null };
     }
     function sceneState() {
       const details = document.querySelector('#scene-truman-sc-day-10909 .filmSceneSupports');
@@ -51,14 +61,18 @@ export function nativeObservationScript(token) {
       const targetRail = !!target?.closest('.readingOutlineTrigger');
       const targetSupport = !!target?.closest('#scene-truman-sc-day-10909 .filmSceneSupports summary');
       const targetEvidence = !!target?.closest('#scene-truman-sc-day-10909 .filmSceneSupports a[href="#evidence-truman-ev-daycount"]');
+      const targetSpoiler = !!target?.closest('.spoilerOption:first-child');
       const inspectRail = kind === 'ready' || kind === 'rail-click' || kind === 'rail-state' || (kind === 'touchstart' && targetRail);
       const inspectScene = kind.startsWith('scene-') || (kind === 'touchstart' && (targetSupport || targetEvidence));
-      const value = { token, pageId, seq: ++seq, time: performance.now(), kind,
+      const inspectSpoiler = kind === 'ready' || kind === 'spoiler-click' || (kind === 'touchstart' && targetSpoiler);
+      const time = performance.now();
+      const value = { token, pageId, seq: ++seq, time, timestamp: performance.timeOrigin + time, kind,
         trusted: event ? event.isTrusted : null, url: location.href, scrollY,
         width: innerWidth, height: innerHeight, lang: document.documentElement.lang,
-        targetRail, targetSupport, targetEvidence,
+        targetRail, targetSupport, targetEvidence, targetSpoiler,
         x: touch?.clientX ?? event?.clientX ?? null, y: touch?.clientY ?? event?.clientY ?? null,
         rail: inspectRail ? railState() : null, scene: inspectScene ? sceneState() : null,
+        spoiler: inspectSpoiler ? spoilerState() : null,
         ...(kind === 'ready' ? { sectionIds: Array.from(document.querySelectorAll('.articleSection'), node => node.id) } : {}) };
       navigator.sendBeacon(${JSON.stringify(eventPath)}, JSON.stringify(value));
     }
@@ -72,6 +86,7 @@ export function nativeObservationScript(token) {
     document.addEventListener('click', event => {
       if (!(event.target instanceof Element)) return;
       if (event.target.closest('.readingOutlineTrigger')) record('rail-click', event);
+      if (event.target.closest('.spoilerOption:first-child')) record('spoiler-click', event);
       if (event.target.closest('#scene-truman-sc-day-10909 .filmSceneSupports summary')) record('scene-support-click', event);
       if (event.target.closest('#scene-truman-sc-day-10909 .filmSceneSupports a[href="#evidence-truman-ev-daycount"]')) record('scene-evidence-click', event);
     }, { capture: true, passive: true });
@@ -106,7 +121,7 @@ function forwardedHeaders(headers) {
 
 // One fresh observer per run. Refuse other hosts, an invalid token, malformed
 // events, oversized data and HTML that cannot be instrumented without guessing.
-export async function startNativeObservationProxy({ upstream = "http://127.0.0.1:3213", onEvent = () => {} } = {}) {
+export async function startNativeObservationProxy({ upstream = "http://127.0.0.1:3213", onEvent = () => {}, spoilerLastSectionId = null } = {}) {
   const origin = new URL(upstream);
   assert.equal(origin.protocol, "http:");
   assert.equal(origin.hostname, "127.0.0.1", "The audit proxy may only reach the local build");
@@ -117,7 +132,7 @@ export async function startNativeObservationProxy({ upstream = "http://127.0.0.1
     if (url.pathname === scriptPath && request.method === "GET") {
       if (url.searchParams.get("token") !== token) { response.writeHead(403).end(); return; }
       response.writeHead(200, { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-store" });
-      response.end(nativeObservationScript(token)); return;
+      response.end(nativeObservationScript(token, { spoilerLastSectionId })); return;
     }
     if (url.pathname === eventPath && request.method === "POST") {
       const chunks = []; let size = 0, oversized = false;
@@ -133,7 +148,7 @@ export async function startNativeObservationProxy({ upstream = "http://127.0.0.1
           assert.equal(entry.token, token);
           assert.equal(typeof entry.pageId, "string");
           assert.ok(Number.isSafeInteger(entry.seq) && entry.seq > 0);
-          assert.ok(["ready", "touchstart", "touchmove", "touchend", "touchcancel", "scroll", "rail-click", "rail-state",
+          assert.ok(["ready", "touchstart", "touchmove", "touchend", "touchcancel", "scroll", "rail-click", "rail-state", "spoiler-click",
             "scene-ready", "scene-support-click", "scene-support-state", "scene-evidence-click", "scene-evidence-arrived"].includes(entry.kind));
           delete entry.token;
           events.push(entry); onEvent(entry);
@@ -181,7 +196,7 @@ function inViewport(rail, event) {
 // All observations must belong to one full-spoiler article document, in the
 // order generated by that document. A command, screenshot, programmatic scroll,
 // untrusted event, stale page, occluded target or zero-test run cannot pass.
-export function validateNativeGestureTrace(events, baseUrl) {
+export function validateNativeGestureTrace(events, baseUrl, { pageId } = {}) {
   const matching = events.filter(event => {
     try {
       const url = new URL(event.url);
@@ -189,7 +204,8 @@ export function validateNativeGestureTrace(events, baseUrl) {
         url.searchParams.getAll("spoilers").length === 1 && url.searchParams.get("spoilers").toLowerCase() === "full";
     } catch { return false; }
   });
-  const ready = matching.findLast(event => event.kind === "ready");
+  const ready = pageId ? matching.find(event => event.kind === "ready" && event.pageId === pageId) :
+    matching.findLast(event => event.kind === "ready");
   assert.ok(ready, "No observed full article on the native test origin");
   const trace = matching.filter(event => event.pageId === ready.pageId).sort((a, b) => a.seq - b.seq);
   assert.equal(new Set(trace.map(event => event.seq)).size, trace.length, "Observer sequence must not contain duplicate events");
@@ -221,6 +237,72 @@ export function validateNativeGestureTrace(events, baseUrl) {
   const opened = next(click, event => event.kind === "rail-state" && event.rail?.expanded === "true" &&
     event.scrollY - touch.scrollY >= 30, "The native post-scroll rail input must open the actual disclosure");
   return { pageId: ready.pageId, before: ready, touch, move, scroll, railTouch, click, opened };
+}
+
+// A native tap in normal MobileSafari must complete on the actual NONE option,
+// navigate to a new document and produce the exact independently fetched SSR
+// projection. The command, a cancelled touch, a URL alone, a partial update or
+// a JS-generated click cannot satisfy this gate.
+export function validateNativeSpoilerTrace(events, baseUrl, { fullSectionIds, expectedSectionIds, afterScene } = {}) {
+  assert.ok(afterScene?.kind === "scene-evidence-arrived" && Number.isFinite(afterScene.timestamp),
+    "The spoiler scenario must follow the observed scene evidence");
+  assert.ok(Array.isArray(fullSectionIds) && fullSectionIds.length > 1 && fullSectionIds.every(id => typeof id === "string" && id) &&
+    new Set(fullSectionIds).size === fullSectionIds.length, "A complete FULL SSR baseline is required");
+  assert.ok(Array.isArray(expectedSectionIds) && expectedSectionIds.length > 0 && expectedSectionIds.length < fullSectionIds.length &&
+    expectedSectionIds.every((id, index) => id === fullSectionIds[index]) && !expectedSectionIds.includes(fullSectionIds.at(-1)),
+  "NONE SSR must be a proper prefix of the FULL projection");
+  const articleUrl = `${baseUrl}${nativeArticlePath}`;
+  const fullReadies = events.filter(event => {
+    try {
+      const url = new URL(event.url);
+      return event.kind === "ready" && Number.isFinite(event.timestamp) && event.timestamp > afterScene.timestamp &&
+        url.origin === baseUrl && url.pathname === nativeArticlePath && url.searchParams.getAll("spoilers").length === 1 &&
+        url.searchParams.get("spoilers").toLowerCase() === "full";
+    } catch { return false; }
+  }).sort((a, b) => a.timestamp - b.timestamp);
+  const before = fullReadies[0];
+  assert.ok(before, "No new FULL article observed after the scene scenario");
+  assert.ok(before.lang === "ru" && before.width > 0 && before.width < 500 && before.height > 0 &&
+    Number.isFinite(before.scrollY) && before.scrollY >= 0 && before.scrollY < 30);
+  assert.deepEqual(before.sectionIds, fullSectionIds, "The native FULL article must match the FULL SSR baseline");
+  assert.ok(before.spoiler?.fullSelected && !before.spoiler.noneSelected && before.spoiler.lastSectionPresent === true,
+    "FULL must start selected with its last section present");
+  const trace = events.filter(event => event.pageId === before.pageId).sort((a, b) => a.seq - b.seq);
+  assert.equal(new Set(trace.map(event => event.seq)).size, trace.length, "Spoiler observer sequence must be unique");
+  const next = (after, predicate, message) => {
+    const found = trace.find(event => event.seq > after.seq && predicate(event));
+    assert.ok(found, message); return found;
+  };
+  const touch = next(before, event => event.kind === "touchstart" && event.trusted === true && event.targetSpoiler &&
+    event.spoiler?.fullSelected && !event.spoiler.noneSelected && inViewport(event.spoiler.target, event),
+  "The visible NONE control must receive a trusted touch in the FULL article");
+  const end = next(touch, event => event.kind === "touchend" && event.trusted === true && event.targetSpoiler,
+    "The native NONE touch must end on its original target");
+  const click = next(end, event => event.kind === "spoiler-click" && event.trusted === true && event.targetSpoiler,
+    "The NONE option must receive a trusted click after the touch");
+  assert.ok(!trace.some(event => event.seq > before.seq && event.seq < touch.seq && event.targetSpoiler &&
+    ["touchstart", "touchend", "touchcancel", "spoiler-click"].includes(event.kind)),
+  "A prior failed or repeated touch on NONE cannot be hidden");
+  assert.ok(!trace.some(event => event.seq > touch.seq && event.seq < click.seq &&
+    (event.kind === "touchcancel" || event.kind === "touchstart")), "The click must belong to the uninterrupted native touch");
+  assert.ok([touch.timestamp, end.timestamp, click.timestamp].every(Number.isFinite) &&
+    before.timestamp <= touch.timestamp && touch.timestamp <= end.timestamp && end.timestamp <= click.timestamp,
+  "The same-document touch and click timestamps must be ordered");
+  const after = events.filter(event => {
+    try {
+      const url = new URL(event.url), levels = url.searchParams.getAll("spoilers");
+      return event.kind === "ready" && event.pageId !== before.pageId && Number.isFinite(event.timestamp) &&
+        event.timestamp > click.timestamp && url.origin === baseUrl && url.pathname === nativeArticlePath &&
+        (levels.length === 0 || (levels.length === 1 && levels[0].toLowerCase() === "none"));
+    } catch { return false; }
+  }).sort((a, b) => a.timestamp - b.timestamp)[0];
+  assert.ok(after && after.lang === "ru" && after.width > 0 && after.width < 500 && after.height > 0 &&
+    after.spoiler?.fullSelected === false, "The NONE article must load in a new mobile document without FULL selected");
+  assert.ok(noneArticleProjectionReached({ url: after.url, sectionIds: after.sectionIds,
+    noneSelected: after.spoiler?.noneSelected === true, lastSectionPresent: after.spoiler?.lastSectionPresent }, {
+    expectedUrl: articleUrl, beforeSections: fullSectionIds.length, expectedSectionIds,
+  }), "Native NONE article must match the independently fetched SSR projection");
+  return { before, touch, end, click, after, expectedSectionIds };
 }
 
 // A separate, deep-linked NONE document: real native touches must open the
@@ -293,7 +375,8 @@ export function validateXCTestSummary(summary, deviceId) {
 export function selectNativeGestureAttachments(manifest) {
   assert.ok(Array.isArray(manifest));
   const names = ["DMR-before-native-scroll", "DMR-after-native-scroll", "DMR-after-native-rail-tap",
-    "DMR-scene-before-support", "DMR-scene-support-open", "DMR-scene-evidence"];
+    "DMR-scene-before-support", "DMR-scene-support-open", "DMR-scene-evidence",
+    "DMR-spoiler-before-full", "DMR-spoiler-after-none"];
   const rows = manifest.flatMap(test => test.attachments ?? []);
   return names.map(name => {
     const found = rows.filter(row => typeof row.suggestedHumanReadableName === "string" &&

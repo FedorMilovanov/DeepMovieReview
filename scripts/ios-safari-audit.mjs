@@ -7,9 +7,8 @@ import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } fro
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari, noNativeEventsDelivered, waitForNativeValue, waitForStableNativeTarget } from "./lib/native-safari.mjs";
-import { scrollToNativeTarget } from "./lib/ios-native-scroll.mjs";
 import { runNativeGestureXCTest, shouldRunGestureAfterDriverFailure } from "./lib/ios-xctest-gesture.mjs";
-import { noneArticleProjectionReached, parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
+import { parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari", gestureDirectory = "at-report/ios-gesture";
 mkdirSync(directory, { recursive: true });
@@ -37,9 +36,22 @@ async function runAndRecordNativeGesture() {
     throw error;
   }
   report.postScrollInput = gestureReport.observedGesture;
+  if (report.spoilerBaseline) {
+    assert.deepEqual(gestureReport.spoilerBaseline.fullSectionIds, report.spoilerBaseline.fullSectionIds,
+      "SafariDriver and the independent FULL response must agree on sections");
+    assert.deepEqual(gestureReport.spoilerBaseline.expectedSectionIds, report.spoilerBaseline.expectedSectionIds,
+      "Both independently fetched NONE baselines must agree");
+  }
+  const spoiler = gestureReport.observedSpoiler;
+  report.spoilerProjection = { before: spoiler.before.sectionIds.length, after: spoiler.after.sectionIds.length,
+    by: "native XCUITest touch with passive observer", url: spoiler.after.url,
+    expectedSectionIds: spoiler.expectedSectionIds, observation: spoiler.after };
   evidence.actions.push({ route: "/films/the-truman-show/article?spoilers=full",
     label: "native XCUITest scroll and post-scroll rail input; full trace and screenshots in ios-gesture evidence",
     scrollY: gestureReport.observedGesture.opened.scrollY, expanded: gestureReport.observedGesture.opened.rail.expanded });
+  evidence.actions.push({ route: "/films/the-truman-show/article?spoilers=full",
+    label: "native XCUITest FULL → NONE; trusted touch, click and exact SSR projection in ios-gesture evidence",
+    ...report.spoilerProjection });
   evidence.actions.push({ route: sceneRoute, label: "native XCUITest scene support → evidence; full trace and screenshots in ios-gesture evidence",
     observed: gestureReport.observedScene });
 }
@@ -242,55 +254,17 @@ try {
       assert.ok(expectedSectionIds.length < count && expectedSectionIds.every((id, index) => sectionIds[index] === id) &&
         !expectedSectionIds.includes(lastSectionId), "NONE baseline must be a proper prefix of the full article");
       report.spoilerBaseline = { fullSectionIds: sectionIds, expectedSectionIds, lastSectionId };
-      // Exercise the control before other content interactions. Previous
-      // Simulator runs delivered no event after JS scrollIntoView. If the
-      // control is not already visible, use real W3C finger drags and prove
-      // touch delivery and scrolling before attempting the actual control.
-      await safari.execute(`window.__spoilerProbe = { touched: [], clicked: [], url: location.href };
-        for (const type of ["touchstart", "touchend", "click"]) document.addEventListener(type, e =>
-          __spoilerProbe[type === "click" ? "clicked" : "touched"].push({ type, target: (e.target.className || e.target.tagName).toString().slice(0, 40), href: e.target.closest?.("a")?.getAttribute("href") }), { capture: true });`);
-      evidence.screenshots.push({ route: `${route} — before spoiler input`, data: await safari.screenshot() });
-      // A URL change can precede the server-rendered content update. Observe the
-      // actual NONE selection, remaining article sections and removal of the last
-      // full-spoiler section together; a blank/error page is not a projection.
-      let lastObservation;
-      const projection = async () => {
-        lastObservation = await safari.execute(`return {
-          url: location.href,
-          sectionIds: Array.from(document.querySelectorAll('.articleSection'), section => section.id),
-          noneSelected: document.querySelector('.spoilerOption')?.getAttribute('aria-current') === 'true',
-          lastSectionPresent: Boolean(document.getElementById(${JSON.stringify(lastSectionId)}))
-        }`);
-        report.spoilerLastObservation = lastObservation;
-        return noneArticleProjectionReached(lastObservation, {
-          expectedUrl, beforeSections: count, expectedSectionIds,
-        }) ? "changed" : "same";
-      };
-      await safari.execute(`window.__swipeProbe = [];
-        for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"]) document.addEventListener(type, e =>
-          __swipeProbe.push({ type, x: e.changedTouches[0]?.clientX ?? null, y: e.changedTouches[0]?.clientY ?? null }), { capture: true });`);
-      const targetGeometry = () => safari.execute(`const el = document.querySelector('.spoilerOption'), r = el.getBoundingClientRect();
-        const x = r.x + r.width / 2, y = r.y + r.height / 2, hit = document.elementFromPoint(x, y);
-        return { rect: r.toJSON(), scrollY, innerWidth, innerHeight, hitContained: !!hit && el.contains(hit),
-          visualViewport: visualViewport ? { height: visualViewport.height, offsetTop: visualViewport.offsetTop } : null };`);
-      report.spoilerSwipes = [];
-      report.spoilerTarget = await scrollToNativeTarget({ readTarget: targetGeometry,
-        readEvents: () => safari.execute("return window.__swipeProbe"),
-        swipe: points => safari.swipeViewport(points), attempts: report.spoilerSwipes });
-      evidence.actions.push({ route, label: "native spoiler target and any required swipes", swipes: report.spoilerSwipes, ...report.spoilerTarget });
-      // On 18ba586 the native click reached the option but the separate failure
-      // snapshot showed the destination only after the 20s observation window.
-      // Allow a bounded 45s for the same exact projection, without replaying it.
-      const spoilerBy = await activate(".spoilerOption", projection, "changed", 45000, { scroll: false });
-      report.spoilerProjection = { before: count, after: lastObservation.sectionIds.length, by: spoilerBy,
-        url: lastObservation.url, expectedSectionIds, lastSectionId, observation: lastObservation };
-      // A full-document navigation legitimately discards page-local probes. Keep
-      // that loss explicit rather than failing with a ReferenceError or inventing
-      // an event trace; the independently observed projection above still gates.
-      report.spoilerProbe = await safari.execute("return { ...(window.__spoilerProbe ?? { lostAfterNavigation: true }), target: (() => { const el = document.querySelector('.spoilerOption'); if (!el) return null; const r = el.getBoundingClientRect(); const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return { rect: r.toJSON(), scrollY, hit: hit && (hit.className || hit.tagName) }; })() }");
-      evidence.actions.push({ route, label: "native spoiler input probe", ...report.spoilerProbe });
-      evidence.actions.push({ route, label: "native spoiler input changed projection", ...report.spoilerProjection });
-      evidence.screenshots.push({ route: `${route} — after spoiler input`, data: await safari.screenshot() });
+      // SafariDriver's W3C touch input repeatedly ended with cancellation or
+      // an incomplete touch on this control (3a12 and 2a6d). Keep the native
+      // FULL geometry and separate baseline here, but exercise FULL → NONE in
+      // normal MobileSafari with XCUITest below. That test requires a trusted
+      // completed touch, click, new document and exact independent projection;
+      // neither a driver command nor a screenshot can stand in for the result.
+      report.spoilerTarget = await safari.execute(`const el = document.querySelector('.spoilerOption');
+        const rect = el.getBoundingClientRect(), hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return { rect: rect.toJSON(), scrollY, innerWidth, innerHeight, hitContained: !!hit && el.contains(hit) };`);
+      evidence.actions.push({ route, label: "native FULL spoiler target before independent XCUITest", ...report.spoilerTarget });
+      evidence.screenshots.push({ route: `${route} — FULL spoiler target before XCUITest`, data: await safari.screenshot() });
 
     }
   }

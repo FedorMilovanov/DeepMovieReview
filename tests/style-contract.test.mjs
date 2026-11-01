@@ -655,34 +655,8 @@ test("reader image check waits for intrinsic data and rejects a blank render", a
   assert.equal((await waitForImagePaint(async () => blank, { pause: async () => {} })).varied, false);
 });
 
-test("iOS native scroll refuses undelivered swipes and occluded targets", async () => {
-  const { nativeSwipeAndObserve, scrollToNativeTarget } = await import("../scripts/lib/ios-native-scroll.mjs");
-  const wait = async (read, expected) => assert.equal(await read(), expected);
-  const setup = ({ delivered = true, move = true, initial = 0, hidden = false, scrolls = [300] } = {}) => {
-    let scrollY = initial, events = [], calls = 0;
-    const readTarget = async () => ({ rect: { top: 850 - scrollY, bottom: 894 - scrollY }, scrollY,
-      innerWidth: 402, innerHeight: 714, hitContained: !hidden });
-    return { readTarget, readEvents: async () => events, wait, attempts: [],
-      swipe: async () => { if (delivered) events.push({ type: "touchstart" }); if (move) scrollY = scrolls[Math.min(calls, scrolls.length - 1)]; calls++; },
-      calls: () => calls };
-  };
-  const valid = setup();
-  const target = await scrollToNativeTarget(valid);
-  assert.equal(target.scrollY, 300); assert.equal(valid.calls(), 1); assert.equal(valid.attempts[0].events[0].type, "touchstart");
-  const alreadyVisible = setup({ initial: 300 });
-  await scrollToNativeTarget(alreadyVisible); assert.equal(alreadyVisible.calls(), 0);
-  const postScroll = setup({ initial: 300, scrolls: [600] });
-  await nativeSwipeAndObserve(postScroll); assert.equal(postScroll.calls(), 1); assert.equal(postScroll.attempts[0].after.scrollY, 600);
-  const overshot = setup({ scrolls: [950, 600] });
-  await scrollToNativeTarget(overshot); assert.equal(overshot.calls(), 2);
-  await assert.rejects(scrollToNativeTarget(setup({ delivered: false })), /must deliver a touch event/);
-  await assert.rejects(scrollToNativeTarget(setup({ move: false })), /same/);
-  const occluded = setup({ initial: 700, hidden: true });
-  await assert.rejects(scrollToNativeTarget(occluded), /occluded/); assert.equal(occluded.calls(), 0);
-});
-
-test("completed native touches release with pointerUp and preserve action failures", async () => {
-  const { performCompletedTouch, tapActions } = await import("../scripts/lib/native-safari.mjs");
+test("native touch sequences preserve cleanup and action failures", async () => {
+  const { performTapWithCleanup, tapActions } = await import("../scripts/lib/native-safari.mjs");
   const element = { "element-6066-11e4-a52e-4f735466cecf": "target" };
   for (const [origin, x, y] of [[element, 0, 0], ["viewport", 108, 462]]) {
     const sequence = tapActions({ origin, x, y }).actions[0];
@@ -693,25 +667,19 @@ test("completed native touches release with pointerUp and preserve action failur
   assert.throws(() => tapActions({ origin: {} }));
   assert.throws(() => tapActions({ origin: "viewport", x: 1.5 }));
   let releases = 0;
-  assert.equal(await performCompletedTouch(async () => "completed", async () => { releases++; }), "completed");
-  assert.equal(releases, 0, "do not send redundant Release Actions after pointerUp");
   const actionError = new Error("perform failed"), cleanupError = new Error("cleanup failed");
-  await assert.rejects(performCompletedTouch(async () => { throw actionError; }, async () => { releases++; }), error => error === actionError);
-  assert.equal(releases, 1);
-  await assert.rejects(performCompletedTouch(async () => { throw actionError; }, async () => { throw cleanupError; }),
+  assert.equal(await performTapWithCleanup(async () => "tap", async () => { releases++; }), "tap");
+  assert.equal(releases, 1, "a completed SafariDriver tap still gets its observed necessary cleanup");
+  await assert.rejects(performTapWithCleanup(async () => { throw actionError; }, async () => { releases++; }), error => error === actionError);
+  assert.equal(releases, 2);
+  await assert.rejects(performTapWithCleanup(async () => "tap", async () => { throw cleanupError; }), error => error === cleanupError);
+  await assert.rejects(performTapWithCleanup(async () => { throw actionError; }, async () => { throw cleanupError; }),
     error => error instanceof AggregateError && error.errors[0] === actionError && error.errors[1] === cleanupError);
+  await assert.rejects(performTapWithCleanup(async () => { throw null; }, async () => {}), error => error === null);
 });
 
 test("native UI observation waits without replaying input and fails a persistent state", async () => {
-  const { waitForNativeValue, noNativeEventsDelivered, viewportSwipeActions } = await import("../scripts/lib/native-safari.mjs");
-  const swipe = viewportSwipeActions({ x: 200, fromY: 500, toY: 240 });
-  const steps = swipe.actions[0].actions, moves = steps.filter(step => step.type === "pointerMove");
-  assert.equal(swipe.actions[0].parameters.pointerType, "touch");
-  assert.equal(steps[1].type, "pointerDown"); assert.equal(steps.at(-1).type, "pointerUp");
-  assert.deepEqual(moves.map(move => move.y), [500, 448, 396, 344, 292, 240]);
-  assert.ok(moves.every(move => move.origin === "viewport" && move.duration === 0));
-  assert.equal(steps.filter(step => step.type === "pause").reduce((sum, step) => sum + step.duration, 0), 780);
-  assert.throws(() => viewportSwipeActions({ x: -1, fromY: 500, toY: 240 }));
+  const { waitForNativeValue, noNativeEventsDelivered } = await import("../scripts/lib/native-safari.mjs");
   assert.equal(noNativeEventsDelivered({ events: [] }), true);
   for (const probe of [undefined, {}, { lostAfterNavigation: true, events: [] }, { events: [{ type: "touchstart" }] }]) {
     assert.equal(noNativeEventsDelivered(probe), false);
@@ -788,17 +756,17 @@ test("disclosure touch policy is scoped to controls, not article selection", () 
   assert.ok(found);
 });
 
-test("spoiler and scene controls retain pan and pinch gestures without a double-tap delay", () => {
-  for (const [file, selector] of [
-    ["src/styles/spoilers.css", ".spoilerOption"],
-    ["src/styles/modules/surfaces.css", ".filmSceneSupports summary, .filmSceneSupports a"],
+test("spoiler and scene links do not restrict native touch and zoom", () => {
+  for (const [file, pattern] of [
+    ["src/styles/spoilers.css", /\.spoilerOption/],
+    ["src/styles/modules/surfaces.css", /\.filmSceneSupports/],
   ]) {
     const css = postcss.parse(readStylesheet(file));
-    const declarations = [];
-    css.walkRules(rule => { if (rule.selector === selector) declarations.push(...rule.nodes); });
-    const gestures = declarations.filter(node => node.prop === "touch-action");
-    assert.ok(gestures.length > 0 && gestures.every(node => node.value === "manipulation"), `${selector} touch policy missing or overridden`);
-    assert.ok(!declarations.some(node => /user-select|touch-callout/.test(node.prop)), "native selection and callouts must remain available");
+    css.walkRules(rule => {
+      if (!pattern.test(rule.selector)) return;
+      rule.walkDecls(decl => assert.ok(!/^(touch-action|(?:-webkit-)?user-select|-webkit-touch-callout)$/.test(decl.prop),
+        `${rule.selector} must leave native gestures, selection and callouts alone`));
+    });
   }
 });
 
