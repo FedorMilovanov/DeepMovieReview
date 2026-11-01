@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "./ios-gesture-probe.mjs";
 import { parseArticleSectionIds } from "./ios-spoiler-observation.mjs";
+import { collectTouchDiagnostics } from "./ios-touch-diagnostics.mjs";
 
 const exec = promisify(execFile);
 const screenshotSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -232,6 +233,12 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     // Do not leave scheduled simctl commands running after a failure.
     await Promise.allSettled([...menuPromises, ...(sceneNavigation ? [sceneNavigation] : []), ...(spoilerNavigation ? [spoilerNavigation] : [])]);
     report.events = proxy.events; report.observerErrors = proxy.errors;
+    if (primaryError && existsSync(bundle)) {
+      // Preserve a narrow OS-log excerpt for a cancelled native touch. This is
+      // diagnostic only: it cannot retry input or clear the original failure.
+      try { report.systemTouchDiagnostics = await collectTouchDiagnostics({ bundle, udid: device.udid, events: proxy.events }); }
+      catch (error) { report.systemTouchDiagnostics = { status: "unavailable", error: error.message }; }
+    }
     if (primaryError && existsSync(bundle) && !report.xctestSummary) {
       try {
         const result = await exec("xcrun", ["xcresulttool", "get", "test-results", "summary", "--path", bundle], { timeout: 60000, maxBuffer: 4 * 1024 * 1024 });

@@ -3,9 +3,12 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { once } from "node:events";
 import vm from "node:vm";
+import { existsSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "../scripts/lib/ios-gesture-probe.mjs";
 import { shouldRunGestureAfterDriverFailure, validateMenuNavigationOutcome, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
+import { cancelledTouchWindow, collectTouchDiagnostics, touchLogExcerpt } from "../scripts/lib/ios-touch-diagnostics.mjs";
 
 const origin = "http://127.0.0.1:1234";
 const rail = { expanded: "false", hitContained: true, rect: { left: 320, top: 640, right: 390, bottom: 690, width: 70, height: 50 } };
@@ -222,6 +225,55 @@ test("native scene trace requires trusted touches, the real disclosure, visible 
     ["evidence not visible", rows => { rows[8].scene = { ...scene, evidenceRect: { top: -300 } }; }],
     ["missing basis", rows => { rows[8].scene = { ...scene, evidenceText: "Титры" }; }],
   ]) { const rows = trace(); change(rows); assert.throws(() => validateNativeSceneTrace(rows, origin), undefined, name); }
+});
+
+test("OS touch diagnostics are bounded, retain cancellation provenance and never infer a cause", () => {
+  const start = { kind: "touchstart", trusted: true, timestamp: 100000, pageId: "one", seq: 3 };
+  const cancel = { kind: "touchcancel", trusted: true, timestamp: 100120, pageId: "one", seq: 4 };
+  assert.deepEqual(cancelledTouchWindow([cancel, start]), { pageId: "one", started: 100000, cancelled: 100120, start: 90000, end: 110120 });
+  assert.equal(cancelledTouchWindow([]), null);
+  assert.equal(cancelledTouchWindow([start, { ...cancel, trusted: false }]), null);
+  assert.equal(cancelledTouchWindow([start, { ...cancel, pageId: "different" }]), null);
+  assert.equal(cancelledTouchWindow([start, { ...cancel, timestamp: 99999 }]), null);
+  assert.equal(cancelledTouchWindow([start, { ...cancel, timestamp: 111000 }]), null);
+  assert.equal(cancelledTouchWindow([start, { ...cancel, seq: 5 }, { ...start, seq: 4, kind: "touchend" }]), null);
+  const log = ["2026 backboardd[12] unknown digitizer and skipping event",
+    "2026 testmanagerd[4] playback initiated", "2026 unrelated[5] unknown digitizer",
+    "2026 backboardd[12] unrelated line", "2026 backboardd[12] digitizer GH_TOKEN secret"].join("\n");
+  const excerpt = touchLogExcerpt(log);
+  assert.match(excerpt, /unknown digitizer/); assert.match(excerpt, /playback initiated/);
+  assert.doesNotMatch(excerpt, /unrelated|GH_TOKEN|secret/);
+  assert.ok(touchLogExcerpt(Array(100).fill("backboardd digitizer " + "x".repeat(1000)).join("\n")).length <= 16000);
+});
+
+test("touch forensics selects exactly the failed device archive and stays diagnostic-only", async () => {
+  const udid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+  const events = [{ kind: "touchstart", trusted: true, timestamp: 1793564203189, pageId: "doc", seq: 1 },
+    { kind: "touchcancel", trusted: true, timestamp: 1793564203284, pageId: "doc", seq: 2 }];
+  const commands = []; let exported;
+  const run = async (command, args) => {
+    commands.push({ command, args });
+    if (command === "xcrun") {
+      exported = args[args.indexOf("--output-path") + 1];
+      mkdirSync(join(exported, "action", "simctl_diagnostics", udid.toUpperCase(), "system.logarchive"), { recursive: true });
+      return { stdout: "" };
+    }
+    assert.equal(command, "/usr/bin/log");
+    assert.ok(args.includes("2026-11-01 20:16:33+0000"));
+    assert.ok(args.includes("2026-11-01 20:16:53+0000"));
+    return { stdout: "2026 backboardd[12] unknown digitizer\nprivate unrelated text" };
+  };
+  const result = await collectTouchDiagnostics({ bundle: "/result.xcresult", udid, events }, { run });
+  assert.equal(result.status, "excerpt-captured"); assert.match(result.excerpt, /unknown digitizer/);
+  assert.match(result.note, /neither a log phrase nor its absence/); assert.equal(commands.length, 2);
+  assert.equal(existsSync(exported), false, "temporary diagnostic exports must be removed");
+  assert.deepEqual(await collectTouchDiagnostics({ bundle: "unused", udid, events: [] }, { run }),
+    { status: "no-observed-complete-cancellation-window" });
+  await assert.rejects(collectTouchDiagnostics({ bundle: "unused", udid: "invalid", events }, { run }), /Invalid Simulator/);
+  const missing = await collectTouchDiagnostics({ bundle: "unused", udid, events }, { run: async (_command, args) => {
+    mkdirSync(args[args.indexOf("--output-path") + 1], { recursive: true }); return { stdout: "" };
+  } });
+  assert.equal(missing.status, "device-logarchive-unavailable-or-ambiguous");
 });
 
 test("a failed driver allows only one independent gesture on an established booted simulator", () => {

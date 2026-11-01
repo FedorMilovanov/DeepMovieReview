@@ -643,6 +643,14 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Optional historical OS-log excerpt cannot pass or change the current test.
+      - name: Inspect the previous failed native touch, if retained
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/recover-prior-ios-touch.mjs
       - name: Enable installed Safari WebDriver
         run: sudo /usr/bin/safaridriver --enable
       - run: npm run build
