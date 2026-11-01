@@ -28,6 +28,29 @@ async function routeMarkerBaseline(base, route, marker) {
   validateNativeRouteMarker(await response.text(), marker);
 }
 
+// Synchronize the test runner with a distinct, actually observed FULL document.
+// This is only a readiness barrier; all native inputs and state assertions remain
+// mandatory. In 743ee06 XCTest found a stale rail and swiped the old document.
+export function nativePageBarrierReady({ stage, events, baseUrl, completedMenus }) {
+  if (!Array.isArray(events) || !Array.isArray(completedMenus) || completedMenus.length !== nativeMenuRoutes.length) return false;
+  const lastMenu = completedMenus.at(-1);
+  const scene = events.filter(event => event.kind === "scene-evidence-arrived" && Number.isFinite(event.timestamp)).at(-1);
+  const after = stage === "gesture" ? lastMenu?.closed : stage === "spoiler" ? scene : null;
+  if (!after || !Number.isFinite(after.timestamp)) return false;
+  return events.some(event => {
+    if (event.kind !== "ready" || !Number.isFinite(event.timestamp) || event.timestamp <= after.timestamp ||
+      !event.pageId || completedMenus.some(menu => menu.pageId === event.pageId) || event.pageId === after.pageId ||
+      event.lang !== "ru" || !(event.width > 0 && event.width < 500) || !(event.height > 0) ||
+      !event.rail?.hitContained || event.rail.expanded !== "false" || event.spoiler?.fullSelected !== true ||
+      event.spoiler.noneSelected !== false || !Array.isArray(event.sectionIds) || event.sectionIds.length < 2) return false;
+    try {
+      const url = new URL(event.url);
+      return url.origin === baseUrl && url.pathname === nativeArticlePath && url.searchParams.getAll("spoilers").length === 1 &&
+        url.searchParams.get("spoilers").toLowerCase() === "full";
+    } catch { return false; }
+  });
+}
+
 const exec = promisify(execFile);
 const screenshotSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -79,9 +102,9 @@ async function articleSectionBaseline(url) {
   return parseArticleSectionIds(await response.text());
 }
 
-async function runXcodebuild(args, logFile, deadlineMs = 660000) {
+async function runXcodebuild(args, logFile, deadlineMs = 660000, testEnvironment = {}) {
   const output = createWriteStream(logFile, { flags: "wx" });
-  const child = spawn("xcodebuild", args, { stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn("xcodebuild", args, { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, ...testEnvironment } });
   let tail = "", timedOut = false;
   for (const stream of [child.stdout, child.stderr]) stream.on("data", chunk => {
     output.write(chunk); process.stdout.write(chunk); tail = (tail + chunk.toString()).slice(-16000);
@@ -128,7 +151,9 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     await Promise.all(Object.entries(nativeRouteMarkers).map(([route, marker]) =>
       routeMarkerBaseline("http://127.0.0.1:3213", route, marker)));
     report.routeMarkerBaselines = nativeRouteMarkers;
-    proxy = await startNativeObservationProxy({ spoilerLastSectionId: fullSectionIds.at(-1), onEvent: event => {
+    proxy = await startNativeObservationProxy({ spoilerLastSectionId: fullSectionIds.at(-1),
+      onBarrier: stage => nativePageBarrierReady({ stage, events: proxy.events, baseUrl: proxy.baseUrl, completedMenus }),
+      onEvent: event => {
       // Schedule each following route only after the complete preceding native
       // open/close is independently observed. Beacons may arrive out of order;
       // the validator orders them by the document's own sequence numbers.
@@ -189,7 +214,10 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     // eleven bounded minutes; this does not retry any input or relax the gate.
     const timeoutMs = 660000;
     report.xcodebuild = { args, timeoutMs };
-    run = await runXcodebuild(args, join(root, "xcodebuild.log"), timeoutMs);
+    // Xcode strips TEST_RUNNER_ before exposing this loopback-only URL to the
+    // XCTest process; it is not passed to the site or printed into the receipt.
+    run = await runXcodebuild(args, join(root, "xcodebuild.log"), timeoutMs,
+      { TEST_RUNNER_DMR_BARRIER_URL: proxy.barrierUrl });
     report.xcodebuild = { ...report.xcodebuild, ...run };
     // Allow in-flight same-origin beacon requests to reach the loopback proxy.
     await delay(1000);

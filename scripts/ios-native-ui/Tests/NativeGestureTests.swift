@@ -2,6 +2,13 @@ import CoreGraphics
 import Foundation
 import XCTest
 
+private final class BarrierStatus: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+    func set(_ code: Int) { lock.lock(); value = code; lock.unlock() }
+    func get() -> Int { lock.lock(); defer { lock.unlock() }; return value }
+}
+
 // Safari is opened on the home page by simctl before the test. This UI-test
 // runner has no test host and drives the real MobileSafari app, not a WebView
 // fixture or the isolated SafariDriver automation window. The independent,
@@ -26,8 +33,10 @@ final class NativeGestureTests: XCTestCase {
         waitForPageMarker("поиск режиссёра и город", in: safari, name: "making article")
         verifyMenu(in: safari, screenshot: "DMR-menu-making-open")
 
-        // After the fourth close the harness navigates to a NEW FULL article.
-        // This rail is absent on making and anchors the subsequent scroll test.
+        // Safari can briefly expose the earlier article's AX tree while the
+        // new document is loading. Wait for the passive observer to see the
+        // distinct FULL document after the fourth close before issuing input.
+        waitForBarrier("gesture")
         let rail = safari.buttons.matching(identifier: "Оглавление статьи").firstMatch
         XCTAssertTrue(rail.waitForExistence(timeout: 90), "The fresh article's reading rail is not in Mobile Safari's accessibility tree")
         XCTAssertTrue(rail.isHittable, "The reading rail is not visible before the native drag")
@@ -89,10 +98,18 @@ final class NativeGestureTests: XCTestCase {
         // scene page. On e07dd23 the observer saw the returned FULL article but
         // XCTest did not find a different, FULL-only link; do not assume that
         // unrelated link is exposed in Mobile Safari's accessibility tree.
+        waitForBarrier("spoiler")
         let returnedRail = safari.buttons.matching(identifier: "Оглавление статьи").firstMatch
         XCTAssertTrue(returnedRail.waitForExistence(timeout: 90), "The article's reading rail did not return after the scene")
-        let noSpoilers = safari.links.matching(NSPredicate(format: "label CONTAINS %@", "Без спойлеров")).firstMatch
-        XCTAssertTrue(noSpoilers.waitForExistence(timeout: 20), "The NONE spoiler option is absent from Mobile Safari's accessibility tree")
+        // The label is visually uppercased by CSS. Match its accessible text
+        // without assuming casing; still require a real link in Safari's AX tree.
+        let noSpoilers = safari.links.matching(NSPredicate(format: "label CONTAINS[cd] %@", "Без спойлеров")).firstMatch
+        if !noSpoilers.waitForExistence(timeout: 20) {
+            // Keep a bounded hierarchy for diagnosing role/name mismatches.
+            print("DMR Safari AX hierarchy: \(String(safari.debugDescription.prefix(16000)))")
+            XCTFail("The NONE spoiler option is absent from Mobile Safari's accessibility tree")
+            return
+        }
         Thread.sleep(forTimeInterval: 2)
         capture("DMR-spoiler-before-full")
         tapVisibleCenter(noSpoilers, in: safari, name: "NONE spoiler option")
@@ -101,6 +118,35 @@ final class NativeGestureTests: XCTestCase {
         // its exact SSR sections and the trusted uninterrupted touch + click.
         Thread.sleep(forTimeInterval: 5)
         capture("DMR-spoiler-after-input")
+    }
+
+    @MainActor
+    private func waitForBarrier(_ stage: String) {
+        guard let address = ProcessInfo.processInfo.environment["DMR_BARRIER_URL"],
+              var components = URLComponents(string: address) else {
+            XCTFail("Native readiness barrier URL was not supplied to the test runner")
+            return
+        }
+        components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "stage", value: stage)]
+        guard let url = components.url else { XCTFail("Invalid native readiness barrier URL"); return }
+        let deadline = Date().addingTimeInterval(100)
+        while Date() < deadline {
+            let response = BarrierStatus()
+            let done = DispatchSemaphore(value: 0)
+            var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 5)
+            request.httpMethod = "GET"
+            let task = URLSession.shared.dataTask(with: request) { _, result, _ in
+                response.set((result as? HTTPURLResponse)?.statusCode ?? 0)
+                done.signal()
+            }
+            task.resume()
+            if done.wait(timeout: .now() + 6) == .timedOut { task.cancel() }
+            let status = response.get()
+            if status == 200 { return }
+            if status >= 400 { XCTFail("Native readiness barrier rejected \(stage): HTTP \(status)"); return }
+            Thread.sleep(forTimeInterval: 0.25)
+        }
+        XCTFail("Timed out waiting for the distinct \(stage) article document")
     }
 
     @MainActor

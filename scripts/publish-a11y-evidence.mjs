@@ -41,7 +41,11 @@ async function main() {
       "Content-Type": "application/json", "X-GitHub-Api-Version": "2022-11-28",
     }, ...(body ? { body: JSON.stringify(body) } : {}) });
     const text = await response.text();
-    assert.ok(response.ok, `Checks API ${method}: HTTP ${response.status}; response excerpt (${text.length} chars): ${text.slice(0, 4000)}`);
+    if (!response.ok) {
+      const error = new Error(`Checks API ${method}: HTTP ${response.status}; response excerpt (${text.length} chars): ${text.slice(0, 4000)}`);
+      error.status = response.status;
+      throw error;
+    }
     return JSON.parse(text);
   }
   const result = await publishEvidence({ bytes, revision: summary.revision, head, label, summary, api });

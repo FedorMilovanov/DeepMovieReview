@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "../scripts/lib/ios-gesture-probe.mjs";
-import { nativeRouteMarkers, shouldRunGestureAfterDriverFailure, validateMenuNavigationOutcome, validateNativeRouteMarker, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
+import { nativePageBarrierReady, nativeRouteMarkers, shouldRunGestureAfterDriverFailure, validateMenuNavigationOutcome, validateNativeRouteMarker, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
 import { cancelledTouchWindow, collectTouchDiagnostics, touchLogExcerpt } from "../scripts/lib/ios-touch-diagnostics.mjs";
 
 const origin = "http://127.0.0.1:1234";
@@ -43,6 +43,26 @@ function menuTrace(route = "/", id = "menu-1", start = 100) {
     row(8, "menu-click", { trusted: true, targetMenu: true }),
     row(9, "menu-state", { menu: closed })];
 }
+
+test("native readiness barrier rejects stale articles and requires a new FULL document at each stage", () => {
+  const menus = validateNativeMenuSequence(nativeMenuRoutes.flatMap((route, i) => menuTrace(route, `menu-${i}`, 100 + 100 * i)), origin);
+  const options = { baseUrl: origin, completedMenus: menus, stage: "gesture" };
+  const ready = { ...trace()[0], pageId: "fresh", timestamp: 510, spoiler: { fullSelected: true, noneSelected: false } };
+  const check = (events, extra = {}) => nativePageBarrierReady({ ...options, events, ...extra });
+  assert.equal(check([]), false);
+  assert.equal(check([ready], { completedMenus: menus.slice(0, 3) }), false);
+  assert.equal(check([{ ...ready, timestamp: 408 }]), false, "old document predates final menu close");
+  assert.equal(check([{ ...ready, pageId: menus[2].pageId }]), false, "menu article is not the fresh document");
+  assert.equal(check([{ ...ready, url: `${origin}${nativeArticlePath}` }]), false, "NONE is not FULL");
+  assert.equal(check([{ ...ready, spoiler: { fullSelected: false, noneSelected: true } }]), false);
+  assert.equal(check([{ ...ready, rail: { ...rail, hitContained: false } }]), false);
+  assert.equal(check([ready]), true);
+  assert.equal(check([ready], { stage: "spoiler" }), false, "scene evidence must arrive first");
+  const arrived = { kind: "scene-evidence-arrived", timestamp: 600, pageId: "scene" };
+  assert.equal(check([ready, arrived], { stage: "spoiler" }), false, "gesture document is stale after the scene");
+  assert.equal(check([ready, arrived, { ...ready, timestamp: 610, pageId: "fresh-spoiler" }], { stage: "spoiler" }), true);
+  assert.equal(check([ready], { stage: "unknown" }), false);
+});
 
 test("four native menus require distinct ordered documents and uninterrupted trusted open/close touches", () => {
   const rows = nativeMenuRoutes.flatMap((route, i) => menuTrace(route, `menu-${i}`, 100 + 100 * i));
@@ -372,8 +392,14 @@ test("loopback observer is valid JavaScript, is passive and requires a fresh tok
     res.end("<html><head><title>original</title></head><body>the unmodified article</body></html>");
   }).listen(0, "127.0.0.1");
   await once(upstream, "listening");
-  const proxy = await startNativeObservationProxy({ upstream: `http://127.0.0.1:${upstream.address().port}` });
+  const proxy = await startNativeObservationProxy({ upstream: `http://127.0.0.1:${upstream.address().port}`,
+    onBarrier: stage => stage === "gesture" });
   try {
+    assert.equal((await fetch(`${proxy.barrierUrl}&stage=gesture`)).status, 200);
+    assert.equal((await fetch(`${proxy.barrierUrl}&stage=spoiler`)).status, 202);
+    assert.equal((await fetch(`${proxy.barrierUrl}&stage=unknown`)).status, 400);
+    assert.equal((await fetch(`${proxy.baseUrl}/__dmr_native_ios_barrier?token=bad&stage=gesture`)).status, 403);
+    assert.equal((await fetch(`${proxy.barrierUrl}&stage=gesture`, { method: "POST" })).status, 403);
     for (const route of nativeMenuRoutes) {
       const menuResponse = await fetch(`${proxy.baseUrl}${route}`);
       assert.match(await menuResponse.text(), /__dmr_native_ios_observer\.js/);

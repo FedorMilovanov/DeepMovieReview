@@ -3,6 +3,60 @@ import { createHash } from "node:crypto";
 import { EVIDENCE_CHUNK_SIZE, EVIDENCE_MAX_PARTS, EVIDENCE_PART_CHUNKS } from "./evidence-transfer.mjs";
 
 const digest = buffer => createHash("sha256").update(buffer).digest("hex");
+const transient = error => Number.isInteger(error?.status) && error.status >= 500 && error.status < 600;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function readAnnotations(api, id, maximum, wait) {
+  const all = [];
+  for (let page = 1; ; page++) {
+    let rows;
+    for (let attempt = 0; ; attempt++) {
+      try { rows = await api(`/${id}/annotations?per_page=100&page=${page}`); break; }
+      catch (error) {
+        if (!transient(error) || attempt >= 2) throw error;
+        await wait(1000 * (attempt + 1));
+      }
+    }
+    assert.ok(Array.isArray(rows), "Invalid annotation response");
+    all.push(...rows);
+    assert.ok(all.length <= maximum, "Extra annotation chunks");
+    if (rows.length < 100) return all;
+  }
+}
+
+// PATCH annotations append, so a 5xx can mean none, some, or all were saved.
+// Never resend the batch blindly: compare two bounded reads against the exact
+// expected titles/messages and send only missing chunks. Final whole-receipt
+// read-back/hash remains mandatory and fails closed if a late duplicate appears.
+async function appendAnnotations(api, check, manifest, previous, batch, wait) {
+  const expected = [...previous, ...batch];
+  let pending = batch;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await api(`/${check.id}`, "PATCH", { output: { title: check.name, summary: JSON.stringify(manifest), annotations: pending } });
+      return;
+    } catch (error) {
+      if (!transient(error)) throw error;
+      await wait(1000 * (attempt + 1));
+      const first = await readAnnotations(api, check.id, expected.length, wait);
+      await wait(1000);
+      const second = await readAnnotations(api, check.id, expected.length, wait);
+      const normalize = rows => rows.map(({ title, message }) => ({ title, message })).sort((a, b) => a.title.localeCompare(b.title));
+      assert.deepEqual(normalize(first), normalize(second), "Annotation read-back changed during reconciliation");
+      const allowed = new Map(expected.map(row => [row.title, row.message]));
+      const present = new Set();
+      for (const row of second) {
+        assert.ok(allowed.has(row.title) && allowed.get(row.title) === row.message, "Unexpected annotation during reconciliation");
+        assert.ok(!present.has(row.title), "Duplicate annotation during reconciliation");
+        present.add(row.title);
+      }
+      assert.ok(previous.every(row => present.has(row.title)), "Previously accepted annotations disappeared during reconciliation");
+      pending = batch.filter(row => !present.has(row.title));
+      if (!pending.length) return;
+      if (attempt >= 2) throw error;
+    }
+  }
+}
 
 /** Keep the 1,000-annotation budget per check, not per complete receipt. */
 export function planEvidence(bytes, revision) {
@@ -16,7 +70,7 @@ export function planEvidence(bytes, revision) {
 }
 
 /** Publish all parts and verify their read-back before marking the root successful. */
-export async function publishEvidence({ bytes, revision, head, label, summary, api }) {
+export async function publishEvidence({ bytes, revision, head, label, summary, api, wait = sleep }) {
   assert.match(head, /^[a-f0-9]{40}$/);
   assert.match(label, /^[a-z-]+$/);
   const { manifest, chunks, groups } = planEvidence(bytes, revision);
@@ -40,26 +94,18 @@ export async function publishEvidence({ bytes, revision, head, label, summary, a
     let first = 1;
     for (const [partIndex, group] of groups.entries()) {
       const check = created[partIndex];
-      for (let start = 0; start < group.length; start += 50) {
-        await api(`/${check.id}`, "PATCH", { output: {
-          title: check.name, summary: JSON.stringify(manifest), annotations: group.slice(start, start + 50).map((message, index) => ({
-            path: "docs/57-ACCESSIBILITY-CHECKS.md", start_line: 1, end_line: 1,
-            annotation_level: "notice", title: `chunk-${String(first + start + index).padStart(4, "0")}`, message,
-          })),
-        } });
+      const annotations = group.map((message, index) => ({
+        path: "docs/57-ACCESSIBILITY-CHECKS.md", start_line: 1, end_line: 1,
+        annotation_level: "notice", title: `chunk-${String(first + index).padStart(4, "0")}`, message,
+      }));
+      for (let start = 0; start < annotations.length; start += 50) {
+        await appendAnnotations(api, check, manifest, annotations.slice(0, start), annotations.slice(start, start + 50), wait);
       }
       first += group.length;
     }
     const received = [];
     for (const [partIndex, group] of groups.entries()) {
-      const partRows = [];
-      for (let page = 1; ; page++) {
-        const rows = await api(`/${created[partIndex].id}/annotations?per_page=100&page=${page}`);
-        assert.ok(Array.isArray(rows), "Invalid annotation response");
-        partRows.push(...rows);
-        assert.ok(partRows.length <= group.length, "Extra annotation chunks");
-        if (rows.length < 100) break;
-      }
+      const partRows = await readAnnotations(api, created[partIndex].id, group.length, wait);
       assert.equal(partRows.length, group.length, "Missing annotation chunks");
       received.push(...partRows);
     }

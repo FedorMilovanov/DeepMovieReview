@@ -12,6 +12,7 @@ export const nativeScenePath = "/films/the-truman-show";
 export const nativeMenuRoutes = Object.freeze(["/", "/films", `${nativeArticlePath}?spoilers=full`, `${nativeScenePath}/making`]);
 const scriptPath = "/__dmr_native_ios_observer.js";
 const eventPath = "/__dmr_native_ios_event";
+const barrierPath = "/__dmr_native_ios_barrier";
 
 export function nativeObservationScript(token, { spoilerLastSectionId = null } = {}) {
   assert.match(token, /^[a-f0-9]{32}$/);
@@ -144,7 +145,8 @@ function forwardedHeaders(headers) {
 
 // One fresh observer per run. Refuse other hosts, an invalid token, malformed
 // events, oversized data and HTML that cannot be instrumented without guessing.
-export async function startNativeObservationProxy({ upstream = "http://127.0.0.1:3213", onEvent = () => {}, spoilerLastSectionId = null } = {}) {
+export async function startNativeObservationProxy({ upstream = "http://127.0.0.1:3213", onEvent = () => {},
+  onBarrier = () => false, spoilerLastSectionId = null } = {}) {
   const origin = new URL(upstream);
   assert.equal(origin.protocol, "http:");
   assert.equal(origin.hostname, "127.0.0.1", "The audit proxy may only reach the local build");
@@ -156,6 +158,15 @@ export async function startNativeObservationProxy({ upstream = "http://127.0.0.1
       if (url.searchParams.get("token") !== token) { response.writeHead(403).end(); return; }
       response.writeHead(200, { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-store" });
       response.end(nativeObservationScript(token, { spoilerLastSectionId })); return;
+    }
+    if (url.pathname === barrierPath) {
+      if (request.method !== "GET" || url.searchParams.get("token") !== token) { response.writeHead(403).end(); return; }
+      const stage = url.searchParams.get("stage");
+      if (!["gesture", "spoiler"].includes(stage)) { response.writeHead(400).end(); return; }
+      // Read-only readiness: cannot navigate, inject input, or pass an oracle.
+      try { response.writeHead(onBarrier(stage) === true ? 200 : 202, { "cache-control": "no-store" }).end(); }
+      catch (error) { errors.push(`Barrier: ${error.message}`); response.writeHead(500).end(); }
+      return;
     }
     if (url.pathname === eventPath && request.method === "POST") {
       const chunks = []; let size = 0, oversized = false;
@@ -206,7 +217,8 @@ export async function startNativeObservationProxy({ upstream = "http://127.0.0.1
     request.pipe(upstreamRequest);
   });
   server.listen(0, "127.0.0.1"); await once(server, "listening");
-  return { baseUrl: `http://127.0.0.1:${server.address().port}`, events, errors,
+  const baseUrl = `http://127.0.0.1:${server.address().port}`;
+  return { baseUrl, barrierUrl: `${baseUrl}${barrierPath}?token=${token}`, events, errors,
     async close() { await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); } };
 }
 

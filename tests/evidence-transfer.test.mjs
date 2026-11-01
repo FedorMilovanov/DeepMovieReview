@@ -79,6 +79,90 @@ test("multipart evidence publishes and reads back a lossless receipt over 1,000 
   assert.throws(() => evidenceManifest({ ...root, output: { summary: JSON.stringify(gap) } }, revision, head), /contiguous/);
 });
 
+test("a transient annotation append is reconciled before any retry, including partial or complete writes", async () => {
+  for (const mode of ["before", "partial", "after"]) {
+    const { api: base, checks } = fakeChecks();
+    const lengths = [];
+    let failed = false;
+    const api = async (path, method, body) => {
+      const rows = body?.output?.annotations;
+      if (method === "PATCH" && rows) {
+        lengths.push(rows.length);
+        if (!failed) {
+          failed = true;
+          const accepted = mode === "after" ? rows : mode === "partial" ? rows.slice(0, 17) : [];
+          if (accepted.length) await base(path, method, { ...body, output: { ...body.output, annotations: accepted } });
+          throw Object.assign(new Error("temporary 500"), { status: 500 });
+        }
+      }
+      return base(path, method, body);
+    };
+    const source = randomBytes(175_000);
+    const result = await publishEvidence({ bytes: source, revision, head, label: "historical", summary: payload.summary, api, wait: async () => {} });
+    const check = checks.get(result.checks[0].id);
+    assert.equal(check.conclusion, "success");
+    assert.equal(check.rows.length, result.manifest.chunks);
+    assert.equal(new Set(check.rows.map(row => row.title)).size, check.rows.length);
+    assert.deepEqual(lengths.slice(0, mode === "after" ? 1 : 2),
+      mode === "before" ? [50, 50] : mode === "partial" ? [50, 33] : [50]);
+    assert.deepEqual(Buffer.from(check.rows.map(row => row.message).join(""), "base64"), source);
+  }
+});
+
+test("reconciliation covers previous pages and a transient read without duplicating a later batch", async () => {
+  const { api: base, checks } = fakeChecks();
+  let appends = 0, failRead = true;
+  const sizes = [];
+  const api = async (path, method = "GET", body) => {
+    if (method === "GET" && appends >= 5 && failRead) {
+      failRead = false;
+      throw Object.assign(new Error("temporary read error"), { status: 503 });
+    }
+    if (method === "PATCH" && body?.output?.annotations) {
+      const rows = body.output.annotations;
+      sizes.push(rows.length);
+      if (++appends === 5) {
+        await base(path, method, { ...body, output: { ...body.output, annotations: rows.slice(0, 20) } });
+        throw Object.assign(new Error("temporary append error"), { status: 500 });
+      }
+    }
+    return base(path, method, body);
+  };
+  const source = randomBytes(700_000);
+  const result = await publishEvidence({ bytes: source, revision, head, label: "historical", summary: payload.summary, api, wait: async () => {} });
+  const check = checks.get(result.checks[0].id);
+  assert.deepEqual(sizes.slice(0, 6), [50, 50, 50, 50, 34, 14]);
+  assert.equal(check.rows.length, result.manifest.chunks);
+  assert.equal(new Set(check.rows.map(row => row.title)).size, check.rows.length);
+  assert.deepEqual(Buffer.from(check.rows.map(row => row.message).join(""), "base64"), source);
+});
+
+test("ambiguous or persistent annotation errors fail closed and retain the original source verdict", async () => {
+  for (const mode of ["unstable", "unexpected", "duplicate", "persistent", "non-transient"]) {
+    const { api: base, checks } = fakeChecks();
+    let reads = 0, appends = 0, firstRow;
+    const api = async (path, method = "GET", body) => {
+      if (method === "PATCH" && body?.output?.annotations) {
+        appends++; firstRow = body.output.annotations[0];
+        throw Object.assign(new Error("append failed"), { status: mode === "non-transient" ? 403 : 500 });
+      }
+      if (method === "GET" && mode === "unstable" && ++reads === 2)
+        return [{ title: "chunk-0001", message: "unexpected" }];
+      if (method === "GET" && mode === "unexpected") return [{ title: "chunk-0001", message: "unexpected" }];
+      if (method === "GET" && mode === "duplicate") return [firstRow, firstRow];
+      return base(path, method, body);
+    };
+    const failure = mode === "unstable" ? /changed during reconciliation/ : mode === "unexpected" ? /Unexpected annotation/ :
+      mode === "duplicate" ? /Duplicate annotation/ : /append failed/;
+    await assert.rejects(publishEvidence({ bytes: randomBytes(9000), revision, head, label: "historical",
+      summary: payload.summary, api, wait: async () => {} }), failure);
+    assert.equal(appends, mode === "persistent" ? 3 : 1);
+    const check = [...checks.values()][0];
+    assert.equal(check.conclusion, "failure");
+    assert.match(check.output.text, /native result remains a failure/);
+  }
+});
+
 test("corrupt multipart read-back marks every created check failed", async () => {
   const { api, checks } = fakeChecks({ corruptReadBack: true });
   await assert.rejects(publishEvidence({ bytes, revision, head, label: "ios-safari", summary: payload.summary, api }), /changed on API read-back/);
