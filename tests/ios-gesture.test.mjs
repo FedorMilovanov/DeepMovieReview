@@ -9,8 +9,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "../scripts/lib/ios-gesture-probe.mjs";
-import { nativePageBarrierReady, nativeRouteMarkers, shouldRunGestureAfterDriverFailure, validateMenuNavigationOutcome, validateNativeRouteMarker, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
+import { nativePageBarrierReady, nativeRouteMarkers, openInitialNativePage, shouldRunGestureAfterDriverFailure, validateMenuNavigationOutcome, validateNativeRouteMarker, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
 import { cancelledTouchWindow, collectTouchDiagnostics, touchLogExcerpt } from "../scripts/lib/ios-touch-diagnostics.mjs";
+import { validateSwiftCodeQL } from "../scripts/check-swift-codeql.mjs";
 
 const origin = "http://127.0.0.1:1234";
 const rail = { expanded: "false", hitContained: true, rect: { left: 320, top: 640, right: 390, bottom: 690, width: 70, height: 50 } };
@@ -43,6 +44,53 @@ function menuTrace(route = "/", id = "menu-1", start = 100) {
     row(8, "menu-click", { trusted: true, targetMenu: true }),
     row(9, "menu-state", { menu: closed })];
 }
+
+test("initial Simulator navigation recovery never retries input and never masks other errors", async () => {
+  const timeout = Object.assign(new Error("simctl timeout"), { stderr: "domain=NSPOSIXErrorDomain, code=60: Operation timed out" });
+  const wait = async () => {};
+  let calls = 0;
+  let result = await openInitialNativePage({ open: async () => { calls++; }, events: [], baseUrl: origin, wait });
+  assert.equal(calls, 1); assert.equal(result.status, "completed");
+  calls = 0;
+  result = await openInitialNativePage({ open: async () => { if (++calls === 1) throw timeout; }, events: [], baseUrl: origin, wait });
+  assert.equal(calls, 2); assert.equal(result.status, "setup-navigation-retried");
+  assert.deepEqual(result.attempts.map(item => item.status), ["timeout", "completed"]);
+  calls = 0;
+  result = await openInitialNativePage({ open: async () => { calls++; throw timeout; },
+    events: [{ kind: "menu-ready", url: `${origin}/` }], baseUrl: origin, wait });
+  assert.equal(calls, 1); assert.equal(result.status, "timed-out-home-observed");
+  calls = 0;
+  result = await openInitialNativePage({ open: async () => { calls++; throw timeout; }, events: [], baseUrl: origin, wait });
+  assert.equal(calls, 2); assert.equal(result.status, "timed-out-awaiting-home-observation");
+  // The initial URL command result alone never satisfies the real menu oracle.
+  assert.throws(() => validateNativeMenuSequence([], origin));
+  calls = 0;
+  await assert.rejects(openInitialNativePage({ open: async () => { calls++; throw timeout; },
+    events: [{ kind: "touchstart" }], baseUrl: origin, wait }), /simctl timeout/);
+  assert.equal(calls, 1);
+  calls = 0;
+  await assert.rejects(openInitialNativePage({ open: async () => { calls++; throw new Error("different failure"); },
+    events: [], baseUrl: origin, wait }), /different failure/);
+  assert.equal(calls, 1);
+});
+
+test("Swift CodeQL gate rejects findings, extraction failures and vacuous reports", () => {
+  const clean = { version: "2.1.0", runs: [{ tool: { driver: { name: "CodeQL", rules: [{ id: "swift/rule" }] } },
+    invocations: [{ executionSuccessful: true, toolExecutionNotifications: [{ level: "note" }] }], results: [] }] };
+  assert.deepEqual(validateSwiftCodeQL(clean), { rules: 1, findings: 0, problematicNotifications: 0 });
+  for (const change of [
+    data => { data.version = "1.0.0"; },
+    data => { data.runs = []; },
+    data => { data.runs[0].tool.driver.name = "other"; },
+    data => { data.runs[0].tool.driver.rules = []; },
+    data => { data.runs[0].invocations = []; },
+    data => { data.runs[0].invocations[0].executionSuccessful = false; },
+    data => { data.runs[0].invocations[0].toolExecutionNotifications.push({ level: "warning" }); },
+    data => { data.runs[0].invocations[0].toolConfigurationNotifications = [{ level: "error" }]; },
+    data => { delete data.runs[0].results; },
+    data => { data.runs[0].results.push({ ruleId: "swift/security", level: "warning" }); },
+  ]) { const changed = structuredClone(clean); change(changed); assert.throws(() => validateSwiftCodeQL(changed)); }
+});
 
 test("native readiness barrier rejects stale articles and requires a new FULL document at each stage", () => {
   const menus = validateNativeMenuSequence(nativeMenuRoutes.flatMap((route, i) => menuTrace(route, `menu-${i}`, 100 + 100 * i)), origin);
