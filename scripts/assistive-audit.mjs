@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { libraryDetectionRowSpeech, macKeyboardShortcut, settleNativeSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
+import { firstTableCellSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, settleNativeSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -270,7 +270,7 @@ try {
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   // NVDA may enter at a native caption, which is outside the cells. Move into
   // the actual column header before using Ctrl+Alt+Down to traverse rows.
-  else if (/caption|подпись/i.test(sceneTableSpeech.join(" ")) && !/row\s*1[\s\S]*column\s*1/i.test(sceneTableSpeech.join(" "))) {
+  else if (!firstTableCellSpoken(sceneTableSpeech)) {
     await action("mobile scene column header", () => advanceUntil(/сцена и опоры/i, 6), /сцена и опоры/i);
   }
   await action("mobile first scene row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /пролог/i);
@@ -279,14 +279,17 @@ try {
   await action("mobile open scene supports", () => reader.press(mac ? "Control+Alt+Space" : "Enter", navigationOptions));
   const supportState = mac ? await safari.sceneSupport() : await execute("document.querySelector('#scene-truman-sc-day-10909 .filmSceneSupports').open");
   assert.equal(supportState, true, "The real screen reader must open the named scene disclosure");
-  await action("mobile evidence link in scene", () => advanceUntil(/день\s*10\s*909/i, 12), [/день\s*10\s*909/i, /link|ссылк/i]);
+  // Navigate by the real link command: VoiceOver can otherwise read the
+  // summary name one word at a time and falsely stop on its day number.
+  await action("mobile evidence link in scene", () => perform(mac ? reader.keyboardCommands.findNextLink : reader.keyboardCommands.moveToNextLink, navigationOptions),
+    [/день\s*10\s*909/i, /link|ссылк/i]);
   if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
   const registerSpeech = await action("mobile evidence register name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/реестр проверок/i, /table|таблиц/i]);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
-  else if (/caption|подпись/i.test(registerSpeech.join(" ")) && !/row\s*1[\s\S]*column\s*1/i.test(registerSpeech.join(" "))) {
+  else if (!firstTableCellSpoken(registerSpeech)) {
     await action("mobile evidence column header", () => advanceUntil(/запись/i, 6), /запись/i);
   }
-  await action("mobile evidence observation", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /интервью создателя/i);
+  await action("mobile evidence observation", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /начальное интервью/i);
   await action("mobile evidence basis", () => advanceUntil(/основа/i, 24), /основа/i);
   await action("mobile evidence outcome", () => advanceUntil(/итог/i, 24), /итог/i);
   if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);

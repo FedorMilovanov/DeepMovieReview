@@ -98,13 +98,10 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   },
   {
     evidenceId: "truman-ev-interviews",
-    status: "VISUAL_CONFIRMED",
+    status: "TRANSCRIPT_CONFIRMED",
     sceneId: "truman-sc-prologue",
-    frames: [
-      frame(19.1, "Interview audio: audiences are tired of «phoney emotions»."),
-      frame(30, "Christof is framed against a lunar surface, i.e. inside the moon control room."),
-    ],
-    note: "Creator interview is the film's cold open; the moon interior is visible before the town is.",
+    frames: [frame(19.1, "SRT block 1: audiences are tired of «phoney emotions».")],
+    note: "The old entry mixed this subtitle timestamp, an alleged audio observation and a nominal 30 s frame. The available SRT does not name the speaker; the soundtrack and the frame's source PTS were not independently checked.",
   },
   {
     evidenceId: "truman-ev-light",
@@ -347,8 +344,11 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
     evidenceId: "truman-ev-dialog",
     status: "TRANSCRIPT_CONFIRMED",
     sceneId: "truman-sc-final-act",
-    frames: [frame(5544.206, "«I'm the creator of a TV show...»")],
-    note: "The creator conversation is anchored; the voice-from-the-sky staging is separately visible at 5510.",
+    frames: [
+      frame(5544.206, "SRT block 670: «I'm the creator of a TV show»; the following blocks continue the exchange."),
+      frame(5565.144, "SRT block 673: «Was nothing real? — You were real.»"),
+    ],
+    note: "Subtitle text, not listened audio. A separate image of the painted wall cannot establish the voice or intonation.",
   },
   {
     evidenceId: "truman-ev-nocamera",
@@ -514,11 +514,11 @@ export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
     frames: [
       frame(
         4052.5,
-        "Track line: «The world, the place you live in, is the sick place. Seahaven is the way the world should be.» Christof, in the studio interview.",
+        "SRT blocks 523–524: «The world, the place you live in, is the sick place. Sea haven is the way the world should be.»",
       ),
     ],
     note:
-      "Added after lock for article v2. This is Christof's own statement of design intent and replaces a paraphrase the article previously had to make without an anchor.",
+      "Subtitle text only: the blocks do not name their speaker and the soundtrack was not independently checked.",
   },
   {
     evidenceId: "truman-ev-marlon-retake",

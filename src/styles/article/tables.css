@@ -62,6 +62,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Keep glyphs clear of the sticky header's painted/hit-tested edge, including
+   when a browser rounds the shared table-cell boundary differently. */
+.articleTable th:not(:first-child),
+.articleTable td:not(:first-child) { padding-inline-start: var(--space-2); }
+/* Leave room for ordinary Russian words before falling back to emergency wraps. */
+.articleTable td:nth-child(2) { min-inline-size: 8.75rem; }
+
 /* A long middle value must fit beside the sticky row header, not disappear
    under it as soon as the reader scrolls. Preserve words and let them wrap. */
 .articleTable td {

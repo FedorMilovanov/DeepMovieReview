@@ -46,9 +46,12 @@ final class NativeGestureTests: XCTestCase {
         XCTAssertTrue(support.isHittable, "Scene disclosure is not visible without horizontal scrolling")
         capture("DMR-scene-before-support")
         support.tap()
-        let link = safari.links.matching(NSPredicate(format: "label CONTAINS %@", "«День 10 909»")).firstMatch
+        // The same evidence name also appears farther down the register. Match
+        // the scene-scoped accessible name, not the first similarly named link.
+        let linkName = "«День 10 909» — опора сцены «День 10 909»"
+        let link = safari.links.matching(NSPredicate(format: "label CONTAINS %@", linkName)).firstMatch
         XCTAssertTrue(link.waitForExistence(timeout: 20), "Opening the scene disclosure did not expose its evidence link")
-        XCTAssertTrue(link.isHittable, "Evidence link is not visible after opening the disclosure")
+        XCTAssertTrue(link.isHittable, "Evidence link is not visible after opening the disclosure: \(link.label), \(link.frame)")
         capture("DMR-scene-support-open")
         link.tap()
         Thread.sleep(forTimeInterval: 2)

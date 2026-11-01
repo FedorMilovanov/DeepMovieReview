@@ -99,6 +99,7 @@ try {
       assert.equal(await scene.locator(".filmSceneSupports").getAttribute("open"), "");
       await page.keyboard.press("Tab");
       const evidenceLink = scene.locator('.filmSceneSupports a[href="#evidence-truman-ev-daycount"]');
+      assert.equal(await evidenceLink.getAttribute("aria-label"), "«День 10 909» — опора сцены «День 10 909»");
       assert.equal(await evidenceLink.evaluate((el) => document.activeElement === el), true);
       await inHorizontalViewport(evidenceLink, wrapper);
       await page.keyboard.press("Enter");

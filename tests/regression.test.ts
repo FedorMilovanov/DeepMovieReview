@@ -6906,6 +6906,18 @@ test("radio subtitle cue is not a verified radio frequency, speaker or audio", (
   assert.equal(newspaper?.basis?.windowApproximate, true);
   assert.match(newspaper?.basis?.note ?? "", /контактная сетка.*другой кадр/i);
   assert.match(newspaper?.observation ?? "", /нельзя установить.*тот ли это человек/i);
+  const interviews = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-interviews");
+  assert.equal(interviews?.basis?.material, "subtitle-track");
+  assert.deepEqual(interviews?.basis?.window, { from: 19.1, to: 24.474 });
+  assert.equal(interviews?.basis?.outcome, "subtitle");
+  assert.match(interviews?.observation ?? "", /имя говорящего.*не указано.*звук/i);
+  const dialogue = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-dialog");
+  assert.equal(dialogue?.basis?.material, "subtitle-track");
+  assert.deepEqual(dialogue?.basis?.window, { from: 5544.206, to: 5593.579 });
+  assert.match(dialogue?.observation ?? "", /настоящим был ты/i);
+  const design = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-seahaven-design");
+  assert.deepEqual(design?.basis?.window, { from: 4048.332, to: 4057.924 });
+  assert.match(design?.observation ?? "", /имя говорящего и интонация.*не указаны/i);
 });
 
 test("craft context sources are linked, scoped and distinct from screen evidence", () => {

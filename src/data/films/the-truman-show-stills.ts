@@ -53,7 +53,7 @@ export const trumanArticleStills = {
     avifSha256: "467db345dafcf88f03c0f462f2cbb009792f02d4320bf8da15e4216162f60a78",
     sampleTimeSeconds: 1800,
     alt: "Труман оглядывается в салоне автомобиля.",
-    caption: "Труман в машине во время сбоя радио.",
+    caption: "Труман в машине; номинал сетки — 1800 секунд.",
   },
   monitor: {
     ...grid,

@@ -59,14 +59,24 @@ const record = (
 });
 
 export const trumanCanonicalEvidence: EvidenceRecord[] = [
-  record(
-    "truman-ev-interviews",
-    "Интервью создателя",
-    "truman-sc-prologue",
-    19.1,
-    "NONE",
-    "Фильм открывается не городом, а разговором о герое: зрителям «надоели фальшивые эмоции актёров». Говорящий стоит на фоне, которого нет ни в одном кадре города; кто он и откуда говорит, по этому кадру не установить.",
-  ),
+  {
+    ...record(
+      "truman-ev-interviews",
+      "Начальное интервью: текст субтитров",
+      "truman-sc-prologue",
+      19.1,
+      "NONE",
+      "В первом блоке английских субтитров сказано, что зрителям надоели «фальшивые эмоции» актёров. Имя говорящего в записи не указано; звук и интонацию мы не проверяли.",
+    ),
+    basis: {
+      material: "subtitle-track",
+      window: { from: 19.1, to: 24.474 },
+      observations: 1,
+      outcome: "subtitle",
+      unrecorded: ["reviewer", "date"],
+      note: "SRT, блок 1; текст субтитров не удостоверяет голос или личность говорящего.",
+    },
+  },
   record(
     "truman-ev-daycount",
     "«День 10 909»",
@@ -480,14 +490,24 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "ENDING",
     "Нарисованное небо заканчивается плоской панелью, у которой стоит лестница; Труман идёт вдоль края мира.",
   ),
-  record(
-    "truman-ev-dialog",
-    "Разговор с создателем",
-    "truman-sc-final-act",
-    5544.206,
-    "ENDING",
-    "Из-за «неба» звучит голос Кристофа: «Я — создатель телешоу, которое даёт надежду и вдохновение миллионам».",
-  ),
+  {
+    ...record(
+      "truman-ev-dialog",
+      "Финальный разговор: текст субтитров",
+      "truman-sc-final-act",
+      5544.206,
+      "ENDING",
+      "В субтитрах записаны реплики «Я — создатель телешоу», «Ничего не было настоящим?» — «Настоящим был ты», а также слова о внешнем мире. По этому тексту мы не проверяли голоса и интонации.",
+    ),
+    basis: {
+      material: "subtitle-track",
+      window: { from: 5544.206, to: 5593.579 },
+      observations: 8,
+      outcome: "subtitle",
+      unrecorded: ["reviewer", "date"],
+      note: "SRT, блоки 670–677; тире разделяют реплики, но не устанавливают личности говорящих и звучание. Это не прослушанный фрагмент.",
+    },
+  },
   record(
     "truman-ev-nocamera",
     "«У вас не было камеры в моей голове»",
@@ -535,14 +555,24 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "MAJOR",
     "В том же флешбэке мальчик говорит, что хочет стать исследователем, и слышит в ответ: «Исследовать больше нечего» — то есть отказ от мира вложен в него до всякого выбора.",
   ),
-  record(
-    "truman-ev-seahaven-design",
-    "«Сихейвен — это то, каким мир должен быть»",
-    "truman-sc-trutalk",
-    4052.5,
-    "MAJOR",
-    "В студийном эфире Кристоф отвечает на обвинение в эксплуатации: «Мир, в котором вы живёте, — больной. Сихейвен — это то, каким мир должен быть».",
-  ),
+  {
+    ...record(
+      "truman-ev-seahaven-design",
+      "«Сихейвен — это то, каким мир должен быть»",
+      "truman-sc-trutalk",
+      4052.5,
+      "MAJOR",
+      "В двух соседних блоках субтитров записано: «Мир, в котором вы живёте, — больной. Сихейвен — это то, каким мир должен быть». Имя говорящего и интонация в этих блоках не указаны.",
+    ),
+    basis: {
+      material: "subtitle-track",
+      window: { from: 4048.332, to: 4057.924 },
+      observations: 2,
+      outcome: "subtitle",
+      unrecorded: ["reviewer", "date"],
+      note: "SRT, блоки 523–524; субтитры не заменяют проверку звука и не называют говорящего.",
+    },
+  },
   // ---- Second post-lock batch (module audit) ------------------------------
   // Both records replace claims the modules had carried without an anchor: an
   // unverified «earpiece» and a camera count that lived in a secondary source.

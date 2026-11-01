@@ -300,7 +300,7 @@ test("Safari diagnostics are bounded and isolated to the actual driver pid", asy
 test("VoiceOver shortcuts retain native command codes without app activation", async () => {
   const { macKeyboardShortcut } = await import("../scripts/lib/assistive-commands.mjs");
   const { voiceOverKeyCodeCommands: commands, MacOSKeyCodes } = await import("@guidepup/guidepup");
-  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "moveToNextColumn", "moveDown", "moveToNext", "describeItem"]) {
+  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "findNextLink", "moveToNextColumn", "moveDown", "moveToNext", "describeItem"]) {
     const command = commands[name];
     const parts = macKeyboardShortcut(command).split("+");
     assert.equal(MacOSKeyCodes[parts.pop()], command.keyCode);
@@ -446,6 +446,16 @@ test("native speech timeout never manufactures a semantic pass", async () => {
   assert.deepEqual(result.speech, ["Page Menu"]);
   assert.ok(result.readErrors.length > 0);
   assert.doesNotMatch(result.speech.join(" "), /VoiceOver Menu/);
+});
+
+test("NVDA table captions are not mistaken for an active table cell", async () => {
+  const { firstTableCellSpoken } = await import("../scripts/lib/assistive-commands.mjs");
+  // These two are actual utterances from 4ec11cb; the second caption has no
+  // literal "caption" word even though row navigation says "Not in a table cell".
+  assert.equal(firstTableCellSpoken(["table, with 7 rows and 1 column, caption, Сцены фильма"]), false);
+  assert.equal(firstTableCellSpoken(["table, with 8 rows and 1 column, Реестр проверок: таймкод, сцена, запись"]), false);
+  assert.equal(firstTableCellSpoken(["out of caption, row 1, column 1, ЗАПИСЬ"]), true);
+  assert.equal(firstTableCellSpoken(["строка 1, столбец 1, Запись"]), true);
 });
 
 test("actual screen reader table assertion requires the named row and detected count", async () => {

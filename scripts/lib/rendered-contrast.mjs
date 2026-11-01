@@ -634,15 +634,30 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
       const record = s.records[id];
       if (!record) return { id, error: "record absent" };
       const rects = [...record.range.getClientRects()];
-      return { id, connected: record.element.isConnected, lines: rects.length, scrollY, innerWidth, innerHeight,
+      const clips = [];
+      for (let ancestor = record.element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        const overflow = getComputedStyle(ancestor).overflowX;
+        if (!["auto", "scroll", "hidden", "clip"].includes(overflow)) continue;
+        clips.push({ tag: ancestor.tagName, className: String(ancestor.className || "").slice(0, 80), overflow,
+          bounds: ancestor.getBoundingClientRect().toJSON(), clientLeft: ancestor.clientLeft,
+          clientWidth: ancestor.clientWidth, scrollWidth: ancestor.scrollWidth, scrollLeft: ancestor.scrollLeft });
+      }
+      const hit = (x, y) => {
+        if (x < 0 || x >= innerWidth || y < 0 || y >= innerHeight) return null;
+        const top = document.elementFromPoint(x, y);
+        if (!top) return null;
+        const overlays = [];
+        for (let node = top; node; node = node.parentElement) if (["fixed", "sticky"].includes(getComputedStyle(node).position)) {
+          overlays.push({ tag: node.tagName, className: String(node.className || "").slice(0, 80),
+            bounds: node.getBoundingClientRect().toJSON() });
+        }
+        return { tag: top.tagName, className: String(top.className || "").slice(0, 80), overlays };
+      };
+      return { id, connected: record.element.isConnected, lines: rects.length, scrollY, innerWidth, innerHeight, clips,
         rects: rects.slice(0, 6).map(rect => ({
-          x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.width), h: Math.round(rect.height),
-          hit: (() => {
-            const x = Math.min(innerWidth - 0.5, Math.max(0.5, rect.left + rect.width / 2));
-            const y = Math.min(innerHeight - 0.5, Math.max(0.5, rect.top + rect.height / 2));
-            const top = document.elementFromPoint(x, y);
-            return top ? String(top.className || top.tagName).slice(0, 40) : null;
-          })(),
+          x: rect.x, y: rect.y, w: rect.width, h: rect.height,
+          corners: [hit(rect.left + 0.5, rect.top + 0.5), hit(rect.right - 0.5, rect.top + 0.5),
+            hit(rect.left + 0.5, rect.bottom - 0.5), hit(rect.right - 0.5, rect.bottom - 0.5)],
         })) };
     }), { s: state, absent: [...absent] }) : [];
     const failed = ranges.filter(range => !range.pass);

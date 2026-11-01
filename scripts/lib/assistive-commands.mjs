@@ -8,6 +8,12 @@ import { MacOSKeyCodes } from "@guidepup/guidepup";
 // rate or an unqualified (and now inaccurate) "0 переходов" announcement.
 export const libraryDetectionRowSpeech = /библиотека[\s\S]*\b0 обнаруженных переходов/i;
 
+// NVDA may announce the table caption without literally saying "caption".
+// Only an explicit cell coordinate proves that row-navigation is ready.
+export function firstTableCellSpoken(phrases) {
+  return /(?:row\s*1[\s\S]*column\s*1|строка\s*1[\s\S]*столбец\s*1)/i.test(phrases.join(" "));
+}
+
 // Keep Guidepup's native command mapping, but send it via reader.press: unlike
 // reader.perform(keyboardCommand), this does not activate VoiceOver's app first.
 export function macKeyboardShortcut(command) {

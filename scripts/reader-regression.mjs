@@ -425,16 +425,25 @@ for (const engine of requested) {
       assert.match(await cards.locator(".characterVisual figcaption").first().innerText(), /не кадр/);
     });
     await check(`${engine} article source and keyboard table`, page, async () => {
-      await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "domcontentloaded" });
+      await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
+      await page.evaluate(() => document.fonts.ready);
       const viewport = page.locator(".articleTableViewport").first();
-      if (await viewport.count()) {
-        await viewport.focus();
-        const before = await viewport.evaluate((el) => el.scrollLeft);
-        await page.keyboard.press("ArrowRight");
-        await page.waitForTimeout(100);
-        const after = await viewport.evaluate((el) => el.scrollLeft);
-        assert.ok(after > before, "focused wide table must respond to arrow keys");
-      }
+      assert.equal(await viewport.count(), 1, "the labelled table viewport is present");
+      // Wrapping may make this real table fit at 390px on one engine or font.
+      // Exercise keyboard overflow deliberately, without assuming it must exist.
+      const cell = viewport.locator("td").first();
+      const original = await cell.evaluate(el => ({ text: el.textContent, whiteSpace: el.style.getPropertyValue("white-space"), priority: el.style.getPropertyPriority("white-space") }));
+      await cell.evaluate(el => { el.textContent = "1234567890".repeat(30); el.style.setProperty("white-space", "nowrap"); });
+      assert.ok(await viewport.evaluate(el => el.scrollWidth > el.clientWidth), "synthetic wide input must overflow locally");
+      await viewport.focus();
+      const before = await viewport.evaluate(el => el.scrollLeft);
+      await page.keyboard.press("ArrowRight");
+      await page.waitForFunction(({ el, before }) => el.scrollLeft > before, { el: await viewport.elementHandle(), before });
+      await cell.evaluate((el, saved) => {
+        el.textContent = saved.text;
+        if (saved.whiteSpace) el.style.setProperty("white-space", saved.whiteSpace, saved.priority);
+        else el.style.removeProperty("white-space");
+      }, original);
       assert.ok(await page.getByText("Контекстный источник, не экранная опора:").first().isVisible());
     });
     await check(`${engine} production dossier source anchor`, page, async () => {
