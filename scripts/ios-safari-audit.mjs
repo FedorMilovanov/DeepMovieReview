@@ -7,13 +7,19 @@ import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } fro
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari, noNativeEventsDelivered, waitForNativeValue } from "./lib/native-safari.mjs";
-import { nativeSwipeAndObserve, scrollToNativeTarget } from "./lib/ios-native-scroll.mjs";
+import { scrollToNativeTarget } from "./lib/ios-native-scroll.mjs";
+import { runNativeGestureXCTest } from "./lib/ios-xctest-gesture.mjs";
 import { noneArticleProjectionReached, parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
-const directory = "at-report/ios-safari";
+const directory = "at-report/ios-safari", gestureDirectory = "at-report/ios-gesture";
 mkdirSync(directory, { recursive: true });
+mkdirSync(gestureDirectory, { recursive: true });
 const report = { revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), results: [], failures: [] };
 const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] };
+const gestureReport = { revision: report.revision, phase: "not started", failures: ["Native gesture test did not run"],
+  results: [{ browser: "ios-safari-simulator", width: 0, route: "/films/the-truman-show/article?spoilers=full",
+    state: "native-xctest-gesture", scope: "iPhone Simulator, not physical hardware", file: "actual-ios-gesture.json" }] };
+const gestureEvidence = { violations: [], incomplete: [], actions: [], screenshots: [] };
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 const systemEnv = { ...process.env };
 delete systemEnv.DEVELOPER_DIR;
@@ -261,34 +267,34 @@ try {
       evidence.actions.push({ route, label: "native spoiler input changed projection", ...report.spoilerProjection });
       evidence.screenshots.push({ route: `${route} — after spoiler input`, data: await safari.screenshot() });
 
-      // Independently retain a real post-scroll input gate even when the now
-      // earlier spoiler control fits in the initial viewport. No DOM scrolling
-      // or synthetic click may substitute for the native swipe and rail tap.
-      await safari.goto(`http://127.0.0.1:3213${route}`);
-      await waitForNativeValue(() => safari.execute("return document.querySelector('.readingOutlineTrigger') ? 'ready' : 'missing'"), "ready");
-      await safari.execute(`window.__railSwipeProbe = [];
-        for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"]) document.addEventListener(type, e =>
-          __railSwipeProbe.push({ type, x: e.changedTouches[0]?.clientX ?? null, y: e.changedTouches[0]?.clientY ?? null }), { capture: true });`);
-      const railGeometry = () => safari.execute(`const el = document.querySelector('.readingOutlineTrigger'), r = el.getBoundingClientRect();
-        const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-        return { rect: r.toJSON(), scrollY, innerWidth, innerHeight, hitContained: !!hit && el.contains(hit) };`);
-      report.railSwipes = [];
-      await nativeSwipeAndObserve({ readTarget: railGeometry, readEvents: () => safari.execute("return window.__railSwipeProbe"),
-        swipe: points => safari.swipeViewport(points), attempts: report.railSwipes });
-      const railTarget = await railGeometry();
-      assert.ok(railTarget.hitContained && railTarget.rect.top >= 0 && railTarget.rect.bottom <= railTarget.innerHeight,
-        "The reading rail must be visible and hit-contained after native scrolling");
-      const railState = () => safari.execute("return document.querySelector('.readingOutlineTrigger').getAttribute('aria-expanded')");
-      const railBy = await activate(".readingOutlineTrigger", railState, "true", 10000, { scroll: false });
-      report.postScrollInput = { expanded: await railState(), by: railBy, scrollY: await safari.execute("return scrollY"), swipes: report.railSwipes };
-      evidence.actions.push({ route, label: "post-scroll native input on the reading rail", ...report.postScrollInput });
     }
   }
+  // Close the isolated SafariDriver automation window before XCUITest drives
+  // normal MobileSafari. Both the earlier projection checks and this separate
+  // native touch + scroll + post-scroll input remain required for the job.
+  report.phase = "closing SafariDriver before independent native gesture test";
+  report.safariVersion = safari.version;
+  await safari.close();
+  safari = undefined;
+  gestureReport.failures = [];
+  gestureReport.device = report.device;
+  gestureReport.results[0].version = report.safariVersion;
+  report.phase = "XCUITest native scroll and post-scroll rail input";
+  try {
+    await runNativeGestureXCTest({ device: report.device, directory: gestureDirectory, report: gestureReport, evidence: gestureEvidence });
+  } catch (error) {
+    if (!gestureReport.failures.length) gestureReport.failures.push(String(error.stack ?? error));
+    throw error;
+  }
+  report.postScrollInput = gestureReport.observedGesture;
+  evidence.actions.push({ route: "/films/the-truman-show/article?spoilers=full",
+    label: "native XCUITest scroll and post-scroll rail input; full trace and screenshots in ios-gesture evidence",
+    scrollY: gestureReport.observedGesture.opened.scrollY, expanded: gestureReport.observedGesture.opened.rail.expanded });
 } catch (error) {
   // Session creation can fail before a WebDriver object exists. Preserve the
   // actual Simulator screen and bounded RWI logs instead of diagnosing a blank
   // browser or fabricating a product failure from the host's timeout alone.
-  if (!safari && report.device?.state === "Booted") {
+  if (!safari && !report.capabilities && report.device?.state === "Booted") {
     try {
       const file = `${directory}/failed-simulator.png`;
       execFileSync("xcrun", ["simctl", "io", report.device.udid, "screenshot", file], { timeout: 15000 });
@@ -297,6 +303,15 @@ try {
         encoding: "utf8", timeout: 20000, maxBuffer: 4 * 1024 * 1024,
       }).slice(-16000);
     } catch (diagnosticError) { report.failedSimulatorDiagnostic = diagnosticError.message; }
+  }
+  if (!safari && report.capabilities && report.device?.state === "Booted") {
+    // XCTest uses a normal Safari window after WebDriver has closed. Its failed
+    // screen is diagnostic only; it never replaces the required event trace.
+    try {
+      const file = `${directory}/failed-xctest-simulator.png`;
+      execFileSync("xcrun", ["simctl", "io", report.device.udid, "screenshot", file], { timeout: 15000 });
+      evidence.screenshots.push({ route: "Simulator display after failed native XCTest; diagnostic only", data: readFileSync(file).toString("base64") });
+    } catch (diagnosticError) { report.failedXCTestSimulatorDiagnostic = diagnosticError.message; }
   }
   if (safari) {
     // A stuck WebDriver cannot capture its own viewport. Preserve the actual
@@ -316,7 +331,7 @@ try {
   report.failures.push(inspect(error, { depth: 8, maxStringLength: 16000 }));
   console.error(workflowError(`iOS Safari Simulator: ${error.stack ?? error}`));
 } finally {
-  report.results.push({ browser: "ios-safari-simulator", version: safari?.version ?? "not-started", width: 0,
+  report.results.push({ browser: "ios-safari-simulator", version: report.safariVersion ?? safari?.version ?? "not-started", width: 0,
     route: "/", state: "native-ios-simulator", scope: "iPhone Simulator, not physical hardware", file: "actual-ios.json" });
   await safari?.close().catch(() => {}); server.kill();
   if (automation) {
@@ -332,5 +347,7 @@ try {
   }
   writeFileSync(`${directory}/actual-ios.json`, JSON.stringify(evidence, null, 2));
   writeFileSync(`${directory}/summary.json`, JSON.stringify(report, null, 2));
+  writeFileSync(`${gestureDirectory}/actual-ios-gesture.json`, JSON.stringify(gestureEvidence, null, 2));
+  writeFileSync(`${gestureDirectory}/summary.json`, JSON.stringify(gestureReport, null, 2));
 }
 process.exitCode = report.failures.length ? 1 : 0;

@@ -311,6 +311,8 @@ jobs:
             exit 1
           fi
 
+          echo '::notice title=CI progress::Calibrating the passive native-iOS observer in Chromium (not an iOS test)'
+          BASE_URL=http://127.0.0.1:3212 node scripts/ios-observer-smoke.mjs
           echo '::notice title=CI progress::Starting three-engine reader regression'
           for engine in chromium firefox webkit; do
             echo "::notice title=Reader engine::Starting $engine (8 minute deadline)"
@@ -596,7 +598,9 @@ jobs:
   native-ios:
     name: Native iOS Safari
     runs-on: macos-26
-    timeout-minutes: 20
+    # Includes a separately built XCUITest runner for the real native gesture;
+    # a missing, skipped or failed gesture remains a failing native-iOS job.
+    timeout-minutes: 30
     permissions:
       contents: read
       checks: write
@@ -608,6 +612,14 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Verify exact native checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git rev-parse HEAD)"
+          echo "Native iOS revision: $actual"
+          test "$actual" = "$expected"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
@@ -623,12 +635,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/publish-a11y-evidence.mjs at-report/ios-safari ios-safari
+      - name: Publish native gesture trace and XCTest screenshots separately
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-a11y-evidence.mjs at-report/ios-gesture ios-gesture
       - name: Upload native iOS evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: actual-ios-${{ github.event.pull_request.head.sha || github.sha }}
-          path: at-report/ios-safari/
+          path: |
+            at-report/ios-safari/
+            at-report/ios-gesture/
           if-no-files-found: error
           retention-days: 7
 
