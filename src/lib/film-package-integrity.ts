@@ -1,5 +1,6 @@
 import type {
   ArticleMeasurementRef,
+  ArticleMeasurementMetadata,
   ClaimSupport,
   EvidenceRecord,
   FilmModule,
@@ -137,7 +138,7 @@ function sourceModules(filmPackage: FilmPackage): SourcesMethodModule[] {
  * rather than silently accepted.
  */
 export type FilmPackageValidationOptions = {
-  resolveArticleMeasurement?: (ref: ArticleMeasurementRef) => boolean;
+  resolveArticleMeasurement?: (ref: ArticleMeasurementRef, filmSlug: string) => ArticleMeasurementMetadata | undefined;
   /** Digit strings the master measured; prose may not retype them. */
   articleMeasuredValues?: string[];
   /** Per-film dossier source resolver; avoids treating ideas as film evidence. */
@@ -713,7 +714,23 @@ export function validateFilmPackage(
         const observationsById = new Map(filmModule.observations.map((item) => [item.id, item]));
         const observationIds = new Set(observationsById.keys());
         for (const item of filmModule.observations) {
-          checkScopedSupport(item.support, `${filmModule.id}/${item.id}`, item.spoilerLevel, realFilm);
+          const itemPath = `${filmModule.id}/${item.id}`;
+          checkScopedSupport(item.support, itemPath, item.spoilerLevel, realFilm);
+          for (const id of duplicateIds(item.contextSourceIds ?? [])) errors.push(`${itemPath}: duplicate context source "${id}".`);
+          for (const id of item.contextSourceIds ?? []) {
+            const source = sourcesById.get(id);
+            if (!source) errors.push(`${itemPath}: unknown context source "${id}".`);
+            else if (!canRevealSpoiler(item.spoilerLevel, source.spoilerLevel ?? "FULL")) {
+              errors.push(`${itemPath}: context source "${id}" exceeds observation spoiler level.`);
+            }
+            if (source && !source.href) errors.push(`${itemPath}: production context source "${id}" needs a link.`);
+          }
+          if (item.detail) {
+            if (!(item.contextSourceIds?.length)) errors.push(`${itemPath}: craft detail requires a context source.`);
+            for (const [key, value] of Object.entries(item.detail)) {
+              if (isBlank(value)) errors.push(`${itemPath}: craft detail ${key} is required.`);
+            }
+          }
         }
         for (const item of filmModule.pressureAssessments ?? []) {
           if (published && item.craftObservationIds.length === 0) {
@@ -946,7 +963,9 @@ export function validateFilmPackage(
       realFilm,
       published,
       editorialRevision: sourcesModules[0]?.editorialRevision,
-      resolveMeasurement: options.resolveArticleMeasurement,
+      resolveMeasurement: options.resolveArticleMeasurement
+        ? (ref) => options.resolveArticleMeasurement!(ref, filmPackage.film.slug)
+        : undefined,
       measuredValues: options.articleMeasuredValues,
       contextSourceIds: options.resolveArticleContextSources?.(filmPackage.film.slug),
       moduleLevels: new Map(filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.spoilerLevel])),

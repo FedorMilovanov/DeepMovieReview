@@ -308,3 +308,8 @@
 }
 .articleContextSources a { display: inline-block; max-width: 100%; margin-right: 0.75rem; padding-block: 0.2rem; overflow-wrap: anywhere; text-decoration: underline; }
 .articleContextSources p { margin: 0.25rem 0 0; color: var(--ink-3); }
+
+/* A single source is a direct link, avoiding an unnecessary disclosure step. */
+.articleSupportSingle { margin: 0 0 var(--space-3); font-size: var(--type-meta); line-height: 1.45; }
+.articleSupportSingle a { display: inline-block; padding: 0.45rem 0; color: var(--ink-3); text-underline-offset: 0.2em; }
+.articleSupportSingle a:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }

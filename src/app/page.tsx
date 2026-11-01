@@ -263,7 +263,7 @@ function LensStage({ example, filmSlug }: { example?: HomepageViewModel["sceneEx
       <h2 id="lenses-title">{example ? "Одна сцена — шесть прочтений." : "Один фильм. Шесть прочтений."}</h2>
       <p className="sectionIntro">
         {example
-          ? `На примере сцены «${example.sceneLabel}»: что можно увидеть, как это истолковать и где заканчиваются основания.`
+          ? `На примере сцены «${example.sceneLabel}»: что можно увидеть, как это истолковать и где заканчиваются основания. Это шесть взглядов на один эпизод, а не шесть полных обзоров фильма.`
           : "Мораль — не первый вопрос. Первый вопрос: что это за история и кто эти люди. Выберите линзу, чтобы увидеть подход к разбору."}
       </p>
       <div className="lensStage">
@@ -345,7 +345,7 @@ function LensStage({ example, filmSlug }: { example?: HomepageViewModel["sceneEx
                 </div>
               ))}
             </div>
-            {example && filmSlug ? <Link className="lensSceneLink" href={`/films/${filmSlug}#scene-lenses-${example.sceneId}`}>К сцене и её прочтениям →</Link> : null}
+            {example && filmSlug ? <a className="lensSceneLink" href={`/films/${filmSlug}#scene-lenses-${example.sceneId}`}>К сцене и её прочтениям →</a> : null}
           </div>
         </div>
       </div>
@@ -658,7 +658,8 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
                 Читать текст
               </Link>
             ) : null}
-            {data.paths.hasScenes ? <Link className="heroSceneLink" href={`/films/${featuredFilm.slug}#film-scene-table-title`}>Сцены и опоры →</Link> : null}
+            {data.paths.hasScenes ? <a className="heroSceneLink" href={`/films/${featuredFilm.slug}#film-scene-table-title`}>Сцены и опоры →</a> : null}
+            {data.sceneExample ? <Link className="heroSceneLink" href="#lenses">Шесть прочтений одной сцены ↓</Link> : null}
           </div>
         </div>
         <div className="heroVisual">
@@ -695,7 +696,7 @@ function HomepagePaths({ data }: { data: HomepageViewModel }) {
           <Link href={`${base}#character-${firstCharacter.id}`}><strong>Герой</strong><span>Портрет: {firstCharacter.name}</span><small>Без спойлеров →</small></Link>
         ) : null}
         {data.paths.hasScenes ? (
-          <Link href={data.sceneExample ? `${base}#scene-${data.sceneExample.sceneId}` : `${base}#film-scene-table-title`}><strong>Сцены и опоры</strong><span>От наблюдения к его основанию</span><small>Без спойлеров →</small></Link>
+          <a href={data.sceneExample ? `${base}#scene-${data.sceneExample.sceneId}` : `${base}#film-scene-table-title`}><strong>Сцены и опоры</strong><span>От наблюдения к его основанию</span><small>Без спойлеров →</small></a>
         ) : null}
         {data.paths.hasRelationships ? (
           <Link href={`${base}#${data.paths.relationshipId ?? "spoiler-title"}`}><strong>Отношения</strong><span>Доверие, роли и власть</span><small>{data.paths.relationshipId ? "Открыть →" : "Сначала выберите уровень →"}</small></Link>

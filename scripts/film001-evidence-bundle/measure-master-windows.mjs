@@ -70,24 +70,43 @@ const round = (value, digits) => {
   return Math.round(value * factor) / factor;
 };
 
-/** "HH:MM:SS.mmm" or "MM:SS" -> seconds. */
-function clockToSeconds(value) {
-  const parts = value.trim().split(":");
-  if (parts.length < 2 || parts.length > 3) fail(`unreadable clock value "${value}"`);
-  const seconds = Number(parts.pop().replace(",", "."));
-  const minutes = Number(parts.pop());
-  const hours = parts.length ? Number(parts.pop()) : 0;
-  if (![seconds, minutes, hours].every(Number.isFinite)) fail(`unreadable clock value "${value}"`);
-  return hours * 3600 + minutes * 60 + seconds;
+// Both manifest runtime and the producer's CSV/SRT timestamps are serialized
+// to milliseconds. Two independent roundings can differ by at most 1 ms at
+// the endpoint. Only that endpoint tolerance is clamped; it never corrects a
+// nonzero source offset or a timestamp before zero.
+const END_ROUNDING_TOLERANCE_SECONDS = 0.001;
+
+/** "HH:MM:SS.mmm" or elapsed "MM:SS" -> nonnegative seconds. */
+function clockToSeconds(value, location) {
+  const match = value.match(/^(?:(\d+):)?(\d{1,}):(\d{1,2})(?:[,.](\d{1,3}))?$/);
+  if (!match) fail(`${location}: unreadable clock value "${value}"`);
+  const [, rawHours, rawMinutes, rawSeconds, rawFraction = ""] = match;
+  const hours = Number(rawHours ?? 0);
+  const minutes = Number(rawMinutes);
+  const seconds = Number(rawSeconds);
+  if (![hours, minutes, seconds].every(Number.isSafeInteger) || seconds >= 60 || (rawHours !== undefined && minutes >= 60)) {
+    fail(`${location}: impossible clock value "${value}"`);
+  }
+  const total = hours * 3600 + minutes * 60 + seconds + Number(`0.${rawFraction || "0"}`);
+  if (!Number.isFinite(total)) fail(`${location}: impossible clock value "${value}"`);
+  return total;
 }
 
-function readCuts(file, threshold) {
+function withinRuntime(value, runtime, location) {
+  if (!Number.isFinite(value) || value < 0) fail(`${location}: time must not be negative or non-finite`);
+  if (value > runtime + END_ROUNDING_TOLERANCE_SECONDS + 1e-9) {
+    fail(`${location}: time ${value}s exceeds runtime ${runtime}s (maximum endpoint rounding tolerance 0.001s)`);
+  }
+  return Math.min(value, runtime);
+}
+
+function readCuts(file, threshold, runtime) {
   const text = readFileSync(file, "utf8").replace(/^\uFEFF/, "");
   const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
   const header = lines.shift()?.toLowerCase() ?? "";
   if (!/^time_s\s*,\s*score\s*$/.test(header)) fail("04-cuts.csv must start with a time_s,score header row");
   const cuts = [];
-  for (const line of lines) {
+  for (const [index, line] of lines.entries()) {
     const [rawTime, rawScore, ...extra] = line.split(",");
     const time = Number(rawTime);
     const score = Number(rawScore);
@@ -102,23 +121,43 @@ function readCuts(file, threshold) {
     if (threshold === 1 || possibleUpperBound + 1e-12 < threshold) {
       fail(`cut score "${rawScore.trim()}" is inconsistent with scene threshold ${threshold} after four-decimal rounding`);
     }
-    cuts.push({ time, score });
+    const boundedTime = withinRuntime(time, runtime, `04-cuts.csv: row ${index + 2}`);
+    cuts.push({ time: boundedTime, score });
   }
   cuts.sort((a, b) => a.time - b.time);
   return cuts;
 }
 
-function readCues(file) {
-  const text = readFileSync(file, "utf8").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
+function readCues(file, runtime) {
+  const text = readFileSync(file, "utf8").replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   const cues = [];
-  for (const block of text.split(/\n\s*\n/)) {
-    const lines = block.split("\n");
-    const arrowIndex = lines.findIndex((line) => line.includes("-->"));
-    if (arrowIndex === -1) continue;
-    const [rawFrom, rawTo] = lines[arrowIndex].split("-->");
-    const from = clockToSeconds(rawFrom.trim());
-    const to = clockToSeconds(rawTo.trim().split(/\s+/)[0]);
-    if (!(to > from)) fail(`subtitle cue ends before it starts near ${rawFrom.trim()}`);
+  const lines = text.split("\n");
+  let index = 0;
+  let block = 0;
+  while (index < lines.length) {
+    while (index < lines.length && !lines[index].trim()) index += 1;
+    if (index >= lines.length) break;
+    const firstLine = index + 1;
+    const content = [];
+    while (index < lines.length && lines[index].trim()) content.push(lines[index++]);
+    block += 1;
+    const location = `03-subs-en.srt: block ${block}, line ${firstLine}`;
+    // Explicit NOTE comment blocks are accepted as a harmless extension. An
+    // unknown block or cue missing its timing arrow is never silently skipped.
+    if (/^NOTE(?:[ \t].*)?$/.test(content[0].trim())) continue;
+    const timingIndex = /^\d+$/.test(content[0].trim()) ? 1 : 0;
+    const timing = content[timingIndex];
+    const match = timing?.match(/^\s*(\S+)\s+-->\s+(\S+)(?:\s+.*)?\s*$/);
+    if (!match || timing.includes("-->", timing.indexOf("-->") + 3)) {
+      fail(`${location}: malformed subtitle timing (expected "start --> end")`);
+    }
+    if (!content.slice(timingIndex + 1).some((line) => line.trim())) {
+      fail(`${location}: subtitle cue has no text`);
+    }
+    const timingLocation = `03-subs-en.srt: block ${block}, line ${firstLine + timingIndex}`;
+    const from = withinRuntime(clockToSeconds(match[1], timingLocation), runtime, timingLocation);
+    const to = withinRuntime(clockToSeconds(match[2], timingLocation), runtime, timingLocation);
+    if (!(to > from)) fail(`${timingLocation}: subtitle cue ends before or at its start`);
     cues.push({ from, to });
   }
   cues.sort((a, b) => a.from - b.from);
@@ -186,9 +225,9 @@ const subtitleTrack = language === "eng" && subtitle.codec_name === "subrip"
   ? `Embedded English SubRip (stream ${subtitle.index})`
   : `Embedded ${language || "language unspecified"} ${codec} (stream ${subtitle.index})`;
 
-const cuts = readCuts(cutsPath, threshold);
-const cues = readCues(cuesPath);
 const runtimeSeconds = readRuntimeSeconds(manifestPath);
+const cuts = readCuts(cutsPath, threshold, runtimeSeconds);
+const cues = readCues(cuesPath, runtimeSeconds);
 
 const transitionsIn = (from, to) => cuts.filter((cut) => cut.time >= from && cut.time < to).length;
 const cueStartsIn = (from, to) => cues.filter((cue) => cue.from >= from && cue.from < to).length;

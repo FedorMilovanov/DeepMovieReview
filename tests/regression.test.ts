@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ArticleTable } from "../src/components/film-article/article-table";
+import { ArticleCorrectionTable } from "../src/components/film-article/article-correction-table";
 import { GET as getFilmStill } from "../src/app/film-stills/[file]/route";
 import { EvidenceBasisLine } from "../src/components/evidence-basis";
 import { FilmEvidenceMap } from "../src/components/film-modules/evidence-map";
@@ -59,7 +60,7 @@ import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experi
 import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
 import { filterFilmIndex, filmIndexStatusLabel } from "../src/lib/film-index";
 import { pluralRu } from "../src/lib/plural-ru";
-import { COMPARISON_DIMENSIONS, type FilmPackage, type CharactersModule } from "../src/lib/film-package";
+import { COMPARISON_DIMENSIONS, type ArticleBlock, type FilmPackage, type CharactersModule } from "../src/lib/film-package";
 import { theTrumanShowDraftPackage } from "../src/data/films/the-truman-show";
 import {
   TRUMAN_MASTER_RUNTIME_SECONDS,
@@ -97,12 +98,12 @@ import {
 import {
   describeTrumanMeasurement,
   formatMasterTimecode,
-  resolveTrumanMeasurement,
   trumanMasterHolds,
   trumanMasterSilences,
   trumanMasterTimingTotals,
   trumanMasterWindows,
   trumanMeasuredDigitStrings,
+  trumanMeasurementMetadata,
 } from "../src/data/films/the-truman-show-master-windows";
 import { projectArticleSections, articleReadingMinutes, countArticleWords } from "../src/lib/film-article";
 import {
@@ -4130,7 +4131,7 @@ test("Film 001 research scene rewire bridges the old registry to the canonical i
 
 test("Film 001 canonical package satisfies the full integrity graph", () => {
   const errors = validateFilmPackage(theTrumanShowCanonicalPackage, {
-    resolveArticleMeasurement: (ref) => Boolean(resolveTrumanMeasurement(ref)),
+    resolveArticleMeasurement: (ref, slug) => slug === "the-truman-show" ? trumanMeasurementMetadata(ref) : undefined,
     articleMeasuredValues: trumanMeasuredDigitStrings,
     resolveArticleContextSources: () => new Set(theTrumanShowProductionDossier.sources.map((source) => source.id)),
     resolveIllustration: illustrationFacts,
@@ -4259,8 +4260,7 @@ function trumanArticleContext(overrides: Record<string, unknown> = {}) {
     resolveIllustration: illustrationFacts,
     editorialRevision:
       sourcesModule?.kind === "sources-method" ? sourcesModule.editorialRevision : undefined,
-    resolveMeasurement: (ref: Parameters<typeof resolveTrumanMeasurement>[0]) =>
-      Boolean(resolveTrumanMeasurement(ref)),
+    resolveMeasurement: trumanMeasurementMetadata,
     measuredValues: trumanMeasuredDigitStrings,
     moduleLevels: new Map(filmPackage.modules.map((filmModule) => [filmModule.id, filmModule.spoilerLevel])),
     contextSourceIds: new Set(theTrumanShowProductionDossier.sources.map((source) => source.id)),
@@ -4508,7 +4508,7 @@ test("Film 001 article keeps the five refuted claims inside the corrections tabl
     .flatMap((section) => section.blocks)
     .find((block) => block.kind === "corrections");
   assert.ok(corrections && corrections.kind === "corrections");
-  assert.equal(corrections.rows.length, 5);
+  assert.equal(corrections.rows.length, 7, "five topics; the kitchen topic is separated into three checkable parts");
 
   // The piece may *discuss* a corrected claim in prose (that is the point of the
   // section), but the correction itself must live in the table, with a source:
@@ -4526,7 +4526,7 @@ test("Film 001 article keeps the five refuted claims inside the corrections tabl
   for (const row of corrections.rows) {
     assert.ok(row.commonClaim.length > 0 && row.onScreen.length > 0);
     assert.ok(
-      Boolean(row.evidenceId) !== Boolean(row.absentFromMaster),
+      Boolean(row.evidenceId || row.evidenceIds?.length || row.measurement) !== Boolean(row.absentFromMaster),
       `${row.id}: a correction cites evidence or declares absence, never both`,
     );
   }
@@ -4547,8 +4547,8 @@ test("Film 001 article keeps the five refuted claims inside the corrections tabl
   // can answer.
   const evidenceIds = new Set((theTrumanShowCanonicalPackage.evidence ?? []).map((item) => item.id));
   for (const row of corrections.rows) {
-    if (row.evidenceId) {
-      assert.ok(evidenceIds.has(row.evidenceId), `${row.id}: unknown evidence ${row.evidenceId}`);
+    for (const id of [...(row.evidenceId ? [row.evidenceId] : []), ...(row.evidenceIds ?? [])]) {
+      assert.ok(evidenceIds.has(id), `${row.id}: unknown evidence ${id}`);
     }
   }
 });
@@ -5934,7 +5934,8 @@ test("article tables share an escaped caption with their native table and keyboa
       ))));
     const captionId = `article-table-${corrections ? "corrections" : "measurements"}-caption`;
     assert.ok(html.includes(`<figcaption id="${captionId}">Long caption &lt;script&gt; &amp; evidence</figcaption>`));
-    assert.ok(html.includes(`role="region" aria-labelledby="${captionId}" tabindex="0"`));
+    assert.ok(html.includes(`role="region" aria-labelledby="${captionId}" aria-describedby="article-table-${corrections ? "corrections" : "measurements"}-hint" tabindex="0"`));
+    assert.match(html, /стрелку вправо/);
     assert.ok(html.includes(`<table class="articleTable" aria-labelledby="${captionId}">`));
     assert.equal((html.match(/<figcaption/g) ?? []).length, 1);
     assert.ok(html.includes('<th scope="row">Evidence</th>'));
@@ -6415,8 +6416,9 @@ test("Film 001 every evidence card states the basis of its own verification", ()
   assert.equal(rain?.basis?.refusedAncestor, "truman-ev-raincloud");
   assert.equal(tally.rewritten, 1);
   assert.ok(rain?.basis);
-  assert.deepEqual(rain.basis.window, { from: 761, to: 786 });
-  assert.equal(rain.basis.observations, 2);
+  assert.deepEqual(rain.basis.window, { from: 750, to: 750 });
+  assert.equal(rain.basis.windowApproximate, true);
+  assert.equal(rain.basis.observations, 1);
   assert.equal(rain.basis.outcome, "seen");
 });
 
@@ -6764,4 +6766,156 @@ test("film-specific home art is registered as generated illustration, never evid
   assert.ok(display && display.src.startsWith("/art/"));
   assert.equal(readFileSync(`public${display.src}`).length, display.byteSize);
   assert.equal(getFilmHomeAsset("unknown-film"), undefined);
+});
+
+test("corrections reject every excessive evidence level and expose all permitted citations", () => {
+  const evidence = theTrumanShowCanonicalPackage.evidence ?? [];
+  const low = evidence.find((item) => item.id === "truman-ev-greeting");
+  const high = evidence.find((item) => item.id === "truman-ev-wall");
+  assert.ok(low && high && high.spoilerLevel === "ENDING");
+  for (const level of ["NONE", "MINOR", "MAJOR"] as const) {
+    const article = structuredClone(theTrumanShowArticle);
+    const section = article.sections.find((item) => item.spoilerLevel === level);
+    assert.ok(section);
+    section.blocks.push({
+      kind: "corrections", id: `synthetic-${level}`, contentSpoilerLevel: "NONE", caption: "Проверка",
+      rows: [{ id: `row-${level}`, contentSpoilerLevel: "NONE", commonClaim: "Тезис", onScreen: "Поправка",
+        evidenceId: low.id, evidenceIds: [high.id] }],
+    });
+    const errors = validateFilmArticle(article, trumanArticleContext()).join("\n");
+    assert.match(errors, new RegExp(`synthetic-${level}.*evidence "truman-ev-wall".*exceeds section level "${level}"`));
+  }
+
+  const block = theTrumanShowArticle.sections.flatMap((section) => section.blocks).find((item) => item.kind === "corrections");
+  assert.ok(block && block.kind === "corrections");
+  const html = renderToStaticMarkup(createElement(ArticleCorrectionTable, {
+    block, filmSlug: "the-truman-show", spoilerLevel: "FULL", describeMeasurement: describeTrumanMeasurement,
+    evidenceById: new Map(evidence.map((record) => [record.id, record])),
+  }));
+  for (const id of ["truman-ev-knife", "truman-ev-knife-tools", "truman-ev-cocoa-subtitles", "truman-ev-tools-subtitles"]) {
+    assert.ok(html.includes(`/films/the-truman-show?spoilers=full#evidence-${id}`), `missing visible correction link ${id}`);
+  }
+  // Defense in depth if a caller bypasses the registry: neither the URL nor the
+  // label of an excessive evidence record enters the rendered correction.
+  const unsafe = structuredClone(block);
+  unsafe.rows = [{ id: "mixed", commonClaim: "тезис", onScreen: "поправка", contentSpoilerLevel: "NONE",
+    evidenceIds: [low.id, high.id] }];
+  const noneHtml = renderToStaticMarkup(createElement(ArticleCorrectionTable, {
+    block: unsafe, filmSlug: "the-truman-show", spoilerLevel: "NONE", describeMeasurement: describeTrumanMeasurement,
+    evidenceById: new Map(evidence.map((record) => [record.id, record])),
+  }));
+  assert.ok(noneHtml.includes(`#evidence-${low.id}`));
+  assert.equal(noneHtml.includes(`#evidence-${high.id}`), false);
+  assert.equal(noneHtml.includes(high.label), false);
+});
+
+test("measurement, table and correction validate authored and dataset display ceilings", () => {
+  const measurement: ArticleBlock = { kind: "measurement", id: "synthetic-measurement", contentSpoilerLevel: "NONE",
+    measurement: { table: "window", id: "wall" }, text: "Проверка" };
+  const table: ArticleBlock = { kind: "measurement-table", id: "synthetic-table", contentSpoilerLevel: "NONE", caption: "Таблица",
+    columns: ["Момент", "Переходы", "Субтитры"], rows: [{ id: "synthetic-row", contentSpoilerLevel: "NONE",
+      label: "Момент", measurement: { table: "window", id: "wall" } }] };
+  const corrections: ArticleBlock = { kind: "corrections", id: "synthetic-correction", contentSpoilerLevel: "NONE", caption: "Поправка",
+    rows: [{ id: "synthetic-correction-row", contentSpoilerLevel: "NONE", commonClaim: "Тезис", onScreen: "Проверка",
+      measurement: { table: "window", id: "wall" } }] };
+  for (const level of ["NONE", "MINOR", "MAJOR"] as const) {
+    const article = structuredClone(theTrumanShowArticle);
+    const section = article.sections.find((item) => item.spoilerLevel === level);
+    assert.ok(section);
+    section.blocks.push(structuredClone(measurement), structuredClone(table), structuredClone(corrections));
+    const errors = validateFilmArticle(article, trumanArticleContext()).join("\n");
+    for (const id of ["synthetic-measurement", "synthetic-table", "synthetic-correction"]) {
+      assert.match(errors, new RegExp(`${id}.*content spoiler level "ENDING" exceeds section level "${level}"`), id);
+      assert.match(errors, new RegExp(`${id}.*context scene.*exceeds section level "${level}"`), id);
+    }
+  }
+  // Even a generic aggregate view cannot downgrade an independently authored
+  // caption, row label or correction text that declares a higher level.
+  const article = structuredClone(theTrumanShowArticle);
+  const section = article.sections[0];
+  assert.equal(section.spoilerLevel, "NONE");
+  if (measurement.kind !== "measurement" || table.kind !== "measurement-table" || corrections.kind !== "corrections") assert.fail("bad test fixture");
+  measurement.measurement = { table: "totals", id: "master" }; measurement.contentSpoilerLevel = "ENDING";
+  table.rows[0].measurement = { table: "totals", id: "master" }; table.rows[0].contentSpoilerLevel = "MAJOR";
+  corrections.rows[0].measurement = { table: "totals", id: "master" }; corrections.contentSpoilerLevel = "MINOR";
+  corrections.rows[0].contentSpoilerLevel = "ENDING";
+  section.blocks.push(measurement, table, corrections);
+  const errors = validateFilmArticle(article, trumanArticleContext()).join("\n");
+  for (const pattern of [/synthetic-measurement\/content.*ENDING/, /synthetic-row\/content.*MAJOR/,
+    /synthetic-correction\/content.*MINOR/, /synthetic-correction-row\/content.*ENDING/]) assert.match(errors, pattern);
+});
+
+test("measurement span metadata checks intermediate scenes, not only its endpoints", () => {
+  const article = structuredClone(theTrumanShowArticle);
+  article.sections[0].blocks.push({ kind: "measurement", id: "cross-three-scenes", contentSpoilerLevel: "NONE",
+    measurement: { table: "hold", id: "synthetic" }, text: "Окно" });
+  const scene = (id: string, start: number, end: number, spoilerLevel: "NONE" | "ENDING") => ({
+    id, sequenceIndex: start + 1, startTimestampSeconds: start, endTimestampSeconds: end,
+    shortLabel: id, spoilerLevel, verificationState: "VERIFIED" as const,
+  });
+  const sceneById = new Map([scene("start", 0, 2, "NONE"), scene("middle-ending", 2, 4, "ENDING"), scene("end", 4, 6, "NONE")].map((item) => [item.id, item]));
+  const context = trumanArticleContext({ sceneById, resolveMeasurement: (ref: { id: string }) =>
+    ref.id === "synthetic" ? { spoilerLevel: "NONE", context: { kind: "span", from: 1, to: 5 } } : undefined });
+  assert.match(validateFilmArticle(article, context).join("\n"), /cross-three-scenes.*context scene "middle-ending".*exceeds section level "NONE"/);
+});
+
+test("ranked subtitle gaps have a neutral title and complete spoiler context", () => {
+  for (const id of ["silence-01", "silence-02", "silence-06"]) {
+    const ref = { table: "silence" as const, id };
+    const view = describeTrumanMeasurement(ref);
+    const metadata = trumanMeasurementMetadata(ref);
+    assert.equal(view?.title, "Промежуток без записей субтитров");
+    assert.match(view?.detail ?? "", /звук не проверен/);
+    assert.ok(metadata?.context.kind === "span");
+    const record = trumanMasterSilences.find((item) => item.id === id);
+    assert.ok(record);
+    assert.equal(metadata.context.from, record.from);
+    assert.equal(metadata.context.to, record.to);
+  }
+  const longest = trumanMasterSilences[0];
+  assert.notEqual(longest.startSceneId, longest.endSceneId, "first gap crosses a scene boundary");
+});
+
+test("kitchen and rain claims preserve separate visual and subtitle grounds", () => {
+  const records = new Map((theTrumanShowCanonicalPackage.evidence ?? []).map((record) => [record.id, record]));
+  assert.equal(records.get("truman-ev-knife")?.basis?.material, "clip-frames");
+  assert.equal(records.get("truman-ev-knife-tools")?.basis?.material, "clip-frames");
+  assert.equal(records.get("truman-ev-cocoa-subtitles")?.basis?.material, "subtitle-track");
+  assert.equal(records.get("truman-ev-tools-subtitles")?.basis?.material, "subtitle-track");
+  assert.match(records.get("truman-ev-tools-subtitles")?.observation ?? "", /не устанавливает говорящего.*интонацию/i);
+  const rain = records.get("truman-ev-rain");
+  assert.match(rain?.observation ?? "", /не устанавливает дальнейшее движение/i);
+  assert.match(rain?.basis?.note ?? "", /номиналом 750.*PTS не установлен/i);
+  const corrections = theTrumanShowArticle.sections.flatMap((section) => section.blocks).find((block) => block.kind === "corrections");
+  assert.ok(corrections && corrections.kind === "corrections");
+  assert.deepEqual(corrections.rows.find((row) => row.id === "truman-article-correction-knife")?.evidenceIds, ["truman-ev-knife"]);
+  assert.deepEqual(corrections.rows.find((row) => row.id === "truman-article-correction-tools")?.evidenceIds, ["truman-ev-knife-tools"]);
+  assert.deepEqual(corrections.rows.find((row) => row.id === "truman-article-correction-kitchen-text")?.evidenceIds,
+    ["truman-ev-cocoa-subtitles", "truman-ev-tools-subtitles"]);
+});
+
+test("craft context sources are linked, scoped and distinct from screen evidence", () => {
+  const pkg = structuredClone(theTrumanShowCanonicalPackage);
+  const craft = pkg.modules.find((module) => module.kind === "craft");
+  const sources = pkg.modules.find((module) => module.kind === "sources-method");
+  assert.ok(craft && craft.kind === "craft" && sources && sources.kind === "sources-method");
+  const seaside = craft.observations.find((observation) => observation.id === "truman-craft-seaside");
+  const vignette = craft.observations.find((observation) => observation.id === "truman-craft-vignette");
+  assert.ok(seaside && vignette?.detail);
+  assert.deepEqual(seaside.contextSourceIds, ["truman-src-asc"]);
+  assert.deepEqual(vignette.contextSourceIds, ["truman-src-asc"]);
+  assert.equal(seaside.support?.evidenceIds.includes("truman-ev-greeting"), false);
+  assert.match(vignette.detail.postProduction, /цифровые индикаторы/i);
+  assert.equal(sources.sources.find((source) => source.id === "truman-src-asc")?.href, "https://theasc.com/article/the-truman-show-cinematography/");
+  assert.equal(sources.sources.find((source) => source.id === "truman-src-delusion")?.label.includes("Kirk Tjalas"), true);
+  vignette.contextSourceIds = ["unknown-source"];
+  const context = { resolveArticleMeasurement: (ref: { table: "totals" | "window" | "hold" | "silence"; id: string }) => trumanMeasurementMetadata(ref),
+    resolveArticleContextSources: () => new Set(theTrumanShowProductionDossier.sources.map((source) => source.id)),
+    resolveIllustration: illustrationFacts };
+  assert.match(validateFilmPackage(pkg, context).join("\n"), /unknown context source "unknown-source"/);
+  vignette.contextSourceIds = ["truman-src-asc"];
+  const asc = sources.sources.find((source) => source.id === "truman-src-asc");
+  assert.ok(asc);
+  asc.spoilerLevel = "ENDING";
+  assert.match(validateFilmPackage(pkg, context).join("\n"), /context source "truman-src-asc" exceeds observation spoiler level/);
 });

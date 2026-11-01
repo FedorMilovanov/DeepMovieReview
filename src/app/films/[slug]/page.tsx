@@ -93,6 +93,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
     evidenceById: new Map((filmPackage.evidence ?? []).map((record) => [record.id, record])),
     formatTimecode,
     spoilerLevel,
+    sourcesById: new Map(sourceRecords.map((source) => [source.id, source])),
   };
 
   return (

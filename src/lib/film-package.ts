@@ -379,6 +379,17 @@ export type CraftModule = FilmModuleBase & {
     interpretiveEffect: string;
     confidence: Confidence;
     support?: ClaimSupport;
+    /** Production/context sources, distinct from the on-screen evidence. */
+    contextSourceIds?: string[];
+    /** Optional static, source-attributed explanation of a specific craft example. */
+    detail?: {
+      summary: string;
+      screen: string;
+      production: string;
+      postProduction: string;
+      quote: string;
+      attribution: string;
+    };
     spoilerLevel: SpoilerLevel;
   }>;
   pressureAssessments?: Array<{
@@ -557,6 +568,14 @@ export type ArticleMeasurementRef = {
   id: string;
 };
 
+/** Spoiler boundary of *all* formatted measurement fields, including titles.
+ * A span is [from,to); the validator also checks every scene it intersects.
+ * Aggregate figures contain no scene-specific display context. */
+export type ArticleMeasurementMetadata = {
+  spoilerLevel: SpoilerLevel;
+  context: { kind: "aggregate" } | { kind: "span"; from: number; to: number };
+};
+
 /** A small editorial quotation from supplied film imagery, never generated artwork. */
 export type ArticleSceneStill = {
   src: string;
@@ -608,10 +627,14 @@ export type ArticleCorrectionRow = {
   id: string;
   /** The claim that circulates in secondary texts. */
   commonClaim: string;
-  /** What the locked master actually shows or says. */
+  /** What the available material shows or says, with its limitations. */
   onScreen: string;
-  /** Canonical evidence for an observable correction. */
+  /** Editorial ceiling for both the claim and the correction as displayed. */
+  contentSpoilerLevel: SpoilerLevel;
+  /** Canonical evidence for an observable correction (legacy single citation). */
   evidenceId?: string;
+  /** Multiple independently linked pieces of evidence for compound corrections. */
+  evidenceIds?: string[];
   /** …or a measured pointer, for corrections the master proves by counting. */
   measurement?: ArticleMeasurementRef;
   /**
@@ -634,6 +657,8 @@ export type ArticleTableRow = {
   id: string;
   /** Left column: what the article asserts about this row. */
   label: string;
+  /** Ceiling for the authored row label, independently of the measured view. */
+  contentSpoilerLevel: SpoilerLevel;
   /** Right column: measured values, filled from the measurement dataset. */
   measurement: ArticleMeasurementRef;
 };
@@ -717,6 +742,8 @@ export type ArticleBlock =
       kind: "measurement";
       id: string;
       measurement: ArticleMeasurementRef;
+      /** Ceiling for the authored caption, independently of the measured view. */
+      contentSpoilerLevel: SpoilerLevel;
       text: string;
       support?: ClaimSupport;
     }
@@ -725,12 +752,16 @@ export type ArticleBlock =
       kind: "measurement-table";
       id: string;
       caption: string;
+      /** Ceiling for caption and column headings. */
+      contentSpoilerLevel: SpoilerLevel;
       columns: [string, string, string];
       rows: ArticleTableRow[];
     }
   | {
       kind: "corrections";
       id: string;
+      /** Ceiling for the table caption. */
+      contentSpoilerLevel: SpoilerLevel;
       caption: string;
       rows: ArticleCorrectionRow[];
     }

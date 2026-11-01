@@ -156,6 +156,31 @@ but does not prove the original value. The
 subtitle language and absolute stream index come from the manifest's actual map
 and `01-probe.json`; the filename `03-subs-en.srt` alone proves neither.
 
+### Time domain and malformed inputs
+
+The consumer treats `duration_seconds` as the exclusive end of the presentation
+interval measured from zero. Current producers use FFmpeg's input-start-normalized
+timeline for the scan and subtitle extraction, rather than raw container PTS.
+An older bundle's manifest may not establish the mapping: compare the probe and
+provenance, and re-extract or explicitly align inputs before measuring. The
+consumer does **not** infer or subtract a stream/container offset for you; an
+in-range timestamp is not proof that differently offset streams are synchronized.
+
+The Node producer writes duration and cut timestamps to three decimal places;
+SRT times are in milliseconds. To allow at most the combined rounding of the
+serialized endpoint and timestamp, a cut or cue end up to **0.001 s** beyond the
+recorded runtime is clamped to that endpoint. Larger overruns and negative or
+impossible clock components are rejected, not converted into negative tails.
+A cue must still have positive length after clamping. For valid in-range data,
+interval calculations and window membership use the input times; reported spans
+are rounded to milliseconds. No tolerance is applied at named-window boundaries.
+
+Empty/whitespace SRT files and explicitly prefixed `NOTE` comment blocks are
+accepted (the latter is an allowed extension, not a cue). Other nonempty blocks
+must be well-formed cue records with an optional numeric index, a `start --> end`
+line and text. Invalid records, including a single-dash `->`, stop the report
+with a block and line number rather than silently reducing the cue count.
+
 `runtimeSecondsPerDetectedTransition` is file duration / detection count, which
 includes the start and end tails. `meanSecondsBetweenTransitions` is the mean of
 `adjacentTransitionGapCount` successive gaps, or null for fewer than two detections.

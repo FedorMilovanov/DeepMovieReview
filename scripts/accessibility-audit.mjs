@@ -110,16 +110,15 @@ for (const name of selected) {
             // keyboard-open state separately, without claiming the whole page.
             await scan("reading-paths", ".filmReadingPaths");
             const wrap = page.locator(".filmSceneTableWrap");
-            await wrap.evaluate(el => { el.scrollLeft = el.scrollWidth; });
+            await wrap.evaluate(el => { el.scrollLeft = 0; });
             const row = page.locator("#scene-truman-sc-day-10909");
-            const disclosure = row.locator(".filmSceneSupports details");
+            const disclosure = row.locator(".filmSceneSupports");
             await disclosure.locator("summary").focus();
             await page.keyboard.press("Enter");
             assert.ok(await disclosure.evaluate(el => el.open), "scene evidence opens by keyboard");
             assert.ok(await disclosure.locator("a").first().isVisible(), "visible scene has a reachable evidence link");
-            // The table scrolls horizontally. At the right edge the row header
-            // is offscreen, so assess the newly exposed evidence cell itself;
-            // do not claim the rest of the row was measured in this state.
+            // The disclosure now lives in the row header, visible on mobile
+            // without scrolling. Assess this open control itself, not the full row.
             await scan("scene-links-open", "#scene-truman-sc-day-10909 .filmSceneSupports");
             await disclosure.locator("summary").focus();
             await page.keyboard.press("Enter");

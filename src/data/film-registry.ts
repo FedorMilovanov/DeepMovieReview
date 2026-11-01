@@ -2,7 +2,7 @@ import { filmPackages as fixtureFilmPackages } from "@/data/film-fixtures";
 import { theFastAndTheFuriousDraftPackage } from "@/data/films/the-fast-and-the-furious";
 import { theTrumanShowCanonicalPackage } from "@/data/films/the-truman-show-canonical";
 import {
-  resolveTrumanMeasurement,
+  trumanMeasurementMetadata,
   trumanMeasuredDigitStrings,
 } from "@/data/films/the-truman-show-master-windows";
 import { illustrationFacts } from "@/data/film-illustrations";
@@ -12,7 +12,7 @@ import { assertValidFilmRegistry } from "@/lib/film-package-integrity";
 const rawFilmPackages = [...fixtureFilmPackages, theTrumanShowCanonicalPackage, theFastAndTheFuriousDraftPackage];
 
 assertValidFilmRegistry(rawFilmPackages, {
-  resolveArticleMeasurement: (ref) => Boolean(resolveTrumanMeasurement(ref)),
+  resolveArticleMeasurement: (ref, slug) => slug === "the-truman-show" ? trumanMeasurementMetadata(ref) : undefined,
   articleMeasuredValues: trumanMeasuredDigitStrings,
   resolveArticleContextSources: (slug) => {
     const dossier = getProductionDossier(slug);

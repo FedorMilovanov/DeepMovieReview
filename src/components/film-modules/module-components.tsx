@@ -52,6 +52,8 @@ export type FilmModuleRenderContext = {
   formatTimecode?: (seconds: number) => string;
   /** Reader's level: an anchor above it must not be rendered, even as a title. */
   spoilerLevel?: SpoilerLevel;
+  /** Already-projected production/context sources; never film evidence. */
+  sourcesById?: ReadonlyMap<string, SourcesMethodModule["sources"][number]>;
 };
 
 type ResolvedSupport = { record: EvidenceRecord; counter: boolean };
@@ -330,7 +332,7 @@ export function PermissionModuleView({ module }: { module: PermissionModule }) {
   );
 }
 
-export function CraftModuleView({ module }: { module: CraftModule }) {
+export function CraftModuleView({ module, context }: { module: CraftModule; context?: FilmModuleRenderContext }) {
   const pressureAssessments = module.pressureAssessments ?? [];
   return (
     <section id={module.id} className="sectionShell sectionRule filmModule filmCraft">
@@ -344,6 +346,24 @@ export function CraftModuleView({ module }: { module: CraftModule }) {
             </div>
             <p>{observation.observation}</p>
             <strong>{observation.interpretiveEffect}</strong>
+            {observation.support ? <CharacterAnchors support={observation.support} context={context} /> : null}
+            {observation.detail ? (
+              <details className="filmCraftDetail">
+                <summary>{observation.detail.summary}</summary>
+                <p><b>На экране по источнику.</b> {observation.detail.screen}</p>
+                <p><b>На съёмке.</b> {observation.detail.production}</p>
+                <p><b>После съёмки.</b> {observation.detail.postProduction}</p>
+                <blockquote>«{observation.detail.quote}» <cite>— {observation.detail.attribution}</cite></blockquote>
+              </details>
+            ) : null}
+            {observation.contextSourceIds?.length ? (
+              <p className="filmCraftSources">Производственный источник (внешняя страница может содержать спойлеры):{" "}
+                {observation.contextSourceIds.flatMap((id) => {
+                  const source = context?.sourcesById?.get(id);
+                  return source?.href ? [<a key={id} href={source.href}>{source.label} →</a>] : [];
+                })}
+              </p>
+            ) : null}
           </article>
         ))}
       </div>

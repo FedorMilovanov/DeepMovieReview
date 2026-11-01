@@ -22,18 +22,14 @@
  * cases have a history worth keeping:
  *
  * - the research-tier «personal rain» record is retired, but *not* because the
- *   beat is absent. A frame pass over the master's 12:41–13:06 window shows the
- *   opposite: a narrow stream of rain falls on the seated Truman, he steps out
- *   from under it, the stream stays where it was, and the rain then widens. The
- *   retired record had two defects — it placed the beat in chapter 08, and it
- *   asserted that the cloud follows the hero. The beat is rewritten here as
- *   `truman-ev-rain`, in the scene where it actually stands;
+ *   beat is absent: a supplied, nominal-grid frame shows Truman under a narrow
+ *   stream. The old ledger described further motion across a 12:41–13:06
+ *   window, but its two recorded observations do not independently establish
+ *   that sequence. The new record is limited to what the available frame shows;
  * - the tunnel in the escape record was not found in picture.
  *
- * A retraction is not permission to overclaim in the other direction: the
- * rewritten record states the stream as observed and names the mechanism
- * («technical failure of the dome») as an interpretation, because no frame shows
- * a mechanism.
+ * A retraction is not permission to overclaim in the other direction: neither
+ * motion nor a mechanism follows from the available single image.
  */
 
 import type { EvidenceRecord } from "@/lib/film-package";
@@ -165,23 +161,26 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
   /**
    * Written after the lock, so it has no research-era ledger entry to inherit a
    * basis from: the basis is stated here, and it is the one thing this record
-   * knows that the ledger does not. Two frames, 12:41 and 13:06, both watched.
+   * knows that the ledger does not. The old entry listed two observations;
+   * the later audit independently inspected only the supplied nominal-grid still.
    */
   {
     ...record(
       "truman-ev-rain",
-      "Дождь, который стоит на месте",
+      "Кадр с узкой струёй дождя",
       "truman-sc-memories-of-dad",
-      761,
+      750,
       "MINOR",
-      "После разговора у воды начинается дождь: узкая струя падает на сидящего Трумана. Он встаёт и отходит в сторону — струя остаётся на прежнем месте, отдельно от него, — затем возвращается к ней. Через полминуты дождь расширяется на всю сцену. Кадры не показывают ни механизма, ни «тучи, которая следует за героем»: это домысел, а не увиденное.",
+      "На доступном отдельном кадре Труман наклонился под узкой струёй дождя. Это опровергает прежнее отрицание самого эпизода, но не устанавливает дальнейшее движение струи, её расширение или механизм. Номинальная отметка сетки — не проверенный PTS исходного кадра.",
     ),
     basis: {
       material: "frames",
-      window: { from: 761, to: 786 },
-      observations: 2,
+      window: { from: 750, to: 750 },
+      windowApproximate: true,
+      observations: 1,
       outcome: "seen",
       unrecorded: ["reviewer", "date"],
+      note: "Ранний журнал перечисляет две отметки 761–786 с, но не подтверждает последовательность движения. Сейчас отдельно осмотрен кадр сетки с номиналом 750 с; его точный PTS не установлен.",
     },
   },
   record(
@@ -262,7 +261,23 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "truman-sc-mococoa",
     3226.152,
     "MAJOR",
-    "Посреди семейной ссоры Мэрил отворачивается к невидимой камере и рекламным голосом расхваливает какао «Мококея».",
+    "В журнале визуальной проверки зафиксирована Мэрил в сцене с рекламой какао. Текст о Mococoa разобран отдельно по субтитрам; интонацию, точный адрес и звук отдельные изображения не устанавливают.",
+  ),
+  record(
+    "truman-ev-cocoa-subtitles",
+    "Какао в английских субтитрах",
+    "truman-sc-mococoa",
+    3226.152,
+    "MAJOR",
+    "В английских субтитрах записан рекламный текст о какао Mococoa. Текст субтитров не устанавливает говорящего, адресата или интонацию; звук отдельно не проверялся.",
+  ),
+  record(
+    "truman-ev-tools-subtitles",
+    "Вопрос об инструментах в субтитрах",
+    "truman-sc-mococoa",
+    3265.943,
+    "MAJOR",
+    "В английских субтитрах записано: «Dice me, slice me or peel me? There's so many choices». Текст не устанавливает говорящего или интонацию; звук отдельно не проверялся.",
   ),
   {
     ...record(
@@ -560,6 +575,8 @@ export const trumanCanonicalEvidenceSummary = {
     "truman-ev-seahaven-design",
     "truman-ev-marlon-retake",
     "truman-ev-camera-count",
+    "truman-ev-cocoa-subtitles",
+    "truman-ev-tools-subtitles",
   ],
   /**
    * Records added after the edition was LOCKED, in a separate batch, to support
@@ -574,5 +591,7 @@ export const trumanCanonicalEvidenceSummary = {
     "truman-ev-seahaven-design",
     "truman-ev-marlon-retake",
     "truman-ev-camera-count",
+    "truman-ev-cocoa-subtitles",
+    "truman-ev-tools-subtitles",
   ],
 } as const;

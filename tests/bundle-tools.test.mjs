@@ -230,3 +230,77 @@ test("runtime per detection differs from the mean of adjacent detection gaps", (
     assert.equal(totals.meanSecondsBetweenTransitions, 20); // (50 - 10) / 2
   });
 });
+
+test("cue starts are counted in [from,to), not by interval intersection", () => {
+  withMeasurementBundle({ runtime: 2000, cuts: [[1320, "0.5000"], [1380, "0.5000"]],
+    cues: [[1319, 1321], [1321, 1322], [1379, 1380], [1380, 1381]] }, (dir) => {
+    const result = measureBundle(dir);
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(result.stdout);
+    const library = report.windows.find(({ id }) => id === "library");
+    assert.equal(library.subtitleCueStarts, 2); // the active-before-start block is not a start
+    assert.equal(report.holds[0].subtitleCueStarts, 2);
+    assert.equal([[1319, 1321], [1321, 1322], [1379, 1380], [1380, 1381]]
+      .filter(([from, to]) => from < 1380 && to > 1320).length, 3);
+  });
+});
+
+test("measurement inputs stay within the rounded runtime and never produce a negative tail", () => {
+  const invalidSrt = [
+    "1\n-00:00:01,000 --> 00:00:02,000\ntext\n",
+    "1\n00:60:01,000 --> 01:01:02,000\ntext\n",
+    "1\n00:00:61,000 --> 00:01:02,000\ntext\n",
+    "1\n00:01:39,000 --> 00:01:41,000\ntext\n",
+    "1\n00:01:41,000 --> 00:01:42,000\ntext\n",
+    "1\n00:00:02,000 --> 00:00:01,000\ntext\n",
+  ];
+  withMeasurementBundle({}, (dir) => {
+    for (const srt of invalidSrt) {
+      writeFileSync(join(dir, "03-subs-en.srt"), srt);
+      const result = measureBundle(dir);
+      assert.notEqual(result.status, 0, `invalid cue accepted: ${srt}`);
+      assert.match(result.stderr, /03-subs-en\.srt: block 1, line [12]/);
+    }
+    writeFileSync(join(dir, "03-subs-en.srt"), "1\n00:01:39,000 --> 00:01:40,001\ntext\n");
+    const rounded = measureBundle(dir);
+    assert.equal(rounded.status, 0, rounded.stderr);
+    assert.equal(JSON.parse(rounded.stdout).totals.tailAfterLastCueSeconds, 0);
+    writeFileSync(join(dir, "03-subs-en.srt"), "1\n00:01:39,000 --> 00:01:40,002\ntext\n");
+    assert.notEqual(measureBundle(dir).status, 0, "an actual overrun is not endpoint rounding");
+    writeFileSync(join(dir, "03-subs-en.srt"), "");
+    for (const csv of ["time_s,score\n-1,0.4\n", "time_s,score\n101,0.4\n", "time_s,score\n100.002,0.4\n"]) {
+      writeFileSync(join(dir, "04-cuts.csv"), csv);
+      assert.notEqual(measureBundle(dir).status, 0, `invalid cut accepted: ${csv}`);
+    }
+    writeFileSync(join(dir, "04-cuts.csv"), "time_s,score\n100.001,0.4\n");
+    const roundedCut = measureBundle(dir);
+    assert.equal(roundedCut.status, 0, roundedCut.stderr);
+    assert.equal(JSON.parse(roundedCut.stdout).totals.lastTransitionSeconds, 100);
+  });
+});
+
+test("subtitle parsing ignores blanks and declared NOTE blocks but reports malformed cue location", () => {
+  withMeasurementBundle({}, (dir) => {
+    const file = join(dir, "03-subs-en.srt");
+    writeFileSync(file, "\uFEFF\nNOTE imported metadata\nnot a subtitle cue\n\n1\n00:00:01,000 --> 00:00:02,000\nText\n\n\n");
+    const valid = measureBundle(dir);
+    assert.equal(valid.status, 0, valid.stderr);
+    assert.equal(JSON.parse(valid.stdout).totals.subtitleCues, 1);
+    for (const broken of [
+      "1\n00:00:01,000 -> 00:00:02,000\nText\n",
+      "1\n00:00:01,000 --> nonsense\nText\n",
+      "1\n00:00:01,000 --> 00:00:02,000 --> 00:00:03,000\nText\n",
+      "4\nno timing at all\n",
+      "1\n00:00:01,000 --> 00:00:02,000\n",
+    ]) {
+      writeFileSync(file, `\nNOTE a comment\n\n${broken}`);
+      const result = measureBundle(dir);
+      assert.notEqual(result.status, 0, `corrupt cue accepted: ${broken}`);
+      assert.match(result.stderr, /03-subs-en\.srt: block 2, line [45]/);
+    }
+    writeFileSync(file, "\n  \n");
+    const empty = measureBundle(dir);
+    assert.equal(empty.status, 0, empty.stderr);
+    assert.equal(JSON.parse(empty.stdout).totals.tailAfterLastCueSeconds, 100);
+  });
+});

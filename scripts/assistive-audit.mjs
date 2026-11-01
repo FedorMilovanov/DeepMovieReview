@@ -30,7 +30,7 @@ function checkpoint(next, announce = false) {
   if (announce) console.log(`::notice title=Actual AT phase::${name}: ${phase}`);
 }
 const deadline = setTimeout(() => {
-  const message = `${name}: six-minute scenario deadline at ${phase}`;
+  const message = `${name}: eight-minute scenario deadline at ${phase}`;
   report.failures.push(message);
   report.results = [{ browser: name, version: report.browser?.version ?? "not-started", width: 0,
     route: "/films/the-truman-show/article?spoilers=full", state: "timeout", scope: "actual desktop OS", file: "actual-at.json" }];
@@ -38,7 +38,7 @@ const deadline = setTimeout(() => {
   console.error(workflowError(message));
   server.kill();
   process.exit(1);
-}, 360000);
+}, 480000);
 // Guidepup counts total attempts here: 0 never invokes the macOS delegate.
 // One attempt avoids replaying mutating navigation while actually issuing it.
 const speechOptions = { capture: "initial", timeout: 20000, retries: 1 };
@@ -201,7 +201,7 @@ try {
   if (mac) await action("leave first table interaction", () => perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions), /out of[\s\S]*table|(?:вне|выход)[\s\S]*таблиц/i);
   await action("corrections table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), /пять утверждений/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
-  await action("corrections column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /что в кадре/i);
+  await action("corrections column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /что удалось проверить/i);
   await screenshot("corrections-table-reading");
   if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
 
@@ -234,7 +234,7 @@ try {
     zoom = await geometry();
   }
   assert.ok(zoom.width >= 300 && zoom.width <= 321, `Native reflow320: ${JSON.stringify(zoom)}`);
-  for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"]) {
+  for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making", "/films/the-truman-show?spoilers=none"]) {
     checkpoint(`native zoom: navigating ${route}`);
     await go(route);
     checkpoint(`native zoom: measuring ${route}`);
@@ -242,7 +242,29 @@ try {
     assert.ok(box.scroll <= box.width + 1, `${route}: reflow320 overflow`);
     evidence.actions.push({ label: "native zoom reflow320", route, box });
   }
-  await screenshot("reflow320");
+  // Read the actual responsive film tables using native screen-reader commands
+  // at the measured ~320 CSS-pixel browser UI zoom, not a simulated AT tree.
+  if (mac) {
+    await macOSActivate(MacOSApplications.Safari);
+    await action("mobile VoiceOver Item Chooser", () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), /item chooser|VoiceOver Menu/i);
+    await action("mobile VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
+    await action("mobile VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
+    await action("mobile VoiceOver enter web area", () => perform(reader.keyboardCommands.interactWithItem, navigationOptions), /перейти к содержимому/i);
+  } else {
+    await page.bringToFront();
+    await perform(reader.keyboardCommands.exitFocusMode, { capture: false });
+    await reader.press("Control+Home");
+  }
+  await action("mobile scene table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/сцены фильма/i, /table|таблиц/i]);
+  if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
+  await action("mobile first scene row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /пролог/i);
+  await action("mobile scene supports row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), [/день\s*10\s*909/i, /опоры/i]);
+  if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
+  await action("mobile evidence register name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/реестр проверок/i, /table|таблиц/i]);
+  if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
+  await action("mobile evidence observation and basis", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), [/интервью создателя/i, /основа/i, /итог/i]);
+  if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
+  await screenshot("reflow320-film-tables");
   await reader.press(mac ? "Meta+0" : "Control+0", { capture: false });
   report.results.push({ browser: name, version: report.browser.version, width: original.width,
     route: "/films/the-truman-show/article?spoilers=full", state: "real-AT-native-zoom", scope: "desktop OS", file: "actual-at.json" });

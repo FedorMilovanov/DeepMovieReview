@@ -324,7 +324,8 @@ jobs:
               echo "::error title=Reader engine::$engine failed or exceeded its deadline (exit $status)"
               exit "$status"
             fi
-            echo "::notice title=Reader engine::Completed $engine"
+            echo "::notice title=Reader engine::Completed $engine; checking mobile scene/evidence paths"
+            timeout 3m env BASE_URL=http://127.0.0.1:3212 MOBILE_BROWSER="$engine" MOBILE_AUDIT_DIR="browser-audit/mobile-$engine" node scripts/mobile-path-audit.mjs
           done
           echo '::notice title=CI progress::Reader regression finished; starting browser audit'
           BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs

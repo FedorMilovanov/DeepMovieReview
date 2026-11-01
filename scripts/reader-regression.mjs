@@ -199,13 +199,16 @@ for (const engine of requested) {
             }
             await page.goto(`${base}/films/the-truman-show#scene-lenses-truman-sc-day-10909`, { waitUntil: 'load' });
             const detail = page.locator('#scene-lenses-truman-sc-day-10909');
+            assert.equal(await detail.getAttribute('open'), '', 'readings are visible on arrival');
+            await detail.locator('summary').click();
+            assert.equal(await detail.getAttribute('open'), null);
             await detail.locator('summary').click();
             assert.equal(await detail.locator('li').count(), 6);
             await detail.locator('a[href="#evidence-truman-ev-light"]').first().click();
             const target = page.locator('#evidence-truman-ev-light');
             await target.waitFor({ state: 'visible' });
-            await target.locator('summary').click();
-            assert.match(await target.locator('.evidenceBasis').innerText(), /номинальн|точный PTS/i);
+            await target.locator('.evidenceRegisterBasis:visible > summary').click();
+            assert.match(await target.locator('.evidenceBasis:visible').innerText(), /номинальн|точный PTS/i);
           });
           await check(`${engine} no-js scene stills and provenance`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
@@ -245,17 +248,18 @@ for (const engine of requested) {
           });
           await check(`${engine} no-js article paragraph evidence link`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
-            const support = page.locator(".articleSupport").first();
-            await support.locator("summary").click();
-            const link = support.locator("a").first();
+            const expandedSupport = page.locator(".articleSupport").first();
+            await expandedSupport.locator("summary").click();
+            assert.ok(await expandedSupport.locator("a").first().isVisible(), "multiple supports must expand without JavaScript");
+            const link = page.locator(".articleSupportSingle a").first();
             const href = await link.getAttribute("href");
             assert.match(href ?? "", /spoilers=full#evidence-truman-ev-/);
             await link.click();
             await page.waitForURL(`${base}${href}`);
             const target = page.locator(`[id="${href.split("#")[1]}"]`);
             await target.waitFor({ state: "visible" });
-            await target.locator("summary").click();
-            assert.ok(await target.locator(".evidenceBasis").isVisible());
+            await target.locator(".evidenceRegisterBasis:visible > summary").click();
+            assert.ok(await target.locator(".evidenceBasis:visible").isVisible());
           });
           await check(`${engine} no-js reading time follows the visible article`, page, async () => {
             const byline = async (level) => {
@@ -272,7 +276,7 @@ for (const engine of requested) {
           await check(`${engine} no-js scene to evidence and back`, page, async () => {
             await page.goto(`${base}/films/the-truman-show?spoilers=NONE`, { waitUntil: "load" });
             const scene = page.locator("#scene-truman-sc-day-10909");
-            const disclosure = scene.locator(".filmSceneSupports details");
+            const disclosure = scene.locator(".filmSceneSupports");
             await disclosure.locator("summary").click();
             const link = disclosure.locator('a[href="#evidence-truman-ev-light"]');
             assert.ok(await link.isVisible());
@@ -280,9 +284,9 @@ for (const engine of requested) {
             await page.waitForURL('**/films/the-truman-show?spoilers=NONE#evidence-truman-ev-light');
             const record = page.locator("#evidence-truman-ev-light");
             await record.waitFor({ state: "visible" });
-            await record.locator("summary").click();
-            assert.match(await record.locator(".evidenceBasis").innerText(), /номинальн|точный PTS/i);
-            await record.locator('a[href="#scene-truman-sc-day-10909"]').click();
+            await record.locator(".evidenceRegisterBasis:visible > summary").click();
+            assert.match(await record.locator(".evidenceBasis:visible").innerText(), /номинальн|точный PTS/i);
+            await record.locator('a[href="#scene-truman-sc-day-10909"]:visible').click();
             await page.waitForURL('**/films/the-truman-show?spoilers=NONE#scene-truman-sc-day-10909');
             assert.ok(await scene.isVisible());
           });
@@ -295,8 +299,8 @@ for (const engine of requested) {
             await page.waitForURL(`${base}${href}`);
             const row = page.locator(`[id="${href.split("#")[1]}"]`);
             await row.waitFor({ state: "visible" });
-            await row.locator("summary").click();
-            assert.match(await row.locator(".evidenceBasis").innerText(), /субтитр.*эта основа не проверяет звук и интонацию/i);
+            await row.locator(".evidenceRegisterBasis:visible > summary").click();
+            assert.match(await row.locator(".evidenceBasis:visible").innerText(), /субтитр.*эта основа не проверяет звук и интонацию/i);
           });
           await check(`${engine} no-js article evidence link and detailed basis`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
@@ -307,8 +311,8 @@ for (const engine of requested) {
             await page.waitForURL('**/films/the-truman-show?spoilers=full#evidence-truman-ev-knife-tools');
             const row = page.locator("#evidence-truman-ev-knife-tools");
             await row.waitFor({ state: "visible" });
-            await row.locator("summary").click();
-            assert.match(await row.locator(".evidenceBasis").innerText(), /предоставленного фрагмента.*манифеста/);
+            await row.locator(".evidenceRegisterBasis:visible > summary").click();
+            assert.match(await row.locator(".evidenceBasis:visible").innerText(), /предоставленного фрагмента.*манифеста/);
           });
           await check(`${engine} no-js methodology states publication and review limits`, page, async () => {
             await page.goto(`${base}/films/the-truman-show?spoilers=NONE`, { waitUntil: "domcontentloaded" });
@@ -431,7 +435,7 @@ for (const engine of requested) {
         const after = await viewport.evaluate((el) => el.scrollLeft);
         assert.ok(after > before, "focused wide table must respond to arrow keys");
       }
-      assert.ok(await page.getByText("Источники мысли, не фильма:").first().isVisible());
+      assert.ok(await page.getByText("Контекстный источник, не экранная опора:").first().isVisible());
     });
     await check(`${engine} production dossier source anchor`, page, async () => {
       await page.goto(`${base}/films/the-truman-show/making`, { waitUntil: "domcontentloaded" });

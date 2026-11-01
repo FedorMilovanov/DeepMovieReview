@@ -5,6 +5,7 @@ import { VerdictCore } from "@/components/experience/verdict-core";
 import { EvidenceBasisLine } from "@/components/evidence-basis";
 import { ReadingOutline } from "./reading-outline";
 import { ArticleTable } from "./article-table";
+import { ArticleCorrectionTable } from "./article-correction-table";
 import Link from "next/link";
 import type {
   ArticleBlock,
@@ -200,15 +201,22 @@ function ArticleBlockView({
           <p className="articleParagraph">{block.text}</p>
           {block.contextSourceIds?.length ? (
             <div className="articleContextSources">
-              <strong>Источники мысли, не фильма:</strong>{" "}
+              <strong>Контекстный источник, не экранная опора:</strong>{" "}
               {block.contextSourceIds.flatMap((id) => {
                 const source = contextSourcesById?.get(id);
                 return source ? [<a key={id} href={source.url}>{source.label} · {source.publisher}</a>] : [];
               })}
-              <p>Сопоставление с фильмом — редакционная аналогия; сцены проверяются отдельно.</p>
+              <p>Источник указан отдельно от проверенных сцен; сопоставление — редакционное чтение.</p>
             </div>
           ) : null}
-          {supports.length > 0 ? (
+          {supports.length === 1 ? (() => {
+            const record = supports[0];
+            return <p className="articleSupportSingle"><a href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>
+              Опора · {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)} · {record.label}
+              {record.basis?.material === "clip-frames" ? " · отдельные кадры фрагмента" : ""}
+              {!record.basis ? " · основа не записана" : record.basis.outcome !== "seen" ? ` · ${evidenceBasisOutcomeLabels[record.basis.outcome]}` : ""}
+            </a></p>;
+          })() : supports.length > 1 ? (
             <details className="articleSupport">
               <summary>
                 {supports.length === 1 ? "Опора этого абзаца" : `Опоры этого абзаца · ${supports.length}`}
@@ -335,24 +343,8 @@ function ArticleBlockView({
         </ArticleTable>
       );
     case "corrections":
-      return (
-        <ArticleTable blockId={block.id} caption={block.caption} corrections>
-          <thead>
-            <tr>
-              <th scope="col">Ходовое утверждение</th>
-              <th scope="col">Что в кадре</th>
-            </tr>
-          </thead>
-          <tbody>
-            {block.rows.map((row) => (
-              <tr key={row.id}>
-                <th scope="row">{row.commonClaim}</th>
-                <td>{row.onScreen}</td>
-              </tr>
-            ))}
-          </tbody>
-        </ArticleTable>
-      );
+      return <ArticleCorrectionTable block={block} filmSlug={filmSlug} spoilerLevel={spoilerLevel}
+        evidenceById={evidenceById} describeMeasurement={describeMeasurement} />;
   }
 }
 

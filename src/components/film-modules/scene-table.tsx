@@ -49,54 +49,62 @@ export function FilmSceneTable({
   return (
     <section className="sectionShell sectionRule filmSceneTable" aria-labelledby="film-scene-table-title">
       <div className="sectionIndex">Фильм / Сцены {researchDraft ? "· черновик" : "· статус реестра"}</div>
-      <h2 id="film-scene-table-title">Сцены, таймкоды и опоры.</h2>
+      <h2 id="film-scene-table-title" tabIndex={-1}>Сцены, таймкоды и опоры.</h2>
       <p className="sectionIntro">
         {verified} из {visibleScenes.length} сцен отмечены проверенными в реестре. Этот статус не означает
         непрерывного просмотра со звуком: у опоры в реестре указан материал проверки или отмечено, что он не записан.
-        В последней колонке — видимые на выбранном уровне опоры; раскройте число, чтобы перейти к записи.
+        У названия каждой сцены — опоры, доступные на выбранном уровне; раскройте их, чтобы перейти к записи.
         {hiddenScenes > 0
           ? ` Ещё ${hiddenScenes} сцен скрыто до выбранного уровня спойлеров.`
           : ""}
       </p>
-      <p className="microLabel">На узком экране таблицу можно прокрутить по горизонтали.</p>
-      <div className="filmSceneTableWrap" role="region" aria-label="Таблица сцен, горизонтальная прокрутка" tabIndex={0}>
+      <p className="microLabel">Название, время и опоры каждой сцены доступны и на узком экране.</p>
+      <div className="filmSceneTableWrap" role="region" aria-label="Таблица сцен" tabIndex={0}>
         <table>
           <caption className="visuallyHidden">
             Сцены фильма: начало, название, состояние проверки и число опор
           </caption>
           <thead>
             <tr>
-              <th scope="col">#</th>
-              <th scope="col">Начало</th>
-              <th scope="col">Сцена</th>
-              <th scope="col">Состояние</th>
-              <th scope="col">Опоры</th>
+              <th scope="col">Сцена и опоры</th>
+              <th className="filmSceneExtra" scope="col">#</th>
+              <th className="filmSceneExtra" scope="col">Начало</th>
+              <th className="filmSceneExtra" scope="col">Состояние</th>
             </tr>
           </thead>
           <tbody>
             {ordered.map((scene) => {
               const supports = evidencePerScene.get(scene.id) ?? [];
               return (
-                <tr key={scene.id} id={`scene-${scene.id}`}>
-                  <td className="filmSceneIndex">{String(scene.sequenceIndex).padStart(2, "0")}</td>
-                  <td className="filmSceneTime">{formatTimecode(scene.startTimestampSeconds)}</td>
-                  <th scope="row">{scene.shortLabel}</th>
-                  <td>
-                    <span className="filmSceneState" data-state={scene.verificationState.toLowerCase()}>
-                      {scene.verificationState === "VERIFIED" ? "проверена" : "черновая"}
+                <tr key={scene.id} id={`scene-${scene.id}`} tabIndex={-1}>
+                  <th scope="row">
+                    <span className="filmSceneName">{scene.shortLabel}</span>
+                    <span className="filmSceneMobileMeta">
+                      Сцена {String(scene.sequenceIndex).padStart(2, "0")} · {formatTimecode(scene.startTimestampSeconds)} · {scene.verificationState === "VERIFIED" ? "проверена" : "черновая"}
                     </span>
-                  </td>
-                  <td className="filmSceneSupports">
                     {supports.length ? (
-                      <details>
-                        <summary aria-label={`Опоры сцены «${scene.shortLabel}»: ${supports.length}`}>{supports.length}</summary>
+                      <details className="filmSceneSupports">
+                        <summary aria-label={`Опоры сцены «${scene.shortLabel}»: ${supports.length}`}>Опоры · {supports.length}</summary>
                         <ul>
                           {supports.map((record) => (
-                            <li key={record.id}><a href={`#evidence-${record.id}`}>{record.label}</a></li>
+                            <li key={record.id}><a href={`#evidence-${record.id}`}>{record.label} →</a></li>
                           ))}
                         </ul>
                       </details>
-                    ) : "—"}
+                    ) : <span className="filmSceneNoSupports">Нет видимых опор</span>}
+                    {(() => {
+                      const available = sceneReadings.find((item) => item.scene.id === scene.id)?.readings.length ?? 0;
+                      return available ? <a className="filmSceneReadingsLink" href={`#scene-lenses-${scene.id}`}>
+                        {available === 6 ? "Шесть прочтений одной сцены" : `Прочтения одной сцены · ${available}`} →
+                      </a> : null;
+                    })()}
+                  </th>
+                  <td className="filmSceneIndex filmSceneExtra">{String(scene.sequenceIndex).padStart(2, "0")}</td>
+                  <td className="filmSceneTime filmSceneExtra">{formatTimecode(scene.startTimestampSeconds)}</td>
+                  <td className="filmSceneExtra">
+                    <span className="filmSceneState" data-state={scene.verificationState.toLowerCase()}>
+                      {scene.verificationState === "VERIFIED" ? "проверена" : "черновая"}
+                    </span>
                   </td>
                 </tr>
               );
@@ -105,9 +113,9 @@ export function FilmSceneTable({
         </table>
       </div>
       {sceneReadings.map(({ scene, readings }) => (
-        <details className="sceneLensDetails" id={`scene-lenses-${scene.id}`} key={scene.id}>
-          <summary>Одна сцена — разные прочтения: {scene.shortLabel}</summary>
-          <p>Наблюдения и интерпретации ссылаются на записи этой сцены; пределы проверки указаны у каждой опоры.</p>
+        <details className="sceneLensDetails" id={`scene-lenses-${scene.id}`} key={scene.id} tabIndex={-1} open>
+          <summary>{readings.length === 6 ? "Шесть прочтений одной сцены" : `${readings.length} прочтений одной сцены`}: {scene.shortLabel}</summary>
+          <p>Это разные взгляды на один эпизод, а не отдельные полные разборы фильма. Наблюдения и интерпретации ссылаются на записи этой сцены; пределы проверки указаны у каждой опоры.</p>
           <ul>
             {readings.map((reading) => (
               <li key={reading.lens}>

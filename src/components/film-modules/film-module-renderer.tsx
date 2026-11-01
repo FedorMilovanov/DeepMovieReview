@@ -38,7 +38,7 @@ export function FilmModuleRenderer({ module, context }: FilmModuleRendererProps)
     case "meaning": return <MeaningModuleView module={module} />;
     case "teaching-signals": return <TeachingSignalsModuleView module={module} />;
     case "permission": return <PermissionModuleView module={module} />;
-    case "craft": return <CraftModuleView module={module} />;
+    case "craft": return <CraftModuleView module={module} context={context} />;
     case "autopsy": return <AutopsyModuleView module={module} />;
     case "decision": return <DecisionModuleView module={module} />;
     case "moral-analysis": return <MoralAnalysisModuleView module={module} />;

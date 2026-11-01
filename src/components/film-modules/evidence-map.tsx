@@ -318,7 +318,7 @@ function EvidenceRegister({
         кадры предоставленного фрагмента или субтитры — либо отмечает, что он не записан. Выборочные наблюдения
         не заменяют непрерывный просмотр со звуком.
       </p>
-      <p className="microLabel">На узком экране таблицу можно прокрутить по горизонтали.</p>
+      <p className="microLabel">На узком экране запись и её основа собраны вместе.</p>
       <div className="evidenceRegisterWrap" role="region" aria-label="Реестр проверок, горизонтальная прокрутка" tabIndex={0}>
         <table aria-labelledby="evidence-register-title">
           <caption className="visuallyHidden">
@@ -326,11 +326,11 @@ function EvidenceRegister({
           </caption>
           <thead>
             <tr>
-              <th scope="col">Таймкод</th>
-              <th scope="col">Сцена</th>
               <th scope="col">Запись</th>
-              <th scope="col">Основа</th>
-              <th scope="col">Итог</th>
+              <th className="evidenceRegisterExtra" scope="col">Таймкод</th>
+              <th className="evidenceRegisterExtra" scope="col">Сцена</th>
+              <th className="evidenceRegisterExtra" scope="col">Основа</th>
+              <th className="evidenceRegisterExtra" scope="col">Итог</th>
             </tr>
           </thead>
           <tbody>
@@ -345,13 +345,28 @@ function EvidenceRegister({
                   // carrying one id is invalid HTML that lands the reader somewhere
                   // arbitrary. Cards stay visual; the row owns «#evidence-<id>».
                   id={`evidence-${record.id}`}
+                  tabIndex={-1}
                 >
-                  <td className="evidenceRegisterTime">
+                  <th scope="row">
+                    {record.label}
+                    <p className="evidenceRegisterObservation">{record.observation}</p>
+                    <div className="evidenceRegisterMobileMeta">
+                      <span>Таймкод: {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}</span>
+                      <span>Сцена: {scene ? <a href={`#scene-${scene.id}`}>{scene.shortLabel}</a> : "—"}</span>
+                      {record.basis ? (
+                        <details className="evidenceRegisterBasis">
+                          <summary>Основа: {evidenceBasisMaterialLabels[record.basis.material]}</summary>
+                          <EvidenceBasisLine basis={record.basis} />
+                        </details>
+                      ) : <span>Основа: не записана</span>}
+                      <span>Итог: {record.basis ? evidenceBasisOutcomeLabels[record.basis.outcome] : "нет записи в журнале"}{record.basis?.refusedAncestor ? " · переписана после отказа" : ""}</span>
+                    </div>
+                  </th>
+                  <td className="evidenceRegisterTime evidenceRegisterExtra">
                     {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}
                   </td>
-                  <td>{scene ? <a href={`#scene-${scene.id}`}>{scene.shortLabel}</a> : "—"}</td>
-                  <th scope="row">{record.label}</th>
-                  <td>
+                  <td className="evidenceRegisterExtra">{scene ? <a href={`#scene-${scene.id}`}>{scene.shortLabel}</a> : "—"}</td>
+                  <td className="evidenceRegisterExtra">
                     {record.basis ? (
                       <details className="evidenceRegisterBasis">
                         <summary>{evidenceBasisMaterialLabels[record.basis.material]}</summary>
@@ -359,7 +374,7 @@ function EvidenceRegister({
                       </details>
                     ) : "не записана"}
                   </td>
-                  <td>
+                  <td className="evidenceRegisterExtra">
                     {record.basis ? evidenceBasisOutcomeLabels[record.basis.outcome] : "нет записи в журнале"}
                     {record.basis?.refusedAncestor ? " · переписана после отказа" : ""}
                   </td>

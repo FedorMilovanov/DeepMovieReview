@@ -1,5 +1,5 @@
 import type { ArticleMeasurementView } from "@/lib/film-article";
-import type { ArticleMeasurementRef } from "@/lib/film-package";
+import type { ArticleMeasurementMetadata, ArticleMeasurementRef } from "@/lib/film-package";
 import { trumanCanonicalScenes } from "./the-truman-show-scene-inventory";
 import rawMeasurements from "./the-truman-show-master-windows.json";
 
@@ -201,6 +201,29 @@ export function resolveTrumanMeasurement(ref: ArticleMeasurementRef): TrumanMeas
 }
 
 /**
+ * Spoiler metadata for every field produced by describeTrumanMeasurement.
+ * Named window/hold titles can contain editorial context: the span is checked
+ * against *all* intersected scenes by the article validator, not just its ends.
+ * The aggregate is deliberately generic and includes no individual scene label.
+ */
+export function trumanMeasurementMetadata(ref: ArticleMeasurementRef): ArticleMeasurementMetadata | undefined {
+  const record = resolveTrumanMeasurement(ref);
+  if (!record) return undefined;
+  if (ref.table === "totals") return { spoilerLevel: "NONE", context: { kind: "aggregate" } };
+  if (!("from" in record)) return undefined;
+  return {
+    // The most revealing titles are the named windows. The scene checks below
+    // are an independent lower bound, including intermediate scenes.
+    spoilerLevel: ref.table === "window" && (ref.id === "wall" || ref.id === "hes-gone")
+      ? "ENDING"
+      : ref.table === "window" || (ref.table === "hold" && ref.id === "hold-02")
+        ? "MINOR"
+        : "NONE",
+    context: { kind: "span", from: record.from, to: record.to },
+  };
+}
+
+/**
  * Digit strings the master measured. Article prose may not contain any of them:
  * a measured number is printed by the renderer from this dataset, so it cannot
  * drift the way a number retyped into a sentence does.
@@ -349,7 +372,8 @@ export function describeTrumanMeasurement(
 
   const silence = record as TrumanMeasuredSilence;
   return {
-    title: "У края нарисованного неба",
+    // This formatter serves every ranked gap, not only the final one.
+    title: "Промежуток без записей субтитров",
     primary: duration(silence.durationSeconds),
     secondary: transitionsPhrase(silence.detectedTransitions),
     detail: `${span(silence.from, silence.to)} · нет действующих записей субтитров; звук не проверен`,

@@ -136,7 +136,7 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
       frame(1960, "Street scene, dry."),
     ],
     note:
-      "The record may not be promoted as written, for two reasons, and the second one is the correction. First, the beat is not in chapter 08: the three sampled frames above are dry, and they stay in the ledger as what the window actually showed. Second, the beat itself is not absent from the film — a second pass over the master at 12:41–13:06 (previous chapter, at the water) shows a narrow stream of rain falling on the seated Truman, staying in place when he steps aside, and then widening over the whole scene. So the record's placement and its «the cloud follows him» staging both fail, while its subject survives: the retired record is rewritten as `truman-ev-rain` in `the-truman-show-canonical-evidence.ts`. The earlier reading of the subtitle track was also used wrongly here — the scene is nearly wordless, so the absence of the word «rain» in subtitles could never have settled the question.",
+      "The record may not be promoted as written: the three sampled chapter-08 frames above are dry, but three stills cannot prove the episode absent. A later supplied nominal-grid still shows Truman under a narrow stream, so the earlier denial of the episode was wrong. The prior ledger described a wider movement across 12:41–13:06, but the two recorded observations do not establish that sequence or its mechanism. The rewritten record `truman-ev-rain` is therefore limited to the visible still. Absence of the word «rain» in subtitles cannot settle a visual question.",
   },
   {
     evidenceId: "truman-ev-quota",
@@ -536,6 +536,20 @@ export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
     ],
     note:
       "Added after lock in the module-audit batch. It carries no claim about an earpiece or any device, and none about a retake: the track shows a repetition, not who repeats the line or why. An earlier note read the repetition as the same words reshot until they sounded right; that inference was not supported by the track and has been removed. The modules previously asserted an earpiece prompt that no ledger entry supported, and that assertion was removed as well.",
+  },
+  {
+    evidenceId: "truman-ev-cocoa-subtitles",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-mococoa",
+    frames: [frame(3226.152, "English SRT cue 382 begins with the Mococoa pitch; cues 383–384 continue it.")],
+    note: "The supplied SRT text was inspected independently. It does not establish the speaker, delivery or audio.",
+  },
+  {
+    evidenceId: "truman-ev-tools-subtitles",
+    status: "TRANSCRIPT_CONFIRMED",
+    sceneId: "truman-sc-mococoa",
+    frames: [frame(3265.943, "English SRT cue 390 begins: Dice me, slice me or peel me? There's so many choices.")],
+    note: "The supplied SRT text was inspected independently. It does not establish the speaker, delivery or audio.",
   },
   {
     evidenceId: "truman-ev-camera-count",

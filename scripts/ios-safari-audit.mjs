@@ -6,7 +6,7 @@ import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
-import { nativeSafari, noNativeEventsDelivered, waitForNativeValue } from "./lib/native-safari.mjs";
+import { nativeSafari, noNativeEventsDelivered, waitForNativeValue, waitForStableNativeTarget } from "./lib/native-safari.mjs";
 import { scrollToNativeTarget } from "./lib/ios-native-scroll.mjs";
 import { runNativeGestureXCTest } from "./lib/ios-xctest-gesture.mjs";
 import { noneArticleProjectionReached, parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
@@ -269,6 +269,34 @@ try {
 
     }
   }
+  // A fresh native Safari navigation lands directly on the same safe scene the
+  // homepage links to. Exercise the disclosure and evidence link with real
+  // WebDriver touch/element input, not JS scrolling or a synthetic click.
+  report.phase = "native iOS scene support and evidence";
+  const sceneRoute = "/films/the-truman-show?spoilers=none#scene-truman-sc-day-10909";
+  await safari.goto(`http://127.0.0.1:3213${sceneRoute}`);
+  const supportSelector = "#scene-truman-sc-day-10909 .filmSceneSupports summary";
+  const supportGeometry = await waitForStableNativeTarget(() => safari.execute(`const el = document.querySelector(${JSON.stringify(supportSelector)}), wrap = el.closest('.filmSceneTableWrap');
+    const r = el.getBoundingClientRect(), w = wrap.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    return { ready: document.readyState === 'complete' && document.fonts.status === 'loaded' && r.top >= 60 && r.bottom <= innerHeight,
+      rect: r.toJSON(), wrap: w.toJSON(), scrollLeft: wrap.scrollLeft, innerWidth, innerHeight, hitContained: !!hit && el.contains(hit) };`));
+  assert.ok(supportGeometry.rect.left >= supportGeometry.wrap.left && supportGeometry.rect.right <= supportGeometry.wrap.right + 1 &&
+    supportGeometry.rect.top >= 60 && supportGeometry.rect.bottom <= supportGeometry.innerHeight && supportGeometry.hitContained && supportGeometry.scrollLeft === 0,
+    `Mobile scene support must be visible and hittable without horizontal scrolling: ${JSON.stringify(supportGeometry)}`);
+  const disclosureState = () => safari.execute("return document.querySelector('#scene-truman-sc-day-10909 .filmSceneSupports').open ? 'open' : 'closed'");
+  const supportBy = await activate(supportSelector, disclosureState, "open", 10000, { scroll: false });
+  const evidenceSelector = '#scene-truman-sc-day-10909 .filmSceneSupports a[href="#evidence-truman-ev-daycount"]';
+  const evidenceLinkState = () => safari.execute("return location.hash === '#evidence-truman-ev-daycount' ? 'opened' : 'waiting'");
+  const evidenceBy = await activate(evidenceSelector, evidenceLinkState, "opened", 10000, { scroll: false });
+  const evidenceGeometry = await waitForStableNativeTarget(() => safari.execute(`const el = document.getElementById('evidence-truman-ev-daycount'), wrap = el.closest('.evidenceRegisterWrap'), r = el.getBoundingClientRect();
+    return { ready: r.top >= 60 && r.top < innerHeight, rect: r.toJSON(), scrollLeft: wrap.scrollLeft, text: el.innerText,
+      noneSelected: document.querySelector('.spoilerOption')?.getAttribute('aria-current') === 'true' };`));
+  assert.ok(evidenceGeometry.rect.top >= 60 && evidenceGeometry.rect.top < supportGeometry.innerHeight && evidenceGeometry.scrollLeft === 0 && evidenceGeometry.noneSelected,
+    `Native evidence target must be visible without changing the level: ${JSON.stringify(evidenceGeometry)}`);
+  for (const label of ["Титры", "Таймкод", "Сцена", "Основа", "Итог"]) assert.ok(evidenceGeometry.text.includes(label), `native evidence missing ${label}`);
+  evidence.actions.push({ route: sceneRoute, label: "native scene support → evidence", supportBy, evidenceBy, supportGeometry, evidenceGeometry });
+  evidence.screenshots.push({ route: `${sceneRoute} — evidence opened`, data: await safari.screenshot() });
+
   // Close the isolated SafariDriver automation window before XCUITest drives
   // normal MobileSafari. Both the earlier projection checks and this separate
   // native touch + scroll + post-scroll input remain required for the job.
