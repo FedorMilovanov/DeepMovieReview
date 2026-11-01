@@ -18,7 +18,7 @@ final class NativeGestureTests: XCTestCase {
         // the previous page's ordered trusted touchstart/end/click and real
         // expanded/navigation state. No gesture is replayed or synthesized.
         verifyMenu(in: safari, screenshot: "DMR-menu-home-open")
-        waitForPageMarker("Опубликованные разборы связывают", in: safari, name: "films index")
+        waitForPageMarker("Индекс предпросмотра", in: safari, name: "films index")
         verifyMenu(in: safari, screenshot: "DMR-menu-films-open")
         let articleRail = safari.buttons.matching(identifier: "Оглавление статьи").firstMatch
         XCTAssertTrue(articleRail.waitForExistence(timeout: 90), "The FULL article did not arrive for its menu test")

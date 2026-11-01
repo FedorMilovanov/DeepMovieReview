@@ -8,6 +8,20 @@ import { MacOSKeyCodes } from "@guidepup/guidepup";
 // rate or an unqualified (and now inaccurate) "0 переходов" announcement.
 export const libraryDetectionRowSpeech = /библиотека[\s\S]*\b0 обнаруженных переходов/i;
 
+// Both speech and native browser focus must identify the real skip link. Keep
+// spontaneous entry speech separate: Guidepup polls "last phrase" and may only
+// retain the subsequent help hint, so it must not be invented from DOM focus.
+export function validateVoiceOverSkipLink(entrySpeech, describedSpeech, focus) {
+  const name = /перейти к содержимому/i;
+  assert.match(entrySpeech.join(" "), /web content|перейти к содержимому/i, "VoiceOver must enter web content");
+  assert.match(describedSpeech.join(" "), name, "VoiceOver Describe Item must speak the link name");
+  assert.match(describedSpeech.join(" "), /link|ссылк/i, "VoiceOver Describe Item must speak the link role");
+  assert.equal(focus?.tag, "A", "Native focus must be on a link");
+  assert.equal(focus?.href, "#main", "Native focus must target main content");
+  assert.match(focus?.text ?? "", name, "Native focus must be the named skip link");
+  return { automaticNameObserved: name.test(entrySpeech.join(" ")) };
+}
+
 // NVDA may announce the table caption without literally saying "caption".
 // Only an explicit cell coordinate proves that row-navigation is ready.
 export function firstTableCellSpoken(phrases) {

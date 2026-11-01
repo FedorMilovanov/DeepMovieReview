@@ -438,6 +438,21 @@ test("late native VoiceOver speech is awaited without replaying navigation", asy
   assert.deepEqual(result.readErrors, []);
 });
 
+test("VoiceOver entry and on-demand skip-link description remain distinct, with native focus required", async () => {
+  const { validateVoiceOverSkipLink } = await import("../scripts/lib/assistive-commands.mjs");
+  const focus = { tag: "A", text: "Перейти к содержимому", href: "#main" };
+  const description = ["Перейти к содержимому link is in the VoiceOver cursor"];
+  assert.deepEqual(validateVoiceOverSkipLink(["You are currently on a link, inside of web content"], description, focus),
+    { automaticNameObserved: false });
+  assert.deepEqual(validateVoiceOverSkipLink(["web content link Перейти к содержимому"], description, focus),
+    { automaticNameObserved: true });
+  assert.throws(() => validateVoiceOverSkipLink(["web content"], ["link"], focus), /must speak the link name/);
+  assert.throws(() => validateVoiceOverSkipLink(["web content"], ["Перейти к содержимому"], focus), /must speak the link role/);
+  assert.throws(() => validateVoiceOverSkipLink(["window"], description, focus), /must enter web content/);
+  assert.throws(() => validateVoiceOverSkipLink(["web content"], description, { ...focus, href: "#elsewhere" }), /must target main/);
+  assert.throws(() => validateVoiceOverSkipLink(["web content"], description, { ...focus, text: "другая ссылка" }), /named skip link/);
+});
+
 test("native speech timeout never manufactures a semantic pass", async () => {
   const { settleNativeSpeech } = await import("../scripts/lib/assistive-commands.mjs");
   let clock = 0;

@@ -10,6 +10,23 @@ import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, selectNativeGestu
   validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "./ios-gesture-probe.mjs";
 import { parseArticleSectionIds } from "./ios-spoiler-observation.mjs";
 import { collectTouchDiagnostics } from "./ios-touch-diagnostics.mjs";
+import { normaliseSpace, stripScripts, stripTags } from "./html-scan.mjs";
+
+// Real rendered route text, not injected test-only accessibility markers. The
+// CI build opts into preview content, which has different index copy from public.
+export const nativeRouteMarkers = Object.freeze({
+  "/films": "Индекс предпросмотра",
+  [`${nativeScenePath}/making`]: "поиск режиссёра и город",
+});
+export function validateNativeRouteMarker(html, marker) {
+  assert.ok(normaliseSpace(stripTags(stripScripts(html))).includes(marker), `Native route marker is absent from rendered HTML: ${marker}`);
+}
+async function routeMarkerBaseline(base, route, marker) {
+  const response = await fetch(`${base}${route}`, { signal: AbortSignal.timeout(30000) });
+  assert.equal(response.status, 200, `Native route marker baseline failed: ${route}`);
+  assert.match(response.headers.get("content-type") ?? "", /text\/html/i);
+  validateNativeRouteMarker(await response.text(), marker);
+}
 
 const exec = promisify(execFile);
 const screenshotSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -108,6 +125,9 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
       expectedSectionIds.every((id, index) => id === fullSectionIds[index]) && !expectedSectionIds.includes(fullSectionIds.at(-1)),
     "NONE SSR must be a proper prefix of FULL SSR");
     report.spoilerBaseline = { fullSectionIds, expectedSectionIds, lastSectionId: fullSectionIds.at(-1) };
+    await Promise.all(Object.entries(nativeRouteMarkers).map(([route, marker]) =>
+      routeMarkerBaseline("http://127.0.0.1:3213", route, marker)));
+    report.routeMarkerBaselines = nativeRouteMarkers;
     proxy = await startNativeObservationProxy({ spoilerLastSectionId: fullSectionIds.at(-1), onEvent: event => {
       // Schedule each following route only after the complete preceding native
       // open/close is independently observed. Beacons may arrive out of order;

@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, settleNativeSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
+import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, settleNativeSpeech, validateVoiceOverSkipLink, warmVoiceOver } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -77,6 +77,25 @@ async function action(label, run, expected) {
     assert.match(speech.join(" "), pattern, `${label}: actual spoken output`);
   }
   return speech;
+}
+// Read-only Describe Item independently names the VoiceOver cursor. The entry
+// and description remain separate recordings; a generic help phrase or DOM
+// focus alone never counts as spoken link semantics.
+async function enterVoiceOverWebArea(prefix, probeKey) {
+  let entrySpeech, describedSpeech, focus;
+  try {
+    entrySpeech = await action(`${prefix} enter web area`, () => perform(reader.keyboardCommands.interactWithItem, navigationOptions), /web content|перейти к содержимому/i);
+    describedSpeech = await action(`${prefix} describe skip link`, () => perform(reader.keyboardCommands.describeItem, navigationOptions), [/перейти к содержимому/i, /link|ссылк/i]);
+  } finally {
+    try { focus = await safari.focus(); }
+    catch (error) { focus = { error: error.message }; }
+    evidence[probeKey] = focus;
+    report[probeKey] = focus;
+    checkpoint(`${prefix} enter web area: native focus probed`);
+  }
+  const observation = validateVoiceOverSkipLink(entrySpeech, describedSpeech, focus);
+  evidence.actions.push({ label: `${prefix} entry speech observation`, ...observation });
+  checkpoint(`${prefix} skip link verified`);
 }
 // Move the real screen-reader cursor through the current table, capturing each
 // utterance. A row may expose text and its disclosure as separate AX objects;
@@ -153,21 +172,9 @@ try {
     await action("VoiceOver Item Chooser", () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), /item chooser|VoiceOver Menu/i);
     await action("VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
     await action("VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
-    // With the real page (no injected marker), interact already reaches its
-    // skip link. An extra next moves into the banner instead of finding h1.
-    let focusProbe;
-    try {
-      await action("VoiceOver enter web area", () => perform(reader.keyboardCommands.interactWithItem, navigationOptions), /перейти к содержимому/i);
-    } finally {
-      // Diagnose native focus separately from speech: a silent name is not the
-      // same defect as focus landing on another control. Never relax the speech
-      // assertion to the generic web-area help phrase.
-      try { focusProbe = await safari.focus(); }
-      catch (error) { focusProbe = { error: error.message }; }
-      evidence.focusProbe = focusProbe;
-      report.focusProbe = focusProbe;
-      checkpoint("VoiceOver enter web area: native focus probed");
-    }
+    // With the real page (no injected marker), interact reaches its skip link.
+    // An extra next would move into the banner instead of finding h1.
+    await enterVoiceOverWebArea("VoiceOver", "focusProbe");
   } else {
     await page.bringToFront();
     await perform(reader.keyboardCommands.exitFocusMode, { capture: false });
@@ -271,7 +278,7 @@ try {
     await action("mobile VoiceOver Item Chooser", () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), /item chooser|VoiceOver Menu/i);
     await action("mobile VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
     await action("mobile VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
-    await action("mobile VoiceOver enter web area", () => perform(reader.keyboardCommands.interactWithItem, navigationOptions), /перейти к содержимому/i);
+    await enterVoiceOverWebArea("mobile VoiceOver", "mobileFocusProbe");
   } else {
     await page.bringToFront();
     await perform(reader.keyboardCommands.exitFocusMode, { capture: false });

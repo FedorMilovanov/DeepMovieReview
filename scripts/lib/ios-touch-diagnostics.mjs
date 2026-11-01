@@ -27,7 +27,7 @@ export function cancelledTouchWindow(events) {
 export function touchLogExcerpt(text) {
   return String(text).split(/\r?\n/).filter(line => /\b(?:backboardd|testmanagerd)\b/i.test(line) &&
     /(?:digitizer|senderID|skipping event|touch down|range.in|canceling paths|playback|service cancel)/i.test(line) &&
-    !/(?:GH_TOKEN|authorization:|bearer\s|password|secret)/i.test(line))
+    !/(?:https?:\/\/|\btoken\b|GH_TOKEN|authorization:|bearer\s|password|secret)/i.test(line))
     .slice(0, 60).map(line => line.slice(0, 800)).join("\n").slice(0, 16000);
 }
 

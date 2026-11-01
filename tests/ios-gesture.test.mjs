@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import http from "node:http";
 import { once } from "node:events";
 import vm from "node:vm";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "../scripts/lib/ios-gesture-probe.mjs";
-import { shouldRunGestureAfterDriverFailure, validateMenuNavigationOutcome, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
+import { nativeRouteMarkers, shouldRunGestureAfterDriverFailure, validateMenuNavigationOutcome, validateNativeRouteMarker, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
 import { cancelledTouchWindow, collectTouchDiagnostics, touchLogExcerpt } from "../scripts/lib/ios-touch-diagnostics.mjs";
 
 const origin = "http://127.0.0.1:1234";
@@ -227,6 +229,17 @@ test("native scene trace requires trusted touches, the real disclosure, visible 
   ]) { const rows = trace(); change(rows); assert.throws(() => validateNativeSceneTrace(rows, origin), undefined, name); }
 });
 
+test("native route markers match the XCTest source and must exist in rendered HTML, not scripts", () => {
+  const swift = readFileSync("scripts/ios-native-ui/Tests/NativeGestureTests.swift", "utf8");
+  for (const marker of Object.values(nativeRouteMarkers)) {
+    assert.ok(swift.includes(`waitForPageMarker("${marker}"`), `XCTest must wait for the same actual route text: ${marker}`);
+    assert.doesNotThrow(() => validateNativeRouteMarker(`<p>${marker}: visible text</p>`, marker));
+    assert.throws(() => validateNativeRouteMarker(`<p>Other page</p><script>${marker}</script>`, marker), /marker is absent/);
+    assert.throws(() => validateNativeRouteMarker(`<p title="${marker}">Other page</p>`, marker), /marker is absent/);
+  }
+  assert.equal(nativeRouteMarkers["/films"], "Индекс предпросмотра", "Preview CI must not wait for the public-only index copy");
+});
+
 test("OS touch diagnostics are bounded, retain cancellation provenance and never infer a cause", () => {
   const start = { kind: "touchstart", trusted: true, timestamp: 100000, pageId: "one", seq: 3 };
   const cancel = { kind: "touchcancel", trusted: true, timestamp: 100120, pageId: "one", seq: 4 };
@@ -239,10 +252,11 @@ test("OS touch diagnostics are bounded, retain cancellation provenance and never
   assert.equal(cancelledTouchWindow([start, { ...cancel, seq: 5 }, { ...start, seq: 4, kind: "touchend" }]), null);
   const log = ["2026 backboardd[12] unknown digitizer and skipping event",
     "2026 testmanagerd[4] playback initiated", "2026 unrelated[5] unknown digitizer",
-    "2026 backboardd[12] unrelated line", "2026 backboardd[12] digitizer GH_TOKEN secret"].join("\n");
+    "2026 backboardd[12] unrelated line", "2026 backboardd[12] digitizer GH_TOKEN secret",
+    "2026 testmanagerd[4] playback https://example.invalid/path"].join("\n");
   const excerpt = touchLogExcerpt(log);
   assert.match(excerpt, /unknown digitizer/); assert.match(excerpt, /playback initiated/);
-  assert.doesNotMatch(excerpt, /unrelated|GH_TOKEN|secret/);
+  assert.doesNotMatch(excerpt, /unrelated|GH_TOKEN|secret|example\.invalid/);
   assert.ok(touchLogExcerpt(Array(100).fill("backboardd digitizer " + "x".repeat(1000)).join("\n")).length <= 16000);
 });
 
@@ -274,6 +288,39 @@ test("touch forensics selects exactly the failed device archive and stays diagno
     mkdirSync(args[args.indexOf("--output-path") + 1], { recursive: true }); return { stdout: "" };
   } });
   assert.equal(missing.status, "device-logarchive-unavailable-or-ambiguous");
+});
+
+test("historical iOS recovery validates provenance and publishes only a neutral diagnostic", { skip: process.platform === "win32" }, () => {
+  const directory = mkdtempSync(join(tmpdir(), "dmr-history-test-"));
+  const fake = join(directory, "gh"), calls = join(directory, "posted.json"), previous = "a".repeat(40);
+  try {
+    writeFileSync(fake, `#!/usr/bin/env node
+const fs = require("node:fs"), path = require("node:path");
+const a = process.argv.slice(2), current = process.env.DMR_FAKE_CURRENT, previous = "${previous}";
+if (a.includes("--status")) process.exit(9);
+if (a[0] === "run" && a[1] === "list") console.log(JSON.stringify([
+  { databaseId: 2, headSha: current, status: "in_progress", url: "https://github.com/current" },
+  { databaseId: 1, headSha: previous, status: "completed", url: "https://github.com/prior" }]));
+else if (a[0] === "run" && a[1] === "view") console.log(JSON.stringify({ jobs: [{ name: "Native iOS Safari", conclusion: "failure" }] }));
+else if (a[0] === "run" && a[1] === "download") {
+  const root = path.join(a[a.indexOf("--dir") + 1], "ios-gesture"); fs.mkdirSync(path.join(root, "native-gesture.xcresult"), { recursive: true });
+  fs.writeFileSync(path.join(root, "summary.json"), JSON.stringify({ revision: process.env.DMR_FAKE_BAD ? "bad" : previous, failures: ["failed"], events: [] }));
+} else if (a[0] === "api" && a.includes("POST")) { fs.writeFileSync(process.env.DMR_FAKE_CALLS, JSON.stringify(a)); console.log("{}"); }
+else if (a[0] === "api") console.log(JSON.stringify({ artifacts: [{ id: 42, name: "actual-ios-" + previous, expired: false, size_in_bytes: 1000 }] }));
+else process.exit(8);
+`, { mode: 0o755 });
+    const current = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const env = { ...process.env, PATH: `${directory}:${process.env.PATH}`, GITHUB_HEAD_REF: "session", GITHUB_REPOSITORY: "owner/repo",
+      DMR_FAKE_CURRENT: current, DMR_FAKE_CALLS: calls };
+    const run = extra => execFileSync(process.execPath, ["scripts/recover-prior-ios-touch.mjs"], { encoding: "utf8", env: { ...env, ...extra }, timeout: 10000 });
+    const result = run({});
+    assert.match(result, new RegExp(previous)); assert.match(result, /artifact 42/); assert.match(result, /no-observed-complete-cancellation-window/);
+    const posted = JSON.parse(readFileSync(calls, "utf8"));
+    assert.ok(posted.includes("conclusion=neutral")); assert.ok(posted.some(arg => arg.includes("historical only")));
+    assert.ok(posted.some(arg => arg.includes(previous) && arg.includes("does not change any native test verdict")));
+    const rejected = run({ DMR_FAKE_BAD: "true" });
+    assert.match(rejected, /unavailable at artifact validation/); assert.doesNotMatch(rejected, /artifact 42/);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
 test("a failed driver allows only one independent gesture on an established booted simulator", () => {
