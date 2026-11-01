@@ -1,6 +1,6 @@
 // Optional, bounded historical diagnostics only; never a verdict on the current head.
 import { execFileSync } from "node:child_process";
-import { iosTransportErrorExcerpt } from "./lib/ios-transport-history.mjs";
+import { appShellFailureExcerpt, iosTransportErrorExcerpt } from "./lib/ios-transport-history.mjs";
 
 const escape = text => String(text).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A");
 const notice = text => console.log(`::notice title=Historical iOS transport::${escape(text)}`);
@@ -10,10 +10,21 @@ try {
   const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
   const runs = JSON.parse(gh(["run", "list", "--workflow", "CI", "--branch", process.env.GITHUB_HEAD_REF,
     "--status", "completed", "--limit", "5", "--json", "databaseId,headSha,url"]));
-  let recovered = false;
+  let recovered = false, appShellReviewed = false;
   for (const run of runs) {
     if (run.headSha === head) continue;
     const details = JSON.parse(gh(["run", "view", String(run.databaseId), "--json", "jobs"]));
+    const app = details.jobs.find(item => item.name === "app-shell");
+    if (!appShellReviewed && app?.conclusion === "success" && process.env.GITHUB_REPOSITORY) {
+      appShellReviewed = true;
+      try {
+        const annotations = JSON.parse(gh(["api", `repos/${process.env.GITHUB_REPOSITORY}/check-runs/${app.databaseId}/annotations?per_page=100`]));
+        if (annotations.some(item => item.annotation_level === "failure")) {
+          const excerpt = appShellFailureExcerpt(gh(["run", "view", String(run.databaseId), "--job", String(app.databaseId), "--log"]));
+          notice(`Prior app-shell SHA ${run.headSha}; run ${run.url}; job succeeded but carried a failure annotation. ${excerpt || "No bounded step error recovered; cause remains unknown."}`);
+        }
+      } catch { notice(`Prior app-shell SHA ${run.headSha}: annotation diagnostics unavailable; no cause claimed.`); }
+    }
     const job = details.jobs.find(item => item.name === "Native iOS Safari");
     const native = job?.steps.find(step => step.name === "Native iOS Safari on installed iPhone Simulator");
     const publication = job?.steps.find(step => step.name === "Publish native iOS Safari evidence");

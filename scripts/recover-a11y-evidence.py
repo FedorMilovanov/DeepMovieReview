@@ -14,7 +14,10 @@ branch = os.environ["GITHUB_HEAD_REF"]
 runs = json.loads(gh("run", "list", "--workflow", "CI", "--branch", branch,
                      "--status", "success", "--limit", "1", "--json", "databaseId,headSha"))
 if not runs:
-    raise SystemExit("No previous successful CI run to recover")
+    # Historical evidence is optional and is never a stand-in for this run.
+    # A new branch may not have any successful prior run yet.
+    print("No previous successful CI run to recover; no historical evidence claimed", flush=True)
+    raise SystemExit(0)
 run = runs[0]
 with tempfile.TemporaryDirectory(prefix="dmr-history-") as directory:
     subprocess.run(["gh", "run", "download", str(run["databaseId"]), "--pattern",

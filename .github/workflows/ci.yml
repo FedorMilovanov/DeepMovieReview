@@ -651,7 +651,7 @@ jobs:
             at-report/ios-gesture/
           if-no-files-found: error
           retention-days: 7
-      - name: Recover bounded prior iOS transport diagnostic
+      - name: Recover bounded prior CI diagnostics
         if: always() && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}

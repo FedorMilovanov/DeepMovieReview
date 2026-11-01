@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { decodeEvidence, evidenceManifest } from "../scripts/lib/evidence-transfer.mjs";
 import { planEvidence, publishEvidence } from "../scripts/lib/evidence-publisher.mjs";
-import { iosTransportErrorExcerpt } from "../scripts/lib/ios-transport-history.mjs";
+import { appShellFailureExcerpt, iosTransportErrorExcerpt } from "../scripts/lib/ios-transport-history.mjs";
 
 const revision = "a".repeat(40), head = "b".repeat(40);
 
@@ -157,6 +157,30 @@ test("historical iOS diagnostics keep only bounded transport errors from that st
   ].join("\n");
   assert.equal(iosTransportErrorExcerpt(log), "AssertionError [ERR_ASSERTION]: Evidence exceeds Checks API budget");
   assert.ok(iosTransportErrorExcerpt(log.repeat(1000)).length <= 3200);
+});
+
+test("historical app-shell diagnostics identify the step without copying arbitrary logs", () => {
+  const log = [
+    "app-shell\tRecover previous successful accessibility evidence\t2026-11-01T03:02:00Z No previous successful CI run to recover",
+    "app-shell\tRecover previous successful accessibility evidence\t2026-11-01T03:02:01Z ##[error]Process completed with exit code 1.",
+    "app-shell\tRecover previous successful accessibility evidence\t2026-11-01T03:02:02Z unrelated sensitive-looking text",
+  ].join("\n");
+  const excerpt = appShellFailureExcerpt(log);
+  assert.match(excerpt, /Recover previous successful accessibility evidence: No previous successful CI run to recover/);
+  assert.match(excerpt, /Process completed with exit code 1/);
+  assert.doesNotMatch(excerpt, /sensitive-looking/);
+});
+
+test("optional recovery does not fail when no previous successful CI run exists", {
+  skip: process.platform === "win32" ? "This CLI fixture uses a POSIX gh shim" : false,
+}, () => {
+  const dir = mkdtempSync(join(tmpdir(), "dmr-no-success-history-"));
+  try {
+    writeFileSync(join(dir, "gh"), '#!/bin/sh\nprintf "[]\\n"\n', { mode: 0o755 });
+    const stdout = execFileSync("python3", ["scripts/recover-a11y-evidence.py"], { encoding: "utf8",
+      env: { ...process.env, GITHUB_HEAD_REF: "new-branch", PATH: `${dir}:${process.env.PATH}` } });
+    assert.match(stdout, /No previous successful CI run to recover; no historical evidence claimed/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test("historical diagnostic reports only an earlier failed publication, never the current head", {
