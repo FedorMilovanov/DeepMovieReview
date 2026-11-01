@@ -51,7 +51,7 @@ async function articleSectionBaseline(url) {
   return parseArticleSectionIds(await response.text());
 }
 
-async function runXcodebuild(args, logFile, deadlineMs = 480000) {
+async function runXcodebuild(args, logFile, deadlineMs = 660000) {
   const output = createWriteStream(logFile, { flags: "wx" });
   const child = spawn("xcodebuild", args, { stdio: ["ignore", "pipe", "pipe"] });
   let tail = "", timedOut = false;
@@ -129,8 +129,12 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     const args = ["test", "-project", project, "-scheme", "NativeGesture",
       "-destination", `platform=iOS Simulator,id=${device.udid}`, "-parallel-testing-enabled", "NO",
       "-derivedDataPath", derivedData, "-resultBundlePath", bundle];
-    report.xcodebuild = { args, timeoutMs: 480000 };
-    run = await runXcodebuild(args, join(root, "xcodebuild.log"));
+    // The hosted runner needed more than eight minutes to start XCTest,
+    // execute its assertions and finish failure teardown on e07dd23. Allow
+    // eleven bounded minutes; this does not retry any input or relax the gate.
+    const timeoutMs = 660000;
+    report.xcodebuild = { args, timeoutMs };
+    run = await runXcodebuild(args, join(root, "xcodebuild.log"), timeoutMs);
     report.xcodebuild = { ...report.xcodebuild, ...run };
     // Allow in-flight same-origin beacon requests to reach the loopback proxy.
     await delay(1000);
@@ -168,7 +172,7 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
       assert.ok(bytes.subarray(0, 8).equals(screenshotSignature), `${name} is not a PNG`);
       const sha256 = createHash("sha256").update(bytes).digest("hex");
       const route = name.startsWith("DMR-scene-") ? `${nativeScenePath}?spoilers=none` :
-        name === "DMR-spoiler-after-none" ? nativeArticlePath : `${nativeArticlePath}?spoilers=full`;
+        name === "DMR-spoiler-after-input" ? `${nativeArticlePath} (post-input screenshot; URL verified separately)` : `${nativeArticlePath}?spoilers=full`;
       evidence.screenshots.push({ route: `${route} — ${name}`, data: bytes.toString("base64") });
       return { name, file, sha256, bytes: bytes.length };
     });

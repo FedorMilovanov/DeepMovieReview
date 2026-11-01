@@ -70,18 +70,22 @@ final class NativeGestureTests: XCTestCase {
         // test performs the one native NONE tap, and the passive observer must
         // independently see touchstart/end, a trusted click and the exact NONE
         // server projection. XCTest success or the screenshot is not enough.
-        let fullMarker = safari.links.matching(NSPredicate(format: "label CONTAINS %@", "Редакционная оценка")).firstMatch
-        XCTAssertTrue(fullMarker.waitForExistence(timeout: 90), "The fresh FULL article did not appear after the scene")
+        // The visible reading rail uniquely distinguishes the article from the
+        // scene page. On e07dd23 the observer saw the returned FULL article but
+        // XCTest did not find a different, FULL-only link; do not assume that
+        // unrelated link is exposed in Mobile Safari's accessibility tree.
+        let returnedRail = safari.buttons.matching(identifier: "Оглавление статьи").firstMatch
+        XCTAssertTrue(returnedRail.waitForExistence(timeout: 90), "The article's reading rail did not return after the scene")
         let noSpoilers = safari.links.matching(NSPredicate(format: "label CONTAINS %@", "Без спойлеров")).firstMatch
         XCTAssertTrue(noSpoilers.waitForExistence(timeout: 20), "The NONE spoiler option is absent from Mobile Safari's accessibility tree")
         Thread.sleep(forTimeInterval: 2)
         capture("DMR-spoiler-before-full")
         tapVisibleCenter(noSpoilers, in: safari, name: "NONE spoiler option")
-        let disappeared = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: fullMarker)
-        XCTAssertEqual(XCTWaiter.wait(for: [disappeared], timeout: 60), .completed,
-                       "The FULL-only article link remained after the native NONE tap")
-        Thread.sleep(forTimeInterval: 1)
-        capture("DMR-spoiler-after-none")
+        // A screenshot after input is diagnostic, not a projection assertion.
+        // The independent observer strictly requires the new NONE document,
+        // its exact SSR sections and the trusted uninterrupted touch + click.
+        Thread.sleep(forTimeInterval: 5)
+        capture("DMR-spoiler-after-input")
     }
 
     @MainActor

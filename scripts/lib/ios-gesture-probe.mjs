@@ -376,7 +376,7 @@ export function selectNativeGestureAttachments(manifest) {
   assert.ok(Array.isArray(manifest));
   const names = ["DMR-before-native-scroll", "DMR-after-native-scroll", "DMR-after-native-rail-tap",
     "DMR-scene-before-support", "DMR-scene-support-open", "DMR-scene-evidence",
-    "DMR-spoiler-before-full", "DMR-spoiler-after-none"];
+    "DMR-spoiler-before-full", "DMR-spoiler-after-input"];
   const rows = manifest.flatMap(test => test.attachments ?? []);
   return names.map(name => {
     const found = rows.filter(row => typeof row.suggestedHumanReadableName === "string" &&

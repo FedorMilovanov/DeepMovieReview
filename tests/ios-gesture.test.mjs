@@ -180,7 +180,7 @@ test("XCTest evidence must contain exactly one passed, unskipped test on the cho
 test("XCTest exports only the explicitly named screenshots, not arbitrary failure images", () => {
   const rows = ["DMR-before-native-scroll", "DMR-after-native-scroll", "DMR-after-native-rail-tap",
     "DMR-scene-before-support", "DMR-scene-support-open", "DMR-scene-evidence",
-    "DMR-spoiler-before-full", "DMR-spoiler-after-none"].map((name, i) => ({
+    "DMR-spoiler-before-full", "DMR-spoiler-after-input"].map((name, i) => ({
     suggestedHumanReadableName: `${name}_0_AAAAAAAA-BBBB.png`, exportedFileName: `F${i}-A.png`,
   }));
   assert.deepEqual(selectNativeGestureAttachments([{ attachments: [...rows, { suggestedHumanReadableName: "Failure", exportedFileName: "fail.png" }] }]).map(x => x.file), ["F0-A.png", "F1-A.png", "F2-A.png", "F3-A.png", "F4-A.png", "F5-A.png", "F6-A.png", "F7-A.png"]);
