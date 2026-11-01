@@ -448,6 +448,18 @@ test("native speech timeout never manufactures a semantic pass", async () => {
   assert.doesNotMatch(result.speech.join(" "), /VoiceOver Menu/);
 });
 
+test("actual screen reader table assertion requires the named row and detected count", async () => {
+  const { libraryDetectionRowSpeech } = await import("../scripts/lib/assistive-commands.mjs");
+  // Actual speech from the c3f1771 NVDA and VoiceOver runs; neither is a mock
+  // substitute for running the real AT scenario after a change.
+  assert.match("Библиотека: Труман, посетители и девушка в красном 22:00–23:00 1:00 0,0 перехода в минуту, row 2, 0 обнаруженных переходов", libraryDetectionRowSpeech);
+  assert.match("row 2 of 5 Библиотека: Труман, посетители и девушка в красном and 22:00–23:00 · 1:00 · 0,0 перехода в минуту 0 обнаруженных переходов", libraryDetectionRowSpeech);
+  assert.doesNotMatch("Библиотека · 0,0 перехода в минуту", libraryDetectionRowSpeech);
+  assert.doesNotMatch("Библиотека · 10 обнаруженных переходов", libraryDetectionRowSpeech);
+  assert.doesNotMatch("Стена · 0 обнаруженных переходов", libraryDetectionRowSpeech);
+  assert.doesNotMatch("Библиотека · 0 переходов", libraryDetectionRowSpeech);
+});
+
 test("scoped rendered contrast bounds skip unrelated page tiles without changing whole-document scope", async () => {
   const { restrictContrastToTargets } = await import("../scripts/lib/rendered-contrast.mjs");
   assert.equal(restrictContrastToTargets("document", false), false);

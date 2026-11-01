@@ -4,6 +4,10 @@ import { promisify } from "node:util";
 import { setTimeout as delay } from "node:timers/promises";
 import { MacOSKeyCodes } from "@guidepup/guidepup";
 
+// Require the named row and the actual detector count, not the nearby 0,0/min
+// rate or an unqualified (and now inaccurate) "0 переходов" announcement.
+export const libraryDetectionRowSpeech = /библиотека[\s\S]*\b0 обнаруженных переходов/i;
+
 // Keep Guidepup's native command mapping, but send it via reader.press: unlike
 // reader.perform(keyboardCommand), this does not activate VoiceOver's app first.
 export function macKeyboardShortcut(command) {
