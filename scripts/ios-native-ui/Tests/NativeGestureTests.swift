@@ -43,19 +43,39 @@ final class NativeGestureTests: XCTestCase {
         let foundButton = button.waitForExistence(timeout: 65)
         let support = foundButton ? button : other
         XCTAssertTrue(foundButton || other.waitForExistence(timeout: 10), "Scene disclosure is absent from Safari's accessibility tree")
-        XCTAssertTrue(support.isHittable, "Scene disclosure is not visible without horizontal scrolling")
+        // Hash scrolling and Safari chrome can still be settling when the AX
+        // node appears. XCTest's isHittable/activation-point resolver reported
+        // an invalid point on 683fc54 even though the independent observer and
+        // screenshot showed the control in the viewport. Use an explicit native
+        // coordinate based on the AX frame, not a DOM click or synthetic event.
+        // The independent observer still requires a real touch on this exact
+        // visible control and verifies its open state; this is not an iOS
+        // VoiceOver test and does not diagnose XCTest's AX resolver failure.
+        Thread.sleep(forTimeInterval: 3)
         capture("DMR-scene-before-support")
-        support.tap()
+        tapVisibleCenter(support, in: safari, name: "Scene disclosure")
         // The same evidence name also appears farther down the register. Match
         // the scene-scoped accessible name, not the first similarly named link.
         let linkName = "«День 10 909» — опора сцены «День 10 909»"
         let link = safari.links.matching(NSPredicate(format: "label CONTAINS %@", linkName)).firstMatch
         XCTAssertTrue(link.waitForExistence(timeout: 20), "Opening the scene disclosure did not expose its evidence link")
-        XCTAssertTrue(link.isHittable, "Evidence link is not visible after opening the disclosure: \(link.label), \(link.frame)")
+        Thread.sleep(forTimeInterval: 1)
         capture("DMR-scene-support-open")
-        link.tap()
+        tapVisibleCenter(link, in: safari, name: "Scene evidence link")
         Thread.sleep(forTimeInterval: 2)
         capture("DMR-scene-evidence")
+    }
+
+    @MainActor
+    private func tapVisibleCenter(_ element: XCUIElement, in app: XCUIApplication, name: String) {
+        let frame = element.frame
+        let center = CGPoint(x: frame.midX, y: frame.midY)
+        let appFrame = app.frame
+        print("DMR native coordinate: \(name), frame=\(frame), app=\(appFrame)")
+        XCTAssertGreaterThan(frame.width, 0, "\(name) must have a nonempty native accessibility frame")
+        XCTAssertGreaterThan(frame.height, 0, "\(name) must have a nonempty native accessibility frame")
+        XCTAssertTrue(appFrame.contains(center), "\(name) accessibility frame must intersect the native screen: \(frame)")
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
     }
 
     @MainActor

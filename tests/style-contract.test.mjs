@@ -449,13 +449,16 @@ test("native speech timeout never manufactures a semantic pass", async () => {
 });
 
 test("NVDA table captions are not mistaken for an active table cell", async () => {
-  const { firstTableCellSpoken } = await import("../scripts/lib/assistive-commands.mjs");
+  const { firstTableCellSpoken, firstTableHeaderSpoken } = await import("../scripts/lib/assistive-commands.mjs");
   // These two are actual utterances from 4ec11cb; the second caption has no
   // literal "caption" word even though row navigation says "Not in a table cell".
   assert.equal(firstTableCellSpoken(["table, with 7 rows and 1 column, caption, Сцены фильма"]), false);
   assert.equal(firstTableCellSpoken(["table, with 8 rows and 1 column, Реестр проверок: таймкод, сцена, запись"]), false);
   assert.equal(firstTableCellSpoken(["out of caption, row 1, column 1, ЗАПИСЬ"]), true);
   assert.equal(firstTableCellSpoken(["строка 1, столбец 1, Запись"]), true);
+  assert.equal(firstTableHeaderSpoken(["caption, Реестр проверок: таймкод, сцена, запись"], /запись/i), false);
+  assert.equal(firstTableHeaderSpoken(["caption, Реестр проверок: запись", "row 1, column 1, ВРЕМЯ"], /запись/i), false);
+  assert.equal(firstTableHeaderSpoken(["out of caption, row 1, column 1, ЗАПИСЬ"], /запись/i), true);
 });
 
 test("actual screen reader table assertion requires the named row and detected count", async () => {

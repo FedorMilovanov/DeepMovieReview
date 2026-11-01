@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { firstTableCellSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, settleNativeSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
+import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, settleNativeSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -87,6 +87,17 @@ async function advanceUntil(pattern, limit = 24) {
     if (pattern.test((await reader.spokenPhraseLog()).join(" "))) return;
   }
   throw new Error(`Actual screen reader did not reach ${pattern} within ${limit} items`);
+}
+// A caption may contain the header's text. Require the coordinate and label in
+// the same newly spoken item before using NVDA's table row-navigation command.
+async function advanceUntilFirstHeader(pattern, limit = 6) {
+  for (let step = 0; step < limit; step++) {
+    const before = (await reader.spokenPhraseLog()).length;
+    await perform(reader.keyboardCommands.moveToNext, navigationOptions);
+    const speech = (await reader.spokenPhraseLog()).slice(before);
+    if (firstTableHeaderSpoken(speech, pattern)) return;
+  }
+  throw new Error(`Actual screen reader did not reach the first table cell named ${pattern} within ${limit} items`);
 }
 async function screenshot(label) {
   checkpoint(`${label}: capturing screenshot`);
@@ -271,7 +282,7 @@ try {
   // NVDA may enter at a native caption, which is outside the cells. Move into
   // the actual column header before using Ctrl+Alt+Down to traverse rows.
   else if (!firstTableCellSpoken(sceneTableSpeech)) {
-    await action("mobile scene column header", () => advanceUntil(/сцена и опоры/i, 6), /сцена и опоры/i);
+    await action("mobile scene column header", () => advanceUntilFirstHeader(/сцена и опоры/i), /сцена и опоры/i);
   }
   await action("mobile first scene row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /пролог/i);
   await action("mobile scene supports row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /день\s*10\s*909/i);
@@ -287,7 +298,7 @@ try {
   const registerSpeech = await action("mobile evidence register name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/реестр проверок/i, /table|таблиц/i]);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   else if (!firstTableCellSpoken(registerSpeech)) {
-    await action("mobile evidence column header", () => advanceUntil(/запись/i, 6), /запись/i);
+    await action("mobile evidence column header", () => advanceUntilFirstHeader(/запись/i), /запись/i);
   }
   await action("mobile evidence observation", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /начальное интервью/i);
   await action("mobile evidence basis", () => advanceUntil(/основа/i, 24), /основа/i);

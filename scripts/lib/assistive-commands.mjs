@@ -14,6 +14,10 @@ export function firstTableCellSpoken(phrases) {
   return /(?:row\s*1[\s\S]*column\s*1|строка\s*1[\s\S]*столбец\s*1)/i.test(phrases.join(" "));
 }
 
+export function firstTableHeaderSpoken(phrases, pattern) {
+  return phrases.some((phrase) => firstTableCellSpoken([phrase]) && pattern.test(phrase));
+}
+
 // Keep Guidepup's native command mapping, but send it via reader.press: unlike
 // reader.perform(keyboardCommand), this does not activate VoiceOver's app first.
 export function macKeyboardShortcut(command) {
