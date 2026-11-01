@@ -603,6 +603,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+      actions: read
       checks: write
     env:
       DMR_PREVIEW_CONTENT_ENABLED: "true"
@@ -650,6 +651,11 @@ jobs:
             at-report/ios-gesture/
           if-no-files-found: error
           retention-days: 7
+      - name: Recover bounded prior iOS transport diagnostic
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/recover-ios-transport-history.mjs
 
   rendered-contrast:
     name: Rendered contrast (${{ matrix.browser }})
