@@ -269,9 +269,10 @@ try {
 
     }
   }
-  // A fresh native Safari navigation lands directly on the same safe scene the
-  // homepage links to. Exercise the disclosure and evidence link with real
-  // WebDriver touch/element input, not JS scrolling or a synthetic click.
+  // A fresh native Safari navigation lands on the same safe scene the homepage
+  // links to. Inspect its settled geometry here. Input on this deep-scrolled
+  // page is exercised independently by normal MobileSafari/XCUITest below:
+  // SafariDriver on dff4efc delivered zero events for three W3C attempts.
   report.phase = "native iOS scene support and evidence";
   const sceneRoute = "/films/the-truman-show?spoilers=none#scene-truman-sc-day-10909";
   await safari.goto(`http://127.0.0.1:3213${sceneRoute}`);
@@ -283,19 +284,8 @@ try {
   assert.ok(supportGeometry.rect.left >= supportGeometry.wrap.left && supportGeometry.rect.right <= supportGeometry.wrap.right + 1 &&
     supportGeometry.rect.top >= 60 && supportGeometry.rect.bottom <= supportGeometry.innerHeight && supportGeometry.hitContained && supportGeometry.scrollLeft === 0,
     `Mobile scene support must be visible and hittable without horizontal scrolling: ${JSON.stringify(supportGeometry)}`);
-  const disclosureState = () => safari.execute("return document.querySelector('#scene-truman-sc-day-10909 .filmSceneSupports').open ? 'open' : 'closed'");
-  const supportBy = await activate(supportSelector, disclosureState, "open", 10000, { scroll: false });
-  const evidenceSelector = '#scene-truman-sc-day-10909 .filmSceneSupports a[href="#evidence-truman-ev-daycount"]';
-  const evidenceLinkState = () => safari.execute("return location.hash === '#evidence-truman-ev-daycount' ? 'opened' : 'waiting'");
-  const evidenceBy = await activate(evidenceSelector, evidenceLinkState, "opened", 10000, { scroll: false });
-  const evidenceGeometry = await waitForStableNativeTarget(() => safari.execute(`const el = document.getElementById('evidence-truman-ev-daycount'), wrap = el.closest('.evidenceRegisterWrap'), r = el.getBoundingClientRect();
-    return { ready: r.top >= 60 && r.top < innerHeight, rect: r.toJSON(), scrollLeft: wrap.scrollLeft, text: el.innerText,
-      noneSelected: document.querySelector('.spoilerOption')?.getAttribute('aria-current') === 'true' };`));
-  assert.ok(evidenceGeometry.rect.top >= 60 && evidenceGeometry.rect.top < supportGeometry.innerHeight && evidenceGeometry.scrollLeft === 0 && evidenceGeometry.noneSelected,
-    `Native evidence target must be visible without changing the level: ${JSON.stringify(evidenceGeometry)}`);
-  for (const label of ["Титры", "Таймкод", "Сцена", "Основа", "Итог"]) assert.ok(evidenceGeometry.text.includes(label), `native evidence missing ${label}`);
-  evidence.actions.push({ route: sceneRoute, label: "native scene support → evidence", supportBy, evidenceBy, supportGeometry, evidenceGeometry });
-  evidence.screenshots.push({ route: `${sceneRoute} — evidence opened`, data: await safari.screenshot() });
+  evidence.actions.push({ route: sceneRoute, label: "native scene support geometry before independent XCUITest", supportGeometry });
+  evidence.screenshots.push({ route: `${sceneRoute} — support before input`, data: await safari.screenshot() });
 
   // Close the isolated SafariDriver automation window before XCUITest drives
   // normal MobileSafari. Both the earlier projection checks and this separate
@@ -318,6 +308,8 @@ try {
   evidence.actions.push({ route: "/films/the-truman-show/article?spoilers=full",
     label: "native XCUITest scroll and post-scroll rail input; full trace and screenshots in ios-gesture evidence",
     scrollY: gestureReport.observedGesture.opened.scrollY, expanded: gestureReport.observedGesture.opened.rail.expanded });
+  evidence.actions.push({ route: sceneRoute, label: "native XCUITest scene support → evidence; full trace and screenshots in ios-gesture evidence",
+    observed: gestureReport.observedScene });
 } catch (error) {
   // Session creation can fail before a WebDriver object exists. Preserve the
   // actual Simulator screen and bounded RWI logs instead of diagnosing a blank

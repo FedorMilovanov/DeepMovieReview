@@ -6894,6 +6894,20 @@ test("kitchen and rain claims preserve separate visual and subtitle grounds", ()
     ["truman-ev-cocoa-subtitles", "truman-ev-tools-subtitles"]);
 });
 
+test("radio subtitle cue is not a verified radio frequency, speaker or audio", () => {
+  const radio = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-radio");
+  assert.equal(radio?.basis?.material, "subtitle-track");
+  assert.equal(radio?.basis?.outcome, "subtitle");
+  assert.deepEqual(radio?.basis?.window, { from: 1798.265, to: 1805.098 });
+  assert.match(radio?.observation ?? "", /по нему нельзя установить частоту, говорящего/i);
+  assert.match(radio?.basis?.note ?? "", /не проверка звука или точного PTS/i);
+  assert.doesNotMatch(radio?.observation ?? "", /92\.5/);
+  const newspaper = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-europe");
+  assert.equal(newspaper?.basis?.windowApproximate, true);
+  assert.match(newspaper?.basis?.note ?? "", /контактная сетка.*другой кадр/i);
+  assert.match(newspaper?.observation ?? "", /нельзя установить.*тот ли это человек/i);
+});
+
 test("craft context sources are linked, scoped and distinct from screen evidence", () => {
   const pkg = structuredClone(theTrumanShowCanonicalPackage);
   const craft = pkg.modules.find((module) => module.kind === "craft");

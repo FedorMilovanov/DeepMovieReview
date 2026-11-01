@@ -32,6 +32,27 @@ final class NativeGestureTests: XCTestCase {
         rail.tap()
         Thread.sleep(forTimeInterval: 1)
         capture("DMR-after-native-rail-tap")
+
+        // The harness then opens the safe scene URL in the same normal Safari.
+        // It only navigates: all interactions below are native XCUITest input,
+        // and the independent page observer must see the trusted events/state.
+        let description = "Опоры сцены «День 10 909»"
+        let predicate = NSPredicate(format: "label CONTAINS %@", description)
+        let button = safari.buttons.matching(predicate).firstMatch
+        let other = safari.descendants(matching: .any).matching(predicate).firstMatch
+        let foundButton = button.waitForExistence(timeout: 65)
+        let support = foundButton ? button : other
+        XCTAssertTrue(foundButton || other.waitForExistence(timeout: 10), "Scene disclosure is absent from Safari's accessibility tree")
+        XCTAssertTrue(support.isHittable, "Scene disclosure is not visible without horizontal scrolling")
+        capture("DMR-scene-before-support")
+        support.tap()
+        let link = safari.links.matching(NSPredicate(format: "label CONTAINS %@", "«День 10 909»")).firstMatch
+        XCTAssertTrue(link.waitForExistence(timeout: 20), "Opening the scene disclosure did not expose its evidence link")
+        XCTAssertTrue(link.isHittable, "Evidence link is not visible after opening the disclosure")
+        capture("DMR-scene-support-open")
+        link.tap()
+        Thread.sleep(forTimeInterval: 2)
+        capture("DMR-scene-evidence")
     }
 
     @MainActor

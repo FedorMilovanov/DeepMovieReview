@@ -40,6 +40,41 @@ async function anchorSettled(page, selector) {
     return r && r.top >= 50 && r.top < innerHeight - 20;
   }, selector, { timeout: 10000 });
 }
+
+// At some keyboard-reachable scroll position, every visible line in every data
+// cell must fit between the viewport edges and any pinned row header. Merely
+// reaching scrollLeft=max misses middle columns concealed beneath that header.
+async function exposedCells(viewport) {
+  return viewport.evaluate((el) => {
+    const view = el.getBoundingClientRect();
+    return [...el.querySelectorAll("tbody tr")].flatMap((row, ri) => {
+      const header = row.querySelector('th[scope="row"]');
+      const pinned = header && getComputedStyle(header).position === "sticky";
+      const left = pinned ? Math.max(view.left, header.getBoundingClientRect().right) : view.left;
+      return [...row.querySelectorAll(":scope > td")].map((cell, ci) => {
+        const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+        const rects = [];
+        while (walker.nextNode()) {
+          if (!walker.currentNode.textContent.trim()) continue;
+          const range = document.createRange(); range.selectNodeContents(walker.currentNode);
+          rects.push(...[...range.getClientRects()].filter((r) => r.width > 0 && r.height > 0));
+        }
+        return { id: `${ri}:${ci}`, visible: rects.length > 0 && rects.every((r) =>
+          r.left >= left - 1 && r.right <= view.right + 1) };
+      });
+    });
+  });
+}
+async function checkAllCellsByKeyboard(page, viewport) {
+  await viewport.focus();
+  const seen = new Set(); let ids = [];
+  for (let i = 0; i <= 26; i++) {
+    const cells = await exposedCells(viewport); ids = cells.map((cell) => cell.id);
+    cells.filter((cell) => cell.visible).forEach((cell) => seen.add(cell.id));
+    await page.keyboard.press("ArrowRight"); await page.waitForTimeout(30);
+  }
+  assert.deepEqual(ids.filter((id) => !seen.has(id)), [], "every data cell must become readable without being hidden by the row header");
+}
 try {
   for (const width of [320, 390]) for (const js of [false, true]) {
     const context = await browser.newContext({ viewport: { width, height: 844 }, javaScriptEnabled: js, reducedMotion: "reduce" });
@@ -106,10 +141,9 @@ try {
         assert.ok(await viewport.locator('tbody th[scope="row"]').count() > 0);
         assert.ok(await viewport.locator('thead th[scope="col"]').count() >= 2);
         await viewport.scrollIntoViewIfNeeded();
-        await viewport.focus();
         const max = await viewport.evaluate((el) => el.scrollWidth - el.clientWidth);
+        await checkAllCellsByKeyboard(page, viewport);
         if (max > 1) {
-          for (let i = 0; i < 18; i++) { await page.keyboard.press("ArrowRight"); await page.waitForTimeout(30); }
           await page.waitForFunction((el) => el.scrollLeft >= el.scrollWidth - el.clientWidth - 2, await viewport.elementHandle());
           const geometry = await viewport.evaluate((el) => {
             const view = el.getBoundingClientRect(), first = el.querySelector('tbody th[scope="row"]').getBoundingClientRect();
@@ -144,13 +178,34 @@ try {
       assert.equal(await page.locator(".articleCorrections").count(), level === "full" ? 1 : 0);
     }
   });
+  for (const js of [false, true]) {
+    const craftContext = await browser.newContext({ viewport: { width: 390, height: 844 }, javaScriptEnabled: js, reducedMotion: "reduce" });
+    const craftPage = await craftContext.newPage(); page = craftPage;
+    await check(`radio craft disclosure at MINOR, keyboard and ${js ? "JS" : "no JS"}`, async () => {
+      await craftPage.goto(`${base}/films/the-truman-show?spoilers=none`, { waitUntil: "load" });
+      assert.equal(await craftPage.locator(".filmCraftDetail").count(), 0, "MINOR craft detail must not enter NONE DOM");
+      await craftPage.goto(`${base}/films/the-truman-show?spoilers=minor`, { waitUntil: "load" });
+      const detail = craftPage.locator(".filmCraftDetail");
+      assert.equal(await detail.count(), 1);
+      await detail.locator("summary").focus(); await craftPage.keyboard.press("Enter");
+      assert.equal(await detail.getAttribute("open"), "");
+      const text = await detail.innerText();
+      for (const token of ["На экране по источнику", "На съёмке", "После съёмки", "широкоугольный", "маску", "цифровые индикаторы", "Питер Бизу"]) {
+        assert.ok(text.toLowerCase().includes(token.toLowerCase()), token);
+      }
+      assert.ok(await detail.locator('xpath=..').locator('a[href="https://theasc.com/article/the-truman-show-cinematography/"]').count());
+      assert.equal(await detail.locator("img, video").count(), 0, "Disclosure must not present a reconstruction as a film still");
+    });
+    await craftContext.close();
+  }
+  page = await context.newPage();
   await check("CSS zoom 200% layout stress: measurement columns still reachable", async () => {
     await page.goto(`${base}/films/the-truman-show/article?spoilers=full`, { waitUntil: "load" });
     await page.addStyleTag({ content: "html { zoom: 2 }" });
     const viewport = page.locator(".articleTableViewport").first();
-    await viewport.scrollIntoViewIfNeeded(); await viewport.focus();
+    await viewport.scrollIntoViewIfNeeded();
     const before = await viewport.evaluate((el) => el.scrollLeft);
-    for (let i = 0; i < 20; i++) { await page.keyboard.press("ArrowRight"); await page.waitForTimeout(30); }
+    await checkAllCellsByKeyboard(page, viewport);
     const after = await viewport.evaluate((el) => el.scrollLeft);
     assert.ok(after > before, `keyboard scrolling must work under CSS zoom: ${before} → ${after}`);
     assert.ok(await page.locator(".articleTableScrollHint").first().isVisible());

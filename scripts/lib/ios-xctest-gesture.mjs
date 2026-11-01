@@ -6,8 +6,8 @@ import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
-import { nativeArticlePath, selectNativeGestureAttachments, startNativeObservationProxy,
-  validateNativeGestureTrace, validateXCTestSummary } from "./ios-gesture-probe.mjs";
+import { nativeArticlePath, nativeScenePath, selectNativeGestureAttachments, startNativeObservationProxy,
+  validateNativeGestureTrace, validateNativeSceneTrace, validateXCTestSummary } from "./ios-gesture-probe.mjs";
 
 const exec = promisify(execFile);
 const screenshotSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -43,9 +43,20 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
   const root = resolve(directory), bundle = join(root, "native-gesture.xcresult"), attachments = join(root, "attachments");
   assert.ok(!existsSync(bundle) && !existsSync(attachments), "Native XCTest result paths must be fresh");
   const derivedData = mkdtempSync(join(tmpdir(), "dmr-ios-xctest-"));
-  let proxy;
-  try { proxy = await startNativeObservationProxy(); }
-  catch (error) { rmSync(derivedData, { recursive: true, force: true }); throw error; }
+  let proxy, sceneNavigation, sceneNavigationError;
+  try {
+    proxy = await startNativeObservationProxy({ onEvent: event => {
+      if (sceneNavigation || event.kind !== "rail-state" || event.rail?.expanded !== "true") return;
+      // Let XCTest retain its post-rail screenshot before opening the safe scene
+      // in the same normal Safari. simctl only navigates; the test supplies the
+      // scene touch, and the observer independently verifies every resulting event.
+      sceneNavigation = delay(5000).then(async () => {
+        const sceneUrl = `${proxy.baseUrl}${nativeScenePath}?spoilers=none#scene-truman-sc-day-10909`;
+        await exec("xcrun", ["simctl", "openurl", device.udid, sceneUrl], { timeout: 60000 });
+        report.sceneNavigation = { method: "simctl openurl after rail screenshot", url: sceneUrl };
+      }).catch(error => { sceneNavigationError = error; });
+    } });
+  } catch (error) { rmSync(derivedData, { recursive: true, force: true }); throw error; }
   const url = `${proxy.baseUrl}${nativeArticlePath}?spoilers=full`;
   report.phase = "opening the full article in normal MobileSafari";
   report.probe = { kind: "passive observer inserted by loopback test proxy", url,
@@ -64,13 +75,19 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     // Allow in-flight same-origin beacon requests to reach the loopback proxy.
     await delay(1000);
     assert.equal(run.code, 0, `XCUITest failed or timed out: ${JSON.stringify({ code: run.code, signal: run.signal, timedOut: run.timedOut })}`);
+    assert.ok(sceneNavigation, "The observed rail opening must trigger the separate scene navigation");
+    await sceneNavigation;
+    if (sceneNavigationError) throw sceneNavigationError;
     const summaryText = await exec("xcrun", ["xcresulttool", "get", "test-results", "summary", "--path", bundle], { timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
     report.xctestSummary = JSON.parse(summaryText.stdout);
     validateXCTestSummary(report.xctestSummary, device.udid);
     assert.deepEqual(proxy.errors, [], "Observer transport must not lose or reject data");
     report.observedGesture = validateNativeGestureTrace(proxy.events, proxy.baseUrl);
+    report.observedScene = validateNativeSceneTrace(proxy.events, proxy.baseUrl);
     evidence.actions.push({ route: `${nativeArticlePath}?spoilers=full`,
       label: "XCUITest native scroll and post-scroll rail input; passive DOM observation", ...report.observedGesture });
+    evidence.actions.push({ route: `${nativeScenePath}?spoilers=none`,
+      label: "XCUITest scene support → evidence; passive DOM observation", ...report.observedScene });
     report.phase = "exporting the native test screenshots";
     await exec("xcrun", ["xcresulttool", "export", "attachments", "--path", bundle, "--output-path", attachments], { timeout: 60000 });
     const manifest = JSON.parse(readFileSync(join(attachments, "manifest.json"), "utf8"));
@@ -78,7 +95,8 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
       const bytes = readFileSync(join(attachments, file));
       assert.ok(bytes.subarray(0, 8).equals(screenshotSignature), `${name} is not a PNG`);
       const sha256 = createHash("sha256").update(bytes).digest("hex");
-      evidence.screenshots.push({ route: `${nativeArticlePath}?spoilers=full — ${name}`, data: bytes.toString("base64") });
+      const route = name.startsWith("DMR-scene-") ? `${nativeScenePath}?spoilers=none` : `${nativeArticlePath}?spoilers=full`;
+      evidence.screenshots.push({ route: `${route} — ${name}`, data: bytes.toString("base64") });
       return { name, file, sha256, bytes: bytes.length };
     });
     report.phase = "native XCUITest and observer verified";

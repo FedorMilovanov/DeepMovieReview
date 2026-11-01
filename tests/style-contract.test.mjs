@@ -300,7 +300,7 @@ test("Safari diagnostics are bounded and isolated to the actual driver pid", asy
 test("VoiceOver shortcuts retain native command codes without app activation", async () => {
   const { macKeyboardShortcut } = await import("../scripts/lib/assistive-commands.mjs");
   const { voiceOverKeyCodeCommands: commands, MacOSKeyCodes } = await import("@guidepup/guidepup");
-  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "moveToNextColumn", "moveDown", "describeItem"]) {
+  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "moveToNextColumn", "moveDown", "moveToNext", "describeItem"]) {
     const command = commands[name];
     const parts = macKeyboardShortcut(command).split("+");
     assert.equal(MacOSKeyCodes[parts.pop()], command.keyCode);

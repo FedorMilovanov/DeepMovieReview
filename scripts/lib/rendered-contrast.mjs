@@ -245,7 +245,30 @@ export function revealHorizontalScroll({ s, id, line }) {
     if (!rect || rect.width <= 0 || rect.height <= 0) continue;
     const bounds = ancestor.getBoundingClientRect();
     const left = bounds.left + ancestor.clientLeft, right = left + ancestor.clientWidth;
-    const delta = rect.left < left ? rect.left - left - 1 : rect.right > right ? rect.right - right + 1 : 0;
+    let delta = rect.left < left ? rect.left - left - 1 : rect.right > right ? rect.right - right + 1 : 0;
+    // Being inside the scrollport is not sufficient: a sticky row header can
+    // cover the left edge of the line. Move only if the *whole* line can fit
+    // beside that overlay. Unreachable text must remain missing, never waived.
+    if (!delta && rect.top >= 0 && rect.bottom <= innerHeight) {
+      const points = [rect.left + Math.min(0.5, rect.width / 2), rect.right - Math.min(0.5, rect.width / 2)];
+      const rows = [rect.top + Math.min(0.5, rect.height / 2), rect.bottom - Math.min(0.5, rect.height / 2)];
+      const overlays = new Set();
+      for (const x of points) for (const y of rows) {
+        for (let top = document.elementFromPoint(x, y); top; top = top.parentElement) {
+          if (["fixed", "sticky"].includes(getComputedStyle(top).position) &&
+              !(top === record.element || top.contains(record.element) || record.element.contains(top))) overlays.add(top);
+        }
+      }
+      for (const overlay of overlays) {
+        const cover = overlay.getBoundingClientRect();
+        if (cover.left <= left + 1 && cover.right > rect.left && rect.width <= right - cover.right) {
+          delta = rect.left - cover.right - 1; break;
+        }
+        if (cover.right >= right - 1 && cover.left < rect.right && rect.width <= cover.left - left) {
+          delta = rect.right - cover.left + 1; break;
+        }
+      }
+    }
     if (!delta) continue;
     const before = ancestor.scrollLeft;
     ancestor.scrollTo({ left: before + delta, behavior: "instant" });
@@ -539,6 +562,9 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
           }, { s: state, measured: [...measurements.keys()], attempts: Object.fromEntries(revisitAttempts), limit: 3 });
           if (!candidate) break;
           revisitAttempts.set(candidate.id, (revisitAttempts.get(candidate.id) ?? 0) + 1);
+          // Hit-testing sticky overlays only makes sense at the line's own
+          // vertical position, not the previous document tile.
+          await page.evaluate(top => scrollTo({ top: Math.max(0, top), behavior: "instant" }), candidate.top);
           const moves = await page.evaluate(revealHorizontalScroll, { s: state, id: candidate.id, line: candidate.line });
           if (moves.length) horizontalRevisits.push({ tile, id: candidate.id, line: candidate.line, moves });
           top = Math.max(0, candidate.top);
@@ -575,6 +601,7 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
       }, { s: state, absent: absentNow, attempts: Object.fromEntries(revisitAttempts), limit: 3, measured: [...measurements.keys()] });
       if (!resume) break;
       revisitAttempts.set(resume.id, (revisitAttempts.get(resume.id) ?? 0) + 1);
+      await page.evaluate(top => scrollTo({ top: Math.max(0, top), behavior: "instant" }), resume.top);
       const moves = await page.evaluate(revealHorizontalScroll, { s: state, id: resume.id, line: resume.line });
       if (moves.length) horizontalRevisits.push({ tile, id: resume.id, line: resume.line, moves });
       top = Math.max(0, resume.top);

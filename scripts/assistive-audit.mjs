@@ -76,6 +76,17 @@ async function action(label, run, expected) {
   if (expected) for (const pattern of Array.isArray(expected) ? expected : [expected]) {
     assert.match(speech.join(" "), pattern, `${label}: actual spoken output`);
   }
+  return speech;
+}
+// Move the real screen-reader cursor through the current table, capturing each
+// utterance. A row may expose text and its disclosure as separate AX objects;
+// hearing the row label alone is not proof that the action is reachable.
+async function advanceUntil(pattern, limit = 24) {
+  for (let step = 0; step < limit; step++) {
+    await perform(reader.keyboardCommands.moveToNext, navigationOptions);
+    if (pattern.test((await reader.spokenPhraseLog()).join(" "))) return;
+  }
+  throw new Error(`Actual screen reader did not reach ${pattern} within ${limit} items`);
 }
 async function screenshot(label) {
   checkpoint(`${label}: capturing screenshot`);
@@ -255,14 +266,29 @@ try {
     await perform(reader.keyboardCommands.exitFocusMode, { capture: false });
     await reader.press("Control+Home");
   }
-  await action("mobile scene table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/сцены фильма/i, /table|таблиц/i]);
+  const sceneTableSpeech = await action("mobile scene table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/сцены фильма/i, /table|таблиц/i]);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
+  // NVDA may enter at a native caption, which is outside the cells. Move into
+  // the actual column header before using Ctrl+Alt+Down to traverse rows.
+  else if (/caption|подпись/i.test(sceneTableSpeech.join(" ")) && !/row\s*1[\s\S]*column\s*1/i.test(sceneTableSpeech.join(" "))) {
+    await action("mobile scene column header", () => advanceUntil(/сцена и опоры/i, 6), /сцена и опоры/i);
+  }
   await action("mobile first scene row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /пролог/i);
-  await action("mobile scene supports row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), [/день\s*10\s*909/i, /опоры/i]);
+  await action("mobile scene supports row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /день\s*10\s*909/i);
+  await action("mobile scene supports control", () => advanceUntil(/опоры сцены[\s\S]*день\s*10\s*909/i), /опоры сцены[\s\S]*день\s*10\s*909/i);
+  await action("mobile open scene supports", () => reader.press(mac ? "Control+Alt+Space" : "Enter", navigationOptions));
+  const supportState = mac ? await safari.sceneSupport() : await execute("document.querySelector('#scene-truman-sc-day-10909 .filmSceneSupports').open");
+  assert.equal(supportState, true, "The real screen reader must open the named scene disclosure");
+  await action("mobile evidence link in scene", () => advanceUntil(/день\s*10\s*909/i, 12), [/день\s*10\s*909/i, /link|ссылк/i]);
   if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
-  await action("mobile evidence register name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/реестр проверок/i, /table|таблиц/i]);
+  const registerSpeech = await action("mobile evidence register name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/реестр проверок/i, /table|таблиц/i]);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
-  await action("mobile evidence observation and basis", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), [/интервью создателя/i, /основа/i, /итог/i]);
+  else if (/caption|подпись/i.test(registerSpeech.join(" ")) && !/row\s*1[\s\S]*column\s*1/i.test(registerSpeech.join(" "))) {
+    await action("mobile evidence column header", () => advanceUntil(/запись/i, 6), /запись/i);
+  }
+  await action("mobile evidence observation", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /интервью создателя/i);
+  await action("mobile evidence basis", () => advanceUntil(/основа/i, 24), /основа/i);
+  await action("mobile evidence outcome", () => advanceUntil(/итог/i, 24), /итог/i);
   if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
   await screenshot("reflow320-film-tables");
   await reader.press(mac ? "Meta+0" : "Control+0", { capture: false });

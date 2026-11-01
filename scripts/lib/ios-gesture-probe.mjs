@@ -1,12 +1,13 @@
 // Test-only, loopback observation of the unmodified app's real native input.
-// The proxy adds a passive observer script to the article HTML; it never sends
-// gestures, scrolls, clicks, changes styles, or supplies a successful result.
+// The proxy adds a passive observer script to article and scene HTML; it never
+// sends gestures, scrolls, clicks, changes styles, or supplies a successful result.
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import http from "node:http";
 import { once } from "node:events";
 
 export const nativeArticlePath = "/films/the-truman-show/article";
+export const nativeScenePath = "/films/the-truman-show";
 const scriptPath = "/__dmr_native_ios_observer.js";
 const eventPath = "/__dmr_native_ios_event";
 
@@ -25,17 +26,39 @@ export function nativeObservationScript(token) {
       return { expanded: el.getAttribute('aria-expanded'), hitContained: !!hit && el.contains(hit),
         rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height } };
     }
+    function box(el) {
+      if (!el) return null;
+      const rect = el.getBoundingClientRect(), hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return { rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
+        hitContained: !!hit && el.contains(hit) };
+    }
+    function sceneState() {
+      const details = document.querySelector('#scene-truman-sc-day-10909 .filmSceneSupports');
+      if (!details) return null;
+      const support = details.querySelector('summary');
+      const link = details.querySelector('a[href="#evidence-truman-ev-daycount"]');
+      const target = document.getElementById('evidence-truman-ev-daycount');
+      return { open: details.open, support: box(support), link: box(link),
+        sceneScroll: details.closest('.filmSceneTableWrap')?.scrollLeft,
+        evidenceScroll: target?.closest('.evidenceRegisterWrap')?.scrollLeft,
+        evidenceRect: target?.getBoundingClientRect().toJSON(), evidenceText: target?.innerText,
+        noneSelected: document.querySelector('.spoilerOption')?.getAttribute('aria-current') === 'true',
+        endingPresent: !!document.getElementById('evidence-truman-ev-wall') };
+    }
     function record(kind, event) {
       const target = event && event.target instanceof Element ? event.target : null;
       const touch = event && event.changedTouches && event.changedTouches[0];
       const targetRail = !!target?.closest('.readingOutlineTrigger');
+      const targetSupport = !!target?.closest('#scene-truman-sc-day-10909 .filmSceneSupports summary');
+      const targetEvidence = !!target?.closest('#scene-truman-sc-day-10909 .filmSceneSupports a[href="#evidence-truman-ev-daycount"]');
       const inspectRail = kind === 'ready' || kind === 'rail-click' || kind === 'rail-state' || (kind === 'touchstart' && targetRail);
+      const inspectScene = kind.startsWith('scene-') || (kind === 'touchstart' && (targetSupport || targetEvidence));
       const value = { token, pageId, seq: ++seq, time: performance.now(), kind,
         trusted: event ? event.isTrusted : null, url: location.href, scrollY,
         width: innerWidth, height: innerHeight, lang: document.documentElement.lang,
-        targetRail,
+        targetRail, targetSupport, targetEvidence,
         x: touch?.clientX ?? event?.clientX ?? null, y: touch?.clientY ?? event?.clientY ?? null,
-        rail: inspectRail ? railState() : null,
+        rail: inspectRail ? railState() : null, scene: inspectScene ? sceneState() : null,
         ...(kind === 'ready' ? { sectionIds: Array.from(document.querySelectorAll('.articleSection'), node => node.id) } : {}) };
       navigator.sendBeacon(${JSON.stringify(eventPath)}, JSON.stringify(value));
     }
@@ -47,19 +70,28 @@ export function nativeObservationScript(token) {
       }, { capture: true, passive: true });
     }
     document.addEventListener('click', event => {
-      if (event.target instanceof Element && event.target.closest('.readingOutlineTrigger')) record('rail-click', event);
+      if (!(event.target instanceof Element)) return;
+      if (event.target.closest('.readingOutlineTrigger')) record('rail-click', event);
+      if (event.target.closest('#scene-truman-sc-day-10909 .filmSceneSupports summary')) record('scene-support-click', event);
+      if (event.target.closest('#scene-truman-sc-day-10909 .filmSceneSupports a[href="#evidence-truman-ev-daycount"]')) record('scene-evidence-click', event);
     }, { capture: true, passive: true });
     window.addEventListener('scroll', event => {
       if (Math.abs(scrollY - lastScroll) < 15) return;
       lastScroll = scrollY;
       record('scroll', event);
     }, { passive: true });
+    window.addEventListener('hashchange', () => {
+      if (location.hash === '#evidence-truman-ev-daycount') setTimeout(() => record('scene-evidence-arrived'), 800);
+    });
     new MutationObserver(records => {
-      if (records.some(record => record.target instanceof Element && record.target.matches('.readingOutlineTrigger'))) record('rail-state');
-    }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['aria-expanded'] });
+      if (records.some(item => item.target instanceof Element && item.target.matches('.readingOutlineTrigger'))) record('rail-state');
+      if (records.some(item => item.target instanceof Element && item.target.matches('#scene-truman-sc-day-10909 .filmSceneSupports'))) record('scene-support-state');
+    }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['aria-expanded', 'open'] });
     function whenReady(remaining) {
-      if (document.querySelector('.readingOutlineTrigger') && document.querySelector('.articleSection')) record('ready');
-      else if (remaining > 0) setTimeout(() => whenReady(remaining - 1), 100);
+      if (document.querySelector('.readingOutlineTrigger') && document.querySelector('.articleSection')) { record('ready'); return; }
+      const scene = sceneState();
+      if (scene && scene.support?.hitContained && scene.support.rect.top >= 60 && scene.support.rect.bottom <= innerHeight) { record('scene-ready'); return; }
+      if (remaining > 0) setTimeout(() => whenReady(remaining - 1), 100);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => whenReady(100), { once: true });
     else whenReady(100);
@@ -101,7 +133,8 @@ export async function startNativeObservationProxy({ upstream = "http://127.0.0.1
           assert.equal(entry.token, token);
           assert.equal(typeof entry.pageId, "string");
           assert.ok(Number.isSafeInteger(entry.seq) && entry.seq > 0);
-          assert.ok(["ready", "touchstart", "touchmove", "touchend", "touchcancel", "scroll", "rail-click", "rail-state"].includes(entry.kind));
+          assert.ok(["ready", "touchstart", "touchmove", "touchend", "touchcancel", "scroll", "rail-click", "rail-state",
+            "scene-ready", "scene-support-click", "scene-support-state", "scene-evidence-click", "scene-evidence-arrived"].includes(entry.kind));
           delete entry.token;
           events.push(entry); onEvent(entry);
           response.writeHead(204, { "cache-control": "no-store" }).end();
@@ -114,9 +147,9 @@ export async function startNativeObservationProxy({ upstream = "http://127.0.0.1
     const upstreamRequest = http.request({ protocol: origin.protocol, hostname: origin.hostname, port: origin.port,
       path: request.url, method: request.method, headers }, upstreamResponse => {
       const outgoing = forwardedHeaders(upstreamResponse.headers);
-      const isArticle = url.pathname === nativeArticlePath && request.method === "GET" &&
+      const isObservedPage = [nativeArticlePath, nativeScenePath].includes(url.pathname) && request.method === "GET" &&
         /^text\/html\b/i.test(String(outgoing["content-type"] ?? ""));
-      if (!isArticle) { response.writeHead(upstreamResponse.statusCode, outgoing); upstreamResponse.pipe(response); return; }
+      if (!isObservedPage) { response.writeHead(upstreamResponse.statusCode, outgoing); upstreamResponse.pipe(response); return; }
       const chunks = []; let size = 0;
       upstreamResponse.on("data", chunk => { size += chunk.length; chunks.push(chunk); });
       upstreamResponse.on("end", () => {
@@ -190,6 +223,51 @@ export function validateNativeGestureTrace(events, baseUrl) {
   return { pageId: ready.pageId, before: ready, touch, move, scroll, railTouch, click, opened };
 }
 
+// A separate, deep-linked NONE document: real native touches must open the
+// scene control and follow its first evidence link. Geometry, level and final
+// content are observed independently of the XCUITest command succeeding.
+export function validateNativeSceneTrace(events, baseUrl) {
+  const matching = events.filter(event => {
+    try {
+      const url = new URL(event.url);
+      return url.origin === baseUrl && url.pathname === nativeScenePath &&
+        url.searchParams.getAll("spoilers").length === 1 && url.searchParams.get("spoilers").toLowerCase() === "none";
+    } catch { return false; }
+  });
+  const ready = matching.findLast(event => event.kind === "scene-ready");
+  assert.ok(ready, "No observed NONE scene on the native test origin");
+  const trace = matching.filter(event => event.pageId === ready.pageId).sort((a, b) => a.seq - b.seq);
+  assert.equal(new Set(trace.map(event => event.seq)).size, trace.length, "Scene observer sequence must be unique");
+  assert.ok(ready.lang === "ru" && ready.width > 0 && ready.width < 500 && ready.height > 0);
+  assert.equal(new URL(ready.url).hash, "#scene-truman-sc-day-10909");
+  assert.ok(ready.scene && ready.scene.open === false && ready.scene.noneSelected && !ready.scene.endingPresent &&
+    ready.scene.sceneScroll === 0 && inViewport(ready.scene.support, ready), "Scene disclosure must start visible, closed and spoiler-safe");
+  const next = (after, predicate, message) => {
+    const found = trace.find(event => event.seq > after.seq && predicate(event));
+    assert.ok(found, message); return found;
+  };
+  const supportTouch = next(ready, event => event.kind === "touchstart" && event.trusted === true && event.targetSupport &&
+    event.scene?.open === false && event.scene.sceneScroll === 0 && inViewport(event.scene.support, event),
+  "The visible scene disclosure must receive a trusted native touch");
+  const supportClick = next(supportTouch, event => event.kind === "scene-support-click" && event.trusted === true && event.targetSupport,
+    "The scene disclosure must receive a trusted native click");
+  const opened = next(supportClick, event => event.kind === "scene-support-state" && event.scene?.open === true,
+    "The scene disclosure must really open after the click");
+  const linkTouch = next(opened, event => event.kind === "touchstart" && event.trusted === true && event.targetEvidence &&
+    event.scene?.open === true && event.scene.sceneScroll === 0 && inViewport(event.scene.link, event),
+  "The visible evidence link must receive a trusted native touch");
+  const linkClick = next(linkTouch, event => event.kind === "scene-evidence-click" && event.trusted === true && event.targetEvidence,
+    "The evidence link must receive a trusted native click");
+  const arrived = next(linkClick, event => {
+    const rect = event.scene?.evidenceRect;
+    return event.kind === "scene-evidence-arrived" && new URL(event.url).hash === "#evidence-truman-ev-daycount" &&
+      event.scene.noneSelected && !event.scene.endingPresent && event.scene.evidenceScroll === 0 &&
+      rect && rect.top >= 50 && rect.top < event.height &&
+      ["Титры", "Таймкод", "Сцена", "Основа", "Итог"].every(label => event.scene.evidenceText?.includes(label));
+  }, "Evidence must be visible, complete and remain at NONE after native navigation");
+  return { pageId: ready.pageId, ready, supportTouch, supportClick, opened, linkTouch, linkClick, arrived };
+}
+
 export function validateXCTestSummary(summary, deviceId) {
   assert.equal(summary.result, "Passed", "XCTest did not pass");
   assert.equal(summary.totalTestCount, 1, "Exactly one native gesture test must execute");
@@ -204,7 +282,8 @@ export function validateXCTestSummary(summary, deviceId) {
 // automatic failure screenshot or an arbitrary PNG from the result bundle.
 export function selectNativeGestureAttachments(manifest) {
   assert.ok(Array.isArray(manifest));
-  const names = ["DMR-before-native-scroll", "DMR-after-native-scroll", "DMR-after-native-rail-tap"];
+  const names = ["DMR-before-native-scroll", "DMR-after-native-scroll", "DMR-after-native-rail-tap",
+    "DMR-scene-before-support", "DMR-scene-support-open", "DMR-scene-evidence"];
   const rows = manifest.flatMap(test => test.attachments ?? []);
   return names.map(name => {
     const found = rows.filter(row => typeof row.suggestedHumanReadableName === "string" &&

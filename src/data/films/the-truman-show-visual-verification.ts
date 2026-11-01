@@ -117,14 +117,10 @@ export const trumanVisualVerifications: TrumanVisualVerification[] = [
   },
   {
     evidenceId: "truman-ev-radio",
-    status: "VISUAL_CONFIRMED",
+    status: "TRANSCRIPT_CONFIRMED",
     sceneId: "truman-sc-paranoia",
-    frames: [
-      frame(1790, "Truman at the wheel, eyes on the mirror."),
-      frame(1830, "Close-up of the car radio tuned to 92.5 as the production frequency breaks in."),
-      frame(1798.265, "Production voice tracks his route; «stand by, all extras»."),
-    ],
-    note: "The radio prop and the intercepted production chatter are both confirmed.",
+    frames: [frame(1798.265, "SRT block 206: «He's heading west on Stuart. Stand by, all extras.»")],
+    note: "The earlier ledger mixed subtitle text with visual observations and attributed a 92.5 radio close-up to 1830 s. Grid file f_00062, nominally 1830 s, actually shows the newspaper; its source PTS was not independently checked. A separate nominal 1800 s still shows Truman in the car, but neither it nor the subtitle identifies the speaker or proves what was heard. The 10-second contact sheet and 30-second grid also disagree at these nominal labels, so their timing is not interchangeable without the master.",
   },
   {
     evidenceId: "truman-ev-raincloud",

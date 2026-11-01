@@ -310,8 +310,11 @@ for (const name of selected) {
             assert.ok(await viewport.locator('th[scope="col"]').count());
             assert.ok(await viewport.locator('th[scope="row"]').count());
             const cell = viewport.locator("td").first();
-            const originalCell = await cell.textContent();
-            await cell.evaluate(el => { el.textContent = "1234567890".repeat(30); });
+            const originalCell = await cell.evaluate(el => ({ text: el.textContent, whiteSpace: el.style.getPropertyValue("white-space"), priority: el.style.getPropertyPriority("white-space") }));
+            // A deliberately unbreakable synthetic value must create overflow on
+            // wide screens too; ordinary article data is now allowed to wrap.
+            await cell.evaluate(el => { el.textContent = "1234567890".repeat(30); el.style.setProperty("white-space", "nowrap"); });
+            assert.ok(await viewport.evaluate(el => el.scrollWidth > el.clientWidth), "synthetic input actually overflows the local region");
             await page.mouse.click(1, 100);
             await viewport.focus();
             await page.keyboard.press("Shift+Tab");
@@ -322,7 +325,11 @@ for (const name of selected) {
             await page.waitForFunction(() => document.querySelector(".articleTableViewport").scrollLeft > 0);
             assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "wide data scrolls locally");
             await page.screenshot({ path: `${out}/${id}-table-input-stress.png` });
-            await cell.evaluate((el, text) => { el.textContent = text; }, originalCell);
+            await cell.evaluate((el, original) => {
+              el.textContent = original.text;
+              if (original.whiteSpace) el.style.setProperty("white-space", original.whiteSpace, original.priority);
+              else el.style.removeProperty("white-space");
+            }, originalCell);
             await page.locator(".spoilerOption").first().click();
             await page.waitForFunction(count => document.querySelectorAll(".articleSection").length < count, sectionCount);
             await page.waitForLoadState("networkidle");
