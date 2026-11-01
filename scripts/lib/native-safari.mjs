@@ -37,7 +37,19 @@ export function viewportSwipeActions({ x, fromY, toY, duration = 700 }) {
   return { actions: [{ type: "pointer", id: "finger-scroll", parameters: { pointerType: "touch" }, actions }] };
 }
 
-export async function performCompletedSwipe(perform, release) {
+// Each touch sequence must explicitly end in pointerUp, whether its origin is
+// an element or the viewport. Release Actions is then only an error cleanup.
+export function tapActions({ origin, x = 0, y = 0, id = "finger" }) {
+  const elementKey = "element-6066-11e4-a52e-4f735466cecf";
+  assert.ok(origin === "viewport" || (origin && typeof origin === "object" && typeof origin[elementKey] === "string"));
+  assert.ok(Number.isInteger(x) && Number.isInteger(y) && /^[a-z-]+$/.test(id));
+  return { actions: [{ type: "pointer", id, parameters: { pointerType: "touch" }, actions: [
+    { type: "pointerMove", duration: 0, origin, x, y }, { type: "pointerDown", button: 0 },
+    { type: "pause", duration: 80 }, { type: "pointerUp", button: 0 },
+  ] }] };
+}
+
+export async function performCompletedTouch(perform, release) {
   // The submitted sequence ends in pointerUp. After successful completion the
   // finger is released; do not send SafariDriver a redundant Release Actions.
   try { return await perform(); }
@@ -45,7 +57,7 @@ export async function performCompletedSwipe(perform, release) {
     // If the sequence failed before pointerUp, attempt to clear any pressed
     // state, while retaining the original Perform Actions error for diagnosis.
     try { await release(); }
-    catch (releaseError) { throw new AggregateError([actionError, releaseError], "Native swipe action and cleanup both failed"); }
+    catch (releaseError) { throw new AggregateError([actionError, releaseError], "Native touch action and cleanup both failed"); }
     throw actionError;
   }
 }
@@ -168,7 +180,7 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
         const element = await request(`${path}/element`, { using: "css selector", value: selector });
         if (capabilities.platformName?.toLowerCase() === "ios") {
           // Mobile Safari element/click can deliver a move without a tap.
-          // Use a real W3C touch gesture; release is required to dispatch up.
+          // Use a real W3C touch gesture with an explicit pointerUp.
           if (scroll) await request(`${path}/execute/sync`, {
             script: "arguments[0].scrollIntoView({block:'center',behavior:'instant'})", args: [element],
           });
@@ -186,17 +198,24 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
                 viewport:v?{x:v.offsetLeft,y:v.offsetTop,width:v.width,height:v.height,scale:v.scale}:null};`,
             args: [element],
           }));
-          inputs.push({ selector, ...point, gesture: "single native touch after stable hit-test" });
-          try {
-            // Absolute viewport coordinates from this driver landed on a
-            // different element (measured: a touch aimed at y=32 reached
-            // appShell). Give the driver the element itself as the W3C origin
-            // so it resolves its own centre; still one native touch.
-            return await request(`${path}/actions`, { actions: [{ type: "pointer", id: "finger", parameters: { pointerType: "touch" }, actions: [
-              { type: "pointerMove", duration: 0, origin: element, x: 0, y: 0 }, { type: "pointerDown", button: 0 },
-              { type: "pause", duration: 80 }, { type: "pointerUp", button: 0 },
-            ] }] });
-          } finally { await request(`${path}/actions`, undefined, "DELETE"); }
+          const input = { selector, ...point, gesture: "single native touch after stable hit-test" };
+          inputs.push(input);
+          // Absolute viewport coordinates from this driver landed on a
+          // different element (measured: a touch aimed at y=32 reached
+          // appShell). Give the driver the element itself as the W3C origin
+          // so it resolves its own centre; still one native touch. The extra
+          // Release Actions after pointerUp is redundant; whether it contributed
+          // to the observed iOS cancellations is unproven. Record timings and
+          // let the real postcondition decide.
+          return performCompletedTouch(async () => {
+            input.actionStartedAt = Date.now();
+            try { return await request(`${path}/actions`, tapActions({ origin: element })); }
+            finally { input.actionFinishedAt = Date.now(); }
+          }, async () => {
+            input.cleanupStartedAt = Date.now();
+            try { return await request(`${path}/actions`, undefined, "DELETE"); }
+            finally { input.cleanupFinishedAt = Date.now(); }
+          });
         }
         return request(`${path}/element/${element["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
       },
@@ -207,7 +226,7 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
         // released. SafariDriver has hung on a subsequent Release Actions
         // even after acknowledging Perform Actions. Keep its idle source until
         // session deletion; callers must still verify touch delivery + scroll.
-        return performCompletedSwipe(
+        return performCompletedTouch(
           () => request(`${path}/actions`, viewportSwipeActions(points)),
           () => request(`${path}/actions`, undefined, "DELETE"),
         );
@@ -234,13 +253,17 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
               viewport:v?{x:v.offsetLeft,y:v.offsetTop,width:v.width,height:v.height,scale:v.scale}:null};`,
           args: [element],
         }));
-        inputs.push({ selector, ...target, gesture: "single W3C viewport-origin touch after two undelivered inputs" });
-        try {
-          return await request(`${path}/actions`, { actions: [{ type: "pointer", id: "finger-viewport", parameters: { pointerType: "touch" }, actions: [
-            { type: "pointerMove", duration: 0, origin: "viewport", x: target.point.x, y: target.point.y },
-            { type: "pointerDown", button: 0 }, { type: "pause", duration: 80 }, { type: "pointerUp", button: 0 },
-          ] }] });
-        } finally { await request(`${path}/actions`, undefined, "DELETE"); }
+        const input = { selector, ...target, gesture: "single W3C viewport-origin touch after two undelivered inputs" };
+        inputs.push(input);
+        return performCompletedTouch(async () => {
+          input.actionStartedAt = Date.now();
+          try { return await request(`${path}/actions`, tapActions({ origin: "viewport", x: target.point.x, y: target.point.y, id: "finger-viewport" })); }
+          finally { input.actionFinishedAt = Date.now(); }
+        }, async () => {
+          input.cleanupStartedAt = Date.now();
+          try { return await request(`${path}/actions`, undefined, "DELETE"); }
+          finally { input.cleanupFinishedAt = Date.now(); }
+        });
       },
       execute: script => request(`${path}/execute/sync`, { script, args: [] }),
       goto: url => request(`${path}/url`, { url }),

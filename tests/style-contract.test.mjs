@@ -681,15 +681,24 @@ test("iOS native scroll refuses undelivered swipes and occluded targets", async 
   await assert.rejects(scrollToNativeTarget(occluded), /occluded/); assert.equal(occluded.calls(), 0);
 });
 
-test("completed native swipe releases with pointerUp and preserves action failures", async () => {
-  const { performCompletedSwipe } = await import("../scripts/lib/native-safari.mjs");
+test("completed native touches release with pointerUp and preserve action failures", async () => {
+  const { performCompletedTouch, tapActions } = await import("../scripts/lib/native-safari.mjs");
+  const element = { "element-6066-11e4-a52e-4f735466cecf": "target" };
+  for (const [origin, x, y] of [[element, 0, 0], ["viewport", 108, 462]]) {
+    const sequence = tapActions({ origin, x, y }).actions[0];
+    assert.equal(sequence.parameters.pointerType, "touch");
+    assert.deepEqual(sequence.actions.map(action => action.type), ["pointerMove", "pointerDown", "pause", "pointerUp"]);
+    assert.deepEqual(sequence.actions[0], { type: "pointerMove", duration: 0, origin, x, y });
+  }
+  assert.throws(() => tapActions({ origin: {} }));
+  assert.throws(() => tapActions({ origin: "viewport", x: 1.5 }));
   let releases = 0;
-  assert.equal(await performCompletedSwipe(async () => "completed", async () => { releases++; }), "completed");
+  assert.equal(await performCompletedTouch(async () => "completed", async () => { releases++; }), "completed");
   assert.equal(releases, 0, "do not send redundant Release Actions after pointerUp");
   const actionError = new Error("perform failed"), cleanupError = new Error("cleanup failed");
-  await assert.rejects(performCompletedSwipe(async () => { throw actionError; }, async () => { releases++; }), error => error === actionError);
+  await assert.rejects(performCompletedTouch(async () => { throw actionError; }, async () => { releases++; }), error => error === actionError);
   assert.equal(releases, 1);
-  await assert.rejects(performCompletedSwipe(async () => { throw actionError; }, async () => { throw cleanupError; }),
+  await assert.rejects(performCompletedTouch(async () => { throw actionError; }, async () => { throw cleanupError; }),
     error => error instanceof AggregateError && error.errors[0] === actionError && error.errors[1] === cleanupError);
 });
 

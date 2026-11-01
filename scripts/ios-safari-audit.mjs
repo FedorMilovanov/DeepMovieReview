@@ -147,7 +147,7 @@ try {
     await safari.execute(`window.__inputProbeAbort?.abort();
       window.__inputProbeAbort = new AbortController(); window.__inputProbe = { events: [] };
       for (const type of ["touchstart", "touchend", "touchcancel", "click", "pointerdown", "pointerup", "pointercancel"])
-        document.addEventListener(type, e => { const touch = e.changedTouches?.[0]; __inputProbe.events.push({ type, trusted: e.isTrusted,
+        document.addEventListener(type, e => { const touch = e.changedTouches?.[0]; __inputProbe.events.push({ type, trusted: e.isTrusted, at: Date.now(),
           target: (e.target.className || e.target.tagName).toString().slice(0, 40),
           href: e.target.closest?.("a")?.getAttribute("href") ?? null,
           x: Number.isFinite(e.clientX) ? e.clientX : touch?.clientX ?? null,
