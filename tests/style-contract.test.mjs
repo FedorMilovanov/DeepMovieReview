@@ -476,6 +476,18 @@ test("NVDA table captions are not mistaken for an active table cell", async () =
   assert.equal(firstTableHeaderSpoken(["out of caption, row 1, column 1, ЗАПИСЬ"], /запись/i), true);
 });
 
+test("VoiceOver table help is not a named table announcement", async () => {
+  const { needsNamedTableRead } = await import("../scripts/lib/assistive-commands.mjs");
+  const name = /сцены фильма/i;
+  // Actual generic hint on f8efc3d; even the correct-looking cursor screenshot
+  // cannot substitute for the name and role in real speech.
+  assert.equal(needsNamedTableRead(["You are currently in a table. To navigate the cells within this table press Control-Option."], name), true);
+  assert.equal(needsNamedTableRead(["Сцены фильма"], name), true);
+  assert.equal(needsNamedTableRead(["Реестр проверок table"], name), true);
+  assert.equal(needsNamedTableRead(["Сцены фильма: начало, название, состояние проверки и число опор table 1 column, 7 rows"], name), false);
+  assert.equal(needsNamedTableRead(["Сцены фильма", "таблица"], name), false);
+});
+
 test("actual screen reader table assertion requires the named row and detected count", async () => {
   const { libraryDetectionRowSpeech, needsTableRowRead } = await import("../scripts/lib/assistive-commands.mjs");
   // Actual speech from the c3f1771 NVDA and VoiceOver runs; neither is a mock

@@ -9,6 +9,14 @@ import { MacOSKeyCodes } from "@guidepup/guidepup";
 export const libraryDetectionRowSpeech = /библиотека[\s\S]*\b0 обнаруженных переходов/i;
 export const needsTableRowRead = speech => !libraryDetectionRowSpeech.test(speech.join(" "));
 
+// A generic VoiceOver table-help hint proves neither the expected caption nor
+// the role. A read-only Describe Item can request the missing announcement.
+export const nativeTableRoleSpeech = /table|таблиц/i;
+export function needsNamedTableRead(speech, name) {
+  const text = speech.join(" ");
+  return !name.test(text) || !nativeTableRoleSpeech.test(text);
+}
+
 // Both speech and native browser focus must identify the real skip link. Keep
 // spontaneous entry speech separate: Guidepup polls "last phrase" and may only
 // retain the subsequent help hint, so it must not be invented from DOM focus.

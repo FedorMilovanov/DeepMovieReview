@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, needsTableRowRead, settleNativeSpeech, validateVoiceOverSkipLink, warmVoiceOver } from "./lib/assistive-commands.mjs";
+import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, nativeTableRoleSpeech, needsNamedTableRead, needsTableRowRead, settleNativeSpeech, validateVoiceOverSkipLink, warmVoiceOver } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -57,7 +57,7 @@ const go = async route => {
 const perform = (command, options) => mac
   ? reader.press(macKeyboardShortcut(command), options)
   : reader.perform(command, options);
-async function action(label, run, expected) {
+async function action(label, run, expected, { required = true } = {}) {
   checkpoint(label);
   await reader.clearSpokenPhraseLog();
   let speech;
@@ -73,10 +73,22 @@ async function action(label, run, expected) {
     checkpoint(`${label}: recorded`);
     console.log(label, JSON.stringify(speech));
   }
-  if (expected) for (const pattern of Array.isArray(expected) ? expected : [expected]) {
+  if (expected && required) for (const pattern of Array.isArray(expected) ? expected : [expected]) {
     assert.match(speech.join(" "), pattern, `${label}: actual spoken output`);
   }
   return speech;
+}
+// Guidepup can retain a delayed generic table-help hint instead of the first
+// caption. Request the current VoiceOver item's description once, read-only,
+// but still require its actual spoken caption AND table role before proceeding.
+async function findNamedTable(label, name) {
+  const expected = [name, nativeTableRoleSpeech];
+  const automatic = await action(label, () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions),
+    expected, { required: !mac });
+  if (mac && needsNamedTableRead(automatic, name)) {
+    await action(`${label}: VoiceOver Describe Item`, () => perform(reader.keyboardCommands.describeItem, navigationOptions), expected);
+  }
+  return automatic;
 }
 // Read-only Describe Item independently names the VoiceOver cursor. The entry
 // and description remain separate recordings; a generic help phrase or DOM
@@ -222,7 +234,7 @@ try {
     await reader.clearSpokenPhraseLog();
     await perform(reader.keyboardCommands.describeItem, navigationOptions);
   }, [/шоу трумана/i, /heading|заголовок/i]);
-  await action("native table navigation", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/четыре окна/i, /table|таблиц/i]);
+  await findNamedTable("native table navigation", /четыре окна/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   await action("table column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);
   if (mac) {
@@ -240,7 +252,7 @@ try {
   }
   await screenshot("table-reading");
   if (mac) await action("leave first table interaction", () => perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions), /out of[\s\S]*table|(?:вне|выход)[\s\S]*таблиц/i);
-  await action("corrections table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), /пять утверждений/i);
+  await findNamedTable("corrections table name", /пять утверждений/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   await action("corrections column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /что удалось проверить/i);
   await screenshot("corrections-table-reading");
@@ -296,7 +308,7 @@ try {
     await perform(reader.keyboardCommands.exitFocusMode, { capture: false });
     await reader.press("Control+Home");
   }
-  const sceneTableSpeech = await action("mobile scene table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/сцены фильма/i, /table|таблиц/i]);
+  const sceneTableSpeech = await findNamedTable("mobile scene table name", /сцены фильма/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   // NVDA may enter at a native caption, which is outside the cells. Move into
   // the actual column header before using Ctrl+Alt+Down to traverse rows.
@@ -314,7 +326,7 @@ try {
   await action("mobile evidence link in scene", () => perform(mac ? reader.keyboardCommands.findNextLink : reader.keyboardCommands.moveToNextLink, navigationOptions),
     [/день\s*10\s*909/i, /link|ссылк/i]);
   if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
-  const registerSpeech = await action("mobile evidence register name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/реестр проверок/i, /table|таблиц/i]);
+  const registerSpeech = await findNamedTable("mobile evidence register name", /реестр проверок/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   else if (!firstTableCellSpoken(registerSpeech)) {
     await action("mobile evidence column header", () => advanceUntilFirstHeader(/запись/i), /запись/i);
