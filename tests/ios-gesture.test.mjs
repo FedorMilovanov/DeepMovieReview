@@ -12,6 +12,7 @@ import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, nativeObservation
 import { nativePageBarrierReady, nativeRouteMarkers, openInitialNativePage, shouldRunGestureAfterDriverFailure, validateMenuNavigationOutcome, validateNativeRouteMarker, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
 import { cancelledTouchWindow, collectTouchDiagnostics, touchLogExcerpt } from "../scripts/lib/ios-touch-diagnostics.mjs";
 import { validateSwiftCodeQL } from "../scripts/check-swift-codeql.mjs";
+import { packageSwiftEvidence } from "../scripts/publish-swift-codeql-evidence.mjs";
 
 const origin = "http://127.0.0.1:1234";
 const rail = { expanded: "false", hitContained: true, rect: { left: 320, top: 640, right: 390, bottom: 690, width: 70, height: 50 } };
@@ -69,15 +70,28 @@ test("initial Simulator navigation recovery never retries input and never masks 
     events: [{ kind: "touchstart" }], baseUrl: origin, wait }), /simctl timeout/);
   assert.equal(calls, 1);
   calls = 0;
+  const lateInput = [];
+  await assert.rejects(openInitialNativePage({ open: async () => { calls++; throw timeout; },
+    events: lateInput, baseUrl: origin, wait: async () => { lateInput.push({ kind: "touchstart" }); } }), /simctl timeout/);
+  assert.equal(calls, 1, "Late input must prevent a setup navigation retry");
+  calls = 0;
   await assert.rejects(openInitialNativePage({ open: async () => { calls++; throw new Error("different failure"); },
     events: [], baseUrl: origin, wait }), /different failure/);
   assert.equal(calls, 1);
 });
 
 test("Swift CodeQL gate rejects findings, extraction failures and vacuous reports", () => {
+  const extracted = { level: "none", descriptor: { id: "swift/diagnostics/successfully-extracted-files" },
+    locations: [{ physicalLocation: { artifactLocation: { uri: "scripts/ios-native-ui/Tests/NativeGestureTests.swift", uriBaseId: "%SRCROOT%" } } }] };
   const clean = { version: "2.1.0", runs: [{ tool: { driver: { name: "CodeQL", rules: [{ id: "swift/rule" }] } },
-    invocations: [{ executionSuccessful: true, toolExecutionNotifications: [{ level: "note" }] }], results: [] }] };
-  assert.deepEqual(validateSwiftCodeQL(clean), { rules: 1, findings: 0, problematicNotifications: 0 });
+    invocations: [{ executionSuccessful: true, toolExecutionNotifications: [extracted] }], results: [] }] };
+  assert.deepEqual(validateSwiftCodeQL(clean), { rules: 1, extracted: "scripts/ios-native-ui/Tests/NativeGestureTests.swift", findings: 0, problematicNotifications: 0 });
+  const raw = Buffer.from(JSON.stringify(clean, null, 2) + "\n");
+  const receipt = packageSwiftEvidence(raw, "a".repeat(40));
+  assert.deepEqual(Buffer.from(receipt.scans[0].base64, "base64"), raw);
+  assert.deepEqual(receipt.summary.failures, []);
+  const failed = structuredClone(clean); failed.runs[0].results.push({ ruleId: "swift/security" });
+  assert.match(packageSwiftEvidence(Buffer.from(JSON.stringify(failed)), "a".repeat(40)).summary.failures[0], /reported findings/);
   for (const change of [
     data => { data.version = "1.0.0"; },
     data => { data.runs = []; },
@@ -87,6 +101,10 @@ test("Swift CodeQL gate rejects findings, extraction failures and vacuous report
     data => { data.runs[0].invocations[0].executionSuccessful = false; },
     data => { data.runs[0].invocations[0].toolExecutionNotifications.push({ level: "warning" }); },
     data => { data.runs[0].invocations[0].toolConfigurationNotifications = [{ level: "error" }]; },
+    data => { data.runs[0].invocations[0].toolExecutionNotifications = []; },
+    data => { data.runs[0].invocations[0].toolExecutionNotifications[0].locations[0].physicalLocation.artifactLocation.uri = "scripts/ios-native-ui/Package.swift"; },
+    data => { delete data.runs[0].invocations[0].toolExecutionNotifications[0].locations[0].physicalLocation.artifactLocation.uriBaseId; },
+    data => { data.runs[0].invocations[0].toolExecutionNotifications.push({ level: "none", descriptor: { id: "swift/diagnostics/extraction-errors" } }); },
     data => { delete data.runs[0].results; },
     data => { data.runs[0].results.push({ ruleId: "swift/security", level: "warning" }); },
   ]) { const changed = structuredClone(clean); change(changed); assert.throws(() => validateSwiftCodeQL(changed)); }

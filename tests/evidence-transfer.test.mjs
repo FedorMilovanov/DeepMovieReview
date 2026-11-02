@@ -79,6 +79,18 @@ test("multipart evidence publishes and reads back a lossless receipt over 1,000 
   assert.throws(() => evidenceManifest({ ...root, output: { summary: JSON.stringify(gap) } }, revision, head), /contiguous/);
 });
 
+test("security evidence uses a distinct check and preserves a failed source verdict", async () => {
+  const { api, checks } = fakeChecks();
+  const data = { summary: { revision, failures: ["Swift finding"] }, scans: [{ name: "swift.sarif", base64: "e30=" }] };
+  const result = await publishEvidence({ bytes: gzipSync(Buffer.from(JSON.stringify(data))), revision, head,
+    label: "swift-codeql", kind: "security", summary: data.summary, api });
+  const check = checks.get(result.checks[0].id);
+  assert.equal(check.name, "Security evidence (swift-codeql)");
+  assert.equal(check.rows[0].path, "scripts/check-swift-codeql.mjs");
+  assert.deepEqual(decodeEvidence(check, check.rows, revision, head).payload, data);
+  await assert.rejects(publishEvidence({ bytes, revision, head, label: "bad", kind: "other", summary: payload.summary, api }), /Unknown evidence kind/);
+});
+
 test("a transient annotation append is reconciled before any retry, including partial or complete writes", async () => {
   for (const mode of ["before", "partial", "after"]) {
     const { api: base, checks } = fakeChecks();

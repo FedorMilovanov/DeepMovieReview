@@ -7,6 +7,7 @@ import { MacOSKeyCodes } from "@guidepup/guidepup";
 // Require the named row and the actual detector count, not the nearby 0,0/min
 // rate or an unqualified (and now inaccurate) "0 переходов" announcement.
 export const libraryDetectionRowSpeech = /библиотека[\s\S]*\b0 обнаруженных переходов/i;
+export const needsTableRowRead = speech => !libraryDetectionRowSpeech.test(speech.join(" "));
 
 // Both speech and native browser focus must identify the real skip link. Keep
 // spontaneous entry speech separate: Guidepup polls "last phrase" and may only

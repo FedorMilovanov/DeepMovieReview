@@ -300,7 +300,7 @@ test("Safari diagnostics are bounded and isolated to the actual driver pid", asy
 test("VoiceOver shortcuts retain native command codes without app activation", async () => {
   const { macKeyboardShortcut } = await import("../scripts/lib/assistive-commands.mjs");
   const { voiceOverKeyCodeCommands: commands, MacOSKeyCodes } = await import("@guidepup/guidepup");
-  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "findNextLink", "moveToNextColumn", "moveDown", "moveToNext", "describeItem"]) {
+  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "findNextLink", "moveToNextColumn", "moveDown", "moveToNext", "describeItem", "readTableRow"]) {
     const command = commands[name];
     const parts = macKeyboardShortcut(command).split("+");
     assert.equal(MacOSKeyCodes[parts.pop()], command.keyCode);
@@ -477,7 +477,7 @@ test("NVDA table captions are not mistaken for an active table cell", async () =
 });
 
 test("actual screen reader table assertion requires the named row and detected count", async () => {
-  const { libraryDetectionRowSpeech } = await import("../scripts/lib/assistive-commands.mjs");
+  const { libraryDetectionRowSpeech, needsTableRowRead } = await import("../scripts/lib/assistive-commands.mjs");
   // Actual speech from the c3f1771 NVDA and VoiceOver runs; neither is a mock
   // substitute for running the real AT scenario after a change.
   assert.match("Библиотека: Труман, посетители и девушка в красном 22:00–23:00 1:00 0,0 перехода в минуту, row 2, 0 обнаруженных переходов", libraryDetectionRowSpeech);
@@ -486,6 +486,9 @@ test("actual screen reader table assertion requires the named row and detected c
   assert.doesNotMatch("Библиотека · 10 обнаруженных переходов", libraryDetectionRowSpeech);
   assert.doesNotMatch("Стена · 0 обнаруженных переходов", libraryDetectionRowSpeech);
   assert.doesNotMatch("Библиотека · 0 переходов", libraryDetectionRowSpeech);
+  assert.equal(needsTableRowRead(["You are currently on a selectable text, inside of a cell."]), true);
+  assert.equal(needsTableRowRead(["Библиотека", "0 обнаруженных переходов"]), false);
+  assert.equal(needsTableRowRead(["Библиотека · 10 обнаруженных переходов"]), true);
 });
 
 test("scoped rendered contrast bounds skip unrelated page tiles without changing whole-document scope", async () => {

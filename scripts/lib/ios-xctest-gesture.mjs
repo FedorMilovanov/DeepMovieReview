@@ -77,9 +77,9 @@ function allowObservedSimctlTimeout(error) {
 // unchanged, strict menu oracle must prove one complete trace on one document.
 export async function openInitialNativePage({ open, events, baseUrl, wait = delay }) {
   const attempts = [];
-  const homeObserved = () => events.some(event => {
-    try { return event.kind === "menu-ready" && event.url === `${baseUrl}/`; } catch { return false; }
-  });
+  const homeObserved = () => events.some(event => event.kind === "menu-ready" && event.url === `${baseUrl}/`);
+  const inputObserved = () => events.some(event => typeof event.kind === "string" &&
+    (event.kind.startsWith("touch") || event.kind.endsWith("-click")));
   for (let index = 0; index < 2; index++) {
     try {
       await open();
@@ -87,9 +87,10 @@ export async function openInitialNativePage({ open, events, baseUrl, wait = dela
       return { attempts, status: index ? "setup-navigation-retried" : "completed" };
     } catch (error) {
       allowObservedSimctlTimeout(error);
-      attempts.push({ status: "timeout", error: String(error.message ?? error) });
-      if (events.some(event => ["touchstart", "touchend", "touchcancel", "menu-click"].includes(event.kind))) throw error;
+      attempts.push({ status: "timeout", error: String(error.stderr ?? error.message ?? error) });
+      if (inputObserved()) throw error;
       await wait(2000);
+      if (inputObserved()) throw error;
       if (homeObserved()) return { attempts, status: "timed-out-home-observed" };
     }
   }

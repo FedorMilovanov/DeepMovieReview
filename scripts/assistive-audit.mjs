@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, settleNativeSpeech, validateVoiceOverSkipLink, warmVoiceOver } from "./lib/assistive-commands.mjs";
+import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, needsTableRowRead, settleNativeSpeech, validateVoiceOverSkipLink, warmVoiceOver } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -225,7 +225,19 @@ try {
   await action("native table navigation", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), [/четыре окна/i, /table|таблиц/i]);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   await action("table column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);
-  await action("table row header and value", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), libraryDetectionRowSpeech);
+  if (mac) {
+    // The native command sometimes reaches the correct cell but Guidepup only
+    // captures VoiceOver's later generic help (498b45a). Record that speech as
+    // it was; when it lacks the actual row and count, issue VO-R, the read-only
+    // Read Table Row command, on the current cursor. It must independently speak
+    // both the named row and its detected count; no DOM text substitutes for AT.
+    const automatic = await action("table row navigation", () => perform(reader.keyboardCommands.moveDown, navigationOptions));
+    if (needsTableRowRead(automatic)) {
+      await action("table row read on demand", () => perform(reader.keyboardCommands.readTableRow, navigationOptions), libraryDetectionRowSpeech);
+    }
+  } else {
+    await action("table row header and value", () => perform(reader.keyboardCommands.moveToNextRow, navigationOptions), libraryDetectionRowSpeech);
+  }
   await screenshot("table-reading");
   if (mac) await action("leave first table interaction", () => perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions), /out of[\s\S]*table|(?:вне|выход)[\s\S]*таблиц/i);
   await action("corrections table name", () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions), /пять утверждений/i);
