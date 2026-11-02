@@ -349,6 +349,9 @@ jobs:
         if: always() && steps.browser_audit.outcome == 'failure'
         run: node scripts/report-interrupted-reader.mjs
 
+      - name: Test historical native evidence selection
+        run: python3 -m unittest discover -s tests -p 'test_recover_native_evidence.py'
+
       # Historical recovery is informational, never a substitute for current-head tests.
       - name: Recover previous successful accessibility evidence
         if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -360,6 +363,8 @@ jobs:
 
       - name: Recover retained native evidence from a completed prior head
         if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        # Archival transfer cannot substitute for current evidence or block public-build tests.
+        continue-on-error: true
         timeout-minutes: 3
         env:
           GH_TOKEN: ${{ github.token }}
