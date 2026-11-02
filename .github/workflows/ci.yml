@@ -349,6 +349,9 @@ jobs:
         if: always() && steps.browser_audit.outcome == 'failure'
         run: node scripts/report-interrupted-reader.mjs
 
+      - name: Test historical native evidence selection
+        run: python3 -m unittest discover -s tests -p 'test_recover_native_evidence.py'
+
       # Historical recovery is informational, never a substitute for current-head tests.
       - name: Recover previous successful accessibility evidence
         if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -360,6 +363,8 @@ jobs:
 
       - name: Recover retained native evidence from a completed prior head
         if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        # Archival transfer cannot substitute for current evidence or block public-build tests.
+        continue-on-error: true
         timeout-minutes: 3
         env:
           GH_TOKEN: ${{ github.token }}
@@ -610,14 +615,132 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  # The only Swift file is the native test harness. Default CodeQL autobuild
+  # ignores Xcode test targets, so a dependency-free SwiftPM scan target compiles
+  # that very same file. Analyze it independently on every PR and main push.
+  swift-codeql:
+    name: Swift CodeQL (native test harness)
+    runs-on: macos-26
+    timeout-minutes: 25
+    env:
+      # Require full-tree results (not just changed lines) and the extracted-file diagnostic.
+      CODEQL_ACTION_DIFF_INFORMED_QUERIES: "false"
+      CODEQL_ACTION_OVERLAY_ANALYSIS: "false"
+      CODEQL_ACTION_FILE_COVERAGE_ON_PRS: "true"
+    permissions:
+      actions: read
+      checks: write
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact Swift checkout
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+      - name: Initialize Swift CodeQL
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: swift
+          queries: security-extended
+      - name: Autobuild the actual native test source
+        uses: github/codeql-action/autobuild@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+      - name: Analyze Swift security
+        id: analyze
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: /language:swift-native-harness
+          output: ${{ runner.temp }}/swift-codeql-results
+          # GitHub rejects advanced CodeQL uploads while default setup is enabled.
+          # Preserve the original report and fail closed on every finding below.
+          upload: never
+      - name: Fail on Swift findings or extraction errors
+        run: node scripts/check-swift-codeql.mjs "${{ steps.analyze.outputs.sarif-output }}"
+      - name: Publish original Swift SARIF for independent readback
+        if: always() && steps.analyze.outputs.sarif-output != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-swift-codeql-evidence.mjs "${{ steps.analyze.outputs.sarif-output }}"
+      - name: Retain unmodified Swift SARIF
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: swift-codeql-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/swift-codeql-results/
+          if-no-files-found: warn
+          retention-days: 7
+
+  full-codeql:
+    name: Full CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      checks: write
+      security-events: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript, python, actions]
+    env:
+      CODEQL_ACTION_DIFF_INFORMED_QUERIES: "false"
+      CODEQL_ACTION_OVERLAY_ANALYSIS: "false"
+      CODEQL_ACTION_FILE_COVERAGE_ON_PRS: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact checkout
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install TypeScript dependencies for source extraction
+        if: matrix.language == 'javascript'
+        run: npm ci --no-audit --no-fund
+      - name: Initialize security-extended CodeQL
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+      - name: Analyze without conflicting with default setup
+        id: analyze
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
+        with:
+          output: ${{ runner.temp }}/full-codeql-results
+          upload: never
+      - name: Require complete clean analysis
+        run: node scripts/check-full-codeql.mjs "${{ steps.analyze.outputs.sarif-output }}" "${{ matrix.language }}"
+      - name: Publish original SARIF for independent readback
+        if: always() && steps.analyze.outputs.sarif-output != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/publish-full-codeql-evidence.mjs "${{ steps.analyze.outputs.sarif-output }}" "${{ matrix.language }}"
+      - name: Retain unmodified SARIF
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: full-${{ matrix.language }}-codeql-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/full-codeql-results/
+          if-no-files-found: warn
+          retention-days: 7
+
   # Run Simulator on a clean current macOS image, independently of VoiceOver /
   # accessibility permission setup and the desktop Safari process lifecycle.
   native-ios:
     name: Native iOS Safari
     runs-on: macos-26
-    # Includes a separately built XCUITest runner for the real native gesture;
-    # a missing, skipped or failed gesture remains a failing native-iOS job.
-    timeout-minutes: 30
+    # A correlated Simulator digitizer cancellation may trigger one complete
+    # strict rerun on a fresh device; the failed attempt is retained. Allow time
+    # for both cold boots and evidence publication, never for repeated taps.
+    timeout-minutes: 50
     permissions:
       contents: read
       actions: read

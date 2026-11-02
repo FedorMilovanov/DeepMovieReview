@@ -16,6 +16,12 @@ export function runtimeMatchesSdk(runtime, sdkVersion) {
   return Boolean(ios && sdk && Number(ios[1]) <= Number(sdk[1]));
 }
 
+// Keep the *end* of a cold-boot trace, including on timeout. Error inspection
+// may truncate a large stdout string from its beginning and hide the last phase.
+export function simulatorBootLog(note, stdout, stderr) {
+  return [note, String(stdout ?? "").slice(-12000), String(stderr ?? "").slice(-4000)].filter(Boolean).join("\n");
+}
+
 // SafariDriver --diagnose writes to files, not its stdout/stderr streams.
 export function safariDriverLog(directory, pid) {
   try {

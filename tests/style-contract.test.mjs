@@ -300,7 +300,7 @@ test("Safari diagnostics are bounded and isolated to the actual driver pid", asy
 test("VoiceOver shortcuts retain native command codes without app activation", async () => {
   const { macKeyboardShortcut } = await import("../scripts/lib/assistive-commands.mjs");
   const { voiceOverKeyCodeCommands: commands, MacOSKeyCodes } = await import("@guidepup/guidepup");
-  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "findNextLink", "moveToNextColumn", "moveDown", "moveToNext", "describeItem"]) {
+  for (const name of ["openItemChooser", "openWebItemRotor", "interactWithItem", "findNextTable", "findNextLink", "moveToNextColumn", "moveDown", "moveToNext", "describeItem", "readTableRow"]) {
     const command = commands[name];
     const parts = macKeyboardShortcut(command).split("+");
     assert.equal(MacOSKeyCodes[parts.pop()], command.keyCode);
@@ -453,6 +453,19 @@ test("VoiceOver entry and on-demand skip-link description remain distinct, with 
   assert.throws(() => validateVoiceOverSkipLink(["web content"], description, { ...focus, text: "другая ссылка" }), /named skip link/);
 });
 
+test("cold Simulator boot diagnostics preserve the bounded final output", async () => {
+  const { simulatorBootLog } = await import("../scripts/lib/apple-toolchain.mjs");
+  const output = `start-${"x".repeat(13000)}-last phase`;
+  const stderr = `${"e".repeat(5000)}-last error`;
+  const log = simulatorBootLog("boot note", output, stderr);
+  assert.ok(log.startsWith("boot note\n"));
+  assert.ok(!log.includes("start-"));
+  assert.ok(log.includes("-last phase"));
+  assert.ok(log.endsWith("-last error"));
+  assert.ok(log.length <= "boot note".length + 12000 + 4000 + 2);
+  assert.equal(simulatorBootLog("", undefined, undefined), "");
+});
+
 test("native speech timeout never manufactures a semantic pass", async () => {
   const { settleNativeSpeech } = await import("../scripts/lib/assistive-commands.mjs");
   let clock = 0;
@@ -476,8 +489,31 @@ test("NVDA table captions are not mistaken for an active table cell", async () =
   assert.equal(firstTableHeaderSpoken(["out of caption, row 1, column 1, ЗАПИСЬ"], /запись/i), true);
 });
 
+test("VoiceOver chooser may name its selected skip link but not generic page help alone", async () => {
+  const { voiceOverChooserSpeech, validateVoiceOverSkipLink } = await import("../scripts/lib/assistive-commands.mjs");
+  assert.match("On item Перейти к содержимому. Page Menu, Translation Available", voiceOverChooserSpeech);
+  assert.match("You are currently in a VoiceOver Menu", voiceOverChooserSpeech);
+  assert.doesNotMatch("Page Menu, Translation Available", voiceOverChooserSpeech);
+  assert.doesNotMatch("On item Другая ссылка. Page Menu", voiceOverChooserSpeech);
+  // Recognising the setup phrase does not replace actual link speech/focus.
+  assert.throws(() => validateVoiceOverSkipLink(["web content"], ["generic help"],
+    { tag: "A", href: "#main", text: "Перейти к содержимому" }), /must speak the link name/);
+});
+
+test("VoiceOver table help is not a named table announcement", async () => {
+  const { needsNamedTableRead } = await import("../scripts/lib/assistive-commands.mjs");
+  const name = /сцены фильма/i;
+  // Actual generic hint on f8efc3d; even the correct-looking cursor screenshot
+  // cannot substitute for the name and role in real speech.
+  assert.equal(needsNamedTableRead(["You are currently in a table. To navigate the cells within this table press Control-Option."], name), true);
+  assert.equal(needsNamedTableRead(["Сцены фильма"], name), true);
+  assert.equal(needsNamedTableRead(["Реестр проверок table"], name), true);
+  assert.equal(needsNamedTableRead(["Сцены фильма: начало, название, состояние проверки и число опор table 1 column, 7 rows"], name), false);
+  assert.equal(needsNamedTableRead(["Сцены фильма", "таблица"], name), false);
+});
+
 test("actual screen reader table assertion requires the named row and detected count", async () => {
-  const { libraryDetectionRowSpeech } = await import("../scripts/lib/assistive-commands.mjs");
+  const { libraryDetectionRowSpeech, needsTableRowRead } = await import("../scripts/lib/assistive-commands.mjs");
   // Actual speech from the c3f1771 NVDA and VoiceOver runs; neither is a mock
   // substitute for running the real AT scenario after a change.
   assert.match("Библиотека: Труман, посетители и девушка в красном 22:00–23:00 1:00 0,0 перехода в минуту, row 2, 0 обнаруженных переходов", libraryDetectionRowSpeech);
@@ -486,6 +522,9 @@ test("actual screen reader table assertion requires the named row and detected c
   assert.doesNotMatch("Библиотека · 10 обнаруженных переходов", libraryDetectionRowSpeech);
   assert.doesNotMatch("Стена · 0 обнаруженных переходов", libraryDetectionRowSpeech);
   assert.doesNotMatch("Библиотека · 0 переходов", libraryDetectionRowSpeech);
+  assert.equal(needsTableRowRead(["You are currently on a selectable text, inside of a cell."]), true);
+  assert.equal(needsTableRowRead(["Библиотека", "0 обнаруженных переходов"]), false);
+  assert.equal(needsTableRowRead(["Библиотека · 10 обнаруженных переходов"]), true);
 });
 
 test("scoped rendered contrast bounds skip unrelated page tiles without changing whole-document scope", async () => {

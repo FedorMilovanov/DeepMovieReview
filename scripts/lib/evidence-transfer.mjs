@@ -11,7 +11,7 @@ const MAX_COMPRESSED_BYTES = EVIDENCE_CHUNK_SIZE * EVIDENCE_PART_CHUNKS * EVIDEN
 export function evidenceManifest(check, revision, checkHead = revision) {
   for (const sha of [revision, checkHead]) assert.match(sha, /^[a-f0-9]{40}$/);
   assert.equal(check.app?.slug, "github-actions", "Unexpected publisher app");
-  assert.match(check.name, /^Accessibility evidence \([a-z-]+\)$/);
+  assert.match(check.name, /^(?:Accessibility|Security) evidence \([a-z-]+\)$/);
   assert.equal(check.head_sha, checkHead, "Unexpected check head");
   assert.equal(check.status, "completed", "Evidence publication is not complete");
   assert.equal(check.conclusion, "success", "Evidence publication did not succeed");

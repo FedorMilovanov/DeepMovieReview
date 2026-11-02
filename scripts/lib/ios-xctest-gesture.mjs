@@ -6,7 +6,7 @@ import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
-import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, selectNativeGestureAttachments, startNativeObservationProxy,
+import { nativeArticlePath, nativeMenuRoutes, nativeMenuStages, nativeScenePath, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "./ios-gesture-probe.mjs";
 import { parseArticleSectionIds } from "./ios-spoiler-observation.mjs";
 import { collectTouchDiagnostics } from "./ios-touch-diagnostics.mjs";
@@ -26,6 +26,27 @@ async function routeMarkerBaseline(base, route, marker) {
   assert.equal(response.status, 200, `Native route marker baseline failed: ${route}`);
   assert.match(response.headers.get("content-type") ?? "", /text\/html/i);
   validateNativeRouteMarker(await response.text(), marker);
+}
+
+// Wait for the observer to see the actual new menu document before XCTest taps.
+// On bab389e the films tap arrived before that page's first menu-ready event.
+// This is readiness only: the native event/state oracle remains unchanged.
+export function nativeMenuBarrierReady({ stage, events, baseUrl, completedMenus }) {
+  const index = nativeMenuStages.indexOf(stage);
+  if (index < 0 || !Array.isArray(events) || !Array.isArray(completedMenus) || completedMenus.length !== index ||
+    completedMenus.some((menu, i) => menu.route !== nativeMenuRoutes[i] || !menu.pageId || !Number.isFinite(menu.closed?.timestamp))) return false;
+  const after = completedMenus.at(-1)?.closed.timestamp ?? -Infinity;
+  const expected = new URL(nativeMenuRoutes[index], baseUrl).href;
+  return events.some(event => {
+    const rect = event.menu?.rect;
+    return event.kind === "menu-ready" && event.url === expected && event.pageId &&
+      !completedMenus.some(menu => menu.pageId === event.pageId) && Number.isFinite(event.timestamp) && event.timestamp > after &&
+      event.lang === "ru" && event.width > 0 && event.width < 500 && event.height > 0 &&
+      Number.isFinite(event.scrollY) && event.scrollY >= 0 && event.scrollY < 30 &&
+      event.menu?.expanded === "false" && event.menu.navVisible === false && event.menu.navInert === true &&
+      event.menu.hitContained === true && rect && rect.width > 0 && rect.height > 0 &&
+      rect.left >= 0 && rect.top >= 0 && rect.right <= event.width + 1 && rect.bottom <= event.height + 1;
+  });
 }
 
 // Synchronize the test runner with a distinct, actually observed FULL document.
@@ -69,6 +90,43 @@ function allowObservedSimctlTimeout(error) {
   if (!error) return;
   const detail = String(error.stderr ?? error.message ?? error);
   if (!/domain=NSPOSIXErrorDomain, code=60/.test(detail) || !/operation timed out/i.test(detail)) throw error;
+}
+
+// Initial setup occurs before XCTest starts: no interaction has been sent. If
+// simctl itself times out and no home document arrived, permit one more URL
+// opening (never a touch retry). A late first navigation may still race; the
+// unchanged, strict menu oracle must prove one complete trace on one document.
+export async function openInitialNativePage({ open, events, baseUrl, wait = delay }) {
+  const attempts = [];
+  const homeObserved = () => events.some(event => event.kind === "menu-ready" && event.url === `${baseUrl}/`);
+  const inputObserved = () => events.some(event => typeof event.kind === "string" &&
+    (event.kind.startsWith("touch") || event.kind.endsWith("-click")));
+  for (let index = 0; index < 2; index++) {
+    try {
+      await open();
+      attempts.push({ status: "completed" });
+      return { attempts, status: index ? "setup-navigation-retried" : "completed" };
+    } catch (error) {
+      allowObservedSimctlTimeout(error);
+      attempts.push({ status: "timeout", error: String(error.stderr ?? error.message ?? error) });
+      if (inputObserved()) throw error;
+      await wait(2000);
+      if (inputObserved()) throw error;
+      if (homeObserved()) return { attempts, status: "timed-out-home-observed" };
+    }
+  }
+  // XCTest may still see a late navigation, but can pass only if the independent
+  // observer subsequently validates all four complete menu interactions.
+  return { attempts, status: "timed-out-awaiting-home-observation" };
+}
+
+// Diagnostic only: a completed simctl call is not proof that the target page
+// arrived. Preserve its error even when XCTest fails before the success oracle.
+export function simctlCommandOutcome(error) {
+  if (!error) return { status: "completed" };
+  const detail = [error.message, error.stderr].filter(Boolean).map(String).join("\n") || String(error);
+  return { status: "failed", code: error.code ?? null, signal: error.signal ?? null,
+    killed: error.killed === true, detail: detail.slice(-4000) };
 }
 
 export function validateMenuNavigationOutcome({ error, from, to, next, baseUrl }) {
@@ -152,7 +210,9 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
       routeMarkerBaseline("http://127.0.0.1:3213", route, marker)));
     report.routeMarkerBaselines = nativeRouteMarkers;
     proxy = await startNativeObservationProxy({ spoilerLastSectionId: fullSectionIds.at(-1),
-      onBarrier: stage => nativePageBarrierReady({ stage, events: proxy.events, baseUrl: proxy.baseUrl, completedMenus }),
+      onBarrier: stage => nativeMenuStages.includes(stage)
+        ? nativeMenuBarrierReady({ stage, events: proxy.events, baseUrl: proxy.baseUrl, completedMenus })
+        : nativePageBarrierReady({ stage, events: proxy.events, baseUrl: proxy.baseUrl, completedMenus }),
       onEvent: event => {
       // Schedule each following route only after the complete preceding native
       // open/close is independently observed. Beacons may arrive out of order;
@@ -168,11 +228,14 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
           completedMenus.push(completed);
           const to = nativeMenuRoutes[index + 1] ?? `${nativeArticlePath}?spoilers=full`;
           const url = `${proxy.baseUrl}${to}`;
-          report.menuNavigations.push({ from: route, to, method: "simctl openurl after validated native menu close" });
+          const navigation = { from: route, to, method: "simctl openurl after validated native menu close", scheduledAt: Date.now() };
+          report.menuNavigations.push(navigation);
           // Screenshot is taken while the menu is open, before its close tap.
           // This small pause also lets XCTest finish its closed-state check.
           menuPromises.push(delay(2500).then(async () => {
-            await exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 });
+            navigation.startedAt = Date.now();
+            try { await exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 }); }
+            finally { navigation.finishedAt = Date.now(); }
           }).catch(error => { menuErrors[index] = error; }));
         }
       }
@@ -203,7 +266,8 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     note: "The observer does not perform input, scrolling or state changes." };
   let run, primaryError;
   try {
-    await exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 });
+    report.initialNavigation = await openInitialNativePage({ events: proxy.events, baseUrl: proxy.baseUrl,
+      open: () => exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 }) });
     report.phase = "XCUITest four native menus, swipe, scene and spoiler input";
     const project = resolve("scripts/ios-native-ui/NativeGesture.xcodeproj");
     const args = ["test", "-project", project, "-scheme", "NativeGesture",
@@ -280,6 +344,10 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
   } finally {
     // Do not leave scheduled simctl commands running after a failure.
     await Promise.allSettled([...menuPromises, ...(sceneNavigation ? [sceneNavigation] : []), ...(spoilerNavigation ? [spoilerNavigation] : [])]);
+    report.menuNavigations = report.menuNavigations.map((navigation, index) => ({ ...navigation,
+      command: simctlCommandOutcome(menuErrors[index]) }));
+    if (report.sceneNavigation) report.sceneNavigation.command = simctlCommandOutcome(sceneNavigationError);
+    if (report.spoilerNavigation) report.spoilerNavigation.command = simctlCommandOutcome(spoilerNavigationError);
     report.events = proxy.events; report.observerErrors = proxy.errors;
     if (primaryError && existsSync(bundle)) {
       // Preserve a narrow OS-log excerpt for a cancelled native touch. This is

@@ -4,10 +4,12 @@ import { inspect } from "node:util";
 import { arch, release } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
-import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
+import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines, simulatorBootLog } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari, waitForStableNativeTarget } from "./lib/native-safari.mjs";
 import { runNativeGestureXCTest, shouldRunGestureAfterDriverFailure } from "./lib/ios-xctest-gesture.mjs";
+import { retryableSimulatorCancellation } from "./lib/ios-cancellation-retry.mjs";
+import { withFreshGestureSimulator } from "./lib/ios-fresh-simulator.mjs";
 import { parseArticleSectionIds } from "./lib/ios-spoiler-observation.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 const directory = "at-report/ios-safari", gestureDirectory = "at-report/ios-gesture";
@@ -15,22 +17,24 @@ mkdirSync(directory, { recursive: true });
 mkdirSync(gestureDirectory, { recursive: true });
 const report = { revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), results: [], failures: [] };
 const evidence = { violations: [], incomplete: [], actions: [], screenshots: [] };
-const gestureReport = { revision: report.revision, phase: "not started", failures: ["Native gesture test did not run"],
+const newGestureReport = () => ({ revision: report.revision, phase: "not started", failures: ["Native gesture test did not run"],
   results: [{ browser: "ios-safari-simulator", width: 0, route: "/films/the-truman-show/article?spoilers=full",
-    state: "native-xctest-gesture", scope: "iPhone Simulator, not physical hardware", file: "actual-ios-gesture.json" }] };
-const gestureEvidence = { violations: [], incomplete: [], actions: [], screenshots: [] };
+    state: "native-xctest-gesture", scope: "iPhone Simulator, not physical hardware", file: "actual-ios-gesture.json" }] });
+const newGestureEvidence = () => ({ violations: [], incomplete: [], actions: [], screenshots: [] });
+let gestureReport = newGestureReport(), gestureEvidence = newGestureEvidence();
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", "3213"], { stdio: "inherit" });
 const systemEnv = { ...process.env };
 delete systemEnv.DEVELOPER_DIR;
 let safari, restoreDeveloperDirectory, automation;
 const sceneRoute = "/films/the-truman-show?spoilers=none#scene-truman-sc-day-10909";
-async function runAndRecordNativeGesture() {
+async function runAndRecordNativeGesture(device = report.device, directory = gestureDirectory) {
   gestureReport.attempted = true;
   gestureReport.failures = [];
-  gestureReport.device = report.device;
-  gestureReport.results[0].version = report.safariVersion ?? report.capabilities?.browserVersion ?? "not-started";
+  gestureReport.device = device;
+  const driverVersion = report.safariVersion ?? report.capabilities?.browserVersion ?? "not-started";
+  gestureReport.results[0].version = device.udid === report.device.udid ? driverVersion : `same installed iOS runtime as SafariDriver (${driverVersion}); retry version not independently queried`;
   try {
-    await runNativeGestureXCTest({ device: report.device, directory: gestureDirectory, report: gestureReport, evidence: gestureEvidence });
+    await runNativeGestureXCTest({ device, directory, report: gestureReport, evidence: gestureEvidence });
   } catch (error) {
     if (!gestureReport.failures.length) gestureReport.failures.push(String(error.stack ?? error));
     throw error;
@@ -61,6 +65,47 @@ async function runAndRecordNativeGesture() {
   evidence.actions.push({ route: sceneRoute, label: "native XCUITest scene support → evidence; full trace and screenshots in ios-gesture evidence",
     observed: gestureReport.observedScene });
 }
+async function runNativeGestureWithOneIsolatedRetry() {
+  try { await runAndRecordNativeGesture(); return; }
+  catch (firstError) {
+    const trigger = retryableSimulatorCancellation(gestureReport);
+    if (!trigger || process.env.GITHUB_ACTIONS !== "true") throw firstError;
+    // Save the failed attempt in the verified Checks receipt and raw artifact.
+    // No partial results can pass: the new Simulator must run the entire strict
+    // scenario, and both failures remain visible if the second run fails.
+    const firstAttempt = structuredClone(gestureReport), firstEvidence = structuredClone(gestureEvidence);
+    writeFileSync(`${gestureDirectory}/first-attempt-summary.json`, JSON.stringify(firstAttempt, null, 2));
+    writeFileSync(`${gestureDirectory}/first-attempt-evidence.json`, JSON.stringify(firstEvidence, null, 2));
+    report.nativeGestureRetry = { trigger, outcome: "in progress", lifecycle: [] };
+    gestureReport = newGestureReport();
+    gestureReport.firstAttempt = firstAttempt;
+    gestureReport.firstAttemptEvidence = firstEvidence;
+    gestureReport.isolatedRetry = { trigger, originalFailureRemains: true };
+    gestureEvidence = newGestureEvidence();
+    try {
+      if (automation) {
+        automation.restore();
+        report.restoredAutomationPreference = automation.original;
+        automation = undefined;
+      }
+      await withFreshGestureSimulator({ original: report.device, simulatorApp: report.toolchain.simulatorApp, ci: true,
+        diagnostic: item => {
+          report.nativeGestureRetry.lifecycle.push(structuredClone(item));
+          if (item.phase === "original-shutdown") report.device.state = "Shutdown";
+        } }, async device => {
+        await runAndRecordNativeGesture(device, `${gestureDirectory}/isolated-retry`);
+      });
+      report.nativeGestureRetry.outcome = "passed full strict second run";
+      gestureReport.isolatedRetry.outcome = report.nativeGestureRetry.outcome;
+    } catch (retryError) {
+      report.nativeGestureRetry.outcome = "failed";
+      gestureReport.isolatedRetry.outcome = "failed";
+      gestureReport.failures.push(`Isolated retry failed: ${retryError.stack ?? retryError}`);
+      throw new AggregateError([firstError, retryError], "Both the original native attempt and the isolated retry failed");
+    }
+  }
+}
+
 function hostSimulatorProcesses() {
   try {
     return nativeSimulatorProcessLines(execFileSync("ps", ["-axo", "pid=,state=,pcpu=,comm="], { encoding: "utf8", timeout: 10000 }));
@@ -116,9 +161,22 @@ try {
         if (!/current state: Boot(ed|ing)/.test(detail)) throw error;
         bootNote = `simctl boot reported the idempotent state, not a failure: ${detail.trim().split("\n").slice(-1)[0]}`;
       }
-      report.bootLog = [bootNote, execFileSync("xcrun", ["simctl", "bootstatus", device.udid], {
-        encoding: "utf8", timeout: 480000, maxBuffer: 16 * 1024 * 1024,
-      }).slice(-12000)].filter(Boolean).join("\n");
+      // On 15aa416 eight-minute bootstatus timed out; its early log showed
+      // cold iOS migration. Generic error inspection kept the beginning, not the
+      // final state. Retain the bounded tail and actual duration even on failure.
+      const bootStarted = performance.now();
+      report.bootTiming = { timeoutMs: 480000 };
+      try {
+        const output = execFileSync("xcrun", ["simctl", "bootstatus", device.udid], {
+          encoding: "utf8", timeout: report.bootTiming.timeoutMs, maxBuffer: 16 * 1024 * 1024,
+        });
+        report.bootLog = simulatorBootLog(bootNote, output, "");
+      } catch (error) {
+        report.bootLog = simulatorBootLog(bootNote, error.stdout, error.stderr);
+        throw error;
+      } finally {
+        report.bootTiming.elapsedMs = Math.round(performance.now() - bootStarted);
+      }
       console.log(report.bootLog);
       report.device.state = "Booted";
       report.hostSimulatorProcesses = hostSimulatorProcesses();
@@ -234,7 +292,7 @@ try {
   await safari.close();
   safari = undefined;
   report.phase = "XCUITest native menus, scroll, scene and spoiler input";
-  await runAndRecordNativeGesture();
+  await runNativeGestureWithOneIsolatedRetry();
 } catch (error) {
   // Session creation can fail before a WebDriver object exists. Preserve the
   // actual Simulator screen and bounded RWI logs instead of diagnosing a blank

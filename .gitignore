@@ -30,6 +30,10 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 
+# Python bytecode from audit helpers and their tests
+__pycache__/
+*.py[cod]
+
 # regression test build
 /.test-build/
 

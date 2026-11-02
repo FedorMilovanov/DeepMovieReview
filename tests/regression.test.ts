@@ -57,6 +57,7 @@ import {
 } from "../src/lib/site-publication-policy";
 import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
+import { continueIntervalBenchmark, intervalP95, validInterval } from "../src/lib/interval-benchmark";
 import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
 import { filterFilmIndex, filmIndexStatusLabel } from "../src/lib/film-index";
 import { pluralRu } from "../src/lib/plural-ru";
@@ -6944,4 +6945,21 @@ test("craft context sources are linked, scoped and distinct from screen evidence
   assert.ok(asc);
   asc.spoilerLevel = "ENDING";
   assert.match(validateFilmPackage(pkg, context).join("\n"), /context source "truman-src-asc" exceeds observation spoiler level/);
+});
+
+test("living-frame benchmarks retain slow intervals and do not invent zero samples", () => {
+  assert.equal(validInterval(450), true);
+  assert.equal(validInterval(0), false);
+  assert.equal(validInterval(-1), false);
+  assert.equal(validInterval(Infinity), false);
+  assert.equal(validInterval(NaN), false);
+  assert.equal(intervalP95([]), null);
+  assert.equal(intervalP95([0, -1, NaN, Infinity]), null);
+  assert.equal(intervalP95([16, 17, 450, 500]), 500);
+  assert.equal(intervalP95([16.1234]), 16.12);
+  assert.equal(continueIntervalBenchmark(1199, 2), true);
+  assert.equal(continueIntervalBenchmark(1200, 1), false);
+  assert.equal(continueIntervalBenchmark(1200, 0), true);
+  assert.equal(continueIntervalBenchmark(4999, 0), true);
+  assert.equal(continueIntervalBenchmark(5000, 0), false);
 });
