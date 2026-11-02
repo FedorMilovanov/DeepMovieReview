@@ -70,13 +70,15 @@ export function planEvidence(bytes, revision) {
 }
 
 /** Publish all parts and verify their read-back before marking the root successful. */
-export async function publishEvidence({ bytes, revision, head, label, summary, api, wait = sleep, kind = "accessibility" }) {
+export async function publishEvidence({ bytes, revision, head, label, summary, api, wait = sleep, kind = "accessibility", annotationPath }) {
   assert.match(head, /^[a-f0-9]{40}$/);
   assert.match(label, /^[a-z-]+$/);
   assert.ok(["accessibility", "security"].includes(kind), "Unknown evidence kind");
   const { manifest, chunks, groups } = planEvidence(bytes, revision);
   const title = `${kind === "security" ? "Security" : "Accessibility"} evidence (${label})`;
-  const annotationPath = kind === "security" ? "scripts/check-swift-codeql.mjs" : "docs/57-ACCESSIBILITY-CHECKS.md";
+  const path = annotationPath ?? (kind === "security" ? "scripts/check-swift-codeql.mjs" : "docs/57-ACCESSIBILITY-CHECKS.md");
+  assert.match(path, /^(?:scripts|docs)\/[a-zA-Z0-9_./-]+$/, "Invalid annotation path");
+  assert.ok(!path.split("/").includes(".."), "Invalid annotation path");
   const created = [];
   try {
     for (const [index] of groups.entries()) {
@@ -97,7 +99,7 @@ export async function publishEvidence({ bytes, revision, head, label, summary, a
     for (const [partIndex, group] of groups.entries()) {
       const check = created[partIndex];
       const annotations = group.map((message, index) => ({
-        path: annotationPath, start_line: 1, end_line: 1,
+        path, start_line: 1, end_line: 1,
         annotation_level: "notice", title: `chunk-${String(first + index).padStart(4, "0")}`, message,
       }));
       for (let start = 0; start < annotations.length; start += 50) {
