@@ -99,6 +99,15 @@ export async function openInitialNativePage({ open, events, baseUrl, wait = dela
   return { attempts, status: "timed-out-awaiting-home-observation" };
 }
 
+// Diagnostic only: a completed simctl call is not proof that the target page
+// arrived. Preserve its error even when XCTest fails before the success oracle.
+export function simctlCommandOutcome(error) {
+  if (!error) return { status: "completed" };
+  const detail = [error.message, error.stderr].filter(Boolean).map(String).join("\n") || String(error);
+  return { status: "failed", code: error.code ?? null, signal: error.signal ?? null,
+    killed: error.killed === true, detail: detail.slice(-4000) };
+}
+
 export function validateMenuNavigationOutcome({ error, from, to, next, baseUrl }) {
   allowObservedSimctlTimeout(error);
   assert.ok(from?.closed && next && ["menu-ready", "ready"].includes(next.kind) &&
@@ -196,11 +205,14 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
           completedMenus.push(completed);
           const to = nativeMenuRoutes[index + 1] ?? `${nativeArticlePath}?spoilers=full`;
           const url = `${proxy.baseUrl}${to}`;
-          report.menuNavigations.push({ from: route, to, method: "simctl openurl after validated native menu close" });
+          const navigation = { from: route, to, method: "simctl openurl after validated native menu close", scheduledAt: Date.now() };
+          report.menuNavigations.push(navigation);
           // Screenshot is taken while the menu is open, before its close tap.
           // This small pause also lets XCTest finish its closed-state check.
           menuPromises.push(delay(2500).then(async () => {
-            await exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 });
+            navigation.startedAt = Date.now();
+            try { await exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 }); }
+            finally { navigation.finishedAt = Date.now(); }
           }).catch(error => { menuErrors[index] = error; }));
         }
       }
@@ -309,6 +321,10 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
   } finally {
     // Do not leave scheduled simctl commands running after a failure.
     await Promise.allSettled([...menuPromises, ...(sceneNavigation ? [sceneNavigation] : []), ...(spoilerNavigation ? [spoilerNavigation] : [])]);
+    report.menuNavigations = report.menuNavigations.map((navigation, index) => ({ ...navigation,
+      command: simctlCommandOutcome(menuErrors[index]) }));
+    if (report.sceneNavigation) report.sceneNavigation.command = simctlCommandOutcome(sceneNavigationError);
+    if (report.spoilerNavigation) report.spoilerNavigation.command = simctlCommandOutcome(spoilerNavigationError);
     report.events = proxy.events; report.observerErrors = proxy.errors;
     if (primaryError && existsSync(bundle)) {
       // Preserve a narrow OS-log excerpt for a cancelled native touch. This is

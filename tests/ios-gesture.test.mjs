@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "../scripts/lib/ios-gesture-probe.mjs";
-import { nativePageBarrierReady, nativeRouteMarkers, openInitialNativePage, shouldRunGestureAfterDriverFailure, validateMenuNavigationOutcome, validateNativeRouteMarker, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
+import { nativePageBarrierReady, nativeRouteMarkers, openInitialNativePage, shouldRunGestureAfterDriverFailure, simctlCommandOutcome, validateMenuNavigationOutcome, validateNativeRouteMarker, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
 import { cancelledTouchWindow, collectTouchDiagnostics, touchLogExcerpt } from "../scripts/lib/ios-touch-diagnostics.mjs";
 import { validateSwiftCodeQL } from "../scripts/check-swift-codeql.mjs";
 import { packageSwiftEvidence } from "../scripts/publish-swift-codeql-evidence.mjs";
@@ -148,6 +148,16 @@ test("SafariDriver evidence retains only validated simulator identity", () => {
     value => { value["safari:platformBuildVersion"] = "<html>"; },
     value => { delete value.browserVersion; },
   ]) { const changed = { ...input }; change(changed); assert.throws(() => projectSafariCapabilities(changed)); }
+});
+
+test("simctl diagnostics preserve failure without treating command completion as page arrival", () => {
+  assert.deepEqual(simctlCommandOutcome(undefined), { status: "completed" });
+  const error = Object.assign(new Error("timeout"), { code: 60, killed: true, signal: "SIGTERM", stderr: "operation timed out" });
+  assert.deepEqual(simctlCommandOutcome(error), { status: "failed", code: 60, killed: true, signal: "SIGTERM", detail: "timeout\noperation timed out" });
+  assert.equal(simctlCommandOutcome(new Error("x".repeat(5000))).detail.length, 4000);
+  // This diagnostic is not a passing navigation result without a new page.
+  assert.throws(() => validateMenuNavigationOutcome({ error: undefined, from: { closed: { timestamp: 1 } },
+    to: "/films", next: undefined, baseUrl: origin }));
 });
 
 test("native readiness barrier rejects stale articles and requires a new FULL document at each stage", () => {
