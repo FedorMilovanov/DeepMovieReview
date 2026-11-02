@@ -16,10 +16,11 @@ import {
 import type { Mesh } from "three";
 import * as THREE from "three/webgpu";
 import { useExperienceQuality } from "@/components/experience/experience-quality-provider";
+import { continueIntervalBenchmark, intervalP95, validInterval } from "@/lib/interval-benchmark";
 import styles from "./living-frame-depth-mesh.module.css";
 
 export type LivingFrameGpuBenchmark = {
-  p95FrameMs: number;
+  p95FrameMs: number | null;
   samples: number;
 };
 
@@ -55,13 +56,6 @@ class LivingFrameDepthBoundary extends Component<
   render() {
     return this.state.failed ? this.props.fallback : this.props.children;
   }
-}
-
-function percentile(values: readonly number[], ratio: number) {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * ratio) - 1));
-  return sorted[index];
 }
 
 function createMasterTexture() {
@@ -236,17 +230,17 @@ function DepthMeshScene({
       benchmark.skipFirst = false;
     } else {
       const frameMs = delta * 1000;
-      if (Number.isFinite(frameMs) && frameMs > 0 && frameMs < 250) benchmark.samples.push(frameMs);
+      if (validInterval(frameMs)) benchmark.samples.push(frameMs);
     }
 
-    if (performance.now() - benchmark.startedAt < 1200) {
+    if (continueIntervalBenchmark(performance.now() - benchmark.startedAt, benchmark.samples.length)) {
       invalidate();
       return;
     }
 
     benchmark.active = false;
     onBenchmarkComplete({
-      p95FrameMs: Number(percentile(benchmark.samples, 0.95).toFixed(2)),
+      p95FrameMs: intervalP95(benchmark.samples),
       samples: benchmark.samples.length,
     });
   });

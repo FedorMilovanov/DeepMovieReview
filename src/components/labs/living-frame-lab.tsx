@@ -12,6 +12,7 @@ import {
   type LivingFrameGpuBenchmark,
 } from "@/components/labs/living-frame-depth-mesh";
 import { useExperienceQuality } from "@/components/experience/experience-quality-provider";
+import { continueIntervalBenchmark, intervalP95, validInterval } from "@/lib/interval-benchmark";
 import styles from "./living-frame-lab.module.css";
 
 type LivingFrameVariant = "A" | "B" | "C";
@@ -30,13 +31,6 @@ const INITIAL_METRICS: Record<LivingFrameVariant, VariantMetrics> = {
 };
 
 const DEPTH_MESH_TEXTURE_BYTES = 512 * 214 * 4 + 256 * 107;
-
-function percentile(values: readonly number[], ratio: number) {
-  if (values.length === 0) return 0;
-  const sorted = [...values].sort((a, b) => a - b);
-  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * ratio) - 1));
-  return sorted[index];
-}
 
 function formatMetric(value: number | null, unit: string) {
   return value === null ? "Not measured" : `${value.toFixed(2)} ${unit}`;
@@ -78,7 +72,7 @@ export function LivingFrameLab() {
   }, []);
 
   const recordPointerLatency = useCallback((variant: "A" | "B", latencyMs: number) => {
-    if (!Number.isFinite(latencyMs) || latencyMs <= 0 || latencyMs > 500) return;
+    if (!validInterval(latencyMs)) return;
     const samples = pointerSamplesRef.current[variant];
     samples.push(latencyMs);
     if (samples.length > 60) samples.shift();
@@ -87,7 +81,7 @@ export function LivingFrameLab() {
       ...current,
       [variant]: {
         ...current[variant],
-        p95PointerMs: Number(percentile(samples, 0.95).toFixed(2)),
+        p95PointerMs: intervalP95(samples),
         pointerSamples: samples.length,
       },
     }));
@@ -176,7 +170,7 @@ export function LivingFrameLab() {
       const elapsed = now - startedAt;
       if (elapsed > 0) {
         const frameMs = now - previous;
-        if (frameMs > 0 && frameMs < 250) samples.push(frameMs);
+        if (validInterval(frameMs)) samples.push(frameMs);
       }
       previous = now;
 
@@ -188,7 +182,7 @@ export function LivingFrameLab() {
       frame.style.setProperty("--far-x", `${Math.sin(t * 5) * 2}px`);
       frame.style.setProperty("--far-y", `${Math.cos(t * 4) * 1.4}px`);
 
-      if (elapsed < 1200) {
+      if (continueIntervalBenchmark(elapsed, samples.length)) {
         cssBenchmarkFrameRef.current = requestAnimationFrame(step);
         return;
       }
@@ -199,7 +193,7 @@ export function LivingFrameLab() {
         ...current,
         B: {
           ...current.B,
-          p95FrameMs: Number(percentile(samples, 0.95).toFixed(2)),
+          p95FrameMs: intervalP95(samples),
           frameSamples: samples.length,
         },
       }));
@@ -212,6 +206,12 @@ export function LivingFrameLab() {
   function runBenchmark() {
     if (benchmarking) return;
     setBenchmarking(true);
+    if (effectiveVariant !== "C") {
+      setMetrics((current) => ({
+        ...current,
+        [effectiveVariant]: { ...current[effectiveVariant], p95FrameMs: null, frameSamples: 0 },
+      }));
+    }
 
     if (effectiveVariant === "A") {
       setGpuBenchmarkToken((token) => token + 1);
@@ -312,7 +312,7 @@ export function LivingFrameLab() {
               onClick={runBenchmark}
               data-run-living-frame-benchmark
             >
-              {benchmarking ? "Benchmarking…" : "Run 1.2s benchmark"}
+              {benchmarking ? "Benchmarking…" : "Run ~1.2s benchmark"}
             </button>
           </div>
         </div>
@@ -375,6 +375,7 @@ export function LivingFrameLab() {
                 key={variant}
                 data-living-frame-metric={variant}
                 data-frame-p95={metric.p95FrameMs ?? ""}
+                data-frame-samples={metric.frameSamples}
                 data-pointer-p95={metric.p95PointerMs ?? ""}
                 data-texture-bytes={textureBytes}
               >
@@ -399,7 +400,7 @@ export function LivingFrameLab() {
           })}
         </div>
         <p className={styles.measurementNote}>
-          Frame values are active benchmark intervals, not a claim about every end-user GPU. The production decision also weighs visual gain, distortion risk, idle behavior, mobile composition and implementation complexity.
+          Frame values include slow intervals during the benchmark; browser scheduling and software rendering affect them. No samples means “Not measured”, not zero. Sampling targets 1.2 seconds and waits up to 5 seconds for a first interval; a suspended tab can delay completion further. These values are not a claim about every end-user GPU. The production decision also weighs visual gain, distortion risk, idle behavior, mobile composition and implementation complexity.
         </p>
       </section>
 

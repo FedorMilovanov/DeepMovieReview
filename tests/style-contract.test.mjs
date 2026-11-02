@@ -453,6 +453,19 @@ test("VoiceOver entry and on-demand skip-link description remain distinct, with 
   assert.throws(() => validateVoiceOverSkipLink(["web content"], description, { ...focus, text: "другая ссылка" }), /named skip link/);
 });
 
+test("cold Simulator boot diagnostics preserve the bounded final output", async () => {
+  const { simulatorBootLog } = await import("../scripts/lib/apple-toolchain.mjs");
+  const output = `start-${"x".repeat(13000)}-last phase`;
+  const stderr = `${"e".repeat(5000)}-last error`;
+  const log = simulatorBootLog("boot note", output, stderr);
+  assert.ok(log.startsWith("boot note\n"));
+  assert.ok(!log.includes("start-"));
+  assert.ok(log.includes("-last phase"));
+  assert.ok(log.endsWith("-last error"));
+  assert.ok(log.length <= "boot note".length + 12000 + 4000 + 2);
+  assert.equal(simulatorBootLog("", undefined, undefined), "");
+});
+
 test("native speech timeout never manufactures a semantic pass", async () => {
   const { settleNativeSpeech } = await import("../scripts/lib/assistive-commands.mjs");
   let clock = 0;

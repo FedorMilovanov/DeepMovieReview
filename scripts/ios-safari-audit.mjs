@@ -4,7 +4,7 @@ import { inspect } from "node:util";
 import { arch, release } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
-import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines } from "./lib/apple-toolchain.mjs";
+import { newestStableXcode, runtimeMatchesSdk, nativeSimulatorProcessLines, simulatorBootLog } from "./lib/apple-toolchain.mjs";
 import { simulatorAutomation } from "./lib/simulator-automation.mjs";
 import { nativeSafari, waitForStableNativeTarget } from "./lib/native-safari.mjs";
 import { runNativeGestureXCTest, shouldRunGestureAfterDriverFailure } from "./lib/ios-xctest-gesture.mjs";
@@ -116,9 +116,22 @@ try {
         if (!/current state: Boot(ed|ing)/.test(detail)) throw error;
         bootNote = `simctl boot reported the idempotent state, not a failure: ${detail.trim().split("\n").slice(-1)[0]}`;
       }
-      report.bootLog = [bootNote, execFileSync("xcrun", ["simctl", "bootstatus", device.udid], {
-        encoding: "utf8", timeout: 480000, maxBuffer: 16 * 1024 * 1024,
-      }).slice(-12000)].filter(Boolean).join("\n");
+      // On 15aa416 eight-minute bootstatus timed out; its early log showed
+      // cold iOS migration. Generic error inspection kept the beginning, not the
+      // final state. Retain the bounded tail and actual duration even on failure.
+      const bootStarted = performance.now();
+      report.bootTiming = { timeoutMs: 480000 };
+      try {
+        const output = execFileSync("xcrun", ["simctl", "bootstatus", device.udid], {
+          encoding: "utf8", timeout: report.bootTiming.timeoutMs, maxBuffer: 16 * 1024 * 1024,
+        });
+        report.bootLog = simulatorBootLog(bootNote, output, "");
+      } catch (error) {
+        report.bootLog = simulatorBootLog(bootNote, error.stdout, error.stderr);
+        throw error;
+      } finally {
+        report.bootTiming.elapsedMs = Math.round(performance.now() - bootStarted);
+      }
       console.log(report.bootLog);
       report.device.state = "Booted";
       report.hostSimulatorProcesses = hostSimulatorProcesses();

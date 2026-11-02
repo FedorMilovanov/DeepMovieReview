@@ -709,16 +709,33 @@ try {
   }
 
   await evaluate("document.querySelector('[data-run-living-frame-benchmark]')?.click()");
-  await waitForExpression("document.querySelector('[data-living-frame-metric=\"B\"]')?.dataset.frameP95 !== ''");
+  await waitForExpression("document.querySelector('[data-run-living-frame-benchmark]')?.disabled === true");
+  await waitForExpression("document.querySelector('[data-run-living-frame-benchmark]')?.disabled === false", 180, 100);
   const livingB = JSON.parse(await evaluate(
     "JSON.stringify((() => { const n=document.querySelector('[data-living-frame-metric=\"B\"]'); return n ? {" +
-      "frameP95:Number(n.dataset.frameP95),pointerP95:Number(n.dataset.pointerP95),textureBytes:Number(n.dataset.textureBytes)" +
+      "frameP95:n.dataset.frameP95===''?null:Number(n.dataset.frameP95),frameSamples:Number(n.dataset.frameSamples)," +
+      "pointerP95:n.dataset.pointerP95===''?null:Number(n.dataset.pointerP95),textureBytes:Number(n.dataset.textureBytes)" +
     "} : null; })())"
   ));
   livingFrameMeasurements.B = livingB;
-  assertCheck("living frame B: active benchmark produced frame samples", livingB?.frameP95 > 0, livingB);
+  assertCheck("living frame B: active benchmark produced frame samples", livingB?.frameP95 > 0 && livingB?.frameSamples > 0, livingB);
   assertCheck("living frame B: pointer-to-render latency was measured", livingB?.pointerP95 > 0, livingB);
   assertCheck("living frame B: segmented planes require no GPU texture working set", livingB?.textureBytes === 0, livingB);
+  await evaluate("document.querySelector('[data-run-living-frame-benchmark]')?.click()");
+  await waitForExpression("document.querySelector('[data-run-living-frame-benchmark]')?.disabled === true");
+  const repeatPending = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const n=document.querySelector('[data-living-frame-metric=\"B\"]'); return n ? {" +
+      "frameP95:n.dataset.frameP95,frameSamples:Number(n.dataset.frameSamples)" +
+    "} : null; })())"
+  ));
+  assertCheck("living frame B: a new run clears the previous frame measurement", repeatPending?.frameP95 === "" && repeatPending?.frameSamples === 0, repeatPending);
+  await waitForExpression("document.querySelector('[data-run-living-frame-benchmark]')?.disabled === false", 180, 100);
+  const repeatFinished = JSON.parse(await evaluate(
+    "JSON.stringify((() => { const n=document.querySelector('[data-living-frame-metric=\"B\"]'); return n ? {" +
+      "frameP95:Number(n.dataset.frameP95),frameSamples:Number(n.dataset.frameSamples)" +
+    "} : null; })())"
+  ));
+  assertCheck("living frame B: a new run records its own frame samples", repeatFinished?.frameP95 > 0 && repeatFinished?.frameSamples > 0, repeatFinished);
   await capture("living-frame-b-planes", true);
 
   await evaluate("document.querySelector('[data-living-frame-variant=\"A\"]')?.click()");
@@ -751,18 +768,19 @@ try {
     }
 
     await evaluate("document.querySelector('[data-run-living-frame-benchmark]')?.click()");
-    await waitForExpression("document.querySelector('[data-living-frame-metric=\"A\"]')?.dataset.frameP95 !== ''", 180, 100);
+    await waitForExpression("document.querySelector('[data-run-living-frame-benchmark]')?.disabled === true");
+    await waitForExpression("document.querySelector('[data-run-living-frame-benchmark]')?.disabled === false", 180, 100);
   }
 
   const livingA = JSON.parse(await evaluate(
     "JSON.stringify((() => { const n=document.querySelector('[data-living-frame-metric=\"A\"]'); return n ? {" +
-      "frameP95:n.dataset.frameP95===''?null:Number(n.dataset.frameP95)," +
+      "frameP95:n.dataset.frameP95===''?null:Number(n.dataset.frameP95),frameSamples:Number(n.dataset.frameSamples)," +
       "pointerP95:n.dataset.pointerP95===''?null:Number(n.dataset.pointerP95)," +
       "textureBytes:Number(n.dataset.textureBytes)" +
     "} : null; })())"
   ));
   livingFrameMeasurements.A = livingA;
-  assertCheck("living frame A: active benchmark produced frame samples", livingA?.frameP95 > 0, livingA);
+  assertCheck("living frame A: active benchmark produced frame samples", livingA?.frameP95 > 0 && livingA?.frameSamples > 0, livingA);
   assertCheck("living frame A: pointer-to-render latency was measured", livingA?.pointerP95 > 0, livingA);
   assertCheck("living frame A: modeled procedural texture working set is bounded", livingA?.textureBytes === 465664, livingA);
 
