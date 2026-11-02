@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, nativeTableRoleSpeech, needsNamedTableRead, needsTableRowRead, settleNativeSpeech, validateVoiceOverSkipLink, warmVoiceOver } from "./lib/assistive-commands.mjs";
+import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, nativeTableRoleSpeech, needsNamedTableRead, needsTableRowRead, settleNativeSpeech, validateVoiceOverSkipLink, voiceOverChooserSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -181,7 +181,7 @@ try {
     await macOSActivate(MacOSApplications.Safari);
     // Initial-only capture can return while Item Chooser is still dismissing;
     // the following interact then lands outside, not inside, the web area.
-    await action("VoiceOver Item Chooser", () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), /item chooser|VoiceOver Menu/i);
+    await action("VoiceOver Item Chooser", () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), voiceOverChooserSpeech);
     await action("VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
     await action("VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
     // With the real page (no injected marker), interact reaches its skip link.
@@ -299,7 +299,7 @@ try {
   // at the measured ~320 CSS-pixel browser UI zoom, not a simulated AT tree.
   if (mac) {
     await macOSActivate(MacOSApplications.Safari);
-    await action("mobile VoiceOver Item Chooser", () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), /item chooser|VoiceOver Menu/i);
+    await action("mobile VoiceOver Item Chooser", () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), voiceOverChooserSpeech);
     await action("mobile VoiceOver web content selection", () => reader.type("web content", navigationOptions), /web content/i);
     await action("mobile VoiceOver web content chosen", () => reader.press("Enter", navigationOptions), /web content/i);
     await enterVoiceOverWebArea("mobile VoiceOver", "mobileFocusProbe");

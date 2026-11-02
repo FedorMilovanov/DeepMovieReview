@@ -489,6 +489,17 @@ test("NVDA table captions are not mistaken for an active table cell", async () =
   assert.equal(firstTableHeaderSpoken(["out of caption, row 1, column 1, ЗАПИСЬ"], /запись/i), true);
 });
 
+test("VoiceOver chooser may name its selected skip link but not generic page help alone", async () => {
+  const { voiceOverChooserSpeech, validateVoiceOverSkipLink } = await import("../scripts/lib/assistive-commands.mjs");
+  assert.match("On item Перейти к содержимому. Page Menu, Translation Available", voiceOverChooserSpeech);
+  assert.match("You are currently in a VoiceOver Menu", voiceOverChooserSpeech);
+  assert.doesNotMatch("Page Menu, Translation Available", voiceOverChooserSpeech);
+  assert.doesNotMatch("On item Другая ссылка. Page Menu", voiceOverChooserSpeech);
+  // Recognising the setup phrase does not replace actual link speech/focus.
+  assert.throws(() => validateVoiceOverSkipLink(["web content"], ["generic help"],
+    { tag: "A", href: "#main", text: "Перейти к содержимому" }), /must speak the link name/);
+});
+
 test("VoiceOver table help is not a named table announcement", async () => {
   const { needsNamedTableRead } = await import("../scripts/lib/assistive-commands.mjs");
   const name = /сцены фильма/i;

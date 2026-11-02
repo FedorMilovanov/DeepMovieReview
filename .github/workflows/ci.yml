@@ -737,9 +737,10 @@ jobs:
   native-ios:
     name: Native iOS Safari
     runs-on: macos-26
-    # Includes a separately built XCUITest runner for the real native gesture;
-    # a missing, skipped or failed gesture remains a failing native-iOS job.
-    timeout-minutes: 30
+    # A correlated Simulator digitizer cancellation may trigger one complete
+    # strict rerun on a fresh device; the failed attempt is retained. Allow time
+    # for both cold boots and evidence publication, never for repeated taps.
+    timeout-minutes: 50
     permissions:
       contents: read
       actions: read

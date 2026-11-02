@@ -10,6 +10,7 @@ import { noneArticleProjectionReached } from "./ios-spoiler-observation.mjs";
 export const nativeArticlePath = "/films/the-truman-show/article";
 export const nativeScenePath = "/films/the-truman-show";
 export const nativeMenuRoutes = Object.freeze(["/", "/films", `${nativeArticlePath}?spoilers=full`, `${nativeScenePath}/making`]);
+export const nativeMenuStages = Object.freeze(["menu-home", "menu-films", "menu-article", "menu-making"]);
 const scriptPath = "/__dmr_native_ios_observer.js";
 const eventPath = "/__dmr_native_ios_event";
 const barrierPath = "/__dmr_native_ios_barrier";
@@ -162,7 +163,7 @@ export async function startNativeObservationProxy({ upstream = "http://127.0.0.1
     if (url.pathname === barrierPath) {
       if (request.method !== "GET" || url.searchParams.get("token") !== token) { response.writeHead(403).end(); return; }
       const stage = url.searchParams.get("stage");
-      if (!["gesture", "spoiler"].includes(stage)) { response.writeHead(400).end(); return; }
+      if (![...nativeMenuStages, "gesture", "spoiler"].includes(stage)) { response.writeHead(400).end(); return; }
       // Read-only readiness: cannot navigate, inject input, or pass an oracle.
       try { response.writeHead(onBarrier(stage) === true ? 200 : 202, { "cache-control": "no-store" }).end(); }
       catch (error) { errors.push(`Barrier: ${error.message}`); response.writeHead(500).end(); }

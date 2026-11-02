@@ -9,6 +9,11 @@ import { MacOSKeyCodes } from "@guidepup/guidepup";
 export const libraryDetectionRowSpeech = /библиотека[\s\S]*\b0 обнаруженных переходов/i;
 export const needsTableRowRead = speech => !libraryDetectionRowSpeech.test(speech.join(" "));
 
+// VoiceOver may announce the selected skip link and Safari's Page Menu rather
+// than saying "Item Chooser" (observed on bab389e). This only gates the setup:
+// selecting web content, entering it, and speaking the real link remain required.
+export const voiceOverChooserSpeech = /item chooser|VoiceOver Menu|On item\s+Перейти к содержимому\.\s*Page Menu/i;
+
 // A generic VoiceOver table-help hint proves neither the expected caption nor
 // the role. A read-only Describe Item can request the missing announcement.
 export const nativeTableRoleSpeech = /table|таблиц/i;

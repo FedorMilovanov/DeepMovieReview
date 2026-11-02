@@ -8,8 +8,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "../scripts/lib/ios-gesture-probe.mjs";
-import { nativePageBarrierReady, nativeRouteMarkers, openInitialNativePage, shouldRunGestureAfterDriverFailure, simctlCommandOutcome, validateMenuNavigationOutcome, validateNativeRouteMarker, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
+import { nativeMenuBarrierReady, nativePageBarrierReady, nativeRouteMarkers, openInitialNativePage, shouldRunGestureAfterDriverFailure, simctlCommandOutcome, validateMenuNavigationOutcome, validateNativeRouteMarker, validateSceneNavigationOutcome, validateSpoilerNavigationOutcome } from "../scripts/lib/ios-xctest-gesture.mjs";
 import { cancelledTouchWindow, collectTouchDiagnostics, touchLogExcerpt } from "../scripts/lib/ios-touch-diagnostics.mjs";
+import { retryableSimulatorCancellation } from "../scripts/lib/ios-cancellation-retry.mjs";
+import { withFreshGestureSimulator } from "../scripts/lib/ios-fresh-simulator.mjs";
 import { validateSwiftCodeQL } from "../scripts/check-swift-codeql.mjs";
 import { packageSwiftEvidence } from "../scripts/publish-swift-codeql-evidence.mjs";
 import { projectSafariCapabilities, safariSessionId } from "../scripts/lib/safari-capabilities.mjs";
@@ -158,6 +160,32 @@ test("simctl diagnostics preserve failure without treating command completion as
   // This diagnostic is not a passing navigation result without a new page.
   assert.throws(() => validateMenuNavigationOutcome({ error: undefined, from: { closed: { timestamp: 1 } },
     to: "/films", next: undefined, baseUrl: origin }));
+});
+
+test("menu readiness barrier waits for a fresh observed route without treating it as a passing tap", () => {
+  const menus = validateNativeMenuSequence(nativeMenuRoutes.flatMap((route, i) => menuTrace(route, `menu-${i}`, 100 + 100 * i)), origin);
+  const ready = { ...menuTrace("/films", "new-films", 210)[0] };
+  const check = (events, extra = {}) => nativeMenuBarrierReady({ stage: "menu-films", events, baseUrl: origin, completedMenus: menus.slice(0, 1), ...extra });
+  assert.equal(check([]), false, "no document observed yet");
+  assert.equal(check([{ ...ready, kind: "touchstart", targetMenu: false }, ready]), true, "barrier is readiness only; final trace rejects a bad tap");
+  assert.throws(() => validateNativeMenuTrace([ready], origin, "/films"), /trusted touch/);
+  assert.equal(check([{ ...ready, timestamp: 100 }]), false, "ready must follow the previous close");
+  assert.equal(check([{ ...ready, pageId: menus[0].pageId }]), false, "previous document is stale");
+  assert.equal(check([{ ...ready, url: `${origin}/` }]), false);
+  assert.equal(check([{ ...ready, menu: { ...ready.menu, hitContained: false } }]), false);
+  assert.equal(check([{ ...ready, menu: { ...ready.menu, expanded: "true" } }]), false);
+  assert.equal(check([{ ...ready, width: 1000 }]), false);
+  assert.equal(check([ready], { completedMenus: [] }), false);
+  assert.equal(check([ready], { completedMenus: [{ ...menus[0], route: "/wrong" }] }), false);
+  assert.equal(check([ready], { completedMenus: [{ ...menus[0], closed: {} }] }), false);
+  assert.equal(check([ready], { stage: "unknown" }), false);
+  assert.equal(check([menuTrace("/", "home", 100)[0]], { stage: "menu-home", completedMenus: [] }), true);
+  for (let i = 0; i < nativeMenuRoutes.length; i++) {
+    const stage = ["menu-home", "menu-films", "menu-article", "menu-making"][i];
+    const event = menuTrace(nativeMenuRoutes[i], `fresh-${i}`, 1000 + i * 100)[0];
+    assert.equal(check([event], { stage, completedMenus: menus.slice(0, i) }), true, stage);
+    assert.match(readFileSync("scripts/ios-native-ui/Tests/NativeGestureTests.swift", "utf8"), new RegExp(`waitForBarrier\\(\\"${stage}\\"\\)`));
+  }
 });
 
 test("native readiness barrier rejects stale articles and requires a new FULL document at each stage", () => {
@@ -376,6 +404,93 @@ test("native route markers match the XCTest source and must exist in rendered HT
   assert.equal(nativeRouteMarkers["/films"], "Индекс предпросмотра", "Preview CI must not wait for the public-only index copy");
 });
 
+test("only a narrow, correlated menu cancellation can trigger one independent Simulator rerun", () => {
+  const t = Date.UTC(2026, 10, 2, 20, 27, 24);
+  const originalUdid = "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE";
+  const report = () => {
+    const prior = menuTrace("/", "home", t - 1000);
+    const current = menuTrace("/films", "films", t);
+    current[1].x = 345; current[1].y = 30;
+    const cancel = { ...current[2], kind: "touchcancel", targetMenu: true, menu: null };
+    const stamp = new Date(t).toISOString().replace("T", " ").replace("Z", "");
+    const excerpt = [
+      `${stamp} backboardd digitizer attached (sender ABC123) transport:Recap`,
+      `${stamp} backboardd already have a main display digitizer`,
+      `${stamp} backboardd didn't see a previous touch down or range-in event for pathIndex:2; skipping event`,
+      `${stamp} backboardd cancel -- digitizer did disappear: senderID: 0xABC123; contacts: touching; com.apple.mobilesafari`,
+    ].join("\n");
+    return { probe: { url: `${origin}/` }, device: { udid: originalUdid, physicalDevice: false },
+      xcodebuild: { code: 65, timedOut: false, signal: null },
+      xctestSummary: { result: "Failed", totalTestCount: 1, failedTests: 1, passedTests: 0, skippedTests: 0, expectedFailures: 0,
+        devicesAndConfigurations: [{ device: { deviceId: originalUdid, platform: "iOS Simulator" } }],
+        testFailures: [{ failureText: "XCTAssertTrue failed - The menu button did not expose its open state", testName: "testNativeScrollAndRail()" }] },
+      failures: ["XCUITest failed or timed out"], observerErrors: [], events: [...prior, ...current.slice(0, 2), cancel],
+      systemTouchDiagnostics: { status: "excerpt-captured", source: "XCTest result bundle's Simulator system.logarchive",
+        window: { pageId: "films", started: current[1].timestamp, cancelled: cancel.timestamp }, excerpt } };
+  };
+  const eligible = retryableSimulatorCancellation(report());
+  assert.equal(eligible?.route, "/films");
+  assert.match(eligible.reason, /cause not proven/);
+  assert.match(eligible.policy, /original attempt remains failed/);
+  for (const [name, change] of [
+    ["cancelled outside menu", r => { r.events.at(-1).targetMenu = false; }],
+    ["touch began elsewhere", r => { r.events.at(-2).targetMenu = false; }],
+    ["coordinates outside button", r => { r.events.at(-2).x = 20; }],
+    ["untrusted touch", r => { r.events.at(-2).trusted = false; }],
+    ["page not ready before touch", r => { r.events.at(-3).seq = 4; }],
+    ["gesture moved before cancelling", r => { r.events.splice(-1, 0, { ...r.events.at(-2), seq: 2.5, kind: "touchmove" }); }],
+    ["click or second touch", r => { r.events.push({ ...r.events.at(-1), seq: 4, kind: "menu-click" }); }],
+    ["previous menu invalid", r => { r.events[3].trusted = false; }],
+    ["OS log missing", r => { r.systemTouchDiagnostics.status = "unavailable"; }],
+    ["different digitizer", r => { r.systemTouchDiagnostics.excerpt = r.systemTouchDiagnostics.excerpt.replace("senderID: 0xABC123", "senderID: 0xDEF456"); }],
+    ["log far from cancellation", r => { r.systemTouchDiagnostics.excerpt = r.systemTouchDiagnostics.excerpt.replaceAll("20:27:24", "20:27:10"); }],
+    ["no skipped events", r => { r.systemTouchDiagnostics.excerpt = r.systemTouchDiagnostics.excerpt.replace("skipping event", "completed event"); }],
+    ["other XCTest failure", r => { r.xctestSummary.testFailures.push({ failureText: "another" }); }],
+    ["more than one source failure", r => { r.failures.push("observer shutdown failed"); }],
+    ["observer error", r => { r.observerErrors.push("lost beacon"); }],
+    ["timeout", r => { r.xcodebuild.timedOut = true; }],
+    ["not Simulator", r => { r.device.physicalDevice = true; }],
+    ["wrong device", r => { r.xctestSummary.devicesAndConfigurations[0].device.deviceId = "other"; }],
+    ["non-loopback probe", r => { r.probe.url = "https://example.com/"; }],
+  ]) { const candidate = report(); change(candidate); assert.equal(retryableSimulatorCancellation(candidate), null, name); }
+});
+
+test("fresh CI Simulator runs the complete callback once, uses another UDID and always deletes it", async () => {
+  const original = { udid: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE", physicalDevice: false,
+    deviceTypeIdentifier: "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro", runtime: "com.apple.CoreSimulator.SimRuntime.iOS-26-5" };
+  const created = "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF", app = "/Applications/Xcode.app/Contents/Developer/Applications/Simulator.app";
+  const config = { original, simulatorApp: app, ci: true, diagnostic: () => {} };
+  const makeRunner = (failure) => {
+    const calls = [];
+    return { calls, run(command, args) {
+      calls.push([command, ...args]);
+      if (failure && failure(command, args)) throw new Error("fake simctl failure");
+      if (args[1] === "create") return created;
+      return "";
+    } };
+  };
+  let fake = makeRunner(), callbacks = 0;
+  const result = await withFreshGestureSimulator(config, async device => { callbacks++; assert.equal(device.udid, created); return "strict pass"; }, fake);
+  assert.equal(result, "strict pass"); assert.equal(callbacks, 1);
+  assert.deepEqual(fake.calls.filter(call => call[1] === "simctl" && ["shutdown", "delete"].includes(call[2]))
+    .map(call => [call[2], call[3]]), [["shutdown", original.udid], ["shutdown", created], ["delete", created]]);
+  fake = makeRunner(); callbacks = 0;
+  await assert.rejects(withFreshGestureSimulator({ ...config, ci: false }, async () => { callbacks++; }, fake), /disposable CI/);
+  assert.equal(fake.calls.length, 0); assert.equal(callbacks, 0);
+  fake = makeRunner((_command, args) => args[1] === "bootstatus");
+  await assert.rejects(withFreshGestureSimulator(config, async () => { callbacks++; }, fake), /fake simctl failure/);
+  assert.ok(fake.calls.some(call => call[2] === "delete" && call[3] === created)); assert.equal(callbacks, 0);
+  fake = makeRunner();
+  await assert.rejects(withFreshGestureSimulator(config, async () => { callbacks++; throw new Error("strict second run failed"); }, fake), /strict second run failed/);
+  assert.equal(callbacks, 1); assert.ok(fake.calls.some(call => call[2] === "delete" && call[3] === created));
+  fake = makeRunner((_command, args) => args[1] === "delete");
+  await assert.rejects(withFreshGestureSimulator(config, async () => "pass", fake), /fake simctl failure/);
+  fake = makeRunner();
+  fake.run = (command, args) => { fake.calls.push([command, ...args]); return args[1] === "create" ? original.udid : ""; };
+  await assert.rejects(withFreshGestureSimulator(config, async () => "pass", fake), /distinct Simulator/);
+  assert.ok(!fake.calls.some(call => call[2] === "delete"), "never delete the original device");
+});
+
 test("OS touch diagnostics are bounded, retain cancellation provenance and never infer a cause", () => {
   const start = { kind: "touchstart", trusted: true, timestamp: 100000, pageId: "one", seq: 3 };
   const cancel = { kind: "touchcancel", trusted: true, timestamp: 100120, pageId: "one", seq: 4 };
@@ -513,8 +628,10 @@ test("loopback observer is valid JavaScript, is passive and requires a fresh tok
   }).listen(0, "127.0.0.1");
   await once(upstream, "listening");
   const proxy = await startNativeObservationProxy({ upstream: `http://127.0.0.1:${upstream.address().port}`,
-    onBarrier: stage => stage === "gesture" });
+    onBarrier: stage => stage === "gesture" || stage === "menu-home" });
   try {
+    assert.equal((await fetch(`${proxy.barrierUrl}&stage=menu-home`)).status, 200);
+    assert.equal((await fetch(`${proxy.barrierUrl}&stage=menu-films`)).status, 202);
     assert.equal((await fetch(`${proxy.barrierUrl}&stage=gesture`)).status, 200);
     assert.equal((await fetch(`${proxy.barrierUrl}&stage=spoiler`)).status, 202);
     assert.equal((await fetch(`${proxy.barrierUrl}&stage=unknown`)).status, 400);

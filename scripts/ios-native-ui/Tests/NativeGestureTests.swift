@@ -24,13 +24,17 @@ final class NativeGestureTests: XCTestCase {
         // navigates to the next route only after the passive observer validates
         // the previous page's ordered trusted touchstart/end/click and real
         // expanded/navigation state. No gesture is replayed or synthesized.
+        waitForBarrier("menu-home")
         verifyMenu(in: safari, screenshot: "DMR-menu-home-open")
         waitForPageMarker("Индекс предпросмотра", in: safari, name: "films index")
+        waitForBarrier("menu-films")
         verifyMenu(in: safari, screenshot: "DMR-menu-films-open")
         let articleRail = safari.buttons.matching(identifier: "Оглавление статьи").firstMatch
         XCTAssertTrue(articleRail.waitForExistence(timeout: 90), "The FULL article did not arrive for its menu test")
+        waitForBarrier("menu-article")
         verifyMenu(in: safari, screenshot: "DMR-menu-article-open")
         waitForPageMarker("поиск режиссёра и город", in: safari, name: "making article")
+        waitForBarrier("menu-making")
         verifyMenu(in: safari, screenshot: "DMR-menu-making-open")
 
         // Safari can briefly expose the earlier article's AX tree while the
@@ -146,7 +150,7 @@ final class NativeGestureTests: XCTestCase {
             if status >= 400 { XCTFail("Native readiness barrier rejected \(stage): HTTP \(status)"); return }
             Thread.sleep(forTimeInterval: 0.25)
         }
-        XCTFail("Timed out waiting for the distinct \(stage) article document")
+        XCTFail("Timed out waiting for native readiness stage \(stage)")
     }
 
     @MainActor

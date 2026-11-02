@@ -6,7 +6,7 @@ import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
-import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, selectNativeGestureAttachments, startNativeObservationProxy,
+import { nativeArticlePath, nativeMenuRoutes, nativeMenuStages, nativeScenePath, selectNativeGestureAttachments, startNativeObservationProxy,
   validateNativeGestureTrace, validateNativeMenuSequence, validateNativeMenuTrace, validateNativeSceneTrace, validateNativeSpoilerTrace, validateXCTestSummary } from "./ios-gesture-probe.mjs";
 import { parseArticleSectionIds } from "./ios-spoiler-observation.mjs";
 import { collectTouchDiagnostics } from "./ios-touch-diagnostics.mjs";
@@ -26,6 +26,27 @@ async function routeMarkerBaseline(base, route, marker) {
   assert.equal(response.status, 200, `Native route marker baseline failed: ${route}`);
   assert.match(response.headers.get("content-type") ?? "", /text\/html/i);
   validateNativeRouteMarker(await response.text(), marker);
+}
+
+// Wait for the observer to see the actual new menu document before XCTest taps.
+// On bab389e the films tap arrived before that page's first menu-ready event.
+// This is readiness only: the native event/state oracle remains unchanged.
+export function nativeMenuBarrierReady({ stage, events, baseUrl, completedMenus }) {
+  const index = nativeMenuStages.indexOf(stage);
+  if (index < 0 || !Array.isArray(events) || !Array.isArray(completedMenus) || completedMenus.length !== index ||
+    completedMenus.some((menu, i) => menu.route !== nativeMenuRoutes[i] || !menu.pageId || !Number.isFinite(menu.closed?.timestamp))) return false;
+  const after = completedMenus.at(-1)?.closed.timestamp ?? -Infinity;
+  const expected = new URL(nativeMenuRoutes[index], baseUrl).href;
+  return events.some(event => {
+    const rect = event.menu?.rect;
+    return event.kind === "menu-ready" && event.url === expected && event.pageId &&
+      !completedMenus.some(menu => menu.pageId === event.pageId) && Number.isFinite(event.timestamp) && event.timestamp > after &&
+      event.lang === "ru" && event.width > 0 && event.width < 500 && event.height > 0 &&
+      Number.isFinite(event.scrollY) && event.scrollY >= 0 && event.scrollY < 30 &&
+      event.menu?.expanded === "false" && event.menu.navVisible === false && event.menu.navInert === true &&
+      event.menu.hitContained === true && rect && rect.width > 0 && rect.height > 0 &&
+      rect.left >= 0 && rect.top >= 0 && rect.right <= event.width + 1 && rect.bottom <= event.height + 1;
+  });
 }
 
 // Synchronize the test runner with a distinct, actually observed FULL document.
@@ -189,7 +210,9 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
       routeMarkerBaseline("http://127.0.0.1:3213", route, marker)));
     report.routeMarkerBaselines = nativeRouteMarkers;
     proxy = await startNativeObservationProxy({ spoilerLastSectionId: fullSectionIds.at(-1),
-      onBarrier: stage => nativePageBarrierReady({ stage, events: proxy.events, baseUrl: proxy.baseUrl, completedMenus }),
+      onBarrier: stage => nativeMenuStages.includes(stage)
+        ? nativeMenuBarrierReady({ stage, events: proxy.events, baseUrl: proxy.baseUrl, completedMenus })
+        : nativePageBarrierReady({ stage, events: proxy.events, baseUrl: proxy.baseUrl, completedMenus }),
       onEvent: event => {
       // Schedule each following route only after the complete preceding native
       // open/close is independently observed. Beacons may arrive out of order;
