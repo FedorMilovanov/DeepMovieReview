@@ -140,6 +140,10 @@ try {
       const wrapper = page.locator(".filmSceneTableWrap");
       assert.equal(await wrapper.evaluate((el) => el.scrollLeft), 0);
       const summary = scene.locator(".filmSceneSupports summary");
+      const summaryText = (await summary.innerText()).trim();
+      assert.match(summaryText, /^Опоры · \d+$/);
+      assert.equal(await summary.getAttribute("aria-label"), `${summaryText} — сцена «День 10 909»`,
+        "visible label and scene context must be in the accessible name");
       await inHorizontalViewport(summary, wrapper);
       await page.keyboard.press("Tab");
       assert.equal(await summary.evaluate((el) => document.activeElement === el), true, "next tab reaches scene support");
@@ -177,7 +181,7 @@ try {
         assert.ok(nodes.some((node) => !node.ignored && node.role?.value === "table" && /Сцены фильма/.test(node.name?.value ?? "")));
         assert.ok(nodes.some((node) => !node.ignored && node.role?.value === "rowheader" && /День 10 909.*Сцена 02/.test(node.name?.value ?? "")));
         assert.ok(nodes.some((node) => !node.ignored && node.role?.value === "rowheader" && /День 10 909.*Таймкод.*Основа.*Итог/.test(node.name?.value ?? "")));
-        assert.ok(nodes.some((node) => !node.ignored && /DisclosureTriangle|button/.test(node.role?.value ?? "") && /Опоры сцены «День 10 909»/.test(node.name?.value ?? "")));
+        assert.ok(nodes.some((node) => !node.ignored && /DisclosureTriangle|button/.test(node.role?.value ?? "") && /^Опоры · \d+ — сцена «День 10 909»$/.test(node.name?.value ?? "")));
         await cdp.detach();
       }
     });

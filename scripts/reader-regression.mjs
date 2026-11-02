@@ -469,8 +469,8 @@ for (const engine of requested) {
       for (const ref of refs) {
         const number = /·\s*(\d+)\s*$/.exec(ref.text ?? "")?.[1];
         assert.ok(number && ref.heading?.startsWith(`${number}.`), `reference and registry number differ: ${JSON.stringify(ref)}`);
-        assert.ok(ref.aria?.startsWith(`Источник ${number}:`) && ref.aria.includes(ref.heading.slice(number.length + 1).trim()),
-          `source title must be in the accessible name: ${JSON.stringify(ref)}`);
+        assert.ok(ref.aria?.startsWith(`${ref.text} — источник: `) && ref.aria.includes(ref.heading.slice(number.length + 1).trim()),
+          `visible publisher and number, and the registry title, must be in the accessible name: ${JSON.stringify(ref)}`);
       }
       const wiki = refs.filter((ref) => ref.text?.startsWith("Wikipedia ·"));
       assert.ok(new Set(wiki.map((ref) => ref.href)).size >= 2, "distinct Wikipedia sources must be reachable");
