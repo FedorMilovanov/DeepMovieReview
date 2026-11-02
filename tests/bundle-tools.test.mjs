@@ -3,9 +3,13 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const tool = resolve("scripts/film001-evidence-bundle");
+// Anchor the helper path to this checked-in test module, never to an inherited
+// process working directory. Child processes receive only this fixed repo path.
+const repositoryRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+const tool = join(repositoryRoot, "scripts/film001-evidence-bundle");
 function run(command, args, env = {}) {
   const result = spawnSync(command, args, { encoding: "utf8", env: { ...process.env, ...env }, maxBuffer: 32 * 1024 * 1024 });
   if (result.error) throw result.error;
