@@ -53,7 +53,7 @@ export function validateFullCodeQL(document, language, expectedSources = tracked
   }
   assert.deepEqual(expectedSources.filter(path => !extracted.has(path)), [], "Every tracked source must be extracted");
   assert.ok(Array.isArray(run.results), "CodeQL must report an explicit result list");
-  assert.deepEqual(run.results, [], `CodeQL reported findings: ${JSON.stringify(run.results)}`);
+  assert.equal(run.results.length, 0, `CodeQL reported findings: ${run.results.map(result => result.ruleId ?? "unknown rule").join(", ")}`);
   return { language, rules: rules.length, extracted: expectedSources.length, findings: 0, problematicNotifications: 0 };
 }
 

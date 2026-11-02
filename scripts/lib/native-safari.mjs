@@ -7,6 +7,7 @@ import { once } from "node:events";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { safariDriverLog, safariDriverPids, safariListenerPids, safariHttpServicePids } from "./apple-toolchain.mjs";
+import { projectSafariCapabilities, safariSessionId } from "./safari-capabilities.mjs";
 import { setTimeout as delay } from "node:timers/promises";
 
 export function safariRequestTimeout(path) {
@@ -105,11 +106,12 @@ export async function nativeSafari(capabilities = {}, { beforeSession = async ()
         await retrySetup();
       }
     }
-    session = result.sessionId;
+    session = safariSessionId(result.sessionId);
     const path = `/session/${session}`;
+    const observedCapabilities = projectSafariCapabilities(result.capabilities);
     return {
-      version: result.capabilities.browserVersion,
-      capabilities: result.capabilities,
+      version: observedCapabilities.browserVersion,
+      capabilities: observedCapabilities,
       execute: script => request(`${path}/execute/sync`, { script, args: [] }),
       goto: url => request(`${path}/url`, { url }),
       screenshot: () => request(`${path}/screenshot`),

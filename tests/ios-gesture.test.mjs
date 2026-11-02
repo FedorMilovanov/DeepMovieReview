@@ -2,9 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { once } from "node:events";
-import vm from "node:vm";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { nativeArticlePath, nativeMenuRoutes, nativeScenePath, nativeObservationScript, selectNativeGestureAttachments, startNativeObservationProxy,
@@ -13,6 +12,7 @@ import { nativePageBarrierReady, nativeRouteMarkers, openInitialNativePage, shou
 import { cancelledTouchWindow, collectTouchDiagnostics, touchLogExcerpt } from "../scripts/lib/ios-touch-diagnostics.mjs";
 import { validateSwiftCodeQL } from "../scripts/check-swift-codeql.mjs";
 import { packageSwiftEvidence } from "../scripts/publish-swift-codeql-evidence.mjs";
+import { projectSafariCapabilities, safariSessionId } from "../scripts/lib/safari-capabilities.mjs";
 
 const origin = "http://127.0.0.1:1234";
 const rail = { expanded: "false", hitContained: true, rect: { left: 320, top: 640, right: 390, bottom: 690, width: 70, height: 50 } };
@@ -123,6 +123,31 @@ test("Swift CodeQL gate rejects findings, extraction failures and vacuous report
     data => { delete data.runs[0].results; },
     data => { data.runs[0].results.push({ ruleId: "swift/security", level: "warning" }); },
   ]) { const changed = structuredClone(clean); change(changed); assert.throws(() => validateSwiftCodeQL(changed)); }
+});
+
+test("SafariDriver evidence retains only validated simulator identity", () => {
+  const input = { browserName: "Safari", browserVersion: "26.5", platformName: "iOS", "safari:useSimulator": true,
+    "safari:deviceType": "iPhone", "safari:deviceName": "iPhone 17 Pro", "safari:platformVersion": "26.5",
+    "safari:deviceUDID": "F0C70C77-E423-4478-B648-3D25045B311B", "safari:platformBuildVersion": "23F77",
+    unexpected: "arbitrary network content" };
+  const output = projectSafariCapabilities(input);
+  assert.equal(output.browserVersion, "26.5");
+  assert.equal(output["safari:deviceUDID"], input["safari:deviceUDID"]);
+  assert.equal(Object.hasOwn(output, "unexpected"), false);
+  assert.equal(safariSessionId("A1-2B"), "A1-2B");
+  for (const invalid of ["", "../session", "foo?bar", "x".repeat(129), null]) assert.throws(() => safariSessionId(invalid));
+  for (const change of [
+    value => { value.browserName = "Chrome"; },
+    value => { value.platformName = "macOS"; },
+    value => { value["safari:useSimulator"] = false; },
+    value => { value["safari:deviceType"] = "iPad"; },
+    value => { value.browserVersion = "26.5\n<script>"; },
+    value => { value["safari:deviceName"] = "../../evil"; },
+    value => { value["safari:platformVersion"] = "26.5.0.0.1"; },
+    value => { value["safari:deviceUDID"] = "../secret"; },
+    value => { value["safari:platformBuildVersion"] = "<html>"; },
+    value => { delete value.browserVersion; },
+  ]) { const changed = { ...input }; change(changed); assert.throws(() => projectSafariCapabilities(changed)); }
 });
 
 test("native readiness barrier rejects stale articles and requires a new FULL document at each stage", () => {
@@ -464,7 +489,11 @@ test("XCTest exports only the explicitly named screenshots, not arbitrary failur
 
 test("loopback observer is valid JavaScript, is passive and requires a fresh token", async () => {
   const script = nativeObservationScript("0123456789abcdef0123456789abcdef");
-  assert.doesNotThrow(() => new vm.Script(script));
+  // Parse only; never evaluate the observer source as test-runner code.
+  const syntax = spawnSync(process.execPath, ["--check"], { input: script, encoding: "utf8" });
+  assert.equal(syntax.status, 0, syntax.stderr);
+  const invalid = spawnSync(process.execPath, ["--check"], { input: "const = ;", encoding: "utf8" });
+  assert.ok(Number.isInteger(invalid.status) && invalid.status !== 0, "syntax oracle must reject malformed JavaScript");
   assert.throws(() => nativeObservationScript("not-a-token"));
   assert.doesNotMatch(script, /\.(?:click|scrollTo|scrollBy|dispatchEvent)\s*\(/);
   const upstream = http.createServer((req, res) => {

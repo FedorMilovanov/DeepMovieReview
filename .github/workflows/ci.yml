@@ -676,6 +676,7 @@ jobs:
     permissions:
       contents: read
       checks: write
+      security-events: read
     strategy:
       fail-fast: false
       matrix:
@@ -708,7 +709,7 @@ jobs:
         id: analyze
         uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4
         with:
-          sarif-output: ${{ runner.temp }}/full-codeql-results
+          output: ${{ runner.temp }}/full-codeql-results
           upload: never
       - name: Require complete clean analysis
         run: node scripts/check-full-codeql.mjs "${{ steps.analyze.outputs.sarif-output }}" "${{ matrix.language }}"

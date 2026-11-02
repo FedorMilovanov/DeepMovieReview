@@ -55,7 +55,7 @@ export function validateSwiftCodeQL(document, expectedSources = trackedSwiftSour
   assert.ok(metric("swift/diagnostics/ast-nodes") > 0 && metric("swift/diagnostics/successfully-extracted-lines") > 0,
     "Swift extraction must have nonzero AST nodes and source lines");
   assert.ok(Array.isArray(run.results), "CodeQL must report an explicit result list");
-  assert.deepEqual(run.results, [], `Swift CodeQL reported findings: ${JSON.stringify(run.results)}`);
+  assert.equal(run.results.length, 0, `Swift CodeQL reported findings: ${run.results.map(result => result.ruleId ?? "unknown rule").join(", ")}`);
   return { rules: rules.length, extracted: expectedSources, findings: 0, problematicNotifications: 0 };
 }
 
