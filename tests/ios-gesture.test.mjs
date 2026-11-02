@@ -81,11 +81,19 @@ test("initial Simulator navigation recovery never retries input and never masks 
 });
 
 test("Swift CodeQL gate rejects findings, extraction failures and vacuous reports", () => {
-  const extracted = { level: "none", descriptor: { id: "swift/diagnostics/successfully-extracted-files" },
-    locations: [{ physicalLocation: { artifactLocation: { uri: "scripts/ios-native-ui/Tests/NativeGestureTests.swift", uriBaseId: "%SRCROOT%" } } }] };
-  const clean = { version: "2.1.0", runs: [{ tool: { driver: { name: "CodeQL", rules: [{ id: "swift/rule" }] } },
-    invocations: [{ executionSuccessful: true, toolExecutionNotifications: [extracted] }], results: [] }] };
-  assert.deepEqual(validateSwiftCodeQL(clean), { rules: 1, extracted: "scripts/ios-native-ui/Tests/NativeGestureTests.swift", findings: 0, problematicNotifications: 0 });
+  // Structure mirrors the actual 881efd6 SARIF: Swift queries live in a pack
+  // extension, while the CodeQL driver's own rules array is empty.
+  const sources = ["scripts/ios-native-ui/Package.swift", "scripts/ios-native-ui/Tests/NativeGestureTests.swift"];
+  const extracted = path => ({ level: "none", descriptor: { id: "swift/diagnostics/successfully-extracted-files" },
+    locations: [{ physicalLocation: { artifactLocation: { uri: path, uriBaseId: "%SRCROOT%" } } }] });
+  const clean = { version: "2.1.0", runs: [{ tool: { driver: { name: "CodeQL", rules: [] }, extensions: [
+    { name: "codeql/swift-queries", rules: [{ id: "swift/rule", properties: { tags: ["security"] } }] },
+  ] }, properties: { codeqlConfigSummary: { queries: [{ type: "builtinSuite", uses: "security-extended" }] }, metricResults: [
+    { ruleId: "swift/diagnostics/unresolved-ast-nodes", value: 0 },
+    { ruleId: "swift/diagnostics/ast-nodes", value: 100 },
+    { ruleId: "swift/diagnostics/successfully-extracted-lines", value: 20 },
+  ] }, invocations: [{ executionSuccessful: true, toolExecutionNotifications: sources.map(extracted) }], results: [] }] };
+  assert.deepEqual(validateSwiftCodeQL(clean), { rules: 1, extracted: sources, findings: 0, problematicNotifications: 0 });
   const raw = Buffer.from(JSON.stringify(clean, null, 2) + "\n");
   const receipt = packageSwiftEvidence(raw, "a".repeat(40));
   assert.deepEqual(Buffer.from(receipt.scans[0].base64, "base64"), raw);
@@ -96,13 +104,20 @@ test("Swift CodeQL gate rejects findings, extraction failures and vacuous report
     data => { data.version = "1.0.0"; },
     data => { data.runs = []; },
     data => { data.runs[0].tool.driver.name = "other"; },
-    data => { data.runs[0].tool.driver.rules = []; },
+    data => { data.runs[0].tool.extensions[0].rules = []; },
+    data => { data.runs[0].tool.extensions[0].rules[0].properties.tags = ["correctness"]; },
+    data => { data.runs[0].properties.codeqlConfigSummary.queries[0].uses = "security-default"; },
+    data => { data.runs[0].properties.incrementalMode = "diff-informed"; },
+    data => { data.runs[0].tool.extensions.push({ name: "codeql-action/pr-diff-range" }); },
+    data => { data.runs[0].properties.metricResults[0].value = 1; },
+    data => { data.runs[0].properties.metricResults[1].value = 0; },
+    data => { data.runs[0].properties.metricResults.pop(); },
     data => { data.runs[0].invocations = []; },
     data => { data.runs[0].invocations[0].executionSuccessful = false; },
     data => { data.runs[0].invocations[0].toolExecutionNotifications.push({ level: "warning" }); },
     data => { data.runs[0].invocations[0].toolConfigurationNotifications = [{ level: "error" }]; },
     data => { data.runs[0].invocations[0].toolExecutionNotifications = []; },
-    data => { data.runs[0].invocations[0].toolExecutionNotifications[0].locations[0].physicalLocation.artifactLocation.uri = "scripts/ios-native-ui/Package.swift"; },
+    data => { data.runs[0].invocations[0].toolExecutionNotifications[0].locations[0].physicalLocation.artifactLocation.uri = "scripts/ios-native-ui/another.swift"; },
     data => { delete data.runs[0].invocations[0].toolExecutionNotifications[0].locations[0].physicalLocation.artifactLocation.uriBaseId; },
     data => { data.runs[0].invocations[0].toolExecutionNotifications.push({ level: "none", descriptor: { id: "swift/diagnostics/extraction-errors" } }); },
     data => { delete data.runs[0].results; },

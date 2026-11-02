@@ -618,7 +618,9 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 25
     env:
-      # PR analyses otherwise omit the diagnostic identifying extracted files.
+      # Require full-tree results (not just changed lines) and the extracted-file diagnostic.
+      CODEQL_ACTION_DIFF_INFORMED_QUERIES: "false"
+      CODEQL_ACTION_OVERLAY_ANALYSIS: "false"
       CODEQL_ACTION_FILE_COVERAGE_ON_PRS: "true"
     permissions:
       actions: read
