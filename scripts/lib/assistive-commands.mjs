@@ -73,6 +73,33 @@ export async function nativeVoiceOverPhrase() {
   return stdout.trim();
 }
 
+// Guidepup polls the public last-phrase API less often while a long help hint is
+// being spoken. Observe that same API concurrently with one native command so
+// a short, intervening row announcement is not lost. Never replay the command,
+// use DOM text as speech, or count the phrase already present before it runs.
+// Retain observation errors even when the command throws.
+export async function observeNativeSpeechDuring(run, observation, {
+  read = nativeVoiceOverPhrase, pause = () => delay(150),
+} = {}) {
+  let baseline = "", baselineEstablished = false;
+  try { baseline = await read(); baselineEstablished = true; }
+  catch (error) { observation.readErrors.push(error.message); }
+  observation.baselineEstablished = baselineEstablished;
+  let running = true;
+  const command = run();
+  const observer = (async () => {
+    while (running) {
+      try {
+        const phrase = await read();
+        if (baselineEstablished && phrase && phrase !== baseline && phrase !== observation.speech.at(-1)) observation.speech.push(phrase);
+      } catch (error) { observation.readErrors.push(error.message); }
+      if (running) await pause();
+    }
+  })();
+  try { await command; }
+  finally { running = false; await observer; }
+}
+
 // Guidepup's stored phrase log can stabilize before the menu's delayed speech.
 // Poll the public VoiceOver last-phrase API, never replay a mutating command or
 // inject expected content. Absence/timeout still fails the caller's assertion.

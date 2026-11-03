@@ -426,6 +426,53 @@ test("native Safari Apple Events adapter waits for real DOM/fonts and reads geom
   await browser.close();
 });
 
+test("native row capture observes the real phrase during one command without accepting stale speech", async () => {
+  const { libraryDetectionRowSpeech, observeNativeSpeechDuring } = await import("../scripts/lib/assistive-commands.mjs");
+  const observation = { speech: [], readErrors: [] };
+  const values = ["previous help", "previous help", "row 2 of 5", "Библиотека: Труман", "0 обнаруженных переходов"];
+  let calls = 0, release;
+  const run = () => { calls++; return new Promise(resolve => { release = resolve; }); };
+  const read = async () => {
+    const phrase = values.shift() ?? "0 обнаруженных переходов";
+    if (phrase === "0 обнаруженных переходов") setImmediate(release);
+    return phrase;
+  };
+  const pause = () => new Promise(resolve => setImmediate(resolve));
+  await observeNativeSpeechDuring(run, observation, { read, pause });
+  assert.equal(calls, 1);
+  assert.equal(observation.baselineEstablished, true);
+  assert.deepEqual(observation.speech, ["row 2 of 5", "Библиотека: Труман", "0 обнаруженных переходов"]);
+  assert.match(observation.speech.join(" "), libraryDetectionRowSpeech);
+  assert.doesNotMatch("row 2 of 5", libraryDetectionRowSpeech);
+});
+
+test("native row capture fails closed when the pre-command phrase is unavailable", async () => {
+  const { observeNativeSpeechDuring } = await import("../scripts/lib/assistive-commands.mjs");
+  const observation = { speech: [], readErrors: [] };
+  let reads = 0, release;
+  const run = () => new Promise(resolve => { release = resolve; });
+  const read = async () => {
+    if (!reads++) throw new Error("reader unavailable");
+    setImmediate(release);
+    return "Библиотека: Труман 0 обнаруженных переходов";
+  };
+  await observeNativeSpeechDuring(run, observation, { read, pause: () => new Promise(resolve => setImmediate(resolve)) });
+  assert.equal(observation.baselineEstablished, false);
+  assert.deepEqual(observation.speech, []);
+  assert.deepEqual(observation.readErrors, ["reader unavailable"]);
+});
+
+test("native row capture preserves command failures and observation errors", async () => {
+  const { observeNativeSpeechDuring } = await import("../scripts/lib/assistive-commands.mjs");
+  const observation = { speech: [], readErrors: [] };
+  let reads = 0;
+  const read = async () => { if (reads++) throw new Error("poll failed"); return "previous"; };
+  await assert.rejects(observeNativeSpeechDuring(async () => { throw new Error("command failed"); }, observation,
+    { read, pause: () => new Promise(resolve => setImmediate(resolve)) }), /command failed/);
+  assert.deepEqual(observation.speech, []);
+  assert.deepEqual(observation.readErrors, ["poll failed"]);
+});
+
 test("late native VoiceOver speech is awaited without replaying navigation", async () => {
   const { settleNativeSpeech } = await import("../scripts/lib/assistive-commands.mjs");
   const values = ["Page Menu", "VoiceOver Menu"], reads = [];
