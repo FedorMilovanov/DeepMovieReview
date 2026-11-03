@@ -1,0 +1,38 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const workflow = readFileSync(resolve(root, ".github/workflows/secret-scan.yml"), "utf8");
+
+test("secret scanning is explicitly read-only", () => {
+  const match = workflow.match(/^permissions:\n((?:  [^\n]*\n)+)/m);
+  assert.ok(match, "top-level permissions block must exist");
+  assert.deepEqual(match[1].trim().split("\n").map(line => line.trim()), ["contents: read"]);
+  assert.doesNotMatch(workflow, /write-all|security-events:\s*write|contents:\s*write|actions:\s*write/);
+});
+
+test("every external action is pinned to a full SHA and version comment", () => {
+  const lines = workflow.split(/\r?\n/).filter(line => /^\s+uses:\s*/.test(line));
+  assert.equal(lines.length, 1, "expected only the pinned checkout action");
+  for (const line of lines) {
+    assert.match(line, /^\s+uses:\s+[^@\s]+@[0-9a-f]{40}\s+#\s+v\d+\.\d+\.\d+\s*$/, line);
+  }
+});
+
+test("Gitleaks container image is pinned by version and immutable linux/amd64 digest", () => {
+  assert.match(workflow, /ghcr\.io\/gitleaks\/gitleaks:v8\.30\.1@sha256:b109bc5f8f76a38196a3e413704fc5b9e3c32360bce4e4b603bd6f45b3721dbb/);
+});
+
+test("full-history scan runs on main PRs, pushes, schedule and manual dispatch", () => {
+  assert.match(workflow, /^  push:\n    branches: \["main"\]/m);
+  assert.match(workflow, /^  pull_request:\n    branches: \["main"\]/m);
+  assert.match(workflow, /^  schedule:/m);
+  assert.match(workflow, /^  workflow_dispatch:/m);
+  assert.match(workflow, /fetch-depth: 0/);
+  assert.match(workflow, /--all --full-history --sparse/);
+  assert.match(workflow, /--redact/);
+  assert.match(workflow, /--network none/);
+});
