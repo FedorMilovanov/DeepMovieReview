@@ -32,13 +32,11 @@ import { trumanComparison } from "./the-truman-show-comparison";
  * limits of the later clip and frame audit.
  */
 /**
- * The verification ledger is the only thing that knows *how* a record was
- * checked. Attaching its summary to the record keeps that knowledge next to the
- * claim, so «VERIFIED» on a card can be read as «subtitle track, two lines,
- * reviewer unknown» instead of an unqualified promise.
- *
- * Records written after the lock (the rain rewrite) have no research-era ledger
- * entry to inherit from, so they carry their basis in the record itself.
+ * A ledger summary or an explicitly documented later check says *how* a record
+ * was examined. Keeping that basis next to the claim distinguishes a subtitle
+ * cue from a sampled frame instead of making «VERIFIED» an unqualified promise.
+ * Explicit bases supersede a mixed research-era ledger when a later check uses
+ * different material or separates observations that were previously combined.
  */
 const verificationById = new Map(
   [...trumanVisualVerifications, ...trumanPostLockEvidenceVerifications].map((record) => [
@@ -48,16 +46,16 @@ const verificationById = new Map(
 );
 
 /**
- * A research record split into two scene-accurate halves was checked once: the
- * ledger keeps one entry, under the research id. Both halves inherit it, and the
- * window stays the parent's — narrowing it per half would claim a separate check
- * that never happened.
+ * Split records without their own documented basis may inherit their parent's
+ * ledger entry, with its limits and shared provenance. A later explicit basis
+ * takes precedence; a child's own ledger must not be overwritten by its parent.
  */
 const splitParentById = new Map<string, string>();
 for (const [researchId, replacements] of Object.entries(trumanCanonicalEvidenceSummary.split)) {
   const entry = verificationById.get(researchId);
   if (!entry) continue;
   for (const replacementId of replacements) {
+    if (replacementId !== researchId && verificationById.has(replacementId)) continue;
     verificationById.set(replacementId, entry);
     splitParentById.set(replacementId, researchId);
   }
@@ -327,7 +325,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           interpretiveSpoilerLevel: "MAJOR",
           believes: "«Профессионализм» заменил ей совесть: работа есть работа",
           selfDeception: "Убеждает себя, что фиктивный брак — «всего лишь работа», пока кухонные инструменты в руках не выдают панику",
-          arcSummary: "От рекламной улыбки — к срыву «Сделай же что-нибудь!» — и к уходу из проекта",
+          arcSummary: "От рекламного образа к конфликту на кухне; говорящий в просьбе «Сделай же что-нибудь!» по одним субтитрам не установлен.",
           unchanged: "Способность играть — и неспособность выйти из роли иначе, чем через срыв.",
           arcCredibility: { level: "HIGH", note: "Перелом укладывается в несколько реплик: рекламная улыбка, раздражение, паника — роль рассыпается ровно там, где от неё требуют настоящего чувства." },
           roleInArgument: "Показывает цену системы для «профессионалов»: ложь деформирует и лгущего",
@@ -373,7 +371,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           selfDeception: "Недооценивает силу удобной лжи: правда, сказанная один раз, была нейтрализована за минуты",
           arcSummary: "От эпизодической статистки — к совести фильма и лидеру протеста против Кристофа",
           unchanged: "Готовность спорить с создателем публично: её протест не слабеет с годами.",
-          arcCredibility: { level: "MEDIUM", note: "Её линия показана эпизодически: фильм не раскрывает подробно жизнь между знакомством с Труманом и публичным протестом." },
+          arcCredibility: { level: "MEDIUM", note: "Выборочные материалы не дают полной картины её жизни между знакомством с Труманом и публичным протестом." },
           roleInArgument: "Голос настоящей любви: она любит Трумана не как зритель (образ), а как человек (личность)",
           counterpoint: "Её позиция показана фрагментарно: решимость сказать правду не раскрывает всех мотивов и не делает её всесильной.",
           profileSupport: { evidenceIds: ["truman-ev-sylvia"] },
@@ -394,7 +392,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           selfDeception: "Убеждена, что участвует в чём-то вроде материнства, — не замечая, что нежность расписана указаниями Кристофа",
           arcSummary: "От эфирной матери к человеку, который пытается успокоить сына, когда тот задаёт неудобные вопросы",
           unchanged: "Способность закрывать вопрос лаской: и в начале, и в конце она гасит тревогу сына прикосновением и семейным альбомом.",
-          arcCredibility: { level: "MEDIUM", note: "У её линии мало самостоятельных сцен; фильм почти не показывает человека за профессиональной ролью." },
+          arcCredibility: { level: "MEDIUM", note: "По доступным выборочным материалам нельзя уверенно судить, кто она за пределами роли матери." },
           roleInArgument: "Предельный случай системы: даже материнская любовь — расходный материал удержания",
           counterpoint: "Она участвует в обмане, но немногие сцены не позволяют уверенно судить, что она чувствует вне своей роли.",
           profileSupport: { evidenceIds: ["truman-ev-album"] },
@@ -417,13 +415,13 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-rel-ad-break",
           label: "Брак как рекламная пауза",
-          change: "Посреди семейной ссоры жена отворачивается к камере и рекламирует какао, а когда Труман требует ответа — берёт со стола кухонные инструменты «Chef's Pal», те самые, что в начале фильма дарили в супермаркете, и зовёт на помощь не мужа",
+          change: "В субтитрах ссоры есть рекламный текст о какао и просьба «Сделай же что-нибудь!». На отдельных кадрах видны упаковка на столе и инструменты в руках Мэрил; автора и адресата просьбы по этим материалам не установить.",
           tone: "fracture",
           dimensions: [
             { dimension: "TRUTHFULNESS", before: "Труман верит, что его брак — частная жизнь", after: "Брак оказывается рекламной паузой с реквизитом из магазина" },
             { dimension: "TRUST", before: "Полное доверие к жене", after: "Сомнение, которое уже не рассосётся" },
           ],
-          support: { evidenceIds: ["truman-ev-mococoa", "truman-ev-knife", "truman-ev-knife-tools", "truman-ev-knife-call"] },
+          support: { evidenceIds: ["truman-ev-cocoa-subtitles", "truman-ev-knife", "truman-ev-knife-tools", "truman-ev-knife-call"] },
           spoilerLevel: "MAJOR",
         },
         {
@@ -438,10 +436,10 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         {
           id: "truman-rel-knife",
           label: "Инструменты и «Сделай же что-нибудь!»",
-          change: "Под давлением вопросов Мэрил ломается: роли кончились, дальше — только правда или бегство",
+          change: "Кадры с инструментами и удержанием показывают конфликт, а субтитры записывают просьбу; по ним нельзя установить её автора, адресата или внутреннее состояние Мэрил.",
           tone: "fracture",
           dimensions: [
-            { dimension: "TRUST", before: "Иллюзия команды «мы»", after: "Мэрил ищет помощь вне разговора; адресат просьбы остаётся неясным" },
+            { dimension: "TRUST", before: "Иллюзия команды «мы»", after: "Доверие оказывается под вопросом; автор и адресат просьбы не установлены" },
             { dimension: "POWER", before: "Труман — «глава дома» по сценарию", after: "Видно, кто на самом деле держит сценарий" },
           ],
           support: { evidenceIds: ["truman-ev-knife-tools", "truman-ev-knife-call", "truman-ev-meryl-held"] },
@@ -1143,7 +1141,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           actorCharacterIds: ["truman-ch-truman", "truman-ch-meryl"],
           category: "Давление правдой",
           valence: "MIXED",
-          act: "Во время ссоры Мэрил держит перед собой кухонные инструменты, а Труман затем удерживает её; просьба о помощи звучит в сцене, но её адресат не назван.",
+          act: "На отдельных кадрах Мэрил держит инструменты, а Труман удерживает её; в субтитрах есть просьба, но её автор и адресат не установлены. Звук отдельно не прослушан.",
           target: "Мэрил",
           motive: "Отчаяние: мирные способы узнать правду исчерпаны.",
           knowledge: "Труман подозревает обман; намерения обоих участников нельзя полностью восстановить по отдельным кадрам.",
@@ -1340,7 +1338,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
         "Обязательный просмотр для взрослого зрителя: редкий случай, когда мейнстрим поднимает вопрос о природе реальности и цене личности и не сбрасывает его в финале. Для размышляющего христианина — почти учебная притча о различении голосов: который зовёт к жизни и который — к рейтингу.",
       qualifications: [
         "Фильм насыщен сценами страха и психологического давления — чувствительному зрителю финальный акт может даться тяжело.",
-        "Философский слой (античность, гностицизм, платоновская пещера) в самом фильме не проговорён: без внешнего контекста он читается упрощённо.",
+        "Античность, гностицизм и платоновская пещера — наше сопоставление с фильмом; выборочные материалы и субтитры не заменяют проверку всей картины со звуком.",
         "Тайминги привязаны к указанному в манифесте изданию (SHA-256 E8543F61…B3B575). Исходный файл в этой проверке недоступен, а выборочные кадры и субтитры не заменяют просмотр со звуком.",
       ],
       confidence: "HIGH",
@@ -1391,8 +1389,8 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           label: "Paramount Pictures — официальная страница фильма",
           kind: "reference",
           researchRole: "primary-material",
-          locator: "Прокатные материалы студии, 104 мин",
-          href: "https://www.paramountpictures.com/movies/the-truman-show",
+          locator: "Официальная карточка студии: 1998, 104 мин; округлённая длительность карточки не является точным хронометражем мастер-издания.",
+          href: "https://www.paramount.com/movies/the-truman-show",
         },
         {
           id: "truman-src-bfi",
@@ -1520,7 +1518,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           label: "The Atlantic — «The Real Lesson of The Truman Show»",
           kind: "reference",
           researchRole: "professional-reference",
-          locator: "Разбор: «он родился в прямом эфире», зрители как соучастники; в источнике также утверждаются подсказки Марлону через наушник — в мастер-издании это не подтверждено",
+          locator: "Разбор: «он родился в прямом эфире», зрители как соучастники; в источнике также утверждаются подсказки Марлону через наушник — в доступных выборочных материалах это не подтверждено.",
           href: "https://www.theatlantic.com/culture/archive/2023/06/the-truman-show-25-years-later/674456/",
         },
         {
@@ -1561,7 +1559,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           label: "FilmPlotHub — разбор сюжета и финала",
           kind: "reference",
           researchRole: "tertiary-community",
-          locator: "Последовательность препятствий: пробки, пожар, «амнезия», шторм; подкоп, упомянутый в источнике, в фильме отсутствует",
+          locator: "Пересказ утверждает, что Труман выбрался через подкоп под подвалом. Доступные выборочные наблюдения этого способа не подтверждают, но и не доказывают отсутствия подкопа во всём фильме.",
           href: "https://www.filmplothub.com/movies/the-truman-show-1998/",
         },
         {
@@ -1577,7 +1575,7 @@ export const theTrumanShowCanonicalPackage: FilmPackage = {
           label: "Running Sheet по фильму (Adrian D'Ambra)",
           kind: "reference",
           researchRole: "tertiary-community",
-          locator: "Поглавный конспект: «аквафобия», АЭС, ловля Сильвии; заголовок «Кто нуждается в Европе?» из источника в фильме не читается — там «CRACKDOWN ON HOMELESS»",
+          locator: "Конспект перечисляет заголовки «Who Needs Europe?» и «Crackdown on Homeless». На доступном выборочном кадре читается второй; этот кадр не исключает другого заголовка в фильме.",
           href: "https://englishliteratureteacher.wordpress.com/2015/12/31/the-truman-show-directed-by-peter-weir-1998-running-sheet-by-adrian-dambra-2/",
         },
         {
