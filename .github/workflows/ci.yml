@@ -351,7 +351,7 @@ jobs:
             timeout 6m env BASE_URL=http://127.0.0.1:3212 READING_BROWSER="$engine" READING_AUDIT_DIR="browser-audit/reading-$engine" node scripts/reading-quality-audit.mjs 2>&1 | tee "/tmp/dmr-reading-$engine.log"
             if [[ "$engine" == "chromium" ]]; then
               echo '::notice title=PDF inspection::Extracting text and rendering paper pages; PNGs require visual review'
-              timeout 3m python3 scripts/inspect-reading-pdf.py browser-audit/reading-chromium --prune
+              timeout 3m python3 scripts/inspect-reading-pdf.py browser-audit/reading-chromium --prune 2>&1 | tee /tmp/dmr-pdf-inspection.log
             fi
           done
           echo '::notice title=CI progress::Reader regression finished; starting browser audit'
