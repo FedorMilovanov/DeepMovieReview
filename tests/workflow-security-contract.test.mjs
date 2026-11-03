@@ -16,10 +16,14 @@ test("secret scanning is explicitly read-only", () => {
 
 test("every external action is pinned to a full SHA and version comment", () => {
   const lines = workflow.split(/\r?\n/).filter(line => /^\s+uses:\s*/.test(line));
-  assert.equal(lines.length, 2, "expected checkout and Gitleaks actions");
+  assert.equal(lines.length, 1, "expected only the pinned checkout action");
   for (const line of lines) {
     assert.match(line, /^\s+uses:\s+[^@\s]+@[0-9a-f]{40}\s+#\s+v\d+\.\d+\.\d+\s*$/, line);
   }
+});
+
+test("Gitleaks container image is pinned by version and immutable linux/amd64 digest", () => {
+  assert.match(workflow, /ghcr\.io\/gitleaks\/gitleaks:v8\.30\.1@sha256:b109bc5f8f76a38196a3e413704fc5b9e3c32360bce4e4b603bd6f45b3721dbb/);
 });
 
 test("full-history scan runs on main PRs, pushes, schedule and manual dispatch", () => {
@@ -30,8 +34,5 @@ test("full-history scan runs on main PRs, pushes, schedule and manual dispatch",
   assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /--all --full-history --sparse/);
   assert.match(workflow, /--redact/);
-});
-
-test("Gitleaks findings are not uploaded as workflow artifacts", () => {
-  assert.match(workflow, /GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false/);
+  assert.match(workflow, /--network none/);
 });
