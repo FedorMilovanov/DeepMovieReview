@@ -389,7 +389,12 @@ jobs:
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/publish-a11y-evidence.mjs
+        run: |
+          if [ ! -f a11y-report/summary.json ] && [ "${{ steps.browser_audit.outcome }}" != "success" ]; then
+            echo '::notice title=Accessibility evidence::The browser audit stopped before creating an axe summary; the original failure and interrupted-audit diagnostics remain authoritative.'
+          else
+            node scripts/publish-a11y-evidence.mjs
+          fi
 
       - name: Upload browser audit evidence
         if: always()

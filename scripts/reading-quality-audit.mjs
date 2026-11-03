@@ -167,6 +167,50 @@ async function wheelReading(page, viewport) {
   return samples;
 }
 
+// Passive diagnostics for cross-engine anchor failures: never dispatch input or
+// change focus/scroll here. The trace survives in the failed audit report.
+async function observeOutlineEvents(page) {
+  await page.evaluate(() => {
+    if (window.__readingOutlineTrace) return;
+    const trace = window.__readingOutlineTrace = [];
+    const record = event => {
+      const target = event.target instanceof Element ? event.target : null;
+      trace.push({ type: event.type, target: target?.tagName, targetId: target?.id,
+        href: target?.closest("a")?.getAttribute("href"), hash: location.hash,
+        active: document.activeElement?.tagName, activeId: document.activeElement?.id,
+        prevented: event.defaultPrevented, y: scrollY });
+      if (trace.length > 30) trace.shift();
+    };
+    document.addEventListener("focusin", record, true);
+    document.addEventListener("click", record, true);
+    window.addEventListener("hashchange", record);
+  });
+}
+
+async function waitForOutlineArrival(page, hash, { requireVisible = false, timeout = 30000 } = {}) {
+  try {
+    await page.waitForFunction(({ expected, visible }) => {
+      const section = document.getElementById(expected.slice(1));
+      const heading = document.getElementById(section?.getAttribute("aria-labelledby") ?? "");
+      if (location.hash !== expected || !section || document.activeElement !== heading) return false;
+      const rect = heading?.getBoundingClientRect();
+      return !visible || (rect && rect.top >= document.querySelector(".siteHeader").getBoundingClientRect().bottom - 1 && rect.top < innerHeight);
+    }, { expected: hash, visible: requireVisible }, { timeout });
+  } catch (error) {
+    const state = await page.evaluate(expected => {
+      const section = document.getElementById(expected.slice(1));
+      const heading = document.getElementById(section?.getAttribute("aria-labelledby") ?? "");
+      const active = document.activeElement;
+      return { expected, hash: location.hash, y: scrollY, active: active?.outerHTML.slice(0, 250),
+        headingId: heading?.id, headingTop: heading?.getBoundingClientRect().top,
+        headerBottom: document.querySelector(".siteHeader")?.getBoundingClientRect().bottom,
+        panelHidden: document.querySelector(".readingOutlinePanel")?.hidden,
+        events: window.__readingOutlineTrace?.slice(-12) };
+    }, hash);
+    throw new Error(`Outline arrival failed: ${JSON.stringify(state)}; ${error.message}`);
+  }
+}
+
 // Firefox may include a scrollable navigation region itself in sequential
 // focus order before its links. Accept that one meaningful stop, but still
 // verify every link in order; never skip an unknown focus target.
@@ -210,6 +254,7 @@ async function testOutline(page, viewport) {
 
   // Return with ordinary navigation, not an artificial scrollTop adjustment.
   await openArticle(page);
+  await observeOutlineEvents(page);
   await trigger.click();
   const panel = page.locator(".readingOutlinePanel");
   await panel.waitFor({ state: "visible" });
@@ -239,10 +284,7 @@ async function testOutline(page, viewport) {
     await panel.waitFor({ state: "visible" });
     if (await tabThroughOutline(page, hashes, index)) panelStops += 1;
     await page.keyboard.press("Enter");
-    await page.waitForFunction(hash => {
-      const section = document.getElementById(hash.slice(1));
-      return location.hash === hash && section && document.activeElement?.id === section.getAttribute("aria-labelledby");
-    }, hashes[index]);
+    await waitForOutlineArrival(page, hashes[index]);
     const landing = await page.evaluate(() => ({
       hash: location.hash, active: document.activeElement.id,
       headingTop: document.activeElement.getBoundingClientRect().top,
@@ -400,6 +442,7 @@ try {
   await check("outline: long-distance and repeated same-hash jumps with motion enabled", () =>
     withPage({ viewport: { width: 390, height: 844 }, reducedMotion: "no-preference" }, "outline-motion", async page => {
       await openArticle(page);
+      await observeOutlineEvents(page);
       await page.locator(".articleTableFigure").first().evaluate(element => element.scrollIntoView({ block: "center", behavior: "instant" }));
       const trigger = page.locator(".readingOutlineTrigger");
       const first = page.locator(".readingOutlinePanel a").first();
@@ -415,13 +458,7 @@ try {
         await page.locator(".readingOutlinePanel").waitFor({ state: "visible" });
         await tabThroughOutline(page, [hash], 0);
         await page.keyboard.press("Enter");
-        await page.waitForFunction(expected => {
-          const section = document.getElementById(expected.slice(1));
-          const heading = document.getElementById(section?.getAttribute("aria-labelledby") ?? "");
-          const rect = heading?.getBoundingClientRect();
-          return location.hash === expected && document.activeElement === heading && rect &&
-            rect.top >= document.querySelector(".siteHeader").getBoundingClientRect().bottom - 1 && rect.top < innerHeight;
-        }, hash, { timeout: 6000 });
+        await waitForOutlineArrival(page, hash, { requireVisible: true, timeout: 6000 });
       }
       return { hash, repeated: true };
     }));
