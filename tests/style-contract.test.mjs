@@ -489,6 +489,27 @@ test("NVDA table captions are not mistaken for an active table cell", async () =
   assert.equal(firstTableHeaderSpoken(["out of caption, row 1, column 1, ЗАПИСЬ"], /запись/i), true);
 });
 
+test("scene disclosure speech identifies the visible count, scene, role, and collapsed state", async () => {
+  const { sceneSupportDisclosureSpeech, sceneSupportDisclosureRole, sceneSupportDisclosureCollapsed } = await import("../scripts/lib/assistive-commands.mjs");
+  // Actual NVDA and VoiceOver utterances on 88571cd: NVDA omits the visual dot.
+  for (const speech of [
+    "button, collapsed, Опоры 6 — сцена «День 10 909»",
+    "Опоры · 6 — сцена «День 10 909» collapsed summary",
+  ]) {
+    assert.match(speech, sceneSupportDisclosureSpeech);
+    assert.match(speech, sceneSupportDisclosureRole);
+    assert.match(speech, sceneSupportDisclosureCollapsed);
+  }
+  for (const speech of [
+    "Опоры сцены «День 10 909»", // the old name lacks the visible count
+    "Опоры 1 — сцена «День 10 909»", // another count is not this control
+    "Опоры 6 — сцена «Пролог: интервью без героя»",
+    "row 3, День 10 909Сцена 02, Шесть прочтений одной сцены",
+  ]) assert.doesNotMatch(speech, sceneSupportDisclosureSpeech);
+  assert.doesNotMatch("Опоры 6 — сцена «День 10 909»", sceneSupportDisclosureRole);
+  assert.doesNotMatch("button, expanded, Опоры 6 — сцена «День 10 909»", sceneSupportDisclosureCollapsed);
+});
+
 test("VoiceOver chooser may name its selected skip link but not generic page help alone", async () => {
   const { voiceOverChooserSpeech, validateVoiceOverSkipLink } = await import("../scripts/lib/assistive-commands.mjs");
   assert.match("On item Перейти к содержимому. Page Menu, Translation Available", voiceOverChooserSpeech);

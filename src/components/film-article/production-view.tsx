@@ -42,7 +42,7 @@ function SourceRefs({ ids, lookup }: { ids: string[]; lookup: ProductionLookup }
         const number = lookup.sourceNumbers.get(id);
         if (!source || number === undefined) return null;
         return (
-          <a key={id} href={`#source-${id}`} aria-label={`Источник ${number}: ${source.label}, ${source.publisher}`}>
+          <a key={id} href={`#source-${id}`} aria-label={`${source.publisher} · ${number} — источник: ${source.label}`}>
             {source.publisher} · {number}
           </a>
         );

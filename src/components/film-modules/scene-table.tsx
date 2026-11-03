@@ -84,7 +84,7 @@ export function FilmSceneTable({
                     </span>
                     {supports.length ? (
                       <details className="filmSceneSupports">
-                        <summary aria-label={`Опоры сцены «${scene.shortLabel}»: ${supports.length}`}>Опоры · {supports.length}</summary>
+                        <summary aria-label={`Опоры · ${supports.length} — сцена «${scene.shortLabel}»`}>Опоры · {supports.length}</summary>
                         <ul>
                           {supports.map((record) => (
                             <li key={record.id}><a href={`#evidence-${record.id}`} aria-label={`${record.label} — опора сцены «${scene.shortLabel}»`}>{record.label} →</a></li>

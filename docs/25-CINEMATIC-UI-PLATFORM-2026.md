@@ -48,7 +48,7 @@ Alpha/canary versions are not used on the production path merely because they ar
 
 ### Lint compatibility boundary
 
-ESLint is pinned to `9.39.5` while `eslint-config-next@16.4.3` still depends on ecosystem plugins whose ESLint 10 compatibility is incomplete. ESLint 10 is newer, but adopting it by suppressing peer/API incompatibilities would reduce reliability rather than improve the toolchain. Revisit this pin when the stable Next.js lint dependency graph is fully ESLint-10-compatible.
+The lint toolchain now uses `eslint@10.14.0` with compatible Next, Hooks, TypeScript and JSX accessibility plugins, plus Oxlint for the previous React/import checks. The temporary minimatch adapter is gone, although a reviewed `minimatch@11.0.3` override remains until upstream dependency ranges catch up. See [dependency security](69-DEPENDENCY-SECURITY.md) for the coverage comparison and remaining compatibility boundary.
 
 ## 2. Rendering tiers
 

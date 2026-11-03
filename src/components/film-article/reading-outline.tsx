@@ -75,6 +75,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
 
   if (!sections.length) return null;
   const activeIndex = Math.max(0, sections.findIndex(section => section.id === active));
+  const position = String(activeIndex + 1).padStart(2, "0");
   return (
     <div
       className="readingOutline"
@@ -101,7 +102,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
       <button
         ref={trigger}
         className="readingOutlineTrigger"
-        aria-label="Оглавление статьи"
+        aria-label={`Разделы ${position} — оглавление статьи`}
         aria-expanded={open}
         aria-controls="reading-outline-panel"
         onClick={() => {
@@ -112,8 +113,8 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
         <span className="readingOutlineWord">Разделы</span>
         <span className="readingOutlineRail" aria-hidden="true">
           {sections.map(({ id }, index) => <i key={id} data-active={id === active} data-read={index < activeIndex} />)}
-        </span>
-        <span className="readingOutlinePosition" aria-hidden="true">{String(activeIndex + 1).padStart(2, "0")}</span>
+        </span>{/* A real separator keeps the visible word and number distinct in label-in-name checks. */}{" "}
+        <span className="readingOutlinePosition" aria-hidden="true">{position}</span>
       </button>
       <nav id="reading-outline-panel" className="articleOutline readingOutlinePanel" hidden={!open} aria-label="Разделы статьи">
         <div className="readingOutlineHeading">В этом разборе <span>{activeIndex + 1} / {sections.length}</span></div>

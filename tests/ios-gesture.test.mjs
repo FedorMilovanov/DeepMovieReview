@@ -346,6 +346,17 @@ test("native spoiler trace requires one completed trusted touch and the exact in
   assert.throws(() => validateNativeSpoilerTrace(trace(), origin, { ...baseline, afterScene: { kind: "ready", timestamp: 1000 } }));
 });
 
+test("native scene lookup retains the complete accessible name and emits failure diagnostics", () => {
+  const swift = readFileSync("scripts/ios-native-ui/Tests/NativeGestureTests.swift", "utf8");
+  assert.match(swift, /let description = "Опоры · 6 — сцена «День 10 909»"/);
+  assert.match(swift, /NSPredicate\(format: "label CONTAINS %@", description\)/);
+  assert.match(swift, /scene-related AX entries/);
+  assert.match(swift, /DMR-scene-disclosure-missing/);
+  const observer = nativeObservationScript("0123456789abcdef0123456789abcdef");
+  assert.match(observer, /supportLabel: support\?\.getAttribute\('aria-label'\)/);
+  assert.match(observer, /supportText: support\?\.textContent\?\.trim\(\)/);
+});
+
 test("native scene trace requires trusted touches, the real disclosure, visible evidence and NONE projection", () => {
   const control = { hitContained: true, rect: { left: 30, top: 120, right: 150, bottom: 165, width: 120, height: 45 } };
   const scene = { open: false, support: control, link: control, sceneScroll: 0, evidenceScroll: 0,

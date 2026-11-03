@@ -73,7 +73,15 @@ for (const name of selected) {
             await page.addScriptTag({ content: axe.source });
             const result = await page.evaluate(async scope => window.axe.run(scope === "document" ? document : document.querySelector(scope), {
               runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"] },
+              // In axe 4.11 this WCAG 2.5.3 rule is tagged experimental and
+              // omitted by default even when wcag21a is selected. Keep it
+              // enabled explicitly on both old and new axe versions.
+              rules: { "label-content-name-mismatch": { enabled: true } },
             }), scope);
+            if (scope === "document") {
+              assert.ok([...(result.passes ?? []), ...(result.violations ?? []), ...(result.incomplete ?? []), ...(result.inapplicable ?? [])]
+                .some(rule => rule.id === "label-content-name-mismatch"), "label-in-name rule must actually be selected");
+            }
             writeFileSync(`${out}/${id}-${state}.json`, JSON.stringify(result, null, 2));
             const review = result.incomplete.map(rule => ({ rule: rule.id, nodes: rule.nodes.length,
               reasons: [...new Set(rule.nodes.flatMap(node => [...node.any, ...node.all, ...node.none].map(check => check.message)))] }));
@@ -199,7 +207,12 @@ for (const name of selected) {
           if (route.includes("/article?")) {
             const sectionCount = await page.locator(".articleSection").count();
             const hiddenId = await page.locator(".articleSection").last().getAttribute("id");
-            const outline = page.getByRole("button", { name: "Оглавление статьи" });
+            const outline = page.getByRole("button", { name: /^Разделы \d{2,} — оглавление статьи$/ });
+            assert.ok(await outline.locator(".readingOutlineWord").isVisible());
+            assert.equal((await outline.locator(".readingOutlineWord").textContent())?.trim(), "Разделы");
+            const position = await outline.locator(".readingOutlinePosition").textContent();
+            assert.equal((await outline.textContent())?.replace(/\s+/g, " ").trim(), `Разделы ${position}`);
+            assert.equal(await outline.getAttribute("aria-label"), `Разделы ${position} — оглавление статьи`);
             assert.ok(await page.evaluate(() => {
               const title = document.querySelector('.articleTitle');
               const controls = document.querySelector('.articleSpoilerBar');

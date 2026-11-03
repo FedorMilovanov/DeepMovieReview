@@ -29,7 +29,10 @@ final class NativeGestureTests: XCTestCase {
         waitForPageMarker("Индекс предпросмотра", in: safari, name: "films index")
         waitForBarrier("menu-films")
         verifyMenu(in: safari, screenshot: "DMR-menu-films-open")
-        let articleRail = safari.buttons.matching(identifier: "Оглавление статьи").firstMatch
+        // The rail's accessible name begins with the visible word and current
+        // section number; the number can change after the real native scroll.
+        let readingRailName = NSPredicate(format: "label MATCHES %@", "Разделы [0-9]{2,} — оглавление статьи")
+        let articleRail = safari.buttons.matching(readingRailName).firstMatch
         XCTAssertTrue(articleRail.waitForExistence(timeout: 90), "The FULL article did not arrive for its menu test")
         waitForBarrier("menu-article")
         verifyMenu(in: safari, screenshot: "DMR-menu-article-open")
@@ -41,7 +44,7 @@ final class NativeGestureTests: XCTestCase {
         // new document is loading. Wait for the passive observer to see the
         // distinct FULL document after the fourth close before issuing input.
         waitForBarrier("gesture")
-        let rail = safari.buttons.matching(identifier: "Оглавление статьи").firstMatch
+        let rail = safari.buttons.matching(readingRailName).firstMatch
         XCTAssertTrue(rail.waitForExistence(timeout: 90), "The fresh article's reading rail is not in Mobile Safari's accessibility tree")
         XCTAssertTrue(rail.isHittable, "The reading rail is not visible before the native drag")
         capture("DMR-before-native-scroll")
@@ -64,13 +67,27 @@ final class NativeGestureTests: XCTestCase {
         // The harness then opens the safe scene URL in the same normal Safari.
         // It only navigates: all interactions below are native XCUITest input,
         // and the independent page observer must see the trusted events/state.
-        let description = "Опоры сцены «День 10 909»"
+        // XCTest can append native state to a web label. Require the complete
+        // expected scene-specific name, but do not require it to be the entire
+        // AX label. The independent observer still validates the exact touched
+        // summary and its trusted input, so a broader container cannot pass.
+        let description = "Опоры · 6 — сцена «День 10 909»"
         let predicate = NSPredicate(format: "label CONTAINS %@", description)
         let button = safari.buttons.matching(predicate).firstMatch
         let other = safari.descendants(matching: .any).matching(predicate).firstMatch
         let foundButton = button.waitForExistence(timeout: 65)
         let support = foundButton ? button : other
-        XCTAssertTrue(foundButton || other.waitForExistence(timeout: 10), "Scene disclosure is absent from Safari's accessibility tree")
+        if !foundButton && !other.waitForExistence(timeout: 10) {
+            // Preserve actual AX names and a screenshot as failure diagnostics;
+            // the DOM observer alone cannot prove Safari exposed the control.
+            let hierarchy = safari.debugDescription
+            let matches = hierarchy.components(separatedBy: "\n").filter { $0.localizedCaseInsensitiveContains("опоры") || $0.localizedCaseInsensitiveContains("10909") || $0.localizedCaseInsensitiveContains("10 909") }
+            print("DMR scene-related AX entries: \(matches.prefix(30).joined(separator: "\n"))")
+            print("DMR Safari AX hierarchy: \(String(hierarchy.prefix(12000)))")
+            capture("DMR-scene-disclosure-missing")
+            XCTFail("Scene disclosure with its complete expected name is absent from Safari's accessibility tree")
+            return
+        }
         // Hash scrolling and Safari chrome can still be settling when the AX
         // node appears. XCTest's isHittable/activation-point resolver reported
         // an invalid point on 683fc54 even though the independent observer and
@@ -103,7 +120,7 @@ final class NativeGestureTests: XCTestCase {
         // XCTest did not find a different, FULL-only link; do not assume that
         // unrelated link is exposed in Mobile Safari's accessibility tree.
         waitForBarrier("spoiler")
-        let returnedRail = safari.buttons.matching(identifier: "Оглавление статьи").firstMatch
+        let returnedRail = safari.buttons.matching(readingRailName).firstMatch
         XCTAssertTrue(returnedRail.waitForExistence(timeout: 90), "The article's reading rail did not return after the scene")
         // The label is visually uppercased by CSS. Match its accessible text
         // without assuming casing; still require a real link in Safari's AX tree.

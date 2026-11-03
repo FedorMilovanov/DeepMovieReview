@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, nativeTableRoleSpeech, needsNamedTableRead, needsTableRowRead, settleNativeSpeech, validateVoiceOverSkipLink, voiceOverChooserSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
+import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, nativeTableRoleSpeech, needsNamedTableRead, needsTableRowRead, sceneSupportDisclosureCollapsed, sceneSupportDisclosureRole, sceneSupportDisclosureSpeech, settleNativeSpeech, validateVoiceOverSkipLink, voiceOverChooserSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -112,12 +112,14 @@ async function enterVoiceOverWebArea(prefix, probeKey) {
 // Move the real screen-reader cursor through the current table, capturing each
 // utterance. A row may expose text and its disclosure as separate AX objects;
 // hearing the row label alone is not proof that the action is reachable.
-async function advanceUntil(pattern, limit = 24) {
+async function advanceUntil(pattern, limit = 24, sameItemPatterns = []) {
   for (let step = 0; step < limit; step++) {
+    const before = sameItemPatterns.length ? (await reader.spokenPhraseLog()).length : 0;
     await perform(reader.keyboardCommands.moveToNext, navigationOptions);
-    if (pattern.test((await reader.spokenPhraseLog()).join(" "))) return;
+    const speech = (await reader.spokenPhraseLog()).slice(before).join(" ");
+    if ([pattern, ...sameItemPatterns].every(expected => expected.test(speech))) return;
   }
-  throw new Error(`Actual screen reader did not reach ${pattern} within ${limit} items`);
+  throw new Error(`Actual screen reader did not reach ${[pattern, ...sameItemPatterns].join(" and ")} within ${limit} items`);
 }
 // A caption may contain the header's text. Require the coordinate and label in
 // the same newly spoken item before using NVDA's table row-navigation command.
@@ -317,7 +319,9 @@ try {
   }
   await action("mobile first scene row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /пролог/i);
   await action("mobile scene supports row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /день\s*10\s*909/i);
-  await action("mobile scene supports control", () => advanceUntil(/опоры сцены[\s\S]*день\s*10\s*909/i), /опоры сцены[\s\S]*день\s*10\s*909/i);
+  await action("mobile scene supports control", () => advanceUntil(sceneSupportDisclosureSpeech, 24,
+    [sceneSupportDisclosureRole, sceneSupportDisclosureCollapsed]),
+    [sceneSupportDisclosureSpeech, sceneSupportDisclosureRole, sceneSupportDisclosureCollapsed]);
   await action("mobile open scene supports", () => reader.press(mac ? "Control+Alt+Space" : "Enter", navigationOptions));
   const supportState = mac ? await safari.sceneSupport() : await execute("document.querySelector('#scene-truman-sc-day-10909 .filmSceneSupports').open");
   assert.equal(supportState, true, "The real screen reader must open the named scene disclosure");

@@ -2,6 +2,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ArticleTable } from "../src/components/film-article/article-table";
 import { ArticleCorrectionTable } from "../src/components/film-article/article-correction-table";
+import { ReadingOutline } from "../src/components/film-article/reading-outline";
+import { ProductionDossierView } from "../src/components/film-article/production-view";
 import { GET as getFilmStill } from "../src/app/film-stills/[file]/route";
 import { EvidenceBasisLine } from "../src/components/evidence-basis";
 import { FilmEvidenceMap } from "../src/components/film-modules/evidence-map";
@@ -6197,7 +6199,8 @@ test("scene navigation counts only visible evidence and always reaches a registe
   assert.match(table, /Сцены фильма: начало, название, состояние проверки и число опор/);
   assert.doesNotMatch(table, /Сцены фильма: начало, длительность/);
   assert.match(table, /отмечено, что он не записан/);
-  assert.match(table, /Опоры сцены[^>]*: 1/);
+  assert.ok(table.includes(`aria-label="Опоры · 1 — сцена «${scene.shortLabel}»"`));
+  assert.match(table, />Опоры · 1<\/summary>/);
   assert.match(table, new RegExp(`href="#evidence-${safe.id}"`));
   assert.doesNotMatch(table, /HIDDEN EVIDENCE SENTINEL|test-hidden-evidence/);
 
@@ -6210,6 +6213,39 @@ test("scene navigation counts only visible evidence and always reaches a registe
   assert.match(register, new RegExp(`href="#scene-${scene.id}"`));
   assert.doesNotMatch(register, /HIDDEN EVIDENCE SENTINEL|test-hidden-evidence/);
   assert.equal((register.match(new RegExp(`id="evidence-${safe.id}"`, "g")) ?? []).length, 1);
+});
+
+test("visible control labels remain in contextual accessible names", () => {
+  const outline = renderToStaticMarkup(createElement(ReadingOutline, {
+    sections: [{ id: "first", number: 1, heading: "Первый раздел" }, { id: "second", number: 2, heading: "Второй раздел" }],
+  }));
+  assert.match(outline, /aria-label="Разделы 01 — оглавление статьи"/);
+  assert.match(outline, /class="readingOutlineWord">Разделы<\/span>/);
+  assert.match(outline, /<\/span> <span class="readingOutlinePosition" aria-hidden="true">01<\/span>/);
+
+  const film = theTrumanShowCanonicalPackage;
+  for (const spoilerLevel of ["NONE", "FULL"] as const) {
+    const table = renderToStaticMarkup(createElement(FilmSceneTable, {
+      evidence: film.evidence ?? [], scenes: film.scenes ?? [], researchDraft: false, spoilerLevel,
+    }));
+    const summaries = [...table.matchAll(/<summary aria-label="([^"]+)">([^<]+)<\/summary>/g)];
+    assert.ok(summaries.length > 0, `${spoilerLevel}: scene supports must exist`);
+    for (const [, name, visible] of summaries) {
+      assert.ok(name.startsWith(`${visible} — сцена «`) && name.endsWith("»"), `${spoilerLevel}: ${name} vs ${visible}`);
+    }
+  }
+
+  const production = renderToStaticMarkup(createElement(ProductionDossierView, {
+    dossier: theTrumanShowProductionDossier, filmSlug: "the-truman-show", filmTitle: "Шоу Трумана",
+  }));
+  const references = [...production.matchAll(/<a href="#source-[^"]+" aria-label="([^"]+)">([^<]+)<\/a>/g)];
+  assert.ok(references.length > 2, "production links must reference the registry");
+  for (const [, name, visible] of references) {
+    const prefix = `${visible} — источник: `;
+    assert.ok(name.startsWith(prefix) && name.length > prefix.length, `${name} vs ${visible}`);
+  }
+  const wikipedia = references.filter(([, , visible]) => visible.startsWith("Wikipedia · "));
+  assert.ok(new Set(wikipedia.map(([, name]) => name)).size >= 2, "same-publisher references remain distinct");
 });
 
 test("Homepage projection keeps the spoiler budget instead of filling the page", () => {

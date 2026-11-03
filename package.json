@@ -6,9 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0 && oxlint --config .oxlintrc.json --deny-warnings .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/style-contract.mjs && node --test tests/style-contract.test.mjs tests/minimatch-compat.test.mjs tests/bundle-tools.test.mjs tests/ios-gesture.test.mjs tests/evidence-transfer.test.mjs tests/full-codeql.test.mjs && node scripts/run-regression-tests.mjs",
+    "test": "node scripts/style-contract.mjs && node --test tests/style-contract.test.mjs tests/lint-toolchain.test.mjs tests/bundle-tools.test.mjs tests/ios-gesture.test.mjs tests/evidence-transfer.test.mjs tests/full-codeql.test.mjs && node scripts/run-regression-tests.mjs",
     "audit:styles": "node scripts/style-contract.mjs",
     "audit:style-parity": "node scripts/style-fingerprint.mjs",
     "audit:film001": "node scripts/film001-audit.mjs",
@@ -20,43 +20,45 @@
     "@fontsource-variable/inter": "5.3.0",
     "@fontsource-variable/jetbrains-mono": "5.3.0",
     "@fontsource-variable/oswald": "5.3.0",
-    "@react-three/drei": "10.7.8",
-    "@react-three/fiber": "9.7.0",
-    "motion": "13.2.0",
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.2",
+    "motion": "14.9.0",
     "next": "16.4.3",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "three": "0.186.0"
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "three": "0.187.0"
   },
   "devDependencies": {
-    "@deepmoviereview/minimatch-compat": "file:./scripts/minimatch-compat",
-    "@guidepup/guidepup": "0.38.0",
+    "@guidepup/guidepup": "0.39.0",
     "@guidepup/setup": "0.29.3",
+    "@next/eslint-plugin-next": "16.4.3",
     "@tailwindcss/postcss": "4.3.3",
-    "@types/node": "^24.0.0",
+    "@types/node": "^24.19.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/three": "0.185.4",
+    "@types/three": "0.187.0",
     "@typescript/native": "npm:typescript@7.0.2",
     "@xmldom/xmldom": "0.9.12",
-    "axe-core": "4.11.0",
-    "eslint": "9.39.5",
-    "eslint-config-next": "16.4.3",
-    "minimatch-secure": "npm:minimatch@11.0.3",
+    "axe-core": "4.14.0",
+    "eslint": "10.14.0",
+    "eslint-plugin-jsx-a11y-x": "0.2.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "14.0.0",
+    "oxlint": "1.90.0",
     "playwright-core": "1.64.1",
     "pngjs": "7.0.0",
-    "postcss": "8.5.28",
+    "postcss": "8.5.32",
     "tailwindcss": "4.3.3",
-    "typescript": "npm:@typescript/typescript6@6.0.2"
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-eslint": "8.70.0"
   },
   "allowScripts": {
-    "unrs-resolver@1.12.2": true,
     "ffmpeg-static": false
   },
   "engines": {
     "node": "24.x"
   },
   "overrides": {
-    "minimatch@<11.0.1": "file:./scripts/minimatch-compat"
+    "minimatch": "11.0.3"
   }
 }
