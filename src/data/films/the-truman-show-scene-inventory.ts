@@ -241,7 +241,7 @@ export const trumanCanonicalScenes: TrumanCanonicalScene[] = [
     id: "truman-sc-hes-gone",
     sequenceIndex: 18,
     shortLabel: "«Он ушёл»",
-    summary: "Подкоп, пустая кровать, остановка эфира, поиски и команда «включите солнце».",
+    summary: "Исчезновение, поиски и команда «включите солнце»; способ исчезновения требует отдельной проверки.",
     startTimestampSeconds: 4400.896,
     endTimestampSeconds: 4861.356,
     chapterIds: ["truman-ch-18"],

@@ -7,6 +7,8 @@ import { ProductionDossierView } from "../src/components/film-article/production
 import { GET as getFilmStill } from "../src/app/film-stills/[file]/route";
 import { EvidenceBasisLine } from "../src/components/evidence-basis";
 import { FilmEvidenceMap } from "../src/components/film-modules/evidence-map";
+import { SourcesMethodModuleView } from "../src/components/film-modules/module-components";
+import { requireFilmPackageBySlug } from "../src/data/film-registry";
 import { FilmSceneTable } from "../src/components/film-modules/scene-table";
 import { FilmComparisonView } from "../src/components/film-comparison";
 import { theFastAndTheFuriousDraftPackage } from "../src/data/films/the-fast-and-the-furious";
@@ -63,7 +65,7 @@ import { continueIntervalBenchmark, intervalP95, validInterval } from "../src/li
 import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
 import { filterFilmIndex, filmIndexStatusLabel } from "../src/lib/film-index";
 import { pluralRu } from "../src/lib/plural-ru";
-import { COMPARISON_DIMENSIONS, type ArticleBlock, type FilmPackage, type CharactersModule } from "../src/lib/film-package";
+import { COMPARISON_DIMENSIONS, type ArticleBlock, type EvidenceRecord, type FilmPackage, type CharactersModule } from "../src/lib/film-package";
 import { theTrumanShowDraftPackage } from "../src/data/films/the-truman-show";
 import {
   TRUMAN_MASTER_RUNTIME_SECONDS,
@@ -4506,7 +4508,7 @@ test("Film 001 article prose carries no claim the module audit refuted", () => {
   }
 });
 
-test("Film 001 article keeps the five refuted claims inside the corrections table", () => {
+test("Film 001 article keeps the five disputed topics inside the corrections table", () => {
   const corrections = theTrumanShowArticle.sections
     .flatMap((section) => section.blocks)
     .find((block) => block.kind === "corrections");
@@ -4546,8 +4548,8 @@ test("Film 001 article keeps the five refuted claims inside the corrections tabl
     assert.ok(claims.includes(marker), `corrections table lost the "${marker}" claim`);
   }
 
-  // The five corrected claims are exactly the ones the promoted evidence graph
-  // can answer.
+  // Every row points to a record that states what the available material can
+  // and cannot establish; a pointer is not proof of a film-wide absence.
   const evidenceIds = new Set((theTrumanShowCanonicalPackage.evidence ?? []).map((item) => item.id));
   for (const row of corrections.rows) {
     for (const id of [...(row.evidenceId ? [row.evidenceId] : []), ...(row.evidenceIds ?? [])]) {
@@ -4754,21 +4756,23 @@ test("Film 001 module prose carries no research-era garbling", () => {
   );
 });
 
-test("Film 001 modules state no refuted claim as a fact of the film", () => {
-  // Every one of these was disproved against the locked master. Outside the
-  // sources-method locators they must not appear at all; inside a locator they
-  // are allowed only when the string also says who claims it and that the film
-  // does not bear it out.
-  const refuted = ["наушник", "подкоп", "кто нуждается в европе", "who needs europe", "личный дождь", "булавк"];
-  const attribution = ["в источнике", "не подтверждено", "в фильме отсутствует", "не читается", "в фильме нет"];
-
+test("Film 001 modules attribute disputed details without claiming global absence", () => {
+  // A sample is not a continuous master review. The tunnel and headline are
+  // attributed to sources and qualified by the actual coverage, not declared
+  // absent from the entire film. Other disputed details cannot become facts.
+  const disputed = ["наушник", "подкоп", "кто нуждается в европе", "who needs europe", "личный дождь", "булавк"];
   const offenders = packageProse().filter((item) => {
     const text = item.text.toLowerCase();
-    if (!refuted.some((needle) => text.includes(needle))) return false;
+    if (!disputed.some((needle) => text.includes(needle))) return false;
     if (item.moduleKind !== "sources-method") return true;
-    // A reference keeps its own title and URL; only its locator is our prose.
     if (item.key === "href" || item.key === "label") return false;
-    return !attribution.some((marker) => text.includes(marker));
+    if (text.includes("подкоп")) {
+      return !/пересказ утверждает.*выборочные наблюдения.*не подтверждают.*не доказывают отсутствия/.test(text);
+    }
+    if (text.includes("who needs europe") || text.includes("кто нуждается в европе")) {
+      return !/конспект перечисляет.*выборочном кадре.*не исключает/.test(text);
+    }
+    return !/в источнике.*не подтверждено/.test(text);
   });
 
   assert.deepEqual(
@@ -4789,7 +4793,7 @@ test("Film 001 modules attribute the lapel button and the grater to the right pe
   );
 
   const merylRelationship = byId("truman-rel-knife").map((item) => item.text).join(" ");
-  assert.equal(/нож/i.test(merylRelationship), false, "the scene has a grater, not a knife");
+  assert.equal(/нож/i.test(merylRelationship), false, "the selected tool frames do not establish a knife or its absence in the whole scene");
 });
 
 test("Film 001 post-lock evidence additions are ledgered and counted", () => {
@@ -5171,7 +5175,9 @@ test("Film 001 share art is declared, validated and shaped like a card", () => {
 // The days this dossier's sources were actually opened, in order. Adding a
 // source from a new session means adding its date here first.
 // Variety, Gutenberg and the current archive page were reopened on 2026-10-30 UTC.
-const RESEARCH_SITTINGS = ["2026-10-28", "2026-10-29", "2026-10-30"];
+// The 2026-11-03 sitting rechecked only these sources (docs/71).
+const RESEARCH_SITTINGS = ["2026-10-28", "2026-10-29", "2026-10-30", "2026-11-03"];
+const RECHECKED_ON_NOVEMBER_3 = new Set(["src-lozier", "src-markpshea"]);
 
 test("Film 001 production dossier holds its own register", () => {
   const dossier = theTrumanShowProductionDossier;
@@ -5201,6 +5207,9 @@ test("Film 001 production dossier holds its own register", () => {
       RESEARCH_SITTINGS.includes(source.checkedOn),
       `${source.id} claims a check on ${source.checkedOn}, which is not a recorded sitting`,
     );
+    if (source.checkedOn === "2026-11-03") {
+      assert.ok(RECHECKED_ON_NOVEMBER_3.has(source.id), `${source.id} was not in the documented recheck`);
+    }
     assert.ok(source.supports.length > 30, `${source.id}: supports must say what it backs`);
   }
   assert.ok(hosts.size > 25, "a register of 75 sources should not be 25 sites");
@@ -6219,6 +6228,9 @@ test("visible control labels remain in contextual accessible names", () => {
   const outline = renderToStaticMarkup(createElement(ReadingOutline, {
     sections: [{ id: "first", number: 1, heading: "Первый раздел" }, { id: "second", number: 2, heading: "Второй раздел" }],
   }));
+  assert.match(outline, /aria-label="Разделы статьи без JavaScript"/);
+  assert.match(outline, /href="#first"/);
+  assert.match(outline, /href="#second"/);
   assert.match(outline, /aria-label="Разделы 01 — оглавление статьи"/);
   assert.match(outline, /class="readingOutlineWord">Разделы<\/span>/);
   assert.match(outline, /<\/span> <span class="readingOutlinePosition" aria-hidden="true">01<\/span>/);
@@ -6349,9 +6361,8 @@ test("Homepage never presents a generated illustration as a film frame", () => {
 });
 
 test("Film 001 every evidence card states the basis of its own verification", () => {
-  // «Verified» is not a description. Each record must carry how it was checked,
-  // what material was in front of the reviewer, and how wide the window was —
-  // derived from the ledger, never typed next to the claim.
+  // «Verified» is not a description. Each record must state the material and
+  // scope, derived from its ledger or an explicitly documented later check.
   const ledgerStatus = new Map(
     [...trumanVisualVerifications, ...trumanPostLockEvidenceVerifications].map((record) => [
       record.evidenceId,
@@ -6393,6 +6404,10 @@ test("Film 001 every evidence card states the basis of its own verification", ()
         assert.ok(["truman-ev-knife", "truman-ev-reunion"].includes(record.id), `${record.id}: only a documented new clip check may supersede the ledger`);
         assert.equal(record.basis.windowApproximate, true);
         assert.match(record.basis.note ?? "", /предоставленного фрагмента/);
+      } else if (record.id === "truman-ev-escape") {
+        // A later SRT check replaces the mixed picture/text ledger for this claim.
+        assert.equal(record.basis.material, "subtitle-track");
+        assert.match(record.basis.note ?? "", /SRT, блоки 603–604/);
       } else {
         assert.equal(record.basis.material, expectedMaterial[status], `${record.id}: material drifted`);
       }
@@ -6998,4 +7013,153 @@ test("living-frame benchmarks retain slow intervals and do not invent zero sampl
   assert.equal(continueIntervalBenchmark(1200, 0), true);
   assert.equal(continueIntervalBenchmark(4999, 0), true);
   assert.equal(continueIntervalBenchmark(5000, 0), false);
+});
+
+test("split claims have their own matching material, or an explicitly pending shared basis", () => {
+  const expectedByParent = {
+    "truman-ev-knife": ["truman-ev-knife", "truman-ev-knife-tools", "truman-ev-knife-call", "truman-ev-meryl-held"],
+    "truman-ev-reunion": ["truman-ev-reunion", "truman-ev-reunion-amnesia"],
+    "truman-ev-boat": ["truman-ev-boat", "truman-ev-setting-sail"],
+  };
+  assert.deepEqual(trumanCanonicalEvidenceSummary.split, expectedByParent, "new split records need a ground-by-ground audit");
+  const records = new Map((requireFilmPackageBySlug("the-truman-show").evidence ?? []).map((record) => [record.id, record]));
+  const expectBasis = (record: EvidenceRecord | undefined, expected: {
+    material: "frames" | "clip-frames" | "subtitle-track";
+    outcome: "seen" | "subtitle" | "pending";
+    observations: number;
+    inheritedFrom?: string;
+    window?: { from: number; to: number };
+  }) => {
+    assert.ok(record?.basis);
+    assert.equal(record.basis.material, expected.material, `${record.id}: claim uses a different kind of material`);
+    assert.equal(record.basis.outcome, expected.outcome, `${record.id}: wrong conclusion`);
+    assert.equal(record.basis.observations, expected.observations, `${record.id}: wrong observation count`);
+    assert.equal(record.basis.inheritedFrom, expected.inheritedFrom, `${record.id}: wrong lineage`);
+    assert.deepEqual(record.basis.window, expected.window, `${record.id}: wrong observation window`);
+  };
+  const expectations: Array<[string, Parameters<typeof expectBasis>[1]]> = [
+    ["truman-ev-knife", { material: "clip-frames", outcome: "seen", observations: 1, window: { from: 3255, to: 3255 } }],
+    ["truman-ev-knife-tools", { material: "clip-frames", outcome: "seen", observations: 2, window: { from: 3265, to: 3270 } }],
+    ["truman-ev-meryl-held", { material: "clip-frames", outcome: "seen", observations: 1, window: { from: 3275, to: 3275 } }],
+    ["truman-ev-knife-call", { material: "subtitle-track", outcome: "subtitle", observations: 1, window: { from: 3272.199, to: 3275.236 } }],
+    ["truman-ev-reunion", { material: "clip-frames", outcome: "seen", observations: 2, window: { from: 3591, to: 3611 } }],
+    ["truman-ev-reunion-amnesia", { material: "subtitle-track", outcome: "subtitle", observations: 4, window: { from: 3865.143, to: 3882.947 } }],
+    ["truman-ev-boat", { material: "frames", outcome: "pending", observations: 2, inheritedFrom: "truman-ev-boat", window: { from: 4830, to: 4850 } }],
+    ["truman-ev-setting-sail", { material: "frames", outcome: "pending", observations: 2, inheritedFrom: "truman-ev-boat" }],
+  ];
+  assert.deepEqual([...expectations.map(([id]) => id)].sort(), Object.values(expectedByParent).flat().sort());
+  for (const [id, expected] of expectations) expectBasis(records.get(id), expected);
+
+  const call = records.get("truman-ev-knife-call");
+  const amnesia = records.get("truman-ev-reunion-amnesia");
+  assert.ok(call?.basis && amnesia?.basis);
+  assert.match(call.label, /субтитрах/i);
+  assert.doesNotMatch(call.label, /крик|пустот/i);
+  assert.match(call.observation, /Do something!.*не называет говорящего или адресата.*не прослушан/i);
+  assert.match(call.basis.note ?? "", /блок 391.*не три проверки/i);
+  assert.match(amnesia.observation, /Amnesia.*Brilliant.*не называют говорящих.*не прослушан/i);
+  assert.doesNotMatch(amnesia.observation, /утонул, но выжил/i);
+  assert.match(amnesia.basis.note ?? "", /блоки 487–490/);
+  assert.match(records.get("truman-ev-setting-sail")?.observation ?? "", /нет отдельной проверки/i);
+  const rendered = renderToStaticMarkup(createElement(EvidenceBasisLine, { basis: call.basis }));
+  assert.match(rendered, /встроенные субтитры.*не проверяет звук.*1 наблюдение/i);
+  assert.doesNotMatch(rendered, /общая основа родительской записи/i);
+
+  // Negative control: recreating the former inherited visual basis must fail
+  // the claim-to-material test even though it has a valid-looking window.
+  const counterfeit = structuredClone(call);
+  assert.ok(counterfeit.basis);
+  counterfeit.basis.material = "frames";
+  counterfeit.basis.outcome = "seen";
+  assert.throws(() => expectBasis(counterfeit, expectations.find(([id]) => id === call.id)![1]), /different kind of material/);
+});
+
+test("corrected sources and absence claims stay within the public registry and spoiler boundary", () => {
+  const pkg = requireFilmPackageBySlug("the-truman-show");
+  assert.equal(pkg, theTrumanShowCanonicalPackage);
+  const sourceModule = pkg.modules.find((module) => module.kind === "sources-method");
+  const draftModule = theTrumanShowDraftPackage.modules.find((module) => module.kind === "sources-method");
+  assert.ok(sourceModule && sourceModule.kind === "sources-method");
+  assert.ok(draftModule && draftModule.kind === "sources-method");
+  const paramountUrl = "https://www.paramount.com/movies/the-truman-show";
+  for (const list of [sourceModule, draftModule]) {
+    const paramount = list.sources.find((source) => source.id === "truman-src-paramount");
+    assert.equal(paramount?.href, paramountUrl);
+    assert.match(paramount?.locator ?? "", /104 мин.*округлённ/i);
+  }
+  assert.ok(pkg.ingest?.edition.state === "LOCKED");
+  assert.equal(pkg.ingest.edition.measuredRuntimeSeconds, 6177.792);
+  assert.notEqual(pkg.ingest.edition.measuredRuntimeSeconds, 104 * 60);
+
+  for (const level of ["NONE", "MINOR", "MAJOR", "ENDING", "FULL"] as const) {
+    const projected = projectFilmModule(sourceModule, level);
+    assert.ok(projected && projected.kind === "sources-method");
+    const markup = renderToStaticMarkup(createElement(SourcesMethodModuleView, { module: projected }));
+    assert.match(markup, /href="https:\/\/www\.paramount\.com\/movies\/the-truman-show"/);
+    assert.equal(markup.includes("paramountpictures.com/movies/the-truman-show"), false);
+    assert.equal(projected.sources.some((source) => source.id === "truman-src-filmplothub"), level === "FULL");
+    assert.equal(projected.sources.some((source) => source.id === "truman-src-englishlit"), level === "FULL");
+    assert.equal(markup.includes("FilmPlotHub"), level === "FULL");
+  }
+  const tunnel = sourceModule.sources.find((source) => source.id === "truman-src-filmplothub");
+  const headlines = sourceModule.sources.find((source) => source.id === "truman-src-englishlit");
+  assert.match(tunnel?.locator ?? "", /пересказ утверждает.*выборочные наблюдения.*не подтверждают.*не доказывают/i);
+  assert.match(headlines?.locator ?? "", /Who Needs Europe.*Crackdown on Homeless.*выборочном кадре.*не исключает/i);
+  assert.doesNotMatch(pkg.scenes?.find((scene) => scene.id === "truman-sc-hes-gone")?.summary ?? "", /подкоп/i);
+
+  const escape = pkg.evidence?.find((record) => record.id === "truman-ev-escape");
+  assert.equal(escape?.basis?.material, "subtitle-track");
+  assert.deepEqual(escape?.basis?.window, { from: 4642.986, to: 4650.235 });
+  assert.equal(escape?.basis?.observations, 2);
+  assert.match(escape?.observation ?? "", /не объясняет способ исчезновения.*не прослушан/i);
+  assert.match(escape?.basis?.note ?? "", /блоки 603–604/);
+
+  for (const level of ["NONE", "MINOR", "MAJOR", "ENDING"] as const) {
+    const projection = projectArticleSections(pkg.article!, level);
+    assert.equal(JSON.stringify(projection.visibleSections).includes("truman-article-correction-tunnel"), false);
+  }
+  const full = projectArticleSections(pkg.article!, "FULL");
+  const corrections = full.visibleSections.flatMap((section) => section.blocks).find((block) => block.kind === "corrections");
+  assert.ok(corrections && corrections.kind === "corrections");
+  const row = corrections.rows.find((item) => item.id === "truman-article-correction-tunnel");
+  const newspaper = corrections.rows.find((item) => item.id === "truman-article-correction-headline");
+  assert.match(row?.commonClaim ?? "", /FilmPlotHub.*подкоп/i);
+  assert.match(row?.onScreen ?? "", /не подтверждают.*не доказывают отсутствия/i);
+  assert.match(newspaper?.onScreen ?? "", /отдельном кадре.*не исключает.*не устанавливает личность/i);
+  const markup = renderToStaticMarkup(createElement(ArticleCorrectionTable, {
+    block: corrections, filmSlug: "the-truman-show", spoilerLevel: "FULL",
+    evidenceById: new Map((pkg.evidence ?? []).map((record) => [record.id, record])),
+    describeMeasurement: describeTrumanMeasurement,
+  }));
+  assert.match(markup, /spoilers=full#evidence-truman-ev-escape/);
+  assert.match(markup, /встроенные субтитры.*подтверждено по тексту субтитров/i);
+});
+
+test("pending sail inscriptions and subtitle-only dialogue are not promoted into screen or audio facts", () => {
+  const pkg = requireFilmPackageBySlug("the-truman-show");
+  const blocks = pkg.article!.sections.flatMap((section) => section.blocks);
+  const sail = blocks.find((block) => block.id === "truman-article-biblical-sail");
+  const voice = blocks.find((block) => block.id === "truman-article-biblical-voice");
+  assert.ok(sail && sail.kind === "paragraph");
+  assert.ok(voice && voice.kind === "paragraph");
+  assert.match(sail.text, /Lozier Institute.*139.*надписи отдельно не проверены.*замысел создателей не установлен/i);
+  assert.deepEqual(sail.contextSourceIds, ["src-lozier"]);
+  assert.deepEqual(sail.support?.evidenceIds, ["truman-ev-setting-sail"]);
+  assert.match(voice.text, /субтитрах.*не устанавливает говорящего или звучание.*если сцена подтвердит/i);
+  assert.equal(pkg.evidence?.find((record) => record.id === "truman-ev-setting-sail")?.basis?.outcome, "pending");
+  assert.equal(pkg.evidence?.find((record) => record.id === "truman-ev-dialog")?.basis?.material, "subtitle-track");
+
+  const dossier = getProductionDossier("the-truman-show");
+  assert.ok(dossier);
+  const productionBlocks = dossier.sections.flatMap((section) => section.blocks);
+  const reading = productionBlocks.find((block) => block.id === "prod-read-13");
+  const myths = productionBlocks.flatMap((block) => block.kind === "myths" ? block.rows : []);
+  assert.ok(reading && reading.kind === "paragraph");
+  assert.match(reading.text, /Lozier Institute.*надписи отдельно не проверены.*не устанавливает авторский замысел/i);
+  assert.match(myths.find((row) => row.id === "prod-myth-row-12")?.verdict ?? "", /не подтверждает надпись.*не устанавливает замысел/i);
+  const sailNumber = dossier.claims.find((claim) => claim.id === "claim-psalm-139-sail");
+  assert.match(sailNumber?.text ?? "", /Lozier Institute сообщает.*не проверен/i);
+  assert.ok(!sailNumber?.sourceIds.includes("src-markpshea"));
+  assert.match(dossier.sources.find((source) => source.id === "src-markpshea")?.supports ?? "", /номер 139 не упомянут/i);
+  assert.match(dossier.sources.find((source) => source.id === "src-moviefone")?.supports ?? "", /текст статьи не получен/i);
 });

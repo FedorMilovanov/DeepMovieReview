@@ -62,7 +62,13 @@ try {
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await until(() => proxy.events.some(event => event.pageId === ready.pageId && event.kind === "scroll" && event.scrollY >= 30),
     "Chromium calibration touch did not scroll");
-  await page.locator(".readingOutlineTrigger").tap();
+  // A locator tap may itself scroll a sticky header back to its original flow
+  // position. Tap its measured on-screen centre instead; this is still a real
+  // trusted Chromium touch and the independent observer verifies the target.
+  const rail = await page.locator(".readingOutlineTrigger").boundingBox();
+  assert.ok(rail && rail.x >= 0 && rail.y >= 0 && rail.x + rail.width <= 390 && rail.y + rail.height <= 714,
+    "The post-scroll reading control must already be in the viewport");
+  await page.touchscreen.tap(rail.x + rail.width / 2, rail.y + rail.height / 2);
   await until(() => proxy.events.some(event => event.pageId === ready.pageId && event.kind === "rail-state" && event.rail?.expanded === "true"),
     "Chromium calibration rail did not open");
   const measured = validateNativeGestureTrace(proxy.events, proxy.baseUrl, { pageId: ready.pageId });

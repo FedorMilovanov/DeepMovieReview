@@ -792,6 +792,13 @@ check("CR", "CR11", "нет мёртвых стилей: каждый класс
     // classes it styles are article markup even though the file lives elsewhere.
     read("src/components/evidence-basis.tsx"),
     read("src/components/film-modules/evidence-map.tsx"),
+    // Print styles also hide the shared shell and reflow the decision module;
+    // these are real article ancestors/descendants, not dead article classes.
+    read("src/app/layout.tsx"),
+    read("src/components/site-header.tsx"),
+    read("src/components/site-footer.tsx"),
+    read("src/components/experience/experience-diagnostics.tsx"),
+    read("src/components/film-modules/module-components.tsx"),
   ].join("\n");
   const classes = [...new Set([...articleCss.matchAll(/\.([a-zA-Z][a-zA-Z0-9]+)/g)].map((m) => m[1]))];
   const orphans = classes.filter((name) => !components.includes(name));

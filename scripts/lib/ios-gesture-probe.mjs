@@ -126,7 +126,13 @@ export function nativeObservationScript(token, { spoilerLastSectionId = null } =
       if (!reportedMenu && menu && menu.rect.width > 0 && menu.rect.height > 0) {
         record('menu-ready'); reportedMenu = true;
       }
-      if (!reportedContent && document.querySelector('.readingOutlineTrigger') && document.querySelector('.articleSection')) {
+      const rail = railState();
+      // The server now renders a hidden inert control alongside an in-flow
+      // fallback. Do not declare readiness until the hydrated control is truly
+      // visible, closed and hit-contained in the header.
+      if (!reportedContent && rail?.expanded === 'false' && rail.hitContained && rail.rect.width > 0 && rail.rect.height > 0 &&
+          rail.rect.left >= 0 && rail.rect.top >= 0 && rail.rect.right <= innerWidth && rail.rect.bottom <= innerHeight &&
+          document.querySelector('.articleSection')) {
         record('ready'); reportedContent = true;
       }
       const scene = sceneState();

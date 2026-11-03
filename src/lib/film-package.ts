@@ -12,9 +12,9 @@ export type Confidence = "HIGH" | "MEDIUM" | "LOW";
  *
  * `VERIFIED` on its own is a promise, not a description: it does not say whether
  * anyone looked at the picture, listened to the track, or what part of the film
- * was in front of them. The basis is derived from the verification ledger — it is
- * never typed next to a claim — so a reader can see the size of the check behind
- * an evidence record instead of taking the word for it.
+ * was in front of them. A basis comes from a verification ledger or an explicit,
+ * documented later check, so a reader can see the scope and material behind an
+ * evidence record instead of taking the word for it.
  */
 export type EvidenceReviewBasis = {
   /** The material that was actually examined. */

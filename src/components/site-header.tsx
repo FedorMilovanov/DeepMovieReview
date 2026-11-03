@@ -22,6 +22,7 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPathname, setMenuPathname] = useState(pathname);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const [pendingAnchor, setPendingAnchor] = useState<{ pathname: string; hash: string } | null>(null);
 
   if (menuPathname !== pathname) {
     // Navigation resets the disclosure in the same render pass — the
@@ -66,9 +67,38 @@ export function SiteHeader() {
     return isCurrent ? { "aria-current": "page" as const } : {};
   }
 
-  function closeMenuAfterNavigation() {
+  // The router may commit a hash after this header closes, or render its target
+  // after a cross-route navigation. Wait for both, preserve router history,
+  // and stop if the destination never appears.
+  useEffect(() => {
+    if (!pendingAnchor) return;
+    let frame = 0;
+    const deadline = performance.now() + 5000;
+    const attempt = () => {
+      if (window.location.pathname === pendingAnchor.pathname && window.location.hash === pendingAnchor.hash) {
+        const target = document.getElementById(pendingAnchor.hash.slice(1));
+        if (target) {
+          // Next's same-hash navigation may not scroll again after a reader has
+          // moved away. Respect the destination's CSS scroll padding/margins.
+          target.scrollIntoView({ block: "start", inline: "nearest" });
+          target.focus({ preventScroll: true });
+        }
+        if (target && document.activeElement === target) {
+          setPendingAnchor(null);
+          return;
+        }
+      }
+      if (performance.now() < deadline) frame = requestAnimationFrame(attempt);
+      else setPendingAnchor(null);
+    };
+    frame = requestAnimationFrame(attempt);
+    return () => cancelAnimationFrame(frame);
+  }, [pendingAnchor]);
+
+  function closeMenuAfterNavigation(href: string) {
     setMenuOpen(false);
-    menuButtonRef.current?.focus();
+    const destination = new URL(href, window.location.href);
+    setPendingAnchor(destination.hash ? { pathname: destination.pathname, hash: destination.hash } : null);
   }
 
   return (
@@ -89,6 +119,9 @@ export function SiteHeader() {
           </Link>
         ))}
       </nav>
+      {/* The article's hydrated outline uses this reserved header slot. It never
+          floats over a line of reading text; no-JS has its own article list. */}
+      <div id="reading-outline-slot" className="readingOutlineSlot" />
       {!hydrated ? (
         <details className="siteMenuFallback">
           <summary>Меню</summary>
@@ -118,7 +151,7 @@ export function SiteHeader() {
           <Link
             key={link.href}
             href={link.href}
-            onClick={closeMenuAfterNavigation}
+            onClick={() => closeMenuAfterNavigation(link.href)}
             {...linkProps(link.href)}
           >
             {link.label}

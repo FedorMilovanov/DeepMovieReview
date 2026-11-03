@@ -7,7 +7,7 @@ import { arch, platform, release } from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright-core";
 import { nvda, voiceOver, macOSActivate, MacOSApplications } from "@guidepup/guidepup";
-import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, nativeTableRoleSpeech, needsNamedTableRead, needsTableRowRead, sceneSupportDisclosureCollapsed, sceneSupportDisclosureRole, sceneSupportDisclosureSpeech, settleNativeSpeech, validateVoiceOverSkipLink, voiceOverChooserSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
+import { firstTableCellSpoken, firstTableHeaderSpoken, libraryDetectionRowSpeech, macKeyboardShortcut, nativeTableRoleSpeech, needsNamedTableRead, needsTableRowRead, observeNativeSpeechDuring, sceneSupportDisclosureCollapsed, sceneSupportDisclosureRole, sceneSupportDisclosureSpeech, settleNativeSpeech, validateVoiceOverSkipLink, voiceOverChooserSpeech, warmVoiceOver } from "./lib/assistive-commands.mjs";
 import { safariDesktop } from "./lib/safari-desktop.mjs";
 import { workflowError } from "./lib/audit-report.mjs";
 
@@ -57,19 +57,24 @@ const go = async route => {
 const perform = (command, options) => mac
   ? reader.press(macKeyboardShortcut(command), options)
   : reader.perform(command, options);
-async function action(label, run, expected, { required = true } = {}) {
+async function action(label, run, expected, { required = true, observeDuring = false } = {}) {
   checkpoint(label);
   await reader.clearSpokenPhraseLog();
+  const concurrent = { speech: [], readErrors: [] };
   let speech;
-  try { await run(); }
-  finally {
-    speech = [...await reader.spokenPhraseLog().catch(error => [`Speech log unavailable: ${error.message}`])];
+  try {
+    if (mac && observeDuring) await observeNativeSpeechDuring(run, concurrent);
+    else await run();
+  } finally {
+    const guidepupSpeech = [...await reader.spokenPhraseLog().catch(error => [`Speech log unavailable: ${error.message}`])];
+    speech = [...concurrent.speech, ...guidepupSpeech];
     let liveReadErrors;
     if (mac && expected) {
       const settled = await settleNativeSpeech(speech, expected);
       speech = settled.speech; liveReadErrors = settled.readErrors;
     }
-    evidence.actions.push({ label, speech, ...(liveReadErrors?.length ? { liveReadErrors } : {}) });
+    evidence.actions.push({ label, speech, ...(mac && observeDuring ? { concurrent, guidepupSpeech } : {}),
+      ...(liveReadErrors?.length ? { liveReadErrors } : {}) });
     checkpoint(`${label}: recorded`);
     console.log(label, JSON.stringify(speech));
   }
@@ -245,9 +250,11 @@ try {
     // it was; when it lacks the actual row and count, issue VO-R, the read-only
     // Read Table Row command, on the current cursor. It must independently speak
     // both the named row and its detected count; no DOM text substitutes for AT.
-    const automatic = await action("table row navigation", () => perform(reader.keyboardCommands.moveDown, navigationOptions));
+    const automatic = await action("table row navigation", () => perform(reader.keyboardCommands.moveDown, navigationOptions),
+      libraryDetectionRowSpeech, { required: false, observeDuring: true });
     if (needsTableRowRead(automatic)) {
-      await action("table row read on demand", () => perform(reader.keyboardCommands.readTableRow, navigationOptions), libraryDetectionRowSpeech);
+      await action("table row read on demand", () => perform(reader.keyboardCommands.readTableRow, navigationOptions),
+        libraryDetectionRowSpeech, { observeDuring: true });
     }
   } else {
     await action("table row header and value", () => perform(reader.keyboardCommands.moveToNextRow, navigationOptions), libraryDetectionRowSpeech);
@@ -318,7 +325,8 @@ try {
     await action("mobile scene column header", () => advanceUntilFirstHeader(/сцена и опоры/i), /сцена и опоры/i);
   }
   await action("mobile first scene row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /пролог/i);
-  await action("mobile scene supports row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions), /день\s*10\s*909/i);
+  await action("mobile scene supports row", () => perform(mac ? reader.keyboardCommands.moveDown : reader.keyboardCommands.moveToNextRow, navigationOptions),
+    /день\s*10\s*909/i, { observeDuring: mac });
   await action("mobile scene supports control", () => advanceUntil(sceneSupportDisclosureSpeech, 24,
     [sceneSupportDisclosureRole, sceneSupportDisclosureCollapsed]),
     [sceneSupportDisclosureSpeech, sceneSupportDisclosureRole, sceneSupportDisclosureCollapsed]);

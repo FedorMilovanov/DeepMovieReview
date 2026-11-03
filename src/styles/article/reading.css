@@ -25,7 +25,7 @@
    instead of under it. */
 .articleSection[id],
 .articleSection [id] {
-  scroll-margin-block-start: clamp(4.5rem, 12vh, 7.5rem);
+  scroll-margin-block-start: calc(clamp(4.5rem, 12vh, 7.5rem) + env(safe-area-inset-top, 0px));
 }
 
 /* A figure reserves its own space before the file arrives: the ratio comes
@@ -71,53 +71,161 @@
   }
 }
 
-/* Print: the article is the one surface worth a paper backup. Everything that
-   is navigation disappears, the measure narrows, and a figure never splits
-   across a page. */
+/* Paper is a separate reading surface, not the dark screen with backgrounds
+   removed by the printer. Only already-projected article content can reach it. */
 @media print {
-  .articleShell {
-    display: block;
+  @page { size: A4; margin: 14mm 15mm; }
+
+  html:has(.articleShell),
+  body:has(.articleShell) {
+    color-scheme: light;
+    background: #fff;
+    color: #161616;
   }
 
-  .articleHeader,
-  .articleSection,
-  .articleBody {
-    max-width: none;
-  }
-
-  .articleTitle,
-  .articleSectionHead h2 {
-    font-size: 20pt;
-    line-height: 1.2;
-  }
-
-  .articleParagraph,
-  .articleStandfirst {
-    font-size: 11pt;
-    line-height: 1.5;
-    color: #000;
-  }
-
-  .articleByline,
-  .articleOutline,
-  .articleSpoilerBar,
-  .articleModuleLinks,
-  .articleIllustration figcaption {
-    color: #333;
-  }
-
-  .articleOutline,
-  .articleModuleLinks {
+  body:has(.articleShell) :is(.skipLink, .siteHeader, .siteFooter, .experienceDiagnostics),
+  .articleShell :is(.breadcrumbs, .articleHeaderLinks, .articleOutline, .readingOutline,
+    .articleSpoilerBar, .articleModuleLinks, .articleVerdictCore, .articleTableScrollHint) {
     display: none;
   }
 
-  .articleIllustration {
+  .articleShell {
+    --surface-canvas: #fff;
+    --surface-1: #fff;
+    --surface-2: #fff;
+    --ink-1: #161616;
+    --ink-2: #292929;
+    --ink-3: #404040;
+    --ink-4: #404040;
+    --stroke-subtle: #c6c6c6;
+    --stroke-default: #aaa;
+    --stroke-strong: #777;
+    --stroke-warm: #aaa;
+    display: block;
+    width: 100%;
+    color: #161616;
+    background: #fff;
+    font-size: 10.5pt;
+    line-height: 1.45;
+  }
+
+  /* Reset authored dark-theme colours and decorative panels even when the
+     print dialog is configured to include backgrounds. Links stay distinct. */
+  body:has(.articleShell) .articleShell * {
+    color: #161616;
+    background: transparent;
+    box-shadow: none;
+    text-shadow: none;
+  }
+  body:has(.articleShell) .articleShell a { color: #173f55; text-decoration: underline; }
+  .articleShell :where(p, li, dd, td, th, figcaption) { orphans: 3; widows: 3; }
+  .articleShell :where(h1, h2, h3, h4, summary, figcaption) { break-after: avoid; page-break-after: avoid; }
+
+  .articleShell :is(.articleHeader, .articleSection, .articleClosing) {
+    display: block;
+    width: 100%;
+    max-width: none;
+    padding: 5mm 0 0;
+    margin: 5mm 0 0;
+  }
+  .articleShell .articleHeader { padding: 0; margin: 0 0 7mm; }
+  /* Keep the editorial kicker, heading and short note together on paper. */
+  .articleShell .articleClosing { break-inside: avoid; }
+  .articleShell .articleTitle { max-width: none; font-size: 24pt; line-height: 1.16; }
+  .articleShell .articleSectionHead { display: block; max-width: none; break-after: avoid; }
+  .articleShell .articleSectionHead h2,
+  .articleShell .articleClosing h2 { max-width: none; font-size: 17pt; line-height: 1.2; }
+  .articleShell .articleSubhead { font-size: 13pt; line-height: 1.25; }
+  .articleShell :is(.articleParagraph, .articleStandfirst, .sectionIntro, .articleClosing p) {
+    max-width: none;
+    font-size: 10.5pt;
+    line-height: 1.45;
+  }
+  .articleShell .articleBody { display: block; width: 100%; max-width: none; margin: 0; }
+  .articleShell .articleBody > * + * { margin-block-start: 4mm; }
+  .articleShell :is(.articleByline, .sectionIndex, .microLabel, .articleSupport, .articleSupportSingle) {
+    font-size: 9pt;
+    line-height: 1.4;
+  }
+
+  /* `display` alone does not undo the UA's content-visibility:hidden on a
+     closed details slot. This is print-only: open attributes and screen focus
+     never change, and no JavaScript or duplicate spoiler-bearing DOM is used. */
+  .articleShell details::details-content { display: block; content-visibility: visible; }
+  .articleShell details > summary { display: block; list-style: none; font-size: 9pt; }
+  .articleShell details > summary::marker { content: ""; }
+  .articleShell details > summary::-webkit-details-marker { display: none; }
+  .articleShell .articleSupport li { display: block; padding: 1mm 0; break-inside: avoid; }
+  .articleShell .articleSupport li > span { margin-right: 2mm; }
+  /* Keep a timecode, its description, and its evidence label on one page. */
+  .articleShell .articleTimeline li { padding-block: 1mm; break-inside: avoid; }
+
+  .articleShell :is(.articleIllustration, .articleSceneStill) {
+    float: none;
+    width: min(100%, 125mm);
+    margin: 4mm 0;
     break-inside: avoid;
     animation: none;
   }
+  .articleShell :is(.articleIllustration, .articleSceneStill) img {
+    width: 100%;
+    height: auto;
+    border: 1px solid #aaa;
+  }
+  .articleShell :is(.articleAside, .articleMeasurement, .articleDuelSide) { break-inside: avoid; }
+  .articleShell .articleDuel { margin: 5mm 0; padding: 3mm; }
+  .articleShell .articleDuelSides { display: block; }
+  .articleShell .articleDuelSide { padding: 3mm; }
 
-  .articleIllustration img {
-    border: 1px solid #999;
+  /* The screen verdict grid allocates space to a decorative WebGL core. On
+     paper the six editorial facets instead get the whole measure as text. */
+  .articleShell .articleVerdictBody,
+  .articleShell .articleVerdictGrid { display: block; margin: 3mm 0; }
+  .articleShell .articleVerdictGrid > div {
+    display: grid;
+    grid-template-columns: minmax(30mm, 0.35fr) 1fr;
+    gap: 4mm;
+    padding: 2mm 0;
+    border-bottom: 1px solid #ccc;
+    break-inside: avoid;
+  }
+  .articleShell .articleVerdictGrid dd { margin: 0; }
+
+  /* A wide, scrollable screen table must fragment as a real table on paper. */
+  .articleShell .articleTableFigure { display: block; break-inside: auto; }
+  .articleShell .articleTableViewport { overflow: visible; container-type: normal; }
+  .articleShell .articleTable { width: 100%; table-layout: fixed; font-size: 9pt; }
+  .articleShell .articleTable thead { display: table-header-group; }
+  .articleShell .articleTable tr { break-inside: avoid; }
+  .articleShell .articleTable :is(th, td) {
+    position: static;
+    min-inline-size: 0;
+    padding: 2mm;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* Decision context is important evidence, but its screen cards have fixed
+     minimum heights and grids that waste or clip pages when fragmented. */
+  .articleShell .articleAnalysis { padding: 0; }
+  .articleShell .articleAnalysis > section { padding: 3mm 0; }
+  .articleShell .filmModule :is(.filmDecisionOptions, .filmKnowledgeGrid, .filmDecisionContext) {
+    display: block;
+    margin: 3mm 0;
+  }
+  .articleShell :is(.filmDecisionOptions, .filmKnowledgeGrid, .filmDecisionContext) > article {
+    display: block;
+    min-height: 0;
+    padding: 2mm;
+    break-inside: avoid;
+  }
+  .articleShell .filmDecisionOptions strong { display: block; margin: 0; font-size: 11pt; line-height: 1.3; }
+  .articleShell .filmDecisionJudgment { margin: 3mm 0; padding: 2mm; }
+  .articleShell .filmDecisionJudgment > p:not(.filmCounterevidence) {
+    max-width: none;
+    font-family: var(--font-body);
+    font-size: 10.5pt;
+    line-height: 1.45;
   }
 }
 
@@ -233,8 +341,6 @@
 .articleVerdictContext summary:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }
 .articleVerdictContext ul { margin: 0; padding: 0 var(--space-5) var(--space-5); }
 .articleVerdictContext li { padding-block: var(--space-2); line-height: var(--leading-body); }
-@media print { .articleVerdictContext::details-content { display: block; } }
-
 .articleAnalysis { background: var(--surface-1); padding-inline: var(--space-4); }
 .articleAnalysis > section { width: 100%; padding-block: var(--space-5); border: 0; }
 

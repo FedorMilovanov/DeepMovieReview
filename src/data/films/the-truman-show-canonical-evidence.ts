@@ -26,7 +26,8 @@
  *   stream. The old ledger described further motion across a 12:41–13:06
  *   window, but its two recorded observations do not independently establish
  *   that sequence. The new record is limited to what the available frame shows;
- * - the tunnel in the escape record was not found in picture.
+ * - the available samples do not establish the tunnel alleged by a retelling;
+ *   they do not establish its absence from the entire film either.
  *
  * A retraction is not permission to overclaim in the other direction: neither
  * motion nor a mechanism follows from the available single image.
@@ -355,14 +356,21 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
       note: "Кадр из предоставленного фрагмента; смещение взято из его манифеста, звук не проверен.",
     },
   },
-  record(
-    "truman-ev-knife-call",
-    "Крик в пустоту",
-    "truman-sc-mococoa",
-    3272.199,
-    "MAJOR",
-    "В английских субтитрах сцены есть просьба: «Сделай же что-нибудь!» Кому именно она адресована, по отдельному кадру не установить.",
-  ),
+  {
+    ...record(
+      "truman-ev-knife-call",
+      "«Do something!» в субтитрах",
+      "truman-sc-mococoa",
+      3272.199,
+      "MAJOR",
+      "В английских субтитрах записана просьба «Do something!» («Сделай же что-нибудь!»). Текст не называет говорящего или адресата; звук отдельно не прослушан.",
+    ),
+    basis: {
+      material: "subtitle-track", window: { from: 3272.199, to: 3275.236 },
+      observations: 1, outcome: "subtitle", unrecorded: ["reviewer", "date"],
+      note: "SRT, блок 391; родительские кадры — отдельный материал, не три проверки субтитров и не прослушанный звук.",
+    },
+  },
   record(
     "truman-ev-bridge",
     "Мост",
@@ -402,14 +410,21 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
       note: "Кадры из предоставленного фрагмента; смещение взято из его манифеста, исходный мастер независимо не пересчитан, звук не проверен.",
     },
   },
-  record(
-    "truman-ev-reunion-amnesia",
-    "«Амнезия»",
-    "truman-sc-trutalk",
-    3880.242,
-    "MAJOR",
-    "В выпуске TruTalk возвращение отца объясняется амнезией: «утонул, но выжил и всё забыл». Непрерывная сверка самого объятия ещё ожидается.",
-  ),
+  {
+    ...record(
+      "truman-ev-reunion-amnesia",
+      "«Amnesia» в субтитрах TruTalk",
+      "truman-sc-trutalk",
+      3880.242,
+      "MAJOR",
+      "В английских субтитрах после слов о Кирке и вопроса о его 22-летнем отсутствии записаны реплики «Amnesia» и «Brilliant». Субтитры не называют говорящих; звук отдельно не прослушан.",
+    ),
+    basis: {
+      material: "subtitle-track", window: { from: 3865.143, to: 3882.947 },
+      observations: 4, outcome: "subtitle", unrecorded: ["reviewer", "date"],
+      note: "SRT, блоки 487–490; тире разделяют реплики, но не удостоверяют их авторов. Объятие имеет отдельную основу из кадров фрагмента.",
+    },
+  },
   record(
     "truman-ev-trutalk",
     "Интервью TruTalk: «он предпочитает клетку»",
@@ -434,14 +449,21 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "MAJOR",
     "Кристоф стоит спиной к залу перед гигантским экраном «ON AIR»; за стеклом — Сихейвен, за которым он наблюдает.",
   ),
-  record(
-    "truman-ev-escape",
-    "Первый перерыв за 30 лет",
-    "truman-sc-hes-gone",
-    4570,
-    "ENDING",
-    "Камера в спальне показывает ту же кровать, что и раньше, но под одеялом никого нет: эфир впервые останавливают — «он ушёл».",
-  ),
+  {
+    ...record(
+      "truman-ev-escape",
+      "«Он ушёл»: текст субтитров",
+      "truman-sc-hes-gone",
+      4642.986,
+      "ENDING",
+      "В английских субтитрах записаны «He's gone» и «Cut transmission!». Текст не объясняет способ исчезновения и не устанавливает говорящих; звук отдельно не прослушан.",
+    ),
+    basis: {
+      material: "subtitle-track", window: { from: 4642.986, to: 4650.235 },
+      observations: 2, outcome: "subtitle", unrecorded: ["reviewer", "date"],
+      note: "SRT, блоки 603–604; изображения в историческом журнале — отдельный материал и не устанавливают способ исчезновения.",
+    },
+  },
   record(
     "truman-ev-cuesun",
     "«Включите солнце»",
@@ -460,11 +482,11 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
   ),
   record(
     "truman-ev-setting-sail",
-    "«Санта-Мария» выходит в море",
+    "«Santa Maria»: требуется проверка",
     "truman-sc-setting-sail",
     4970,
     "ENDING",
-    "Труман стоит у руля парусника в открытом море; на корме читается имя «Santa Maria».",
+    "Утверждение о паруснике «Santa Maria» перенесено из прежней записи. В доступном журнале нет отдельной проверки кадра на этой отметке; соседние записи относятся к другой сцене.",
   ),
   record(
     "truman-ev-storm",
@@ -607,8 +629,8 @@ export const trumanCanonicalEvidenceSummary = {
     "truman-ev-raincloud": ["truman-ev-rain"],
   },
   /**
-   * One research record that was split into two canonical records because its
-   * two halves sit in different scenes.
+   * Compound research records split into narrower observations. A replacement
+   * can have its own later basis; otherwise it inherits the parent's limits.
    */
   split: {
     "truman-ev-knife": ["truman-ev-knife", "truman-ev-knife-tools", "truman-ev-knife-call", "truman-ev-meryl-held"],

@@ -289,6 +289,15 @@ jobs:
       - name: Install portable accessibility browsers
         run: npx playwright-core install --with-deps chromium firefox webkit
 
+      - name: Install PDF text and raster inspection tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v pdftotext >/dev/null || ! command -v pdftoppm >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends poppler-utils
+          fi
+
       - name: Browser visual and accessibility audit
         id: browser_audit
         shell: bash
@@ -338,6 +347,12 @@ jobs:
             fi
             echo "::notice title=Reader engine::Completed $engine; checking mobile scene/evidence paths"
             timeout 3m env BASE_URL=http://127.0.0.1:3212 MOBILE_BROWSER="$engine" MOBILE_AUDIT_DIR="browser-audit/mobile-$engine" node scripts/mobile-path-audit.mjs 2>&1 | tee "/tmp/dmr-mobile-$engine.log"
+            echo "::notice title=Reading and print::Checking $engine navigation, disclosures and viewport behaviour"
+            timeout 6m env BASE_URL=http://127.0.0.1:3212 READING_BROWSER="$engine" READING_AUDIT_DIR="browser-audit/reading-$engine" node scripts/reading-quality-audit.mjs 2>&1 | tee "/tmp/dmr-reading-$engine.log"
+            if [[ "$engine" == "chromium" ]]; then
+              echo '::notice title=PDF inspection::Extracting text and rendering paper pages; PNGs require visual review'
+              timeout 3m python3 scripts/inspect-reading-pdf.py browser-audit/reading-chromium --prune 2>&1 | tee /tmp/dmr-pdf-inspection.log
+            fi
           done
           echo '::notice title=CI progress::Reader regression finished; starting browser audit'
           BASE_URL=http://127.0.0.1:3212 node scripts/browser-audit.mjs 2>&1 | tee /tmp/dmr-browser-audit.log
@@ -374,7 +389,12 @@ jobs:
         if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         env:
           GH_TOKEN: ${{ github.token }}
-        run: node scripts/publish-a11y-evidence.mjs
+        run: |
+          if [ ! -f a11y-report/summary.json ] && [ "${{ steps.browser_audit.outcome }}" != "success" ]; then
+            echo '::notice title=Accessibility evidence::The browser audit stopped before creating an axe summary; the original failure and interrupted-audit diagnostics remain authoritative.'
+          else
+            node scripts/publish-a11y-evidence.mjs
+          fi
 
       - name: Upload browser audit evidence
         if: always()

@@ -1,48 +1,33 @@
-/* A quiet reading rail; the full contents appear only on intent. */
+/* The control lives in the sticky header, not on top of the reading column.
+   Until hydration the server-rendered button is inert; an ordinary in-flow
+   list remains available even when JavaScript is disabled or blocked. */
+.articleShell > .readingOutline { display: none; }
+
 .readingOutline {
-  position: fixed;
-  z-index: 35;
-  inset-inline-end: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  /* The sticky header is the panel's containing block at every breakpoint. */
+  position: static;
 }
 
 .readingOutlineTrigger {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-3);
-  min-width: 2.75rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   min-height: 2.75rem;
-  padding: var(--space-3) var(--space-2);
+  padding: 0.7rem 0.8rem;
   border: 1px solid var(--stroke-default);
-  border-inline-end: 0;
-  border-radius: var(--radius-control) 0 0 var(--radius-control);
-  background: var(--surface-1);
+  background: var(--surface-canvas);
   color: var(--ink-2);
   cursor: pointer;
 }
 
 .readingOutlineWord {
-  writing-mode: vertical-rl;
   font-family: var(--font-meta);
   font-size: var(--type-meta);
   letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
 }
 
-.readingOutlineRail {
-  display: grid;
-  gap: var(--space-1);
-}
-
-.readingOutlineRail i {
-  display: block;
-  width: var(--space-3);
-  height: 2px;
-  background: var(--ink-4);
-}
-
-.readingOutlineRail i[data-read="true"] { background: var(--ink-3); }
+.readingOutlineRail { display: none; }
 
 .readingOutlinePosition {
   font-family: var(--font-meta);
@@ -51,19 +36,14 @@
   color: var(--ink-2);
 }
 
-.readingOutlineRail i[data-active="true"] {
-  width: var(--space-4);
-  background: var(--ink-1);
-}
-
 .readingOutlinePanel {
   position: absolute;
-  inset-inline-end: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  width: min(380px, calc(100vw - 60px));
-  max-height: min(76dvh, 680px);
+  inset-inline-end: 0;
+  top: calc(100% + var(--space-2));
+  width: min(380px, calc(100vw - 2 * var(--gutter)));
+  max-height: min(68dvh, calc(100dvh - 7rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
   overflow-y: auto;
+  overflow-wrap: anywhere;
   overscroll-behavior: contain;
   padding: var(--space-4);
   border: 1px solid var(--stroke-strong);
@@ -73,6 +53,23 @@
 }
 
 .readingOutlinePanel[hidden] { display: none; }
+
+@media (max-width: 720px) {
+  /* Span the safe header, not the button immediately left of «Меню»: a
+     button-anchored wide panel starts off-screen on phones. */
+  .readingOutlinePanel {
+    inset-inline: 0;
+    top: calc(100% + var(--space-2));
+    width: auto;
+  }
+}
+
+/* At extreme reflow (for example 400% zoom on a short desktop window), the
+   decorative panel heading must not consume the entire scrollable link area. */
+@media (max-height: 360px) {
+  .readingOutlinePanel { padding: var(--space-2); }
+  .readingOutlinePanel .readingOutlineHeading { display: none; }
+}
 
 .readingOutlineHeading {
   position: sticky;
@@ -115,20 +112,6 @@
 
 .readingOutlineTrigger:focus-visible,
 .readingOutlinePanel a:focus-visible { outline: 2px solid var(--ink-1); outline-offset: calc(-1 * var(--focus-offset)); }
-
-@media (max-width: 720px), (max-height: 30rem) {
-  .readingOutline { top: auto; bottom: max(var(--space-4), env(safe-area-inset-bottom)); transform: none; }
-  .readingOutlineWord { writing-mode: horizontal-tb; }
-  .readingOutlineRail, .readingOutlinePosition { display: none; }
-  .readingOutlinePanel {
-    top: auto;
-    bottom: calc(100% + var(--space-2));
-    inset-inline-end: var(--space-3);
-    width: min(380px, calc(100vw - 2 * var(--space-3)));
-    transform: none;
-    max-height: min(65dvh, calc(100dvh - 10rem - env(safe-area-inset-bottom)));
-  }
-}
 
 @media (prefers-reduced-motion: no-preference) {
   .readingOutlinePanel a { transition: background 140ms, color 140ms; }

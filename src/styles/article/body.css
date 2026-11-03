@@ -11,6 +11,11 @@
   align-items: center;
 }
 
+/* Reading and its fallback outline stay inside an asymmetric landscape notch. */
+.articleShell .sectionShell {
+  width: min(calc(100% - 2 * max(var(--gutter), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px))), var(--container-max));
+}
+
 .articleHeader {
   max-width: 67.5rem;
   display: grid;
@@ -21,7 +26,9 @@
 .articleTitle {
   font-family: var(--font-display);
   font-size: var(--type-display-1);
-  line-height: var(--leading-display-tight);
+  /* Long Russian titles wrap frequently on phones; the display token's tight
+     leading makes adjacent Oswald lines visually collide. */
+  line-height: 1.18;
   letter-spacing: var(--tracking-display);
   max-width: 22ch;
 }

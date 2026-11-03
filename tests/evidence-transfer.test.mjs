@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -298,6 +298,33 @@ test("historical diagnostic reports only an earlier failed publication, never th
     assert.match(stdout, new RegExp(`Prior SHA ${revision}`));
     assert.match(stdout, /native step passed, publication step failed/);
     assert.match(stdout, /AssertionError: Evidence exceeds Checks API budget/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("interrupted reading diagnostics expose the engine, revision and original failure", () => {
+  const dir = mkdtempSync(join(tmpdir(), "dmr-reading-diagnostic-"));
+  try {
+    const reading = join(dir, "browser-audit", "reading-firefox");
+    mkdirSync(reading, { recursive: true });
+    writeFileSync(join(reading, "results.json"), JSON.stringify({
+      revision, browser: "firefox", completed: true, inProgress: null,
+      results: [{ label: "outline", status: "pass" }],
+      failures: [{ label: "closed print context", error: `not visible\n50% of items\n${"x".repeat(12000)}\nend-of-trace` }],
+    }));
+    const script = join(process.cwd(), "scripts", "report-interrupted-reader.mjs");
+    const output = execFileSync(process.execPath, [script], { cwd: dir, encoding: "utf8" });
+    assert.match(output, /browser-audit\/reading-firefox\/results\.json/);
+    assert.match(output, new RegExp(revision));
+    assert.match(output, /closed print context/);
+    assert.match(output, /not visible/);
+    assert.match(output, /50%25 of items/);
+    assert.match(output, /diagnostic truncated/);
+    assert.match(output, /end-of-trace/);
+    // The Checks API truncates long annotation messages; the runner decodes
+    // workflow-command escapes before publishing. Both ends must fit.
+    const annotation = output.split("\n").find(line => line.includes("reading-firefox/results.json"));
+    const decoded = annotation.replaceAll("%0A", "\n").replaceAll("%0D", "\r").replaceAll("%25", "%");
+    assert.ok(decoded.length < 4096, `diagnostic exceeds one annotation: ${decoded.length}`);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 

@@ -24,8 +24,10 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  width: min(calc(100% - 2 * var(--gutter)), var(--container-max));
+  /* Centre inside both safe edges even when the insets are asymmetric. */
+  width: min(calc(100% - 2 * max(var(--gutter), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px))), var(--container-max));
   margin-inline: auto;
+  padding-block-start: env(safe-area-inset-top, 0px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -71,10 +73,21 @@
 
 .siteNav {
   display: flex;
+  margin-inline-start: auto;
   gap: clamp(0.9rem, 2vw, 2rem);
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+}
+
+.readingOutlineSlot:empty { display: none; }
+.readingOutlineSlot:not(:empty) { margin-inline-start: 1.25rem; }
+
+@media (max-width: 720px) {
+  .readingOutlineSlot:not(:empty) {
+    margin-inline-start: auto;
+    margin-inline-end: var(--space-2);
+  }
 }
 
 .menuButton {

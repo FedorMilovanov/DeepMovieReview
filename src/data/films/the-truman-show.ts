@@ -1732,8 +1732,8 @@ export const theTrumanShowDraftPackage: FilmPackage = {
           label: "Paramount Pictures — официальная страница фильма",
           kind: "reference",
           researchRole: "primary-material",
-          locator: "Прокатные материалы студии, 104 мин",
-          href: "https://www.paramountpictures.com/movies/the-truman-show",
+          locator: "Официальная карточка студии: 1998, 104 мин; округлённая длительность карточки не заменяет измерение конкретного издания.",
+          href: "https://www.paramount.com/movies/the-truman-show",
         },
         {
           id: "truman-src-bfi",
@@ -1892,7 +1892,7 @@ export const theTrumanShowDraftPackage: FilmPackage = {
           label: "FilmPlotHub — разбор сюжета и финала",
           kind: "reference",
           researchRole: "tertiary-community",
-          locator: "Последовательность препятствий: пробки, пожар, «амнезия», подкоп, шторм",
+          locator: "Пересказ источника упоминает пробки, пожар, «амнезию», подкоп и шторм; подкоп здесь — утверждение источника, не проверенная сцена.",
           href: "https://www.filmplothub.com/movies/the-truman-show-1998/",
         },
         {
@@ -1908,7 +1908,7 @@ export const theTrumanShowDraftPackage: FilmPackage = {
           label: "Running Sheet по фильму (Adrian D'Ambra)",
           kind: "reference",
           researchRole: "tertiary-community",
-          locator: "Поглавный конспект: «аквафобия», АЭС, «Кто нуждается в Европе?», ловля Сильвии",
+          locator: "Поглавный конспект: «аквафобия», АЭС, ловля Сильвии; источник перечисляет заголовки «Who Needs Europe?» и «Crackdown on Homeless».",
           href: "https://englishliteratureteacher.wordpress.com/2015/12/31/the-truman-show-directed-by-peter-weir-1998-running-sheet-by-adrian-dambra-2/",
         },
         {

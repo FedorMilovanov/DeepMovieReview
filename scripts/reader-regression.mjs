@@ -57,6 +57,38 @@ async function verifyArticleReturnNavigation(page) {
   }
 }
 
+async function verifyCorrectedEvidenceNavigation(page) {
+  const film = `${base}/films/the-truman-show`;
+  await page.goto(`${film}/article?spoilers=MAJOR`, { waitUntil: "load" });
+  const call = page.locator('.articleTimelineBasis a[href*="#evidence-truman-ev-knife-call"]').first();
+  const callHref = await call.getAttribute("href");
+  assert.match(callHref ?? "", /spoilers=major#evidence-truman-ev-knife-call/);
+  await call.click();
+  await page.waitForURL(`${base}${callHref}`);
+  const callRecord = page.locator("#evidence-truman-ev-knife-call");
+  await callRecord.waitFor({ state: "visible" });
+  await callRecord.locator(".evidenceRegisterBasis:visible > summary").click();
+  const callBasis = await callRecord.locator(".evidenceBasis:visible").innerText();
+  assert.match(callBasis, /встроенные субтитры.*не проверяет звук.*1 наблюдение.*блок 391/i);
+  assert.doesNotMatch(callBasis, /общая основа родительской записи/i);
+  const amnesia = page.locator("#evidence-truman-ev-reunion-amnesia");
+  await amnesia.locator(".evidenceRegisterBasis:visible > summary").click();
+  assert.match(await amnesia.locator(".evidenceBasis:visible").innerText(), /встроенные субтитры.*4 наблюдения.*блоки 487–490/i);
+
+  await page.goto(`${film}/article?spoilers=FULL`, { waitUntil: "load" });
+  const correction = page.locator(".articleCorrections tr").filter({ hasText: "FilmPlotHub" });
+  assert.match(await correction.innerText(), /не подтверждают.*не доказывают отсутствия/i);
+  const link = correction.locator('a[href*="#evidence-truman-ev-escape"]');
+  const href = await link.getAttribute("href");
+  assert.match(href ?? "", /spoilers=full#evidence-truman-ev-escape/);
+  await link.click();
+  await page.waitForURL(`${base}${href}`);
+  const escape = page.locator("#evidence-truman-ev-escape");
+  await escape.waitFor({ state: "visible" });
+  await escape.locator(".evidenceRegisterBasis:visible > summary").click();
+  assert.match(await escape.locator(".evidenceBasis:visible").innerText(), /встроенные субтитры.*блоки 603–604/i);
+}
+
 async function check(name, page, action) {
   const trace = process.env.GITHUB_ACTIONS === "true" && name.includes(" no-js ") && !name.includes("px /films/");
   checkpoint(name);
@@ -140,6 +172,15 @@ for (const engine of requested) {
                 for (const file of stillsAtLevel.FULL) {
                   assert.equal(raw.includes(file), stillsAtLevel[level].includes(file), `${file}: spoiler projection must hold in HTML and RSC`);
                 }
+                assert.equal(raw.includes("FilmPlotHub"), level === "FULL", "correction must not leak into lower-level HTML or RSC");
+                assert.equal(raw.includes("truman-ev-knife-call"), ["MAJOR", "ENDING", "FULL"].includes(level));
+                assert.equal(raw.includes("truman-ev-escape"), level === "FULL");
+                const sailVisible = level === "ENDING" || level === "FULL";
+                assert.equal(raw.includes("Lozier Institute пишет о названии лодки"), sailVisible, "sail source and pending inscription must follow the article spoiler level");
+                if (sailVisible) {
+                  assert.match(raw, /надписи отдельно не проверены/);
+                  assert.equal(await page.locator('.articleContextSources a[href="https://lozierinstitute.org/movie-reviews/the-truman-show-1998/"]').count(), 1);
+                }
               }
               if (!route) {
                 const paths = await page.locator('.filmReadingPaths a[href*="#"]').evaluateAll((links) =>
@@ -152,6 +193,16 @@ for (const engine of requested) {
                 }
                 const shouldReveal = level === "ENDING" || level === "FULL";
                 const raw = await response.text();
+                assert.equal(await page.locator('.filmSourceList a[href="https://www.paramount.com/movies/the-truman-show"]').count(), 1);
+                assert.equal(raw.includes("FilmPlotHub"), level === "FULL", "source locator must not leak into lower-level HTML or RSC");
+                for (const [id, visible] of [
+                  ["truman-ev-knife-call", ["MAJOR", "ENDING", "FULL"].includes(level)],
+                  ["truman-ev-reunion-amnesia", ["MAJOR", "ENDING", "FULL"].includes(level)],
+                  ["truman-ev-escape", shouldReveal],
+                ]) {
+                  assert.equal(raw.includes(id), visible, `${id}: HTML and RSC spoiler projection`);
+                  assert.equal(await page.locator(`#evidence-${id}`).count(), visible ? 1 : 0, `${id}: DOM spoiler projection`);
+                }
                 assert.equal(raw.includes("Он отвечает привычным приветствием"), shouldReveal, "ending data must not appear in lower-level HTML or RSC payload");
                 assert.equal(await page.locator("#truman-comparison").count(), shouldReveal ? 1 : 0);
                 if (shouldReveal) {
@@ -323,6 +374,9 @@ for (const engine of requested) {
             await row.locator(".evidenceRegisterBasis:visible > summary").click();
             assert.match(await row.locator(".evidenceBasis:visible").innerText(), /предоставленного фрагмента.*манифеста/);
           });
+          await check(`${engine} no-js corrected evidence links keep spoiler level and material`, page, async () => {
+            await verifyCorrectedEvidenceNavigation(page);
+          });
           await check(`${engine} no-js methodology states publication and review limits`, page, async () => {
             await page.goto(`${base}/films/the-truman-show?spoilers=NONE`, { waitUntil: "domcontentloaded" });
             const method = await page.locator(".filmMethodMeta").innerText();
@@ -367,6 +421,9 @@ for (const engine of requested) {
     const page = await context.newPage();
     await check(`${engine} hydrated article return links preserve all spoiler levels`, page, async () => {
       await verifyArticleReturnNavigation(page);
+    });
+    await check(`${engine} hydrated corrected evidence links keep spoiler level and material`, page, async () => {
+      await verifyCorrectedEvidenceNavigation(page);
     });
     await check(`${engine} homepage lenses work by keyboard`, page, async () => {
       await page.goto(`${base}/`, { waitUntil: 'load' });
@@ -456,8 +513,12 @@ for (const engine of requested) {
       assert.ok(await page.getByText("Контекстный источник, не экранная опора:").first().isVisible());
     });
     await check(`${engine} production dossier source anchor`, page, async () => {
-      await page.goto(`${base}/films/the-truman-show/making`, { waitUntil: "domcontentloaded" });
+      const response = await page.goto(`${base}/films/the-truman-show/making`, { waitUntil: "domcontentloaded" });
       assert.ok(await page.locator(".productionSpoilerNote").isVisible());
+      const raw = await response.text();
+      assert.match(raw, /Обзор Lozier Institute называет лодку героя/);
+      assert.match(raw, /В доступном журнале надписи отдельно не проверены/);
+      assert.doesNotMatch(raw, /Наблюдение верное: номер в кадре есть/);
       const refs = await page.locator('.productionRefs a[href^="#source-"]').evaluateAll((links) =>
         links.map((link) => {
           const href = link.getAttribute("href");
