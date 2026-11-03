@@ -7139,7 +7139,7 @@ test("pending sail inscriptions and subtitle-only dialogue are not promoted into
   const voice = blocks.find((block) => block.id === "truman-article-biblical-voice");
   assert.ok(sail && sail.kind === "paragraph");
   assert.ok(voice && voice.kind === "paragraph");
-  assert.match(sail.text, /Lozier Institute.*139.*надписи отдельно не проверены.*не устанавливает замысел/i);
+  assert.match(sail.text, /Lozier Institute.*139.*надписи отдельно не проверены.*замысел создателей не установлен/i);
   assert.deepEqual(sail.contextSourceIds, ["src-lozier"]);
   assert.deepEqual(sail.support?.evidenceIds, ["truman-ev-setting-sail"]);
   assert.match(voice.text, /субтитрах.*не устанавливает говорящего или звучание.*если сцена подтвердит/i);

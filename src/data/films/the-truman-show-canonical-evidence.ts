@@ -482,7 +482,7 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
   ),
   record(
     "truman-ev-setting-sail",
-    "Парусник «Santa Maria»: требуется проверка",
+    "«Santa Maria»: требуется проверка",
     "truman-sc-setting-sail",
     4970,
     "ENDING",
