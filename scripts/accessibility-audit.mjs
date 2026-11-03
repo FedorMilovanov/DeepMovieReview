@@ -271,7 +271,12 @@ for (const name of selected) {
             await page.locator('.articleSection').last().evaluate(el => el.scrollIntoView({ block: 'start', behavior: 'instant' }));
             await page.waitForFunction(() => document.querySelector('.readingOutlinePanel a:last-child')?.getAttribute('aria-current') === 'location');
             const readingPosition = await page.evaluate(() => scrollY);
-            await outline.focus(); await page.keyboard.press('Enter');
+            // Playwright's programmatic focus() can itself scroll a sticky
+            // header's original flow box into view. Focus without scrolling so
+            // this assertion measures opening, not that setup side effect.
+            await outline.evaluate(el => el.focus({ preventScroll: true }));
+            assert.ok(await outline.evaluate(el => document.activeElement === el), "contents trigger received focus");
+            await page.keyboard.press('Enter');
             await page.waitForFunction(() => {
               const panel = document.querySelector('.readingOutlinePanel');
               const item = panel.querySelector('[aria-current="location"]');
@@ -283,6 +288,16 @@ for (const name of selected) {
             assert.ok(Math.abs(afterOpening - readingPosition) <= 3,
               `opening contents must not noticeably move the article: ${readingPosition} → ${afterOpening}`);
             await page.keyboard.press('Escape');
+            // Also exercise a real mouse input at the already-visible sticky
+            // control, without a locator's automatic scrolling.
+            const triggerBox = await outline.boundingBox();
+            assert.ok(triggerBox, "contents trigger is visible after the jump");
+            await page.mouse.click(triggerBox.x + triggerBox.width / 2, triggerBox.y + triggerBox.height / 2);
+            await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
+            const afterClick = await page.evaluate(() => scrollY);
+            assert.ok(Math.abs(afterClick - readingPosition) <= 3,
+              `clicking contents must not noticeably move the article: ${readingPosition} → ${afterClick}`);
+            await page.keyboard.press('Escape');
             await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
 
             if (width === 1440) {
@@ -290,6 +305,9 @@ for (const name of selected) {
               // before testing mouse-only dismissal; focused contents stay open.
               await page.keyboard.press("Tab");
               assert.ok(await outline.evaluate(el => !el.closest(".readingOutline").contains(document.activeElement)));
+              // The preceding physical click left the pointer over the trigger;
+              // leave first so hover below genuinely emits pointerenter.
+              await page.mouse.move(1, 100);
               await outline.hover();
               await page.waitForFunction(() => document.querySelector('.readingOutlineTrigger')?.getAttribute('aria-expanded') === 'true');
               await page.mouse.move(1, 100);

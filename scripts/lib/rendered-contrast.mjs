@@ -129,16 +129,20 @@ export function snapshotTextPaint(s) {
   // Range ascent/descent boxes can extend into ordinary neighbouring line boxes;
   // a different normal-flow hit is not proof that it paints over the glyphs.
   function exposed(element, rect, width, height, hitTest) {
-    // A box may fit the browser viewport while a horizontal table viewport clips
-    // it. Pixels outside that viewport do not show the glyph's real background.
-    // Require the whole line to be exposed; the coverage pass can scroll an
-    // auto/scroll ancestor and revisit it. A permanently clipped line fails.
-    for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
-      const overflow = getComputedStyle(ancestor).overflowX;
-      if (!["auto", "scroll", "hidden", "clip"].includes(overflow)) continue;
-      const bounds = ancestor.getBoundingClientRect();
-      const left = bounds.left + ancestor.clientLeft, right = left + ancestor.clientWidth;
-      if (rect.left < left || rect.right > right) return false;
+    // A line may fit the browser viewport while a nested table or contents
+    // panel clips it. Never measure pixels outside either scrollport; the
+    // coverage pass must reveal a scrollable ancestor or leave the line missing.
+    for (let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
+      if (ancestor === document.scrollingElement) continue; // viewport checked below
+      const style = getComputedStyle(ancestor), bounds = ancestor.getBoundingClientRect();
+      if (["auto", "scroll", "hidden", "clip"].includes(style.overflowX)) {
+        const left = bounds.left + ancestor.clientLeft, right = left + ancestor.clientWidth;
+        if (rect.left < left || rect.right > right) return false;
+      }
+      if (["auto", "scroll", "hidden", "clip"].includes(style.overflowY)) {
+        const top = bounds.top + ancestor.clientTop, bottom = top + ancestor.clientHeight;
+        if (rect.top < top || rect.bottom > bottom) return false;
+      }
     }
     // Existing pointer-events:none paint (e.g. lens annotations) cannot own a
     // hit. Use its nearest hit-testable container, without changing any style.
@@ -238,7 +242,7 @@ export function changedTextGeometry(s) {
 export function revealHorizontalScroll({ s, id, line }) {
   const record = s.records[id], moves = [];
   if (!record?.element.isConnected) return moves;
-  for (let ancestor = record.element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+  for (let ancestor = record.element; ancestor; ancestor = ancestor.parentElement) {
     const overflow = getComputedStyle(ancestor).overflowX;
     if (!["auto", "scroll"].includes(overflow) || ancestor.scrollWidth <= ancestor.clientWidth) continue;
     const rect = record.range.getClientRects()[line];
@@ -281,6 +285,43 @@ export function revealHorizontalScroll({ s, id, line }) {
   return moves;
 }
 
+// Reveal a missing line inside an actually scrollable vertical region. A
+// sticky panel heading can cover an otherwise in-bounds line, so center it
+// when a hit test shows such an overlay. Hidden/clip regions remain missing.
+export function revealVerticalScroll({ s, id, line }) {
+  const record = s.records[id], moves = [];
+  if (!record?.element.isConnected) return moves;
+  for (let ancestor = record.element; ancestor; ancestor = ancestor.parentElement) {
+    if (ancestor === document.scrollingElement) continue;
+    const overflow = getComputedStyle(ancestor).overflowY;
+    if (!["auto", "scroll"].includes(overflow) || ancestor.scrollHeight <= ancestor.clientHeight) continue;
+    const rect = record.range.getClientRects()[line];
+    if (!rect || rect.width <= 0 || rect.height <= 0) continue;
+    const bounds = ancestor.getBoundingClientRect();
+    const top = bounds.top + ancestor.clientTop, bottom = top + ancestor.clientHeight;
+    let covered = rect.top < top || rect.bottom > bottom;
+    if (!covered && rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight) {
+      const xs = [rect.left + Math.min(0.5, rect.width / 2), rect.right - Math.min(0.5, rect.width / 2)];
+      const ys = [rect.top + Math.min(0.5, rect.height / 2), rect.bottom - Math.min(0.5, rect.height / 2)];
+      for (const x of xs) for (const y of ys) {
+        for (let overlay = document.elementFromPoint(x, y); overlay; overlay = overlay.parentElement) {
+          if (["fixed", "sticky"].includes(getComputedStyle(overlay).position) &&
+              !(overlay === record.element || overlay.contains(record.element) || record.element.contains(overlay))) covered = true;
+        }
+      }
+    }
+    if (!covered || rect.height > ancestor.clientHeight) continue;
+    const before = ancestor.scrollTop;
+    ancestor.scrollTo({ top: before + rect.top - (top + (ancestor.clientHeight - rect.height) / 2), behavior: "instant" });
+    const after = ancestor.scrollTop;
+    if (after !== before) {
+      if (!s.verticalScroll.has(ancestor)) s.verticalScroll.set(ancestor, before);
+      moves.push({ element: ancestor.tagName, className: String(ancestor.className || "").slice(0, 80), before, after });
+    }
+  }
+  return moves;
+}
+
 export async function renderedContrast(page, nodes, directory, id, options = {}) {
   mkdirSync(directory, { recursive: true });
   const state = await page.evaluateHandle(targets => {
@@ -305,10 +346,10 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
       if (!owner.ids.length) owner.error = "No rendered DOM text range";
     }
     const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
-    return { records, owners, saved: [], textChanges: [], horizontalScroll: new Map(), ctx: canvas.getContext("2d", { willReadFrequently: true }) };
+    return { records, owners, saved: [], textChanges: [], horizontalScroll: new Map(), verticalScroll: new Map(), ctx: canvas.getContext("2d", { willReadFrequently: true }) };
   }, nodes.map(node => node.target));
   const previousScroll = await page.evaluate(() => scrollY);
-  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [], maskValidation = [], geometryWaits = [], screenshotWarmups = [], captureTrace = [], horizontalRevisits = [];
+  const measurements = new Map(), frames = [], deferred = [], maskEscalations = [], verifications = [], maskValidation = [], geometryWaits = [], screenshotWarmups = [], captureTrace = [], horizontalRevisits = [], verticalRevisits = [];
   // WebKit's first paired capture has coincided with a scroll-anchor shift;
   // its cause is not established. Warm the actual capture path before taking
   // the geometry snapshot, then independently check every measured frame.
@@ -565,6 +606,8 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
           // Hit-testing sticky overlays only makes sense at the line's own
           // vertical position, not the previous document tile.
           await page.evaluate(top => scrollTo({ top: Math.max(0, top), behavior: "instant" }), candidate.top);
+          const verticalMoves = await page.evaluate(revealVerticalScroll, { s: state, id: candidate.id, line: candidate.line });
+          if (verticalMoves.length) verticalRevisits.push({ tile, id: candidate.id, line: candidate.line, moves: verticalMoves });
           const moves = await page.evaluate(revealHorizontalScroll, { s: state, id: candidate.id, line: candidate.line });
           if (moves.length) horizontalRevisits.push({ tile, id: candidate.id, line: candidate.line, moves });
           top = Math.max(0, candidate.top);
@@ -602,6 +645,8 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
       if (!resume) break;
       revisitAttempts.set(resume.id, (revisitAttempts.get(resume.id) ?? 0) + 1);
       await page.evaluate(top => scrollTo({ top: Math.max(0, top), behavior: "instant" }), resume.top);
+      const verticalMoves = await page.evaluate(revealVerticalScroll, { s: state, id: resume.id, line: resume.line });
+      if (verticalMoves.length) verticalRevisits.push({ tile, id: resume.id, line: resume.line, moves: verticalMoves });
       const moves = await page.evaluate(revealHorizontalScroll, { s: state, id: resume.id, line: resume.line });
       if (moves.length) horizontalRevisits.push({ tile, id: resume.id, line: resume.line, moves });
       top = Math.max(0, resume.top);
@@ -635,12 +680,13 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
       if (!record) return { id, error: "record absent" };
       const rects = [...record.range.getClientRects()];
       const clips = [];
-      for (let ancestor = record.element.parentElement; ancestor; ancestor = ancestor.parentElement) {
-        const overflow = getComputedStyle(ancestor).overflowX;
-        if (!["auto", "scroll", "hidden", "clip"].includes(overflow)) continue;
-        clips.push({ tag: ancestor.tagName, className: String(ancestor.className || "").slice(0, 80), overflow,
-          bounds: ancestor.getBoundingClientRect().toJSON(), clientLeft: ancestor.clientLeft,
-          clientWidth: ancestor.clientWidth, scrollWidth: ancestor.scrollWidth, scrollLeft: ancestor.scrollLeft });
+      for (let ancestor = record.element; ancestor; ancestor = ancestor.parentElement) {
+        const style = getComputedStyle(ancestor), overflowX = style.overflowX, overflowY = style.overflowY;
+        if (![overflowX, overflowY].some(value => ["auto", "scroll", "hidden", "clip"].includes(value))) continue;
+        clips.push({ tag: ancestor.tagName, className: String(ancestor.className || "").slice(0, 80), overflowX, overflowY,
+          bounds: ancestor.getBoundingClientRect().toJSON(), clientLeft: ancestor.clientLeft, clientTop: ancestor.clientTop,
+          clientWidth: ancestor.clientWidth, clientHeight: ancestor.clientHeight, scrollWidth: ancestor.scrollWidth,
+          scrollHeight: ancestor.scrollHeight, scrollLeft: ancestor.scrollLeft, scrollTop: ancestor.scrollTop });
       }
       const hit = (x, y) => {
         if (x < 0 || x >= innerWidth || y < 0 || y >= innerHeight) return null;
@@ -661,12 +707,13 @@ export async function renderedContrast(page, nodes, directory, id, options = {})
         })) };
     }), { s: state, absent: [...absent] }) : [];
     const failed = ranges.filter(range => !range.pass);
-    return { restrictedToTargetBounds: Boolean(extent), method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], horizontalRevisits, uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
+    return { restrictedToTargetBounds: Boolean(extent), method: "finite conservative full text-rectangle background pixel bounds; original foreground; paired original/masked frames; below-threshold bounds re-measured with the measured glyphs hidden", maskEscalations, verifications, coverageRounds, revisits: [...revisitAttempts], horizontalRevisits, verticalRevisits, uncovered, owners: owners.length, targets: owners, ranges, frames, deferred, textChanges,
       missing, tileLimit, maskValidation, geometryWaits, screenshotWarmups, captureTrace, pass: !missing.length && !failed.length && !tileLimit && ranges.length > 0 };
   } finally {
     // Leave the reader's horizontal and vertical positions as we found them.
     await page.evaluate(s => {
       for (const [element, left] of s.horizontalScroll) if (element.isConnected) element.scrollTo({ left, behavior: "instant" });
+      for (const [element, top] of s.verticalScroll) if (element.isConnected) element.scrollTo({ top, behavior: "instant" });
     }, state);
     await page.evaluate(y => scrollTo({ top: y, behavior: "instant" }), previousScroll);
     await state.dispose();

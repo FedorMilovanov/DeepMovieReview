@@ -17,6 +17,15 @@ export async function calibrateRenderedContrast(browser, directory, name) {
     { name: "sticky-row-low-contrast", html: '<div style="height:1600px"></div><div id="viewport" style="width:200px;overflow-x:auto"><div style="width:600px;display:flex"><div style="position:sticky;left:0;flex:0 0 100px;background:#333;z-index:1">Row header</div><span id="target" style="flex:0 0 70px;white-space:nowrap;color:white;background:#eee">Target</span></div></div><div style="height:1200px"></div>', pass: false, initialScroll: 55, mustMeasure: true, mustMove: 1, mustFailContrast: true },
     { name: "sticky-row-unreachable", html: '<div style="height:1600px"></div><div id="viewport" style="width:200px;overflow-x:auto"><div style="width:600px;display:flex"><div style="position:sticky;left:0;flex:0 0 100px;background:#333;z-index:1">Row header</div><span id="target" style="flex:0 0 170px;white-space:nowrap;color:white;background:black">Unreachable target</span></div></div><div style="height:1200px"></div>', pass: false, initialScroll: 55, mustRemainMissing: true },
     { name: "horizontal-clipped", html: '<div id="viewport" style="width:160px;overflow-x:hidden"><div style="width:560px"><span id="target" style="display:inline-block;margin-left:360px;white-space:nowrap;color:white;background:black">Clipped target</span></div></div>', pass: false, mustRemainMissing: true },
+    // The black page behind the viewport would make the clipped low-contrast
+    // target falsely pass if we sampled beyond the panel's vertical edge.
+    { name: "vertical-high-contrast", html: '<div id="viewport" style="height:90px;width:300px;overflow-y:auto"><div style="height:160px"></div><span id="target" style="color:white;background:black">Scrollable target</span><div style="height:180px"></div></div>', pass: true, initialVerticalScroll: 18, mustMeasure: true, mustVerticalMove: 1 },
+    { name: "vertical-low-contrast", html: '<div id="viewport" style="height:90px;width:300px;overflow-y:auto"><div style="height:160px"></div><span id="target" style="color:white;background:#eee">Scrollable target</span><div style="height:180px"></div></div>', pass: false, initialVerticalScroll: 18, mustMeasure: true, mustVerticalMove: 1, mustFailContrast: true },
+    { name: "vertical-nested", html: '<div id="outer" style="height:110px;width:320px;overflow-y:auto"><div style="height:150px"></div><div id="viewport" style="height:90px;width:300px;overflow-y:auto"><div style="height:160px"></div><span id="target" style="color:white;background:black">Nested target</span><div style="height:180px"></div></div><div style="height:180px"></div></div>', pass: true, initialVerticalScroll: 18, mustMeasure: true, mustVerticalMove: 2 },
+    { name: "vertical-sticky-heading", html: '<div id="viewport" style="height:120px;width:300px;overflow-y:auto"><div style="position:sticky;top:0;height:42px;background:#333;z-index:1">Heading</div><div style="height:10px"></div><span id="target" style="color:white;background:black">Target below sticky heading</span><div style="height:180px"></div></div>', pass: true, initialVerticalScroll: 30, mustMeasure: true, mustVerticalMove: 1 },
+    { name: "vertical-own-scrollport", html: '<div id="target" style="height:25px;width:130px;overflow-y:auto;color:white;background:black">One two three four five</div>', pass: true, verticalSelector: "#target", initialVerticalScroll: 3, mustMeasure: true, mustVerticalMove: 1 },
+    { name: "vertical-clipped", html: '<div id="viewport" style="height:90px;width:300px;overflow-y:hidden"><div style="height:160px"></div><span id="target" style="color:white;background:black">Clipped target</span><div style="height:180px"></div></div>', pass: false, mustRemainMissing: true },
+    { name: "vertical-own-clipped", html: '<div id="target" style="height:25px;width:130px;overflow-y:hidden;color:white;background:black">One two three four five</div>', pass: false, mustRemainMissing: true },
     { name: "transitioned-text-mask", html: '<p id="target" style="color:white;background:black;transition:all 0.01ms">Deferred text paint must settle</p>', pass: true },
     { name: "moving-high-contrast", html: '<div style="height:2000px"></div><p id="target" style="color:white;background:black">Moving text must settle before the paired capture</p><script>addEventListener("scroll",()=>document.querySelector("#target").animate([{transform:"translateY(40px)"},{transform:"translateY(0)"}],{duration:700}),{once:true})</script>', pass: true, bounded: true, mustMeasure: true },
     { name: "moving-low-contrast", html: '<div style="height:2000px"></div><p id="target" style="color:white;background:#eee">Moving text must still fail on a pale background</p><script>addEventListener("scroll",()=>document.querySelector("#target").animate([{transform:"translateY(40px)"},{transform:"translateY(0)"}],{duration:700}),{once:true})</script>', pass: false, bounded: true, mustMeasure: true },
@@ -48,6 +57,7 @@ export async function calibrateRenderedContrast(browser, directory, name) {
     try {
       await page.setContent(`<html><body style="margin:0;background:black;color:white;font:16px/22px sans-serif">${fixture.html}</body></html>`);
       if (fixture.initialScroll) await page.locator("#viewport").evaluate((element, offset) => { element.scrollLeft = offset; }, fixture.initialScroll);
+      if (fixture.initialVerticalScroll) await page.locator(fixture.verticalSelector ?? "#viewport").evaluate((element, offset) => { element.scrollTop = offset; }, fixture.initialVerticalScroll);
       if (fixture.shiftOnCapture) {
         // Synthetic driver behaviour: one screenshot moves the viewport after
         // capture. This tests the harness, not any real browser's implementation.
@@ -75,9 +85,17 @@ export async function calibrateRenderedContrast(browser, directory, name) {
         if (fixture.mustMove > 1) assert.equal(await page.locator("#outer").evaluate(element => element.scrollLeft), 0,
           `${name}: ${fixture.name} must restore the outer viewport`);
       }
+      if (fixture.mustVerticalMove) {
+        assert.ok(assessment.verticalRevisits.some(revisit => revisit.moves.length >= fixture.mustVerticalMove),
+          `${name}: ${fixture.name} must expose its clipped line through the reader's scroll viewport`);
+        assert.equal(await page.locator(fixture.verticalSelector ?? "#viewport").evaluate(element => element.scrollTop), fixture.initialVerticalScroll ?? 0,
+          `${name}: ${fixture.name} must restore the initial vertical position`);
+        if (fixture.mustVerticalMove > 1) assert.equal(await page.locator("#outer").evaluate(element => element.scrollTop), 0,
+          `${name}: ${fixture.name} must restore the outer vertical viewport`);
+      }
       if (fixture.mustFailContrast) assert.ok(assessment.ranges.some(range => !range.pass) && !assessment.missing.length,
         `${name}: ${fixture.name} must measure and reject low contrast, not merely miss the target`);
-      if (fixture.mustRemainMissing) assert.ok(assessment.missing.length && !assessment.horizontalRevisits.length,
+      if (fixture.mustRemainMissing) assert.ok(assessment.missing.length && !assessment.horizontalRevisits.length && !assessment.verticalRevisits.length,
         `${name}: ${fixture.name} must not manufacture visibility inside a clipped viewport`);
       if (fixture.expectPhase) assert.ok(assessment.maskValidation.some(item => item.phase === fixture.expectPhase && item.moved.length),
         `${name}: ${fixture.name} must identify which capture moved`);

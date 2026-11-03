@@ -167,6 +167,31 @@ async function wheelReading(page, viewport) {
   return samples;
 }
 
+// Firefox may include a scrollable navigation region itself in sequential
+// focus order before its links. Accept that one meaningful stop, but still
+// verify every link in order; never skip an unknown focus target.
+async function tabThroughOutline(page, hashes, lastIndex) {
+  const readActive = () => page.evaluate(() => ({
+    hash: document.activeElement?.hash,
+    panel: document.activeElement?.matches(".readingOutlinePanel"),
+    tag: document.activeElement?.tagName,
+    className: document.activeElement?.className,
+    expanded: document.querySelector(".readingOutlineTrigger")?.getAttribute("aria-expanded"),
+  }));
+  let panelStop = false;
+  for (let index = 0; index <= lastIndex; index += 1) {
+    await page.keyboard.press("Tab");
+    let active = await readActive();
+    if (index === 0 && active.panel) {
+      panelStop = true;
+      await page.keyboard.press("Tab");
+      active = await readActive();
+    }
+    assert.equal(active.hash, hashes[index], `Tab order skipped an outline link: ${JSON.stringify(active)}`);
+  }
+  return panelStop;
+}
+
 async function testOutline(page, viewport) {
   await openArticle(page);
   const trigger = page.locator(".readingOutlineTrigger");
@@ -207,12 +232,12 @@ async function testOutline(page, viewport) {
   const sectionIds = await page.locator(".articleSection").evaluateAll(sections => sections.map(section => `#${section.id}`));
   assert.deepEqual(hashes, sectionIds, "outline must expose exactly the projected sections");
   const reached = [];
+  let panelStops = 0;
   for (let index = 0; index < hashes.length; index += 1) {
     await trigger.focus();
     await page.keyboard.press("Enter");
     await panel.waitFor({ state: "visible" });
-    for (let step = 0; step <= index; step += 1) await page.keyboard.press("Tab");
-    assert.equal(await page.evaluate(() => document.activeElement.hash), hashes[index], "Tab order skipped an outline link");
+    if (await tabThroughOutline(page, hashes, index)) panelStops += 1;
     await page.keyboard.press("Enter");
     await page.waitForFunction(hash => {
       const section = document.getElementById(hash.slice(1));
@@ -227,7 +252,10 @@ async function testOutline(page, viewport) {
     assert.ok(landing.headingTop >= landing.headerBottom - 1 && landing.headingTop < landing.height, `heading hidden: ${JSON.stringify(landing)}`);
     reached.push(landing);
   }
-  return { bounds, wheel, panel: { box, beforeScroll, afterScroll }, reached };
+  if (panelStops && process.env.GITHUB_ACTIONS === "true") {
+    console.log(`::notice title=Outline focus::${name}/${viewport.label}: the scrollable panel was a Tab stop before its links on ${panelStops}/${hashes.length} openings; every link was then checked in order.`);
+  }
+  return { bounds, wheel, panel: { box, beforeScroll, afterScroll, panelStops }, reached };
 }
 
 async function tabTo(page, selector, limit = 16) {
@@ -384,8 +412,8 @@ try {
         }
         await trigger.focus();
         await page.keyboard.press("Enter");
-        await page.keyboard.press("Tab");
-        assert.equal(await page.evaluate(() => document.activeElement.hash), hash);
+        await page.locator(".readingOutlinePanel").waitFor({ state: "visible" });
+        await tabThroughOutline(page, [hash], 0);
         await page.keyboard.press("Enter");
         await page.waitForFunction(expected => {
           const section = document.getElementById(expected.slice(1));
