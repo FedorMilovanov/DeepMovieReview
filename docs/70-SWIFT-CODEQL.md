@@ -46,6 +46,18 @@ rules находятся в `tool.extensions`, а не в пустом `driver.r
 исторических алертов. Default CodeQL продолжает сканировать эти языки обычным
 путём.
 
+На `b94c564` и `2b15d9e` дополнительные задания JS/Python/Actions на `main`
+действительно проанализировали и проверили SARIF, но попытка автоматически
+загрузить их CodeQL databases закончилась `Resource not accessible by integration`.
+Зелёный статус job не отменяет эти warning/error annotations. `upload: never`
+отключает только отправку SARIF, тогда как отдельная загрузка database по умолчанию
+включена на default branch. Для дополнительного job добавлено ограниченное этим
+job разрешение `security-events: write` (как у уже работающего Swift job); его
+проверка по PR не выполняет default-branch upload. Отдельно нужно подтвердить
+на новом SHA `main`, что базы загрузились и warning/error annotations больше нет.
+Проверка SARIF и транспорт оригиналов при этом остаются обязательными, default
+CodeQL по-прежнему выполняется независимо.
+
 На `30ef2ed` полный SARIF Python (48 security rules, 2 файла) и Actions
 (23 правила, 1 workflow) не содержал результатов. Полный JS/TS SARIF показал
 три результата в тестовой/диагностической инфраструктуре: путь к запускаемому
