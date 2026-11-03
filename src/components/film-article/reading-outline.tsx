@@ -14,6 +14,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
   const [active, setActive] = useState(sections[0]?.id ?? "");
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const pendingLanding = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     // Read the section boundaries, not just the most recent observer batch.
@@ -63,6 +64,45 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
     document.addEventListener("pointerdown", dismiss);
     return () => document.removeEventListener("pointerdown", dismiss);
   }, [open]);
+
+  useEffect(() => () => pendingLanding.current?.(), []);
+
+  function landAfterFragment(id: string, hash: string, sameHash: boolean) {
+    pendingLanding.current?.();
+    let frame = 0;
+    let timeout = 0;
+    function cleanup() {
+      window.removeEventListener("hashchange", onHashChange);
+      window.clearTimeout(timeout);
+      cancelAnimationFrame(frame);
+      if (pendingLanding.current === cleanup) pendingLanding.current = null;
+    }
+    function land() {
+      window.removeEventListener("hashchange", onHashChange);
+      frame = requestAnimationFrame(() => {
+        if (window.location.hash === hash) {
+          const section = document.getElementById(id);
+          const headingId = section?.getAttribute("aria-labelledby");
+          section?.scrollIntoView({ block: "start", inline: "nearest" });
+          if (headingId) document.getElementById(headingId)?.focus({ preventScroll: true });
+        }
+        cleanup();
+      });
+    }
+    function onHashChange() {
+      if (window.location.hash === hash) land();
+      else cleanup();
+    }
+    pendingLanding.current = cleanup;
+    if (sameHash) land();
+    else {
+      // Firefox can finish the native fragment navigation after the first
+      // animation frame and reset focus. Register before the native link runs,
+      // then land after its hashchange; do not replace its history entry.
+      window.addEventListener("hashchange", onHashChange);
+      timeout = window.setTimeout(cleanup, 5000);
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -128,18 +168,19 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
             key={id}
             href={`#${id}`}
             aria-current={active === id ? "location" : undefined}
-            onClick={() => {
+            onClick={(event) => {
+              // Keep new-tab/window and other modified link activations native.
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              const hash = event.currentTarget.hash;
+              const sameHash = window.location.hash === hash;
+              // Repeating the current fragment emits no hashchange. Suppress
+              // that redundant native jump so it cannot later steal focus; we
+              // perform the scroll and focus without adding a history entry.
+              if (sameHash) event.preventDefault();
               setActive(id);
               setOpen(false);
               setPinned(false);
-              // Let the native hash update run first. Re-land explicitly: a
-              // repeated link to the current hash need not scroll on its own.
-              requestAnimationFrame(() => {
-                const section = document.getElementById(id);
-                section?.scrollIntoView({ block: "start", inline: "nearest" });
-                const headingId = section?.getAttribute("aria-labelledby");
-                if (headingId) document.getElementById(headingId)?.focus({ preventScroll: true });
-              });
+              landAfterFragment(id, hash, sameHash);
             }}
           >
             <span>{String(number).padStart(2, "0")}</span><strong>{heading}</strong>

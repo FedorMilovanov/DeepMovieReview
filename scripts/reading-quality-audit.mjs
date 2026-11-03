@@ -439,6 +439,122 @@ try {
       return result;
     }));
 
+  await check("outline mouse: repeated hash and back/forward history", () =>
+    withPage({ viewport: { width: 390, height: 844 } }, "outline-mouse-history", async page => {
+      await openArticle(page);
+      await observeOutlineEvents(page);
+      const trigger = page.locator(".readingOutlineTrigger");
+      const links = page.locator(".readingOutlinePanel a");
+      const first = await links.first().getAttribute("href");
+      const last = await links.last().getAttribute("href");
+      const historyBefore = await page.evaluate(() => history.length);
+      await trigger.click();
+      await links.first().click();
+      await waitForOutlineArrival(page, first, { requireVisible: true });
+      const historyFirst = await page.evaluate(() => history.length);
+      assert.equal(historyFirst, historyBefore + 1, "first outline link must add a history entry");
+
+      // A repeated selection must re-land after real user scrolling, without
+      // adding a duplicate history entry for the same fragment.
+      await page.mouse.move(8, 400);
+      await page.mouse.wheel(0, 1100);
+      await page.waitForTimeout(200);
+      await trigger.click();
+      await links.first().click();
+      await waitForOutlineArrival(page, first, { requireVisible: true });
+      assert.equal(await page.evaluate(() => history.length), historyFirst, "same-hash click duplicated history");
+
+      await trigger.click();
+      await links.last().click();
+      await waitForOutlineArrival(page, last, { requireVisible: true });
+      assert.equal(await page.evaluate(() => history.length), historyFirst + 1, "different outline link must add a history entry");
+      await page.goBack({ waitUntil: "load" });
+      await page.waitForFunction(hash => location.hash === hash, first);
+      await page.goForward({ waitUntil: "load" });
+      await page.waitForFunction(hash => location.hash === hash, last);
+      return { first, last, historyBefore, historyFirst, back: first, forward: last };
+    }));
+
+  await check("outline keyboard: first and last projected links at every spoiler level", async () => {
+    const projections = [];
+    for (const level of levels) {
+      projections.push(await withPage({ viewport: { width: 390, height: 844 } }, `outline-level-${level}`, async page => {
+        await openArticle(page, level);
+        await observeOutlineEvents(page);
+        const trigger = page.locator(".readingOutlineTrigger");
+        const panel = page.locator(".readingOutlinePanel");
+        const hashes = await panel.locator("a").evaluateAll(links => links.map(link => link.hash));
+        const sectionIds = await page.locator(".articleSection").evaluateAll(sections => sections.map(section => `#${section.id}`));
+        assert.ok(hashes.length > 0, `${level}: projected outline is empty`);
+        assert.deepEqual(hashes, sectionIds, `${level}: outline includes a section outside the projection`);
+        for (const index of [...new Set([0, hashes.length - 1])]) {
+          await trigger.focus();
+          await page.keyboard.press("Enter");
+          await panel.waitFor({ state: "visible" });
+          await tabThroughOutline(page, hashes, index);
+          await page.keyboard.press("Enter");
+          await waitForOutlineArrival(page, hashes[index], { requireVisible: true });
+        }
+        return { level, links: hashes.length };
+      }));
+    }
+    return projections;
+  });
+
+  if (name === "chromium") {
+    await check("outline: modified click opens the projected fragment in a new tab", () =>
+      withPage({ viewport: { width: 390, height: 844 } }, "outline-modified-click", async (page, context) => {
+        await openArticle(page, "NONE");
+        await page.locator(".readingOutlineTrigger").click();
+        const hash = await page.locator(".readingOutlinePanel a").first().getAttribute("href");
+        const [newPage] = await Promise.all([
+          context.waitForEvent("page"),
+          page.locator(".readingOutlinePanel a").first().click({ modifiers: ["Control"] }),
+        ]);
+        await newPage.waitForLoadState("domcontentloaded");
+        const original = new URL(page.url());
+        const opened = new URL(newPage.url());
+        assert.equal(original.hash, "", "modified click changed the original tab");
+        assert.equal(opened.hash, hash);
+        assert.equal(opened.searchParams.get("spoilers"), "NONE", "new tab lost the spoiler projection");
+        await newPage.close();
+        return { original: original.pathname + original.search, opened: opened.pathname + opened.search + opened.hash };
+      }));
+  }
+
+  await check("outline: delayed fragment completion retains heading focus", () =>
+    withPage({ viewport: { width: 390, height: 844 } }, "outline-delayed-hash", async page => {
+      // Model a slow browser fragment navigation without replacing the real
+      // keyboard test above: the actual hash navigation still runs, later.
+      await page.addInitScript(() => {
+        document.addEventListener("click", event => {
+          const link = event.target instanceof Element ? event.target.closest(".readingOutlinePanel a") : null;
+          if (!link || event.defaultPrevented) return;
+          event.preventDefault();
+          const hash = link.hash;
+          window.__finishOutlineFragment = () => { window.location.hash = hash; };
+        }, true);
+      });
+      await openArticle(page);
+      await observeOutlineEvents(page);
+      const trigger = page.locator(".readingOutlineTrigger");
+      const hash = await page.locator(".readingOutlinePanel a").first().getAttribute("href");
+      const headingId = await page.locator(`[id="${hash.slice(1)}"]`).getAttribute("aria-labelledby");
+      await trigger.focus();
+      await page.keyboard.press("Enter");
+      await page.locator(".readingOutlinePanel").waitFor({ state: "visible" });
+      await tabThroughOutline(page, [hash], 0);
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(() => typeof window.__finishOutlineFragment === "function");
+      await page.waitForTimeout(100);
+      const before = await page.evaluate(() => ({ hash: location.hash, active: document.activeElement?.id }));
+      assert.equal(before.hash, "", `the simulated delay did not occur: ${JSON.stringify(before)}`);
+      assert.notEqual(before.active, headingId, "focus moved before fragment navigation completed");
+      await page.evaluate(() => window.__finishOutlineFragment());
+      await waitForOutlineArrival(page, hash, { requireVisible: true });
+      return { hash, simulatedDelay: true, before };
+    }));
+
   await check("outline: long-distance and repeated same-hash jumps with motion enabled", () =>
     withPage({ viewport: { width: 390, height: 844 }, reducedMotion: "no-preference" }, "outline-motion", async page => {
       await openArticle(page);
