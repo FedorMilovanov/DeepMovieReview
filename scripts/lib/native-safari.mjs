@@ -18,18 +18,36 @@ export function safariRequestTimeout(path) {
 }
 
 // Observe scrolling, font and visual-viewport completion without sending input.
-export async function waitForStableNativeTarget(read, { timeout = 10000, now = Date.now, pause = () => delay(100) } = {}) {
-  const deadline = now() + timeout;
-  let previous, stable = 0;
+// A cold hosted Simulator can take seconds per SafariDriver round trip, so the
+// budget must allow three observations rather than mistaking slow transport for
+// unstable layout. Readiness and three identical consecutive samples are still
+// mandatory; this does not replay a gesture or relax the hit-test.
+export async function waitForStableNativeTarget(read, { timeout = 45000, now = Date.now, pause = () => delay(100) } = {}) {
+  const started = now(), deadline = started + timeout;
+  const recent = [];
+  let previous, stable = 0, observations = 0;
   while (now() < deadline) {
+    const readStarted = now();
     const target = await read();
-    const key = target?.ready ? JSON.stringify(target) : undefined;
+    const key = target?.ready === true ? JSON.stringify(target) : undefined;
     stable = key && key === previous ? stable + 1 : 0;
     previous = key;
+    observations++;
+    // Store only whitelisted boolean conditions and timings, not unbounded
+    // page or driver content, in a failure receipt.
+    const conditions = {};
+    for (const name of ["documentComplete", "fontsLoaded", "elementPresent", "visibleRect", "hitContained"]) {
+      if (typeof target?.conditions?.[name] === "boolean") conditions[name] = target.conditions[name];
+    }
+    recent.push({ ready: target?.ready === true, stableMatches: stable, conditions,
+      readMs: Math.max(0, now() - readStarted), elapsedMs: Math.max(0, now() - started) });
+    if (recent.length > 3) recent.shift();
     if (stable >= 2) return target;
     await pause();
   }
-  throw new Error("Native target did not settle or remained occluded");
+  const error = new Error("Native target did not settle or remained occluded");
+  error.nativeTargetDiagnostics = { timeoutMs: timeout, elapsedMs: Math.max(0, now() - started), observations, recent };
+  throw error;
 }
 
 export async function nativeSafari(capabilities = {}, { beforeSession = async () => {}, retrySetup = async () => {} } = {}) {
