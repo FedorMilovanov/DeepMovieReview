@@ -210,8 +210,9 @@ for (const name of selected) {
             const outline = page.getByRole("button", { name: /^Разделы \d{2,} — оглавление статьи$/ });
             assert.ok(await outline.locator(".readingOutlineWord").isVisible());
             assert.equal((await outline.locator(".readingOutlineWord").textContent())?.trim(), "Разделы");
-            assert.equal(await outline.getAttribute("aria-label"),
-              `Разделы ${await outline.locator(".readingOutlinePosition").textContent()} — оглавление статьи`);
+            const position = await outline.locator(".readingOutlinePosition").textContent();
+            assert.equal((await outline.textContent())?.replace(/\s+/g, " ").trim(), `Разделы ${position}`);
+            assert.equal(await outline.getAttribute("aria-label"), `Разделы ${position} — оглавление статьи`);
             assert.ok(await page.evaluate(() => {
               const title = document.querySelector('.articleTitle');
               const controls = document.querySelector('.articleSpoilerBar');

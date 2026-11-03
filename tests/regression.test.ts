@@ -6221,7 +6221,7 @@ test("visible control labels remain in contextual accessible names", () => {
   }));
   assert.match(outline, /aria-label="Разделы 01 — оглавление статьи"/);
   assert.match(outline, /class="readingOutlineWord">Разделы<\/span>/);
-  assert.match(outline, /class="readingOutlinePosition" aria-hidden="true">01<\/span>/);
+  assert.match(outline, /<\/span> <span class="readingOutlinePosition" aria-hidden="true">01<\/span>/);
 
   const film = theTrumanShowCanonicalPackage;
   for (const spoilerLevel of ["NONE", "FULL"] as const) {

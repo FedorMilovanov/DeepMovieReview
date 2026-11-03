@@ -113,7 +113,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
         <span className="readingOutlineWord">Разделы</span>
         <span className="readingOutlineRail" aria-hidden="true">
           {sections.map(({ id }, index) => <i key={id} data-active={id === active} data-read={index < activeIndex} />)}
-        </span>
+        </span>{/* A real separator keeps the visible word and number distinct in label-in-name checks. */}{" "}
         <span className="readingOutlinePosition" aria-hidden="true">{position}</span>
       </button>
       <nav id="reading-outline-panel" className="articleOutline readingOutlinePanel" hidden={!open} aria-label="Разделы статьи">
