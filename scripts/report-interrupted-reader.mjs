@@ -35,9 +35,9 @@ for (const path of paths) {
         checks: report.results?.length, recent: report.results?.slice(-3), failures: report.failures }, null, 2);
     } catch { /* keep the incomplete bytes as diagnostic evidence */ }
   }
-  // Keep both the report's identity/first failure and its tail when a long
-  // network dump or stack trace exceeds the annotation budget.
-  const excerpt = body.length <= 8000 ? body : `${body.slice(0, 3900)}\n… diagnostic truncated …\n${body.slice(-3900)}`;
-  console.log(workflowError(`Interrupted audit diagnostic: ${path} (bounded to 8000 characters)\n${excerpt}`));
+  // GitHub truncates an individual annotation around 4096 characters. Leave
+  // room for its prefix so both identity/first failure and the tail survive.
+  const excerpt = body.length <= 3400 ? body : `${body.slice(0, 1650)}\n… diagnostic truncated …\n${body.slice(-1650)}`;
+  console.log(workflowError(`Interrupted audit diagnostic: ${path} (bounded to 3400 characters)\n${excerpt}`));
 }
 if (!found) console.log(workflowError("Browser audit failed before any audit or server log was available."));

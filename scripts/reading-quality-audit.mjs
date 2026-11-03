@@ -424,10 +424,15 @@ try {
           page => menuNavigation(page, source, input)));
     }
   }
-  await check("headlines: article and making retain readable line spacing", () =>
-    withPage({ viewport: { width: 390, height: 844 } }, "headlines", async page => {
-      const measured = [];
-      for (const [label, path] of [["article", `${article}?spoilers=FULL`], ["making", "/films/the-truman-show/making"]]) {
+  await check("headlines: article and making retain readable line spacing", async () => {
+    const measured = [];
+    for (const [label, path] of [["article", `${article}?spoilers=FULL`], ["making", "/films/the-truman-show/making"]]) {
+      // These are independent layout checks, not a navigation scenario. Give
+      // each document its own observed page and drain it before closing: a
+      // forced second goto can interrupt Next's automatic prefetches in WebKit.
+      // Page errors still fail the audit, and real menu/history navigation is
+      // exercised by the separate checks above and below.
+      measured.push(await withPage({ viewport: { width: 390, height: 844 } }, `headline-${label}`, async page => {
         await page.goto(`${base}${path}`, { waitUntil: "load" });
         const title = page.locator("h1.articleTitle");
         const dimensions = await title.evaluate(element => {
@@ -436,10 +441,11 @@ try {
         });
         assert.ok(dimensions.lineHeight / dimensions.fontSize >= 1.15, `${label}: headline line height is too tight`);
         await page.screenshot({ path: `${dir}/headline-${label}.png` });
-        measured.push({ label, ...dimensions });
-      }
-      return measured;
-    }));
+        return { label, ...dimensions };
+      }));
+    }
+    return measured;
+  });
   await check("homepage: single character card fills its desktop grid", () =>
     withPage({ viewport: { width: 1440, height: 900 } }, "character-grid", async page => {
       await page.goto(`${base}/`, { waitUntil: "load" });

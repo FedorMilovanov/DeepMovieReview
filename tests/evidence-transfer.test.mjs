@@ -320,6 +320,11 @@ test("interrupted reading diagnostics expose the engine, revision and original f
     assert.match(output, /50%25 of items/);
     assert.match(output, /diagnostic truncated/);
     assert.match(output, /end-of-trace/);
+    // The Checks API truncates long annotation messages; the runner decodes
+    // workflow-command escapes before publishing. Both ends must fit.
+    const annotation = output.split("\n").find(line => line.includes("reading-firefox/results.json"));
+    const decoded = annotation.replaceAll("%0A", "\n").replaceAll("%0D", "\r").replaceAll("%25", "%");
+    assert.ok(decoded.length < 4096, `diagnostic exceeds one annotation: ${decoded.length}`);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
