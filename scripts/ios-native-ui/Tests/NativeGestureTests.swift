@@ -67,12 +67,27 @@ final class NativeGestureTests: XCTestCase {
         // The harness then opens the safe scene URL in the same normal Safari.
         // It only navigates: all interactions below are native XCUITest input,
         // and the independent page observer must see the trusted events/state.
-        let predicate = NSPredicate(format: "label MATCHES %@", "Опоры · [0-9]+ — сцена «День 10 909»")
+        // XCTest can append native state to a web label. Require the complete
+        // expected scene-specific name, but do not require it to be the entire
+        // AX label. The independent observer still validates the exact touched
+        // summary and its trusted input, so a broader container cannot pass.
+        let description = "Опоры · 6 — сцена «День 10 909»"
+        let predicate = NSPredicate(format: "label CONTAINS %@", description)
         let button = safari.buttons.matching(predicate).firstMatch
         let other = safari.descendants(matching: .any).matching(predicate).firstMatch
         let foundButton = button.waitForExistence(timeout: 65)
         let support = foundButton ? button : other
-        XCTAssertTrue(foundButton || other.waitForExistence(timeout: 10), "Scene disclosure is absent from Safari's accessibility tree")
+        if !foundButton && !other.waitForExistence(timeout: 10) {
+            // Preserve actual AX names and a screenshot as failure diagnostics;
+            // the DOM observer alone cannot prove Safari exposed the control.
+            let hierarchy = safari.debugDescription
+            let matches = hierarchy.components(separatedBy: "\n").filter { $0.localizedCaseInsensitiveContains("опоры") || $0.localizedCaseInsensitiveContains("10909") || $0.localizedCaseInsensitiveContains("10 909") }
+            print("DMR scene-related AX entries: \(matches.prefix(30).joined(separator: "\n"))")
+            print("DMR Safari AX hierarchy: \(String(hierarchy.prefix(12000)))")
+            capture("DMR-scene-disclosure-missing")
+            XCTFail("Scene disclosure with its complete expected name is absent from Safari's accessibility tree")
+            return
+        }
         // Hash scrolling and Safari chrome can still be settling when the AX
         // node appears. XCTest's isHittable/activation-point resolver reported
         // an invalid point on 683fc54 even though the independent observer and

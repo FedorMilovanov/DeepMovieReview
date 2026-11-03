@@ -59,7 +59,10 @@ export function nativeObservationScript(token, { spoilerLastSectionId = null } =
       const support = details.querySelector('summary');
       const link = details.querySelector('a[href="#evidence-truman-ev-daycount"]');
       const target = document.getElementById('evidence-truman-ev-daycount');
+      // These are DOM attributes for diagnostics only, not proof of the
+      // separate native accessibility tree or a substitute for native input.
       return { open: details.open, support: box(support), link: box(link),
+        supportLabel: support?.getAttribute('aria-label'), supportText: support?.textContent?.trim(),
         sceneScroll: details.closest('.filmSceneTableWrap')?.scrollLeft,
         evidenceScroll: target?.closest('.evidenceRegisterWrap')?.scrollLeft,
         evidenceRect: target?.getBoundingClientRect().toJSON(), evidenceText: target?.innerText,
