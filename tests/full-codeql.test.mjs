@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { validateFullCodeQL } from "../scripts/check-full-codeql.mjs";
 import { packageFullCodeQLEvidence } from "../scripts/publish-full-codeql-evidence.mjs";
 
@@ -18,6 +19,23 @@ function report(language) {
     locations: [{ physicalLocation: { artifactLocation: { uriBaseId: "%SRCROOT%", uri: path } } }],
   }] }], results: [] }] };
 }
+
+test("full CodeQL keeps the database upload permission without enabling conflicting SARIF upload", () => {
+  const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
+  const job = workflow.match(/^  full-codeql:\n([\s\S]*?)(?=^  [a-z][a-z0-9-]*:\n|$(?![\s\S]))/m)?.[1];
+  assert.ok(job, "The full CodeQL job must exist");
+  const permissions = job.match(/^    permissions:\n([\s\S]*?)(?=^    \S)/m)?.[1];
+  assert.ok(permissions, "The job must declare scoped permissions");
+  assert.match(permissions, /^      contents: read$/m);
+  assert.match(permissions, /^      checks: write$/m);
+  assert.match(permissions, /^      security-events: write$/m);
+  const analyze = job.match(/- name: Analyze without conflicting with default setup\n([\s\S]*?)(?=^      - name:)/m)?.[1];
+  assert.ok(analyze);
+  assert.match(analyze, /^          upload: never$/m, "The supplemental SARIF must not conflict with default setup");
+  assert.doesNotMatch(analyze, /^          upload-database: ["']?false["']?$/m, "The database upload must remain enabled");
+  assert.match(job, /node scripts\/check-full-codeql\.mjs/);
+  assert.match(job, /node scripts\/publish-full-codeql-evidence\.mjs/);
+});
 
 test("full CodeQL security gate rejects diff/overlay, missing coverage, diagnostics and findings", () => {
   for (const language of Object.keys(config)) {

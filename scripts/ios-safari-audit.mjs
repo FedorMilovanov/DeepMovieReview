@@ -223,8 +223,10 @@ try {
     const box = await waitForStableNativeTarget(() => safari.execute(`const el=document.querySelector('.menuButton');
       const nav=document.getElementById('site-menu'), r=el?.getBoundingClientRect();
       const hit=r&&document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
-      return {ready:document.readyState==='complete'&&document.fonts.status==='loaded'&&!!r&&r.width>0&&r.height>0&&
-        r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1&&!!hit&&el.contains(hit),
+      const conditions={documentComplete:document.readyState==='complete',fontsLoaded:document.fonts.status==='loaded',
+        elementPresent:!!el,visibleRect:!!r&&r.width>0&&r.height>0&&r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,
+        hitContained:!!hit&&!!el&&el.contains(hit)};
+      return {ready:Object.values(conditions).every(Boolean),conditions,
         width:innerWidth,height:innerHeight,scroll:document.documentElement.scrollWidth,lang:document.documentElement.lang,
         h1:document.querySelectorAll('main h1').length,expanded:el?.getAttribute('aria-expanded'),inert:nav?.inert,
         visible:nav?getComputedStyle(nav).display!=='none':null,
@@ -274,10 +276,15 @@ try {
   report.phase = "native iOS scene support and evidence";
   await safari.goto(`http://127.0.0.1:3213${sceneRoute}`);
   const supportSelector = "#scene-truman-sc-day-10909 .filmSceneSupports summary";
-  const supportGeometry = await waitForStableNativeTarget(() => safari.execute(`const el = document.querySelector(${JSON.stringify(supportSelector)}), wrap = el.closest('.filmSceneTableWrap');
-    const r = el.getBoundingClientRect(), w = wrap.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-    return { ready: document.readyState === 'complete' && document.fonts.status === 'loaded' && r.top >= 60 && r.bottom <= innerHeight,
-      rect: r.toJSON(), wrap: w.toJSON(), scrollLeft: wrap.scrollLeft, innerWidth, innerHeight, hitContained: !!hit && el.contains(hit) };`));
+  const supportGeometry = await waitForStableNativeTarget(() => safari.execute(`const el = document.querySelector(${JSON.stringify(supportSelector)}), wrap = el?.closest('.filmSceneTableWrap');
+    const r = el?.getBoundingClientRect(), w = wrap?.getBoundingClientRect();
+    const hit = r && document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+    const conditions = { documentComplete: document.readyState === 'complete', fontsLoaded: document.fonts.status === 'loaded',
+      elementPresent: !!el && !!wrap, visibleRect: !!r && r.top >= 60 && r.bottom <= innerHeight,
+      hitContained: !!hit && !!el && el.contains(hit) };
+    return { ready: Object.values(conditions).every(Boolean), conditions,
+      rect: r?.toJSON() ?? null, wrap: w?.toJSON() ?? null, scrollLeft: wrap?.scrollLeft ?? null, innerWidth, innerHeight,
+      hitContained: conditions.hitContained };`));
   assert.ok(supportGeometry.rect.left >= supportGeometry.wrap.left && supportGeometry.rect.right <= supportGeometry.wrap.right + 1 &&
     supportGeometry.rect.top >= 60 && supportGeometry.rect.bottom <= supportGeometry.innerHeight && supportGeometry.hitContained && supportGeometry.scrollLeft === 0,
     `Mobile scene support must be visible and hittable without horizontal scrolling: ${JSON.stringify(supportGeometry)}`);
@@ -294,6 +301,9 @@ try {
   report.phase = "XCUITest native menus, scroll, scene and spoiler input";
   await runNativeGestureWithOneIsolatedRetry();
 } catch (error) {
+  // These are bounded, boolean/timing-only samples from the failed passive
+  // readiness wait; they do not turn the earlier failure into a passing scan.
+  if (error?.nativeTargetDiagnostics) report.failedNativeTargetReadiness = error.nativeTargetDiagnostics;
   // Session creation can fail before a WebDriver object exists. Preserve the
   // actual Simulator screen and bounded RWI logs instead of diagnosing a blank
   // browser or fabricating a product failure from the host's timeout alone.

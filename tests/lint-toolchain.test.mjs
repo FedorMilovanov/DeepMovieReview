@@ -25,7 +25,7 @@ const runOxlint = args => spawnSync(process.execPath, [oxlint, "--config", join(
 test("reviewed lint consumers resolve the patched minimatch and no local adapter", () => {
   const reviewed = {
     "node_modules/@eslint/config-array": "0.23.5",
-    "node_modules/@typescript-eslint/typescript-estree": "8.70.0",
+    "node_modules/@typescript-eslint/typescript-estree": "8.72.1",
     "node_modules/eslint": "10.14.0",
     "node_modules/eslint-plugin-jsx-a11y-x": "0.2.0",
   };
@@ -58,6 +58,42 @@ test("reviewed lint consumers resolve the patched minimatch and no local adapter
   assert.equal(matcher.match("other", true), false);
   assert.equal(engine.minimatch("src/.hidden/a.ts", "**/*.ts", { dot: true }), true);
   assert.equal(engine.minimatch("src/.hidden/a.ts", "**/*.ts"), false);
+});
+
+test("reviewed TypeScript project-service glob uses the patched matcher", async () => {
+  const { clearCaches, parseAndGenerateServices } = await import("@typescript-eslint/typescript-estree");
+  const dir = mkdtempSync(join(tmpdir(), "dmr-project-service-"));
+  const source = "export const value: number = 1;";
+  try {
+    // Neither file is included in the configured project. The hidden fixture
+    // succeeds only through allowDefaultProject's dot-enabled minimatch call.
+    writeFileSync(join(dir, "tsconfig.json"), JSON.stringify({ include: ["src/**/*.ts"] }));
+    writeFileSync(join(dir, ".fixture.ts"), source);
+    writeFileSync(join(dir, "excluded.ts"), source);
+    const options = (file, glob) => ({ filePath: join(dir, file), tsconfigRootDir: dir,
+      projectService: { allowDefaultProject: [glob] } });
+    clearCaches();
+    const parsed = parseAndGenerateServices(source, options(".fixture.ts", "*.ts"));
+    assert.ok(parsed.services.program, "the matching hidden file must get type information");
+    assert.equal(parsed.ast.body[0].type, "ExportNamedDeclaration");
+    // Project service options are cached globally, so isolate the negative case.
+    clearCaches();
+    assert.throws(() => parseAndGenerateServices(source, options("excluded.ts", "allowed*.ts")),
+      /does not match 'excluded\.ts'/);
+  } finally {
+    clearCaches();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("current browser, Node and ECMAScript globals remain usable", async () => {
+  const eslint = new ESLint({ cwd: root, overrideConfig: { rules: { "no-undef": "error" } } });
+  const [result] = await eslint.lintText(
+    "Intl.DateTimeFormat(); console.log(window.location, process.env.NODE_ENV); MissingProjectGlobal();",
+    { filePath: join(root, "src/__lint_globals__.js") },
+  );
+  const undefinedNames = result.messages.filter(message => message.ruleId === "no-undef").map(message => message.message);
+  assert.deepEqual(undefinedNames, ["'MissingProjectGlobal' is not defined."]);
 });
 
 test("patched minimatch bounds optimization-level-two expansion", () => {

@@ -681,7 +681,9 @@ jobs:
     permissions:
       contents: read
       checks: write
-      security-events: read
+      # CodeQL also uploads its database on the default branch; `upload: never`
+      # below disables only the conflicting SARIF upload, not that database.
+      security-events: write
     strategy:
       fail-fast: false
       matrix:

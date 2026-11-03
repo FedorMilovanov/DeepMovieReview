@@ -830,6 +830,43 @@ test("native touch waits for a stable hit target without repeating the gesture",
   }), /remained occluded/);
 });
 
+test("native readiness accommodates slow observation but preserves strict bounded failure evidence", async () => {
+  const { waitForStableNativeTarget } = await import("../scripts/lib/native-safari.mjs");
+  let clock = 0, reads = 0;
+  const stable = { ready: true, conditions: { documentComplete: true, fontsLoaded: true,
+    elementPresent: true, visibleRect: true, hitContained: true } };
+  const observed = await waitForStableNativeTarget(async () => { reads++; clock += 6000; return stable; }, {
+    now: () => clock, pause: async () => { clock += 100; },
+  });
+  assert.equal(reads, 3, "slow transport cannot replace the three real observations");
+  assert.equal(clock, 18200);
+  assert.deepEqual(observed, stable);
+
+  clock = 0; reads = 0;
+  await assert.rejects(waitForStableNativeTarget(async () => {
+    reads++;
+    return { ready: false, conditions: { documentComplete: true, fontsLoaded: false, hitContained: true,
+      untrustedPageText: "must not enter diagnostic receipt" } };
+  }, { now: () => clock, pause: async () => { clock += 100; }, timeout: 500 }), error => {
+    assert.match(error.message, /did not settle or remained occluded/);
+    assert.equal(error.nativeTargetDiagnostics.timeoutMs, 500);
+    assert.equal(error.nativeTargetDiagnostics.elapsedMs, 500);
+    assert.equal(error.nativeTargetDiagnostics.observations, 5);
+    assert.equal(error.nativeTargetDiagnostics.recent.length, 3);
+    assert.deepEqual(error.nativeTargetDiagnostics.recent[0].conditions,
+      { documentComplete: true, fontsLoaded: false, hitContained: true });
+    assert.ok(error.nativeTargetDiagnostics.recent.every(sample => !sample.ready && sample.stableMatches === 0));
+    assert.ok(!JSON.stringify(error.nativeTargetDiagnostics).includes("untrustedPageText"));
+    return true;
+  });
+  assert.equal(reads, 5);
+
+  clock = 0;
+  await assert.rejects(waitForStableNativeTarget(async () => ({ ready: "true" }), {
+    now: () => clock, pause: async () => { clock += 100; }, timeout: 300,
+  }), /remained occluded/, "a truthy non-boolean ready value cannot pass");
+});
+
 test("quaternary meta text clears AA on the lightest elevated surface", () => {
   const css = readStylesheet("src/styles/tokens.css");
   const token = name => css.match(new RegExp(`${name}\\s*:\\s*(#[0-9a-fA-F]{6})`))?.[1];
