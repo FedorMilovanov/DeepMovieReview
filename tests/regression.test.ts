@@ -7093,7 +7093,7 @@ test("corrected sources and absence claims stay within the public registry and s
     assert.ok(projected && projected.kind === "sources-method");
     const markup = renderToStaticMarkup(createElement(SourcesMethodModuleView, { module: projected }));
     assert.match(markup, /href="https:\/\/www\.paramount\.com\/movies\/the-truman-show"/);
-    assert.doesNotMatch(markup, /paramountpictures\.com\/movies\/the-truman-show/);
+    assert.equal(markup.includes("paramountpictures.com/movies/the-truman-show"), false);
     assert.equal(projected.sources.some((source) => source.id === "truman-src-filmplothub"), level === "FULL");
     assert.equal(projected.sources.some((source) => source.id === "truman-src-englishlit"), level === "FULL");
     assert.equal(markup.includes("FilmPlotHub"), level === "FULL");
