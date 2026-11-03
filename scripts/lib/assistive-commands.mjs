@@ -9,6 +9,13 @@ import { MacOSKeyCodes } from "@guidepup/guidepup";
 export const libraryDetectionRowSpeech = /библиотека[\s\S]*\b0 обнаруженных переходов/i;
 export const needsTableRowRead = speech => !libraryDetectionRowSpeech.test(speech.join(" "));
 
+// The visible count is part of the accessible name. NVDA may omit the middle
+// dot in speech; VoiceOver retains it. Require the count and the specific scene
+// together, then independently require an announced role and collapsed state.
+export const sceneSupportDisclosureSpeech = /опоры\s*(?:·\s*)?6\s*[—–-]\s*сцена\s*[«"]?\s*день\s*10\s*909(?!\d)\s*[»"]?/i;
+export const sceneSupportDisclosureRole = /\b(?:button|summary)\b|кнопк|сводк/i;
+export const sceneSupportDisclosureCollapsed = /\bcollapsed\b|св[её]рнут/i;
+
 // VoiceOver may announce the selected skip link and Safari's Page Menu rather
 // than saying "Item Chooser" (observed on bab389e). This only gates the setup:
 // selecting web content, entering it, and speaking the real link remain required.
