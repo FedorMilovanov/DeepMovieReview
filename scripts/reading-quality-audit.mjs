@@ -28,7 +28,7 @@ const report = {
   base,
   revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
   worktreeDirty: Boolean(execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim()),
-  results: [], failures: [], console: [], expectedConsole: [], pageErrors: [], requests: [], httpErrors: [],
+  results: [], failures: [], console: [], expectedConsole: [], pageErrors: [], pageErrorContexts: [], requests: [], httpErrors: [],
   inProgress: null, completed: false,
 };
 const pdfManifest = { browser: name, files: [], fullSections: [] };
@@ -44,14 +44,37 @@ const browser = await engine.launch({
 });
 report.version = browser.version();
 
-function observe(page, blockedScripts = false, javascriptDisabled = false) {
-  page.on("pageerror", error => report.pageErrors.push(String(error)));
+function observe(page, label, lifecycle, blockedScripts = false, javascriptDisabled = false) {
+  const pending = new Set();
+  const rscRequests = new Map();
+  page.on("request", request => {
+    pending.add(request);
+    const url = new URL(request.url());
+    if (!url.searchParams.has("_rsc")) return;
+    const headers = request.headers();
+    rscRequests.set(request, { url: request.url(), prefetch: headers["next-router-prefetch"] === "1" || headers.purpose === "prefetch", outcome: "pending" });
+  });
+  page.on("requestfinished", request => {
+    pending.delete(request);
+    const entry = rscRequests.get(request);
+    if (entry) entry.outcome = "finished";
+  });
+  page.on("pageerror", error => {
+    const message = String(error);
+    const rsc = /[?&]_rsc=([^&\s]+)/.exec(message)?.[1];
+    const relatedRsc = rsc ? [...rscRequests.values()].filter(entry => new URL(entry.url).searchParams.get("_rsc") === rsc).slice(-10) : [];
+    report.pageErrors.push(message);
+    report.pageErrorContexts.push({ label, phase: lifecycle.phase, page: page.url(), message, relatedRsc });
+  });
   page.on("console", message => {
     if (message.type() !== "error") return;
     if (blockedScripts && /Failed to load resource:.*ERR_(FAILED|ABORTED)/i.test(message.text())) report.expectedConsole.push(message.text());
     else report.console.push(message.text());
   });
   page.on("requestfailed", request => {
+    pending.delete(request);
+    const entry = rscRequests.get(request);
+    if (entry) entry.outcome = `failed: ${request.failure()?.errorText ?? "unknown"}`;
     const url = new URL(request.url());
     const error = request.failure()?.errorText ?? "unknown";
     const headers = request.headers();
@@ -71,19 +94,47 @@ function observe(page, blockedScripts = false, javascriptDisabled = false) {
       report.httpErrors.push({ status: response.status(), url: response.url() });
     }
   });
+  return () => new Promise((resolveQuiet, rejectQuiet) => {
+    let quietTimer;
+    const deadline = setTimeout(() => finish(new Error(`${label}: requests did not settle: ${[...pending].map(request => request.url()).join(", ")}`)), 10000);
+    function finish(error) {
+      clearTimeout(quietTimer);
+      clearTimeout(deadline);
+      page.off("request", update);
+      page.off("requestfinished", update);
+      page.off("requestfailed", update);
+      if (error) rejectQuiet(error); else resolveQuiet();
+    }
+    function update() {
+      clearTimeout(quietTimer);
+      if (!pending.size) quietTimer = setTimeout(() => finish(), 500);
+    }
+    page.on("request", update);
+    page.on("requestfinished", update);
+    page.on("requestfailed", update);
+    update();
+  });
 }
 
 async function withPage(options, label, run) {
   const { blockedScripts = false, ...contextOptions } = options;
   const context = await browser.newContext({ colorScheme: "dark", reducedMotion: "reduce", ...contextOptions });
   const page = await context.newPage();
-  observe(page, blockedScripts, contextOptions.javaScriptEnabled === false);
+  const lifecycle = { phase: "active" };
+  const waitForQuiet = observe(page, label, lifecycle, blockedScripts, contextOptions.javaScriptEnabled === false);
   try {
-    return await run(page, context);
+    const result = await run(page, context);
+    // Do not tear down a page while ordinary link prefetches are still in
+    // flight: some engines report close-induced rejections as page errors.
+    // A quiet-period timeout is itself a failed test; no error is filtered.
+    lifecycle.phase = "draining";
+    await waitForQuiet();
+    return result;
   } catch (error) {
     await page.screenshot({ path: `${dir}/failure-${label}.png` }).catch(() => {});
     throw error;
   } finally {
+    lifecycle.phase = "closing";
     await context.close();
   }
 }
@@ -716,7 +767,7 @@ try {
 }
 const unexpected = report.requests.filter(request => request.kind === "unexpected");
 if (report.pageErrors.length || report.console.length || report.httpErrors.length || unexpected.length) {
-  report.failures.push({ label: "browser errors/network", pageErrors: report.pageErrors, console: report.console, httpErrors: report.httpErrors, unexpected });
+  report.failures.push({ label: "browser errors/network", pageErrors: report.pageErrors, pageErrorContexts: report.pageErrorContexts, console: report.console, httpErrors: report.httpErrors, unexpected });
   save();
 }
 console.log(JSON.stringify({ browser: name, version: report.version, passed: report.results.length, failures: report.failures.length,
