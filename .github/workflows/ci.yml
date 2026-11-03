@@ -45,7 +45,7 @@ jobs:
           test "$actual" = "$expected"
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -378,7 +378,7 @@ jobs:
 
       - name: Upload browser audit evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: browser-audit-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
@@ -588,7 +588,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -608,7 +608,7 @@ jobs:
         run: node scripts/publish-a11y-evidence.mjs at-report/${{ matrix.reader }} ${{ matrix.reader }}
       - name: Upload actual AT evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: actual-at-${{ matrix.reader }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: at-report/
@@ -639,7 +639,7 @@ jobs:
           persist-credentials: false
       - name: Verify exact Swift checkout
         run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
       - name: Initialize Swift CodeQL
@@ -667,7 +667,7 @@ jobs:
         run: node scripts/publish-swift-codeql-evidence.mjs "${{ steps.analyze.outputs.sarif-output }}"
       - name: Retain unmodified Swift SARIF
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: swift-codeql-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/swift-codeql-results/
@@ -698,7 +698,7 @@ jobs:
       - name: Verify exact checkout
         shell: bash
         run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -725,7 +725,7 @@ jobs:
         run: node scripts/publish-full-codeql-evidence.mjs "${{ steps.analyze.outputs.sarif-output }}" "${{ matrix.language }}"
       - name: Retain unmodified SARIF
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: full-${{ matrix.language }}-codeql-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/full-codeql-results/
@@ -761,7 +761,7 @@ jobs:
           actual="$(git rev-parse HEAD)"
           echo "Native iOS revision: $actual"
           test "$actual" = "$expected"
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -791,7 +791,7 @@ jobs:
         run: node scripts/publish-a11y-evidence.mjs at-report/ios-gesture ios-gesture
       - name: Upload native iOS evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: actual-ios-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
@@ -825,7 +825,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
@@ -842,7 +842,7 @@ jobs:
         run: node scripts/publish-a11y-evidence.mjs a11y-report contrast-${{ matrix.browser }}
       - name: Preserve original and background-isolation PNG pairs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: contrast-${{ matrix.browser }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: a11y-report/
