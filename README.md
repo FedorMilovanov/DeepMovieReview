@@ -1,5 +1,7 @@
 # DeepMovieReview
 
+**Reader-oriented guide:** [evidence-backed engineering case](CASE_STUDY.md) · [editorial ownership and rights](OWNER.md) · [private vulnerability reporting](SECURITY.md). This repository builds a film-analysis experience; it does not own film masters, soundtracks or stills, and a `LOCKED` edition does not by itself prove a complete independent rewatch.
+
 **DeepMovieReview** is an interactive platform for deep analysis of cinema as stories about people. It combines plot and story structure, characters and psychology, relationships, family/youth/social formation, themes and worldview claims, narrative teaching signals, filmmaking craft, scene-level moral analysis, difficult decisions, biblical principles, editorial synthesis and — later — a clearly separate audience/community layer.
 
 The repository is now in **Film 001 vertical-slice production**. **The Truman Show (1998)** is marked `published` and uses a **`LOCKED` canonical edition**. Its evidence register distinguishes transcript, frame and pending checks; the recorded master identity does not imply that every scene has been independently rewatched with sound. Search indexing depends on the deployment policy and is disabled for previews. Structural fixture content remains separate and is not a published film judgment.
