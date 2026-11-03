@@ -15,6 +15,7 @@
     "audit:film001": "node scripts/film001-audit.mjs",
     "audit:homepage": "node scripts/homepage-audit.mjs",
     "audit:premium": "node scripts/premium-audit.mjs",
+    "audit:reading": "node scripts/reading-quality-audit.mjs",
     "test:a11y": "node scripts/accessibility-audit.mjs"
   },
   "dependencies": {

@@ -598,16 +598,17 @@ try {
   await evaluate("document.querySelector('#site-menu a[href=\"/#lenses\"]')?.click()");
   await waitForExpression("window.location.hash === '#lenses'");
   await waitForExpression("document.querySelector('.menuButton')?.getAttribute('aria-expanded') === 'false'");
+  await waitForExpression("document.activeElement === document.getElementById('lenses')");
   const mobileMenuAfterHashNavigation = JSON.parse(await evaluate(
-    "JSON.stringify((() => { const button=document.querySelector('.menuButton'); const menu=document.querySelector('#site-menu'); return {hash:location.hash,expanded:button?.getAttribute('aria-expanded'),inert:menu?.inert??null,open:menu?.dataset.open??null,focusReturned:document.activeElement===button}; })())"
+    "JSON.stringify((() => { const button=document.querySelector('.menuButton'); const menu=document.querySelector('#site-menu'); return {hash:location.hash,expanded:button?.getAttribute('aria-expanded'),inert:menu?.inert??null,open:menu?.dataset.open??null,focusAtTarget:document.activeElement===document.getElementById('lenses')}; })())"
   ));
   assertCheck(
-    "home mobile menu: same-route hash navigation closes the disclosure",
+    "home mobile menu: same-route hash navigation closes the disclosure and focuses the target",
     mobileMenuAfterHashNavigation.hash === "#lenses" &&
       mobileMenuAfterHashNavigation.expanded === "false" &&
       mobileMenuAfterHashNavigation.inert === true &&
       mobileMenuAfterHashNavigation.open === null &&
-      mobileMenuAfterHashNavigation.focusReturned === true,
+      mobileMenuAfterHashNavigation.focusAtTarget === true,
     mobileMenuAfterHashNavigation,
   );
   if (workbenchState.exists) {

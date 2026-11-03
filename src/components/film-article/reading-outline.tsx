@@ -1,11 +1,14 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type ReadingSection = { id: string; number: number; heading: string };
 
 /** One spoiler-projected contents list: mouse preview, click pin and keyboard access. */
 export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
+  const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [active, setActive] = useState(sections[0]?.id ?? "");
@@ -37,7 +40,9 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
     const observer = new ResizeObserver(schedule);
-    const article = root.current?.closest("article");
+    // The control is portalled into the sticky header after hydration; observe
+    // the article itself rather than assuming the control is still its child.
+    const article = document.querySelector(".articleShell");
     if (article) observer.observe(article);
     return () => {
       cancelAnimationFrame(frame);
@@ -76,7 +81,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
   if (!sections.length) return null;
   const activeIndex = Math.max(0, sections.findIndex(section => section.id === active));
   const position = String(activeIndex + 1).padStart(2, "0");
-  return (
+  const outline = (
     <div
       className="readingOutline"
       ref={root}
@@ -127,8 +132,14 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
               setActive(id);
               setOpen(false);
               setPinned(false);
-              // Let the native hash navigation run first, then focus its heading.
-              requestAnimationFrame(() => document.getElementById(`${id}-title`)?.focus({ preventScroll: true }));
+              // Let the native hash update run first. Re-land explicitly: a
+              // repeated link to the current hash need not scroll on its own.
+              requestAnimationFrame(() => {
+                const section = document.getElementById(id);
+                section?.scrollIntoView({ block: "start", inline: "nearest" });
+                const headingId = section?.getAttribute("aria-labelledby");
+                if (headingId) document.getElementById(headingId)?.focus({ preventScroll: true });
+              });
             }}
           >
             <span>{String(number).padStart(2, "0")}</span><strong>{heading}</strong>
@@ -136,5 +147,20 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
         ))}
       </nav>
     </div>
+  );
+  // The server/failed-hydration view is an ordinary list of hash links, so it
+  // works even if scripts are enabled but blocked. The inert button is hidden
+  // until hydration moves it into the reserved header slot.
+  const slot = hydrated ? document.getElementById("reading-outline-slot") : null;
+  if (slot) return createPortal(outline, slot);
+  return (
+    <>
+      <nav className="sectionShell articleOutline" aria-label="Разделы статьи без JavaScript">
+        {sections.map(({ id, number, heading }) => (
+          <a key={id} href={`#${id}`}><span>{number}</span><strong>{heading}</strong></a>
+        ))}
+      </nav>
+      {outline}
+    </>
   );
 }

@@ -761,10 +761,12 @@ test("reading layout wraps inset artwork and preserves accessible navigation", (
   assert.match(css, /float:\s*inline-end/);
   assert.doesNotMatch(css, /border-top:\s*1px solid var\(--stroke-warm\);\s*padding-top:\s*var\(--space-2\)/);
   const view = readFileSync("src/components/film-article/article-view.tsx", "utf8");
-  assert.match(view, /<noscript>/);
+  assert.match(view, /<ReadingOutline sections=\{readingSections\}/);
   assert.match(view, /Авторская иллюстрация, не кадр из фильма/);
   assert.doesNotMatch(view, /<figcaption>\{block.caption\}/);
   const outline = readFileSync("src/components/film-article/reading-outline.tsx", "utf8");
+  assert.match(outline, /aria-label="Разделы статьи без JavaScript"/);
+  assert.match(outline, /href=\{`#\$\{id\}`\}/);
   assert.match(outline, /aria-expanded=\{open\}/);
   assert.match(outline, /hidden=\{!open\}/);
   assert.match(outline, /observer.disconnect/);

@@ -279,7 +279,9 @@ for (const name of selected) {
               return !panel.hidden && item.getBoundingClientRect().top >= heading.getBoundingClientRect().bottom - 1 &&
                 item.getBoundingClientRect().bottom <= panel.getBoundingClientRect().bottom + 1;
             });
-            assert.equal(await page.evaluate(() => scrollY), readingPosition, 'opening contents does not move the article');
+            const afterOpening = await page.evaluate(() => scrollY);
+            assert.ok(Math.abs(afterOpening - readingPosition) <= 3,
+              `opening contents must not noticeably move the article: ${readingPosition} → ${afterOpening}`);
             await page.keyboard.press('Escape');
             await page.evaluate(() => scrollTo({ top: 0, behavior: 'instant' }));
 

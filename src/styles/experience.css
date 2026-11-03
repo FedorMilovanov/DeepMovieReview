@@ -85,7 +85,8 @@ html[data-document-visible="false"] .experienceDiagnostics {
   overscroll-behavior: contain;
   padding: 1rem;
   border: 1px solid var(--stroke-strong);
-  background: rgb(5 5 5 / 0.97);
+  /* Footer text sits directly beneath this upward-opening panel on phones. */
+  background: rgb(5 5 5);
   box-shadow: 0 22px 70px rgb(0 0 0 / 0.5);
 }
 

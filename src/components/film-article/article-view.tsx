@@ -404,13 +404,6 @@ export function ArticleView({
       </header>
 
       <ReadingOutline sections={readingSections} />
-      <noscript>
-        <nav className="sectionShell articleOutline" aria-label="Разделы статьи без JavaScript">
-          {readingSections.map(({ id, number, heading }) => (
-            <a key={id} href={`#${id}`}><span>{number}</span><strong>{heading}</strong></a>
-          ))}
-        </nav>
-      </noscript>
 
       {hiddenSections > 0 ? (
         <p className="sectionShell spoilerOmissionNotice" aria-live="polite">

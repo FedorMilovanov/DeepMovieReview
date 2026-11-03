@@ -436,7 +436,8 @@
 .lensSceneLink { align-self: flex-start; }
 
 .standEntryLink { display: inline-block; margin-top: 1rem; padding: 0.65rem 0; color: var(--ink-1); text-underline-offset: 4px; }
-.characterGridSingle { grid-template-columns: minmax(0, 1fr); }
+/* discovery.css declares the generic two-column grid later in the cascade. */
+.characterGrid.characterGridSingle { grid-template-columns: minmax(0, 1fr); }
 .homeCharacterVisual { float: right; width: min(45%, 30rem); margin: 0 0 1rem 2rem; }
 .homeCharacterVisual img { display: block; width: 100%; height: auto; }
 .homeCharacterVisual figcaption { padding-top: 0.6rem; color: var(--ink-2); font-size: 0.78rem; line-height: 1.45; }

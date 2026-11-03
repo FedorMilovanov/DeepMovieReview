@@ -258,7 +258,7 @@ function LensStage({ example, filmSlug }: { example?: HomepageViewModel["sceneEx
   const readings = new Map(example?.readings.map((reading) => [reading.lens, reading]) ?? []);
   const stageLenses = lensStageLenses.map((lens) => ({ ...lens, example: readings.get(lens.key) }));
   return (
-    <section id="lenses" className="sectionShell sectionRule lensStageSection" aria-labelledby="lenses-title">
+    <section id="lenses" className="sectionShell sectionRule lensStageSection" aria-labelledby="lenses-title" tabIndex={-1}>
       <div className="sectionIndex">Шесть линз</div>
       <h2 id="lenses-title">{example ? "Одна сцена — шесть прочтений." : "Один фильм. Шесть прочтений."}</h2>
       <p className="sectionIntro">

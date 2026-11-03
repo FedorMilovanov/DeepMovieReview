@@ -6228,6 +6228,9 @@ test("visible control labels remain in contextual accessible names", () => {
   const outline = renderToStaticMarkup(createElement(ReadingOutline, {
     sections: [{ id: "first", number: 1, heading: "Первый раздел" }, { id: "second", number: 2, heading: "Второй раздел" }],
   }));
+  assert.match(outline, /aria-label="Разделы статьи без JavaScript"/);
+  assert.match(outline, /href="#first"/);
+  assert.match(outline, /href="#second"/);
   assert.match(outline, /aria-label="Разделы 01 — оглавление статьи"/);
   assert.match(outline, /class="readingOutlineWord">Разделы<\/span>/);
   assert.match(outline, /<\/span> <span class="readingOutlinePosition" aria-hidden="true">01<\/span>/);
