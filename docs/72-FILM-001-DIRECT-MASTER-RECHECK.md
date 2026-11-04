@@ -45,23 +45,25 @@ This settles the **current file-to-edition identity** for the checked local copy
 
 ## All nine published stills: exact binary digests and bounded direct-master matches
 
-On 2026-11-04, downloaded the repository's nine JPEG and nine AVIF **bytes** under `assets/film-stills/` directly to disposable local memory and confirmed **all 18 SHA-256 values** match the corresponding `imageSha256` and `avifSha256` in `src/data/films/the-truman-show-stills.ts`. This is a complete check of the **registered published image inventory**, not a legal use-rights determination. The nine JPEGs were also compared with decoded frames from the independently hashed original master in bounded windows at one-second sampling (400×225 luminance correlation); one-second intervals are **not exact PTS resolution**. Full-size selected frames were visually inspected for ambiguous cases.
+On 2026-11-04, fetched the repository's nine JPEG and nine AVIF **bytes** under `assets/film-stills/` directly into disposable local memory and confirmed **all 18 SHA-256 values** match the corresponding `imageSha256` and `avifSha256` in `src/data/films/the-truman-show-stills.ts`. This is a complete check of the **registered image inventory**, not a determination of permission to publish film frames.
 
-| Still | Historic nominal bin/start (s) | Best sampled master location (s) | Luminance correlation | Interpretation |
-| --- | ---: | ---: | ---: | --- |
-| Light | 210 | ~225 | 0.8919 | Visual scene matches, nominal 30-s bin start versus midpoint |
-| Rain | 750 | ~766 | 0.8936 | Visual scene matches, nominal bin versus midpoint |
-| Radio | 1800 | ~1815 | 0.6082 | Exact original still visually matched a higher-resolution 1815-s frame; low grayscale score due transient face pose / image comparison, not evidence of wrong film |
-| Monitor | 3450 | ~3464 | 0.9785 | Strong direct frame match |
-| Kitchen product | 3240 | ~3255 | 0.1419 | **Visual inspection** of full-size original 3255-s frame shows the same hand/packaging shot as the JPEG, although 1-s image matcher picked a low-score other frame; do not treat low numerical score as a failed provenance proof |
-| Meryl tools | 3265 | ~3265 | 0.4354 | Full-resolution source 3265-s frame shows matching actress, tools and composition; weak score from transcode/crop/nearby motion |
-| Meryl held | 3275 | ~3275 | 0.9807 | Strong direct frame match |
-| Reunion | 3591 | ~3590 | 0.8436 | Direct scene matches within sampling uncertainty |
-| Exit | 5700 | ~5716 | 0.9576 | Strong direct frame match, nominal bin versus midpoint |
+The first **coarse** local comparison sampled decoded original-master frames at one-second intervals around each nominal mark and produced misleadingly low correlations for three visually matching shots. Those coarse scores were **not** used for the final matching assessment. A second independent check explicitly decoded **one original-master frame at the specified source second per still**, scaled that RGB frame and the registered JPEG to the same 400×225 dimensions, then computed full-image luminance Pearson correlation and RGB mean absolute pixel difference (`MAE` in 0–255 channel values). Crucially, this was a fresh direct decode, **not the previous indexed-frame result**. Full-resolution source frames were also inspected where the first search was ambiguous.
 
-**Important:** `sampleTimeSeconds` for each 30-second **grid** still denotes the historic **bin start** (multiples of 30), not an independently measured source-frame PTS. The selected image falls approximately 15 s later; a timestamp *labelled as an exact frame capture* would be misleading. Preserve the existing schema and historical sampling semantics rather than silently changing all labels to measured values inferred from one-second comparison. Clip images use clip-origin + offset separately. Do not change canonical evidence timestamps or interpretations based solely on this alignment, and do not claim every byte of each still was re-derived identically by FFmpeg; image digests and visual scene matches are distinct checks.
+| Still | Historical nominal time (s) | Direct seek in original MKV (s) | Correlation | RGB MAE | Bounded result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Light | 210 | 225 | 0.99683 | 3.87 | Same fixture and composition; ~15 s bin offset |
+| Rain | 750 | 766 | 0.89545 | 3.37 | Same localized rainfall; ~16 s bin offset |
+| Radio | 1800 | 1815 | 0.96368 | 10.08 | Same turning face and in-car composition; former weak coarse score discarded |
+| Monitor | 3450 | 3464 | 0.92598 | 8.69 | Same monitor shot; ~14 s bin offset |
+| Kitchen product | 3240 | 3255 | 0.95533 | 5.99 | Same hand, kitchen counter and tool packaging; former weak coarse score discarded |
+| Meryl tools | 3265 | 3265 | 0.99883 | 2.68 | Same actress, tools and framing; former weak coarse score discarded |
+| Meryl held | 3275 | 3275 | 0.99877 | 2.77 | Same TV-monitor shot |
+| Reunion | 3591 | 3590 | 0.80801 | 7.60 | Same reunion, approximately one second different |
+| Exit | 5700 | 5716 | 0.94457 | 5.35 | Same exit shot; ~16 s bin offset |
 
-No copyrighted stills or extracted master frames were added to the repository. The local inspection script, fetched still bytes and sampled frames were ephemeral and discarded after this check.
+**Important:** `sampleTimeSeconds` for each 30-second `samplingKind: "grid"` still is the **nominal start of a historical sampling bin** (multiples of 30), not an independently verified exact source-frame presentation timestamp (PTS). The selected image falls approximately at the bin midpoint. Do not silently replace canonical scene/evidence anchor times with these matched still-frame estimates, relabel nominal bins as exact film PTS, or claim that every byte of a film-derived JPG/AVIF is identical to a new decode. Per-file SHA-256 verifies the **repository image bytes**; scene matching against the exact master is a **separate** visual check with time and resolution limits. The clip-derived stills use their independently recorded clip start + offset. These checks cannot establish film-image use rights or complete synchronized viewing of the original.
+
+No copyrighted stills or extracted master frames were committed or uploaded. Temporary local script, fetched still bytes and sampled media were deleted after the checks.
 
 ## Open editorial decisions — do not claim full closure
 
