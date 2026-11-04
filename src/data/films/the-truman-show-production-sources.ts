@@ -102,7 +102,7 @@ export const trumanProductionSources: ProductionSource[] = [
     label: "The Truman Show",
     publisher: "Wikipedia (English)",
     url: "https://en.wikipedia.org/wiki/The_Truman_Show",
-    tier: "SECONDARY",
+    tier: "TERTIARY",
     checkedOn: "2026-10-28",
     supports:
       "Сводная хроника разработки и кастинга со сносками: одностраничный тритмент 1991-го, покупка сценария осенью 1993-го, оценки бюджета, список режиссёров, 16 драфтов, съёмки 09.12.1996–21.04.1997, Хоппер и Харрис, Линни и каталоги Sears, локации, CGI, музыка.",
@@ -112,7 +112,7 @@ export const trumanProductionSources: ProductionSource[] = [
     label: "Seaside, Florida",
     publisher: "Wikipedia (English)",
     url: "https://en.wikipedia.org/wiki/Seaside,_Florida",
-    tier: "SECONDARY",
+    tier: "TERTIARY",
     checkedOn: "2026-10-28",
     supports:
       "История города: 80 акров, застройка с 1981 года, Роберт Дэвис, Андрес Дуани и Элизабет Плейтер-Зайберк, новая урбанистика; в 1998-м город стал площадкой фильма.",
@@ -122,7 +122,7 @@ export const trumanProductionSources: ProductionSource[] = [
     label: "The Truman Show: Music from the Motion Picture",
     publisher: "Wikipedia (English)",
     url: "https://en.wikipedia.org/wiki/The_Truman_Show:_Music_from_the_Motion_Picture",
-    tier: "SECONDARY",
+    tier: "TERTIARY",
     checkedOn: "2026-10-28",
     supports:
       "Состав саундтрека: Далльвиц, четыре пьесы Гласса из Powaqqatsi / Anima Mundi / Mishima, первая часть Mishima на финальных титрах, камео Гласса, премия «Золотой глобус» за музыку.",
@@ -132,7 +132,7 @@ export const trumanProductionSources: ProductionSource[] = [
     label: "Burkhard Dallwitz",
     publisher: "Wikipedia (English)",
     url: "https://en.wikipedia.org/wiki/Burkhard_Dallwitz",
-    tier: "SECONDARY",
+    tier: "TERTIARY",
     checkedOn: "2026-10-28",
     supports:
       "Биография композитора и награды за «Шоу Трумана»: «Золотой глобус» вместе с Глассом, приз Chicago Film Critics, ASCAP.",
@@ -142,7 +142,7 @@ export const trumanProductionSources: ProductionSource[] = [
     label: "Special Service (The Twilight Zone, 1989)",
     publisher: "Wikipedia (English)",
     url: "https://en.wikipedia.org/wiki/Special_Service",
-    tier: "SECONDARY",
+    tier: "TERTIARY",
     checkedOn: "2026-10-28",
     supports:
       "Эпизод «Сумеречной зоны» (1989, сценарий Дж. Майкла Стражински): человек пять лет живёт под камерами, его жизнь показывают как шоу; критики отмечали сходство с «Шоу Трумана».",
@@ -973,7 +973,7 @@ export const trumanProductionSources: ProductionSource[] = [
     label: "52nd British Academy Film Awards",
     publisher: "Wikipedia",
     url: "https://en.wikipedia.org/wiki/52nd_British_Academy_Film_Awards",
-    tier: "SECONDARY",
+    tier: "TERTIARY",
     checkedOn: "2026-10-29",
     supports:
       "52-я церемония BAFTA (11 апреля 1999): у «Шоу Трумана» семь номинаций и три победы — режиссура (Уир), оригинальный сценарий (Никкол), работа художника (Деннис Гэсснер); также номинации за «Лучший фильм», второй план (Харрис), операторскую работу (Бизу) и спецэффекты.",
@@ -994,7 +994,7 @@ export const trumanProductionSources: ProductionSource[] = [
     label: "56th Golden Globe Awards",
     publisher: "Wikipedia",
     url: "https://en.wikipedia.org/wiki/56th_Golden_Globe_Awards",
-    tier: "SECONDARY",
+    tier: "TERTIARY",
     checkedOn: "2026-10-29",
     supports:
       "56-я церемония «Золотого глобуса» (24 января 1999): у «Шоу Трумана» шесть номинаций и три победы — столько же наград, сколько у «Влюблённого Шекспира»; победы: Керри (драматическая главная роль), Харрис (второй план), музыка.",
@@ -1004,7 +1004,7 @@ export const trumanProductionSources: ProductionSource[] = [
     label: "Big Brother (franchise)",
     publisher: "Wikipedia",
     url: "https://en.wikipedia.org/wiki/Big_Brother_(franchise)",
-    tier: "SECONDARY",
+    tier: "TERTIARY",
     checkedOn: "2026-10-29",
     supports:
       "Хронология франшизы: первый Big Brother вышел в Нидерландах в 1999 году, международные версии пошли с 2000-го; отдельная статья о первом сезоне называет датой премьеры 16 сентября 1999 года.",
@@ -1030,6 +1030,106 @@ export const trumanProductionSources: ProductionSource[] = [
     supports:
       "Официальная карточка фильма на сайте академии: 3 номинации — Ed Harris (Actor in a Supporting Role), Peter Weir (Directing), Andrew Niccol (Writing, Screenplay Written Directly for the Screen). Побед у фильма нет; лучшим фильмом года назван «Shakespeare in Love».",
   },
+  {
+    id: "src-niccol-2002-interview",
+    label: "Andrew Niccol on The Truman Show and Gattaca (2002)",
+    publisher: "SPLICEDwire",
+    url: "https://splicedwire.com/02features/aniccol.html",
+    tier: "PRIMARY",
+    checkedOn: "2026-11-04",
+    supports:
+      "Никкол лично рассказывает, что студия не доверила ему дебют с предполагаемым бюджетом 80 миллионов долларов; это мотивировало его первым снять «Гаттаку».",
+  },
+  {
+    id: "src-dga-weir-carrey",
+    label: "Uncommon Man — Peter Weir interview",
+    publisher: "Directors Guild of America",
+    url: "https://www.dga.org/craft/dgaq/issues/1002-summer-2010/dga-interview-peter-weir",
+    tier: "PRIMARY",
+    checkedOn: "2026-11-04",
+    supports:
+      "Сам Уир: после просмотра «Эйс Вентуры» он видел в роли Трумана исключительно Джима Керри и предпочёл ждать его доступности.",
+  },
+  {
+    id: "src-latimes-hopper-1997",
+    label: "Is Jim Carrey Flying in the Face of Success, Again? (1997)",
+    publisher: "Los Angeles Times",
+    url: "https://www.latimes.com/archives/la-xpm-1997-04-09-ca-46744-story.html",
+    tier: "SECONDARY",
+    checkedOn: "2026-11-04",
+    supports:
+      "Публикация 9 апреля 1997 года сообщает об уходе Денниса Хоппера после одного съёмочного дня; современное объяснение — творческие разногласия, замена — Эд Харрис.",
+  },
+  {
+    id: "src-index-hopper-1999",
+    label: "Dennis Hopper interviewed by Tony Shafrazi (1999)",
+    publisher: "Index Magazine",
+    url: "https://www.indexmagazine.com/interviews-dennis-hopper",
+    tier: "PRIMARY",
+    checkedOn: "2026-11-04",
+    supports:
+      "Сам Хоппер утверждает, что готовился к роли несколько месяцев, отработал один день и был уволен по решению продюсера Рудина после первого материала; это его собственная версия.",
+  },
+  {
+    id: "src-denofgeek-harris-role",
+    label: "Iconic movie roles landed at the last minute — Ed Harris",
+    publisher: "Den of Geek",
+    url: "https://www.denofgeek.com/movies/iconic-movie-roles-that-were-landed-at-the-last-minute/",
+    tier: "SECONDARY",
+    checkedOn: "2026-11-04",
+    supports:
+      "Редакционная статья о поздней замене Хоппера отмечает, что Харрис подумывал придать Кристофу горб, но эта идея не вошла в фильм.",
+  },
+  {
+    id: "src-glass-weir-1998-notes",
+    label: "The Truman Show soundtrack — original Peter Weir liner notes",
+    publisher: "Philip Glass / Milan Records",
+    url: "https://philipglass.com/recordings/truman_show/",
+    tier: "PRIMARY",
+    checkedOn: "2026-11-04",
+    supports:
+      "Подлинные заметки Уира к альбому 1998 года: он впервые услышал Далльвица в саундтреке Zone 39 и утвердился в выборе после первого написанного фрагмента; официальный список композиторов.",
+  },
+  {
+    id: "src-glass-bfi-film-notes",
+    label: "The Truman Show — BFI Philip Glass film-score programme",
+    publisher: "BFI / Philip Glass",
+    url: "https://philipglass.com/glassnotes/shiftinglayers/",
+    tier: "SECONDARY",
+    checkedOn: "2026-11-04",
+    supports:
+      "Программа BFI подтверждает краткое камео Гласса в фильме за пианино и разделяет его новые композиции и основную партитуру Далльвица.",
+  },
+  {
+    id: "src-bafta-1999-results",
+    label: "BAFTA Film Awards 1999 — official results",
+    publisher: "BAFTA",
+    url: "https://www.bafta.org/awards/film/?award-year=1999",
+    tier: "PRIMARY",
+    checkedOn: "2026-11-04",
+    supports:
+      "Официальный реестр BAFTA подтверждает семь номинаций «Шоу Трумана» и победы в режиссуре, оригинальном сценарии и работе художника-постановщика.",
+  },
+  {
+    id: "src-acmi-weir-2023",
+    label: "Crafting Reality: Peter Weir on The Truman Show’s impact (2023)",
+    publisher: "ACMI",
+    url: "https://www.acmi.net.au/stories-and-ideas/truman-show-25-pt-2-peter-weir/",
+    tier: "PRIMARY",
+    checkedOn: "2026-11-04",
+    supports:
+      "Сам Уир в интервью ACMI объясняет, что не предвидел расцвета реалити-ТВ и поздней актуальности философского вопроса о реальности, а также рассказывает о выборе Керри.",
+  },
+  {
+    id: "src-filmgent-10909",
+    label: "The Truman Show — festival programme",
+    publisher: "Film Fest Gent",
+    url: "https://www.filmfestival.be/en/film/the-truman-show",
+    tier: "SECONDARY",
+    checkedOn: "2026-11-04",
+    supports:
+      "Кураторское описание фильма фиксирует начало истории на дне 10 909 жизни Трумана; не удостоверяет написание этой цифры на конкретном плакате.",
+  },
 ];
 
 
@@ -1048,8 +1148,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-niccol-direct",
-    text: "Часть сделки предполагала режиссёрский дебют Никкола, но студия сочла смету в 80 миллионов чрезмерной для дебютанта и доплатила ему за то, чтобы он «отошёл в сторону».",
-    sourceIds: ["src-wikipedia-truman", "src-filmycks"],
+    text: "По Variety, сделка предполагала режиссёрский дебют Никкола, но сам сценарист рассказывал, что студия не хотела доверять дебютанту фильм с предполагаемым бюджетом 80 миллионов долларов; первым он снял менее дорогостоящую «Гаттаку».",
+    sourceIds: ["src-variety-treatment","src-niccol-2002-interview"],
     status: "CONFIRMED",
   },
   {
@@ -1114,20 +1214,20 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-robin-williams",
-    text: "Робин Уильямс рассматривался на роль Трумана, но Уир выбрал Керри после «Эйс Вентуры», сравнив его с Чаплином; Гэри Олдман, по данным сводки, проходил пробы.",
-    sourceIds: ["src-wikipedia-truman"],
+    text: "Питер Уир вспоминал, что после «Эйс Вентуры» увидел в Джиме Керри своего единственного Трумана; он предпочёл дождаться актёра, а не искать замену.",
+    sourceIds: ["src-dga-weir-carrey","src-acmi-weir-2023"],
     status: "CONFIRMED",
   },
   {
     id: "claim-hopper-cast",
-    text: "Съёмки начались с Деннисом Хоппером в роли Кристофа, но в апреле 1997 года, вскоре после старта, он покинул проект из-за «творческих разногласий».",
-    sourceIds: ["src-wikipedia-truman", "src-simple-wiki", "src-awakeinthedark"],
+    text: "Современная публикация Los Angeles Times от 9 апреля 1997 года фиксирует уход Денниса Хоппера после одного съёмочного дня по объявленной причине творческих разногласий; роль перешла к Эду Харрису.",
+    sourceIds: ["src-latimes-hopper-1997","src-index-hopper-1999"],
     status: "CONFIRMED",
   },
   {
     id: "claim-hopper-two-days",
-    text: "Сам Хоппер говорил, что его уволили через два дня, потому что Уир и Рудин договорились менять актёра, если оба не одобрят его игру.",
-    sourceIds: ["src-wikipedia-truman", "src-simple-wiki"],
+    text: "Сам Хоппер рассказывал в интервью 1999 года об одном съёмочном дне и утверждал, что продюсер Скотт Рудин принял решение об увольнении после первого материала; эта трактовка остаётся мнением участника.",
+    sourceIds: ["src-index-hopper-1999","src-latimes-hopper-1997"],
     status: "CONFIRMED",
   },
   {
@@ -1144,8 +1244,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-harris-hunchback",
-    text: "Харрис предлагал сделать Кристофа горбуном; Уиру эта идея не понравилась.",
-    sourceIds: ["src-wikipedia-truman"],
+    text: "Den of Geek сообщает, что Эд Харрис рассматривал возможность придать Кристофу горб; этот элемент не попал в готовый экранный образ.",
+    sourceIds: ["src-denofgeek-harris-role"],
     status: "CONFIRMED",
   },
   {
@@ -1228,14 +1328,14 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-cgi-upper-floors",
-    text: "Верхние этажи крупных зданий центральной улицы дорисовали цифрово: в 1997 году студии эффектов как раз переходили на CGI, а искусственность города позволяла моделям быть проще.",
-    sourceIds: ["src-wikipedia-truman"],
+    text: "По Turner Classic Movies, визуальные эффекты добавляли этажи некоторым зданиям и корректировали внешний контур города в общих планах, поддерживая его слегка искусственную эстетику.",
+    sourceIds: ["src-tcm"],
     status: "CONFIRMED",
   },
   {
     id: "claim-dallwitz-hired",
-    text: "Буркхард Далльвиц получил работу после того, как Уир в Австралии на постпродакшне услышал кассету с его музыкой.",
-    sourceIds: ["src-wikipedia-truman", "src-wikipedia-dallwitz"],
+    text: "Согласно заметкам Питера Уира к альбому 1998 года, музыку Далльвица он впервые услышал в фильме «Zone 39» и окончательно убедился после прослушивания первого музыкального фрагмента для «Шоу Трумана».",
+    sourceIds: ["src-glass-weir-1998-notes"],
     status: "CONFIRMED",
   },
   {
@@ -1246,8 +1346,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-glass-cameo",
-    text: "Гласс появляется в кадре как один из студийных композиторов-исполнителей, играющих «Truman Sleeps».",
-    sourceIds: ["src-wikipedia-truman", "src-wikipedia-soundtrack"],
+    text: "Программа BFI отмечает краткое появление Филипа Гласса за пианино в кадре фильма, а оригинальный саундтрек отдельно указывает композиции Гласса и Далльвица.",
+    sourceIds: ["src-glass-bfi-film-notes","src-glass-weir-1998-notes"],
     status: "CONFIRMED",
   },
   {
@@ -1282,8 +1382,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-bafta-wins",
-    text: "В BAFTA фильм взял три статуэтки из семи номинаций — за режиссуру (Уир), оригинальный сценарий (Никкол) и работу художника (Деннис Гэсснер); в остальных четырёх номинациях стояли «Лучший фильм», Харрис, операторская работа Бизу и спецэффекты.",
-    sourceIds: ["src-wikipedia-bafta", "src-the-take", "src-filmbooster", "src-paramount-site"],
+    text: "Официальный протокол BAFTA 1999 года подтверждает семь номинаций фильма и три награды: за режиссуру Питера Уира, оригинальный сценарий Эндрю Никкола и работу художника-постановщика Денниса Гэсснера.",
+    sourceIds: ["src-bafta-1999-results"],
     status: "CONFIRMED",
   },
   {
@@ -1330,8 +1430,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-weir-irony",
-    text: "Уир оглядывался на фильм с иронией: «это было опасное кино, потому что такого не могло случиться. Как иронично».",
-    sourceIds: ["src-wikipedia-truman"],
+    text: "В интервью ACMI 2023 года Питер Уир говорил, что не ожидал, насколько его фильм предвосхитит реалити-телевидение и вновь станет поводом размышлять о природе реальности.",
+    sourceIds: ["src-acmi-weir-2023"],
     status: "CONFIRMED",
   },
   {
@@ -1342,8 +1442,8 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-day-count",
-    text: "Надпись «DAY 10 909» на постере и в интерфейсе шоу задаёт стаж трансляции — без малого тридцать лет к моменту, когда Труман начинает сомневаться.",
-    sourceIds: ["src-filmdaze", "src-wikipedia-truman"],
+    text: "Фильм представлен как 10 909-й день жизни Трумана в телешоу — отметка подтверждается Film Fest Gent; сведения о конкретном рекламном плакате этой цитатой не доказываются.",
+    sourceIds: ["src-filmgent-10909"],
     status: "CONFIRMED",
   },
   {

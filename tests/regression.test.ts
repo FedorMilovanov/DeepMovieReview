@@ -5181,8 +5181,39 @@ test("Film 001 share art is declared, validated and shaped like a card", () => {
 // source from a new session means adding its date here first.
 // Variety, Gutenberg and the current archive page were reopened on 2026-10-30 UTC.
 // The 2026-11-03 sitting rechecked only these sources (docs/71).
-const RESEARCH_SITTINGS = ["2026-10-28", "2026-10-29", "2026-10-30", "2026-11-03"];
+const RESEARCH_SITTINGS = ["2026-10-28", "2026-10-29", "2026-10-30", "2026-11-03", "2026-11-04"];
 const RECHECKED_ON_NOVEMBER_3 = new Set(["src-lozier", "src-markpshea"]);
+
+const RECHECKED_ON_NOVEMBER_4 = new Set(["src-niccol-2002-interview","src-dga-weir-carrey","src-latimes-hopper-1997","src-index-hopper-1999","src-denofgeek-harris-role","src-glass-weir-1998-notes","src-glass-bfi-film-notes","src-bafta-1999-results","src-acmi-weir-2023","src-filmgent-10909"]);
+
+test("Film 001 source tiers and confirmed claims use independent research", () => {
+  const dossier = theTrumanShowProductionDossier;
+  const map = new Map(dossier.sources.map((source) => [source.id, source]));
+  const wikipedia = dossier.sources.filter((source) => source.id.startsWith("src-wikipedia-"));
+  assert.equal(wikipedia.length, 8);
+  for (const source of wikipedia) {
+    assert.equal(source.tier, "TERTIARY", source.id + " is a tertiary lead");
+  }
+  const nov4 = dossier.sources.filter((source) => source.checkedOn === "2026-11-04");
+  assert.equal(nov4.length, RECHECKED_ON_NOVEMBER_4.size);
+  for (const source of nov4) {
+    assert.ok(RECHECKED_ON_NOVEMBER_4.has(source.id), source.id + " must be documented");
+  }
+  const audited = ["claim-niccol-direct","claim-robin-williams","claim-hopper-cast","claim-hopper-two-days","claim-harris-hunchback","claim-cgi-upper-floors","claim-dallwitz-hired","claim-glass-cameo","claim-bafta-wins","claim-weir-irony","claim-day-count"];
+  for (const id of audited) {
+    const claim = dossier.claims.find((item) => item.id === id);
+    assert.ok(claim, "retained claim " + id);
+    assert.equal(claim.status, "CONFIRMED");
+    assert.ok(claim.sourceIds.some((sourceId) => {
+      const source = map.get(sourceId);
+      return source && source.tier !== "TERTIARY" && !source.url.includes("wikipedia.org");
+    }), id + " must have independently credible support");
+  }
+  const hopper = dossier.claims.find((claim) => claim.id === "claim-hopper-two-days");
+  assert.ok(hopper?.text.includes("одном съёмочном дне"));
+  assert.ok(!dossier.sections.some((section) => section.heading === "Семь имён на одну режиссёрскую ставку"));
+  assert.doesNotMatch(JSON.stringify(dossier.sections), /пресс-джуне/);
+});
 
 test("Film 001 production dossier holds its own register", () => {
   const dossier = theTrumanShowProductionDossier;
