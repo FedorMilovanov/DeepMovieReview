@@ -19,13 +19,14 @@ const results = [];
 const stillsAtLevel = {
   NONE: ["truman-light-210.jpg"],
   MINOR: ["truman-light-210.jpg", "truman-rain-750.jpg", "truman-radio-1800.jpg",
-    "truman-ghost-913.jpg", "truman-newspaper-1842.jpg"],
+    "truman-ghost-913.jpg", "truman-newspaper-1842.jpg", "truman-elevator-2110.jpg"],
   MAJOR: ["truman-light-210.jpg", "truman-rain-750.jpg", "truman-radio-1800.jpg", "truman-monitor-3450.jpg",
     "truman-meryl-tools-3265.jpg", "truman-kitchen-screen-3275.jpg", "truman-reunion-3591.jpg",
-    "truman-ghost-913.jpg", "truman-newspaper-1842.jpg"],
+    "truman-ghost-913.jpg", "truman-newspaper-1842.jpg", "truman-elevator-2110.jpg", "truman-sylvia-1605.jpg"],
 };
 stillsAtLevel.ENDING = [...stillsAtLevel.MAJOR, "truman-kitchen-3240.jpg", "truman-exit-5700.jpg",
-  "truman-santa-maria-4981.jpg", "truman-sail-139-5235.jpg", "truman-wall-stairs-5510.jpg"];
+  "truman-santa-maria-4981.jpg", "truman-sail-139-5235.jpg", "truman-wall-stairs-5510.jpg",
+  "truman-mococoa-3230.jpg", "truman-school-3848.jpg", "truman-christof-monitor-4052.jpg"];
 stillsAtLevel.FULL = stillsAtLevel.ENDING;
 let failures = 0;
 function checkpoint(inProgress = null, completed = false) {
@@ -279,7 +280,7 @@ for (const engine of requested) {
           await check(`${engine} no-js scene stills and provenance`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
             const figures = page.locator(".articleSceneStill");
-            assert.equal(await figures.count(), 14, "all fourteen direct, grid and clip stills must render");
+            assert.equal(await figures.count(), 19, "all nineteen direct, grid and clip stills must render");
             let grid = 0;
             let clips = 0;
             let direct = 0;
@@ -319,7 +320,7 @@ for (const engine of requested) {
             }
             assert.equal(grid, 6);
             assert.equal(clips, 3);
-            assert.equal(direct, 5);
+            assert.equal(direct, 10);
           });
           await check(`${engine} no-js article paragraph evidence link`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
