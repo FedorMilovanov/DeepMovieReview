@@ -65,6 +65,10 @@ The first **coarse** local comparison sampled decoded original-master frames at 
 
 No copyrighted stills or extracted master frames were committed or uploaded. Temporary local script, fetched still bytes and sampled media were deleted after the checks.
 
+## Canonical direct-source evidence for sail numerals
+
+The 2026-11-04 source witness now carries a distinct canonical record `truman-ev-sail-139`, anchored in VERIFIED `truman-sc-cue-the-storm` at 5235 s. Its three bounded direct-MKV picture samples are recorded in `trumanPostLockEvidenceVerifications` as `VISUAL_CONFIRMED`. The earlier `truman-ev-setting-sail` at historical 4970 s **remains PENDING for the different assertion about the boat name**. A visible number neither confirms `Santa Maria` nor proves deliberate Psalm symbolism. No changes to image binaries or rights/serving settings.
+
 ## Open editorial decisions — do not claim full closure
 
 1. Complete and sign off a **continuous picture-plus-sound master pass** for contested scene causal chains, speaker identities, character inferences, editorial synopsis and moral/biblical synthesis; record evidence/counterevidence per claim. A successful hash and sampled ASR do not satisfy this.

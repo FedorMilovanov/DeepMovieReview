@@ -1160,8 +1160,8 @@ export const theTrumanShowArticle: FilmArticle = {
           kind: "paragraph",
           id: "truman-article-biblical-sail",
           text:
-            "Lozier Institute пишет о названии лодки «Санта-Мария» и номере 139 на парусе, сопоставляя его со словами о море (Псалом 138:9–10), но надписи отдельно не проверены; замысел создателей не установлен.",
-          support: { evidenceIds: ["truman-ev-setting-sail"] },
+            "Lozier Institute называет лодку «Санта-Мария» и сопоставляет номер 139 с Псалмом 138:9–10. На кадрах оригинального MKV около 5235 с действительно видны цифры 139. Название лодки этими кадрами не подтверждено; авторский замысел и намеренная библейская отсылка не установлены.",
+          support: { evidenceIds: ["truman-ev-setting-sail", "truman-ev-sail-139"] },
           contextSourceIds: ["src-lozier"],
           scriptureRefs: ["Псалом 138:9–10"],
         },

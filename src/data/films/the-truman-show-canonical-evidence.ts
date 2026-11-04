@@ -488,6 +488,24 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "ENDING",
     "Утверждение о паруснике «Santa Maria» перенесено из прежней записи. В доступном журнале нет отдельной проверки кадра на этой отметке; соседние записи относятся к другой сцене.",
   ),
+  {
+    ...record(
+      "truman-ev-sail-139",
+      "Число 139 на парусе — наблюдение исходного MKV",
+      "truman-sc-cue-the-storm",
+      5235,
+      "ENDING",
+      "На трёх выборочных кадрах оригинального MKV около 5234–5236 с на парусе видны цифры 139. Эти кадры не подтверждают название судна «Santa Maria» и не доказывают намеренную отсылку к Псалму 139.",
+    ),
+    basis: {
+      material: "frames",
+      window: { from: 5234, to: 5236 },
+      observations: 3,
+      outcome: "seen",
+      unrecorded: ["reviewer", "date"],
+      note: "Прямые кадры исходного MKV на 5234, 5235 и 5236 с сверены 2026-11-04 с независимо хешированным мастер-файлом; отдельная человеческая редакционная подпись не записана, точные PTS не измерены.",
+    },
+  },
   record(
     "truman-ev-storm",
     "Шторм против одного человека",
@@ -642,6 +660,7 @@ export const trumanCanonicalEvidenceSummary = {
   },
   /** Canonical records that have no research-era counterpart. */
   added: [
+    "truman-ev-sail-139",
     "truman-ev-light-explanation",
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",
@@ -653,11 +672,13 @@ export const trumanCanonicalEvidenceSummary = {
   ],
   /**
    * Records added after the edition was LOCKED, in a separate batch, to support
-   * article v2. They are dialogue facts only: no picture claim, no scene change.
+   * article v2 plus a bounded 2026-11-04 direct-picture sail-number witness. All
+   * are separately ledgered; no scene is added or silently re-anchored.
    * See `trumanPostLockEvidenceVerifications` in
    * `the-truman-show-visual-verification.ts` and docs/50.
    */
   postLock: [
+    "truman-ev-sail-139",
     "truman-ev-light-explanation",
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",
