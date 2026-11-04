@@ -7,8 +7,10 @@ export const homepageFeaturedFilmSlug = "the-truman-show";
 
 /**
  * The editor has chosen to show selected low-resolution frames in the analysis.
- * Metadata and credits do not establish rights clearance or independently prove
- * origin from the absent master. The global off switch wins over preview content:
+ * Metadata and credits do not establish rights clearance. The actual local
+ * viewing master was later independently SHA-256 checked and selected frames
+ * visually compared, but this does not confer reproduction permissions.
+ * The global off switch wins over preview content:
  * set DMR_FILM_STILLS_ENABLED=false for both the build and its running server.
  * This does not make historical files in the public Git repository private.
  */
