@@ -275,7 +275,7 @@ export const theTrumanShowProductionDossier: ProductionDossier = {
       id: "prod-hopper",
       number: 4,
       eyebrow: "04 / Замена",
-      heading: "Два дня Денниса Хоппера",
+      heading: "Один съёмочный день Денниса Хоппера",
       standfirst:
         "Съёмки начались с одним Кристофом и продолжились с другим. Эта замена — самая известная закулисная история фильма и самая плохо документированная.",
       blocks: [

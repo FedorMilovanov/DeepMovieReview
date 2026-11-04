@@ -668,15 +668,6 @@ export const trumanProductionSources: ProductionSource[] = [
       "Перечень премий: BAFTA (режиссура, сценарий, художник), Saturn (лучший фэнтези-фильм, лучший сценарий), Hugo 1999 за лучшую драматическую постановку.",
   },
   {
-    id: "src-filmbooster",
-    label: "The Truman Show — awards",
-    publisher: "Filmbooster",
-    url: "https://www.filmbooster.com/film/9568-the-truman-show/awards/",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports: "Дополнительное подтверждение состава номинаций BAFTA, включая операторскую работу и визуальные эффекты.",
-  },
-  {
     id: "src-awakeinthedark",
     label: "Higher Ed: The Truman Show",
     publisher: "Awake in the Dark",
@@ -685,16 +676,6 @@ export const trumanProductionSources: ProductionSource[] = [
     checkedOn: "2026-10-28",
     supports:
       "Хоппер ушёл через два дня; Харрис — единственный актёр с номинацией «Оскара»; берет и круглые очки как идея дизайнера Венди Стайтс; «мы принимаем реальность того мира, который нам предложили».",
-  },
-  {
-    id: "src-filmycks",
-    label: "Reality rates",
-    publisher: "Filmycks",
-    url: "https://www.filmycks.com/films/the-truman-show/",
-    tier: "TERTIARY",
-    checkedOn: "2026-10-28",
-    supports:
-      "Цитата Уира о сомнениях («не был уверен, кто может сыграть Трумана»); версия, что Никкол согласился отложить режиссёрский дебют ради «Гаттаки».",
   },
   {
     id: "src-lunaticsproject",

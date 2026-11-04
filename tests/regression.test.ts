@@ -5206,7 +5206,7 @@ test("Film 001 source tiers and confirmed claims use independent research", () =
     assert.equal(claim.status, "CONFIRMED");
     assert.ok(claim.sourceIds.some((sourceId) => {
       const source = map.get(sourceId);
-      return source && source.tier !== "TERTIARY" && !source.url.includes("wikipedia.org");
+      return source && source.tier !== "TERTIARY" && !/(^|\.)wikipedia\.org$/u.test(new URL(source.url).hostname);
     }), id + " must have independently credible support");
   }
   const hopper = dossier.claims.find((claim) => claim.id === "claim-hopper-two-days");
