@@ -176,9 +176,12 @@ for (const engine of requested) {
                 assert.equal(raw.includes("truman-ev-knife-call"), ["MAJOR", "ENDING", "FULL"].includes(level));
                 assert.equal(raw.includes("truman-ev-escape"), level === "FULL");
                 const sailVisible = level === "ENDING" || level === "FULL";
-                assert.equal(raw.includes("Lozier Institute пишет о названии лодки"), sailVisible, "sail source and pending inscription must follow the article spoiler level");
+                assert.equal(raw.includes("Lozier Institute сопоставляет название лодки"), sailVisible, "verified sail source must follow the article spoiler level");
+                assert.equal(raw.includes("В самом фильме независимо подтверждены две надписи"), sailVisible,
+                  "both distinct visual witnesses must stay within the ENDING spoiler budget");
                 if (sailVisible) {
-                  assert.match(raw, /надписи отдельно не проверены/);
+                  assert.match(raw, /SANTA MARIA.*4981 с.*139.*5235 с/);
+                  assert.match(raw, /авторский замысел и намеренная библейская отсылка не установлены/);
                   assert.equal(await page.locator('.articleContextSources a[href="https://lozierinstitute.org/movie-reviews/the-truman-show-1998/"]').count(), 1);
                 }
               }
@@ -381,11 +384,13 @@ for (const engine of requested) {
             await page.goto(`${base}/films/the-truman-show?spoilers=NONE`, { waitUntil: "domcontentloaded" });
             const method = await page.locator(".filmMethodMeta").innerText();
             assert.match(method, /фильм опубликован/i);
-            assert.match(method, /хеш повторно не пересчитан/i);
-            assert.match(method, /не означает, что её прослушали/i);
-            assert.doesNotMatch(method, /remains draft|scene-by-scene|Dialogue basis/i);
+            assert.match(method, /SHA-256 всего MKV и размер повторно измерены и совпали с реестром/i);
+            assert.match(method, /не непрерывное прослушивание фильма и не удостоверение голоса каждого говорящего/i);
+            assert.doesNotMatch(method, /хеш повторно не пересчитан|не означает, что её прослушали|remains draft|scene-by-scene|Dialogue basis/i);
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "domcontentloaded" });
-            assert.match(await page.locator(".articleClosing").innerText(), /исходный файл здесь повторно не проверялся/i);
+            const closing = await page.locator(".articleClosing").innerText();
+            assert.match(closing, /4 ноября 2026 года исходный MKV независимо пересчитан по SHA-256 и размеру/i);
+            assert.match(closing, /полного непрерывного просмотра со звуком это не заменяет/i);
           });
         }
         if (width === 390) {
@@ -517,8 +522,9 @@ for (const engine of requested) {
       assert.ok(await page.locator(".productionSpoilerNote").isVisible());
       const raw = await response.text();
       assert.match(raw, /Обзор Lozier Institute называет лодку героя/);
-      assert.match(raw, /В доступном журнале надписи отдельно не проверены/);
-      assert.doesNotMatch(raw, /Наблюдение верное: номер в кадре есть/);
+      assert.match(raw, /Независимая проверка исходного MKV показала.*SANTA MARIA.*4981 с.*139.*5235 с/);
+      assert.match(raw, /источник предлагает прочтение, а не доказательство авторского намерения/);
+      assert.doesNotMatch(raw, /В доступном журнале надписи отдельно не проверены|Наблюдение верное: номер в кадре есть/);
       const refs = await page.locator('.productionRefs a[href^="#source-"]').evaluateAll((links) =>
         links.map((link) => {
           const href = link.getAttribute("href");
