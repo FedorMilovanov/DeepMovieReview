@@ -130,7 +130,8 @@ Implementation-state documents:
 - [`docs/26-FILM-DOMAIN-MODULES-V0.md`](docs/26-FILM-DOMAIN-MODULES-V0.md)
 - [`docs/27-LIVING-FRAME-RD-RESULTS.md`](docs/27-LIVING-FRAME-RD-RESULTS.md) — measured A/B/C Living Frame decision.
 - [`docs/28-PILOT-FILM-SELECTION.md`](docs/28-PILOT-FILM-SELECTION.md) — Film 001 selection and research boundary.
-- [`docs/29-FILM-001-INGEST-STATUS.md`](docs/29-FILM-001-INGEST-STATUS.md) — active edition/evidence ingest gate.
+- [`docs/29-FILM-001-INGEST-STATUS.md`](docs/29-FILM-001-INGEST-STATUS.md) — historical September ingest checkpoint; superseded for live state.
+- [`docs/72-FILM-001-DIRECT-MASTER-RECHECK.md`](docs/72-FILM-001-DIRECT-MASTER-RECHECK.md) — dated, independently hashed original-MKV sample witness and remaining verification boundaries.
 - [`docs/30-FILM-001-SECONDARY-RESEARCH.md`](docs/30-FILM-001-SECONDARY-RESEARCH.md) — production/craft/development context kept separate from canonical film evidence.
 - [`docs/61-POST-MERGE-AUDIT.md`](docs/61-POST-MERGE-AUDIT.md) — independent audit of the previous main revision.
 - [`docs/63-FILM-001-CLIP-REVIEW.md`](docs/63-FILM-001-CLIP-REVIEW.md) — selected-frame provenance, findings and limits.

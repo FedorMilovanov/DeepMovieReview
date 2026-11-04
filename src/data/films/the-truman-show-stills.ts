@@ -1,7 +1,15 @@
 import type { ArticleSceneStill } from "@/lib/film-package";
 
-// The supplied grid and scene clips name the locked edition, but the original
-// master was not available for an independent clip-to-master or PTS check.
+// Direct local master SHA-256 verification (2026-11-04) confirmed the LOCKED
+// edition; all nine JPEG and nine AVIF asset digests were checked against this
+// registry. Sampled comparisons place 30-second GRID images near the midpoint
+// of their historical windows (e.g. nominal 210 ~225, 750 ~766, 1800 ~1815,
+// 3240 ~3255, 3450 ~3464, 5700 ~5716 seconds). sampleTimeSeconds stays the
+// historical GRID BIN START, NOT an exact original-master presentation PTS.
+// The three clip-derived stills also visually match bounded direct-master
+// samples. Image integrity / visual matching is not film-use rights clearance
+// and does not itself establish a full continuous synchronized review.
+// Detailed method, values and limitations: docs/72-FILM-001-DIRECT-MASTER-RECHECK.md.
 const provenance = {
   sourceId: "truman-src-master-bdrip",
   masterDigest: "sha256:E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575",

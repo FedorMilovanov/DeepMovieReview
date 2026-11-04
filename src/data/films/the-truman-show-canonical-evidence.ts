@@ -363,12 +363,12 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
       "truman-sc-mococoa",
       3272.199,
       "MAJOR",
-      "В английских субтитрах записана просьба «Do something!» («Сделай же что-нибудь!»). Текст не называет говорящего или адресата; звук отдельно не прослушан.",
+      "В английских субтитрах записана просьба «Do something!» («Сделай же что-нибудь!»). В независимой проверке 2026-11-04 офлайн-распознавание извлечённой оригинальной звуковой дорожки подтвердило эту фразу и следующий вопрос. Кто именно произносит просьбу и кому она адресована, одной дорожкой и SRT не установлено.",
     ),
     basis: {
       material: "subtitle-track", window: { from: 3272.199, to: 3275.236 },
       observations: 1, outcome: "subtitle", unrecorded: ["reviewer", "date"],
-      note: "SRT, блок 391; родительские кадры — отдельный материал, не три проверки субтитров и не прослушанный звук.",
+      note: "SRT, блок 391; дополнительная независимая проверка исходной английской дорожки (3235–3295 с) через офлайн ASR от 2026-11-04. ASR не удостоверяет говорящего; соседние кадры — отдельная основа.",
     },
   },
   record(
@@ -456,12 +456,12 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
       "truman-sc-hes-gone",
       4642.986,
       "ENDING",
-      "В английских субтитрах записаны «He's gone» и «Cut transmission!». Текст не объясняет способ исчезновения и не устанавливает говорящих; звук отдельно не прослушан.",
+      "В английских субтитрах записаны «He's gone» и «Cut transmission!». Независимая выборка исходной английской дорожки 2026-11-04 распознаёт обе команды; ни запись, ни выборочные кадры не доказывают точный путь побега через подвал или личности говорящих.",
     ),
     basis: {
       material: "subtitle-track", window: { from: 4642.986, to: 4650.235 },
       observations: 2, outcome: "subtitle", unrecorded: ["reviewer", "date"],
-      note: "SRT, блоки 603–604; изображения в историческом журнале — отдельный материал и не устанавливают способ исчезновения.",
+      note: "SRT, блоки 603–604; оригинальный английский звук выборочно проверен офлайн ASR (4580–4680 с, 2026-11-04); изображения непосредственно из мастер-MKV осмотрены отдельно, маршрут исчезновения остаётся неустановленным.",
     },
   },
   record(
@@ -480,14 +480,42 @@ export const trumanCanonicalEvidence: EvidenceRecord[] = [
     "ENDING",
     "По соседним отметкам журнала сотрудники аппаратной решают, как искать лодку на воде, а затем Кристоф берёт управление на себя. Сам момент между этими отметками отдельно не записан; содержимое конкретных мониторов требует проверки.",
   ),
-  record(
-    "truman-ev-setting-sail",
-    "«Santa Maria»: требуется проверка",
-    "truman-sc-setting-sail",
-    4970,
-    "ENDING",
-    "Утверждение о паруснике «Santa Maria» перенесено из прежней записи. В доступном журнале нет отдельной проверки кадра на этой отметке; соседние записи относятся к другой сцене.",
-  ),
+  {
+    ...record(
+      "truman-ev-setting-sail",
+      "Название «SANTA MARIA» на корме лодки",
+      "truman-sc-setting-sail",
+      4981,
+      "ENDING",
+      "На последовательных кадрах исходного MKV около 4980–4982 с на корме лодки отчётливо написано «SANTA MARIA». Эта надпись не доказывает, что создатели задумывали сопоставление с кораблём Колумба или библейскую аллюзию.",
+    ),
+    basis: {
+      material: "frames",
+      window: { from: 4980, to: 4982 },
+      observations: 3,
+      outcome: "seen",
+      unrecorded: ["reviewer", "date"],
+      note: "Три полноразмерных кадра 1920×1080 исходного SHA-256-сверенного MKV извлечены и сопоставлены 2026-11-04. Это прямая проверка названия судна, не подтверждение точных PTS, режиссёрского намерения или полный просмотр со звуком; отдельная человеческая редакционная подпись не зафиксирована.",
+    },
+  },
+  {
+    ...record(
+      "truman-ev-sail-139",
+      "Число 139 на парусе — наблюдение исходного MKV",
+      "truman-sc-cue-the-storm",
+      5235,
+      "ENDING",
+      "На трёх выборочных кадрах оригинального MKV около 5234–5236 с на парусе видны цифры 139. Эти кадры сами по себе не показывают название судна (его отдельно подтверждают кадры 4980–4982 с) и не доказывают намеренную отсылку к Псалму 139.",
+    ),
+    basis: {
+      material: "frames",
+      window: { from: 5234, to: 5236 },
+      observations: 3,
+      outcome: "seen",
+      unrecorded: ["reviewer", "date"],
+      note: "Прямые кадры исходного MKV на 5234, 5235 и 5236 с сверены 2026-11-04 с независимо хешированным мастер-файлом; отдельная человеческая редакционная подпись не записана, точные PTS не измерены.",
+    },
+  },
   record(
     "truman-ev-storm",
     "Шторм против одного человека",
@@ -642,6 +670,7 @@ export const trumanCanonicalEvidenceSummary = {
   },
   /** Canonical records that have no research-era counterpart. */
   added: [
+    "truman-ev-sail-139",
     "truman-ev-light-explanation",
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",
@@ -653,11 +682,13 @@ export const trumanCanonicalEvidenceSummary = {
   ],
   /**
    * Records added after the edition was LOCKED, in a separate batch, to support
-   * article v2. They are dialogue facts only: no picture claim, no scene change.
+   * article v2 plus a bounded 2026-11-04 direct-picture sail-number witness. All
+   * are separately ledgered; no scene is added or silently re-anchored.
    * See `trumanPostLockEvidenceVerifications` in
    * `the-truman-show-visual-verification.ts` and docs/50.
    */
   postLock: [
+    "truman-ev-sail-139",
     "truman-ev-light-explanation",
     "truman-ev-manufactured-limits",
     "truman-ev-nothing-left",

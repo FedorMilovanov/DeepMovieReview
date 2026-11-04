@@ -470,10 +470,21 @@ export const trumanVisualVerificationSummary = {
  * line of dialogue read off the embedded English subtitle track at the stated
  * second, inside the already verified `truman-sc-trutalk`.
  *
- * They are therefore ledgered here as `TRANSCRIPT_CONFIRMED` and never counted
- * as visual review of a prop, a gesture or a set.
+ * Most are `TRANSCRIPT_CONFIRMED`; one separately verified sail-number witness
+ * (2026-11-04) is `VISUAL_CONFIRMED` for the digits only — not boat name or intent.
  */
 export const trumanPostLockEvidenceVerifications: TrumanVisualVerification[] = [
+  {
+    evidenceId: "truman-ev-sail-139",
+    status: "VISUAL_CONFIRMED",
+    sceneId: "truman-sc-cue-the-storm",
+    frames: [
+      frame(5234, "Original MKV sampled frame: sail numeral visible in storm."),
+      frame(5235, "Original MKV sampled frame: digits 139 readable."),
+      frame(5236, "Original MKV sampled frame: sail numeral visible in storm."),
+    ],
+    note: "Independent full-file SHA-256 master match and selected original-picture frames, 2026-11-04. Does not verify Santa Maria, an intentional Psalm reference or a continuous human rewatch.",
+  },
   {
     evidenceId: "truman-ev-light-explanation",
     status: "TRANSCRIPT_CONFIRMED",
