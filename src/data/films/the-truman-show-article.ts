@@ -184,6 +184,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 910,
               label: "Человек, которого герой считает мёртвым, появляется в толпе — и его уводят силой",
               evidenceId: "truman-ev-ghost",
+              still: trumanArticleStills.ghost,
             },
             {
               id: "truman-article-anchor-radio",
@@ -191,6 +192,13 @@ export const theTrumanShowArticle: FilmArticle = {
               label: "В субтитрах записан маршрут и команда статистам; отдельно показан кадр Трумана в машине",
               evidenceId: "truman-ev-radio",
               still: trumanArticleStills.radio,
+            },
+            {
+              id: "truman-article-anchor-newspaper",
+              timestampSeconds: 1830,
+              label: "Газета The Island: CRACKDOWN ON HOMELESS; личность человека на фотографии не установлена",
+              evidenceId: "truman-ev-europe",
+              still: trumanArticleStills.newspaper,
             },
             {
               id: "truman-article-anchor-elevator",
@@ -657,6 +665,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 5510,
               label: "Нарисованное небо заканчивается панелью, у которой стоит лестница",
               evidenceId: "truman-ev-wall",
+              still: trumanArticleStills.wallStairs,
             },
           ],
         },
@@ -853,12 +862,20 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 4981,
               label: "Корма лодки: название «SANTA MARIA» видно в кадре",
               evidenceId: "truman-ev-setting-sail",
+              still: trumanArticleStills.santaMaria,
             },
             {
               id: "truman-article-anchor-storm",
               timestampSeconds: 5173.407,
               label: "Шторм против одного человека: «Тебе придётся меня убить!»",
               evidenceId: "truman-ev-storm",
+            },
+            {
+              id: "truman-article-anchor-sail-number",
+              timestampSeconds: 5235,
+              label: "На парусе видно число 139; намеренная библейская отсылка не установлена",
+              evidenceId: "truman-ev-sail-139",
+              still: trumanArticleStills.sail139,
             },
             {
               id: "truman-article-anchor-decision-exit",

@@ -1,8 +1,10 @@
 import type { ArticleSceneStill } from "@/lib/film-package";
 
 // Direct local master SHA-256 verification (2026-11-04) confirmed the LOCKED
-// edition; all nine JPEG and nine AVIF asset digests were checked against this
-// registry. Sampled comparisons place 30-second GRID images near the midpoint
+// edition; all nine previous JPEG/AVIF pairs were checked against this registry.
+// Five more independent picture samples were decoded directly from that master
+// in this separate staging pass (2026-11-04); their seek seconds are approximate,
+// not certified presentation timestamps. Image rights still require review. Sampled comparisons place 30-second GRID images near the midpoint
 // of their historical windows (e.g. nominal 210 ~225, 750 ~766, 1800 ~1815,
 // 3240 ~3255, 3450 ~3464, 5700 ~5716 seconds). sampleTimeSeconds stays the
 // historical GRID BIN START, NOT an exact original-master presentation PTS.
@@ -19,6 +21,7 @@ const provenance = {
   height: 450,
 };
 const grid = { ...provenance, samplingKind: "grid" as const, samplingIntervalSeconds: 30 as const };
+const direct = { ...provenance, samplingKind: "direct" as const };
 const kitchenClip = {
   file: "04-meryl-kitchen.mp4",
   sha256: "f4adfa6e7ffabeccab4f8d98633f8ed9b5b6715c062f286a8ca457dcc3738b4f",
@@ -128,5 +131,55 @@ export const trumanArticleStills = {
     sampleTimeSeconds: 5700,
     alt: "Труман стоит спиной перед открытым выходом в искусственном небе.",
     caption: "Открытая дверь в декорации неба.",
+  },
+  ghost: {
+    ...direct,
+    src: "/film-stills/truman-ghost-913.jpg",
+    imageSha256: "2fda7074a57027e9b361f131832cc085f91682aa9abd38c5ff3119b181b122e8",
+    avifSrc: "/film-stills/truman-ghost-913.avif",
+    avifSha256: "fcd95908ffa2780bfff36dfbbf727f9da1e0cf4179a541c69110bb7387ade40d",
+    sampleTimeSeconds: 913,
+    alt: "Пожилой седовласый мужчина снимает кепку перед Труманом; по одному кадру нельзя установить родство.",
+    caption: "Пожилой мужчина снимает кепку перед Труманом; его биография по этому кадру не устанавливается.",
+  },
+  newspaper: {
+    ...direct,
+    src: "/film-stills/truman-newspaper-1842.jpg",
+    imageSha256: "f7a88780775168c869179bca97434a32fe9e628c2086d92104fa5171b0425a08",
+    avifSrc: "/film-stills/truman-newspaper-1842.avif",
+    avifSha256: "9ca20dfdfe7179027b936798c595b251e1148a6d411e22ba550e7a9d12310b81",
+    sampleTimeSeconds: 1842,
+    alt: "Газета The Island с заголовком CRACKDOWN ON HOMELESS и фотографией полицейского с мужчиной.",
+    caption: "Газета сообщает о борьбе с бездомностью; личность человека на фотографии не установлена.",
+  },
+  santaMaria: {
+    ...direct,
+    src: "/film-stills/truman-santa-maria-4981.jpg",
+    imageSha256: "0b91a653702c1b1d1b7d14f3c852a1810415bc4f8c39131fabb627ba4a400588",
+    avifSrc: "/film-stills/truman-santa-maria-4981.avif",
+    avifSha256: "7b6dd968eeff38e06b674add599aa074070275a44a38e43d2caaa9207f8c16c6",
+    sampleTimeSeconds: 4981,
+    alt: "На корме парусника в море отчётливо написано SANTA MARIA.",
+    caption: "Название SANTA MARIA видно на корме; намеренный исторический или библейский символизм не подтверждён.",
+  },
+  sail139: {
+    ...direct,
+    src: "/film-stills/truman-sail-139-5235.jpg",
+    imageSha256: "5ec9b3ac1e10114bed6d833db63bd067400d742438610a05a9b6bd87b455f85f",
+    avifSrc: "/film-stills/truman-sail-139-5235.avif",
+    avifSha256: "e13df5ab26099336b8477baf97427c12f315800e147ad352ed3d946d45eecca7",
+    sampleTimeSeconds: 5235,
+    alt: "На парусе лодки во время шторма видна цифра 139 в нижней части затемнённого кадра.",
+    caption: "Число 139 видно на парусе; замысел намеренной отсылки к Псалму 139 не установлен.",
+  },
+  wallStairs: {
+    ...direct,
+    src: "/film-stills/truman-wall-stairs-5510.jpg",
+    imageSha256: "847e98b101f669aaf850c1cf8a812a14b3e4188f74f4f4a09e168bd2646b79eb",
+    avifSrc: "/film-stills/truman-wall-stairs-5510.avif",
+    avifSha256: "3903afaef640011baa8120525d886156c5009b2008d5de0cfd2b1aaab6cc5bbb",
+    sampleTimeSeconds: 5510,
+    alt: "Труман поднимается по лестнице у стены, расписанной голубым небом и облаками.",
+    caption: "Труман поднимается по лестнице у искусственного неба; кадр показывает устройство декорации.",
   },
 } satisfies Record<string, ArticleSceneStill>;

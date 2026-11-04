@@ -279,7 +279,9 @@ function LensStage({ example, filmSlug }: { example?: HomepageViewModel["sceneEx
                   <strong>{example.still.caption}</strong>
                   <span>{example.still.samplingKind === "grid"
                     ? `Номинальная отметка сетки ${formatTimecode(example.still.sampleTimeSeconds)}; исходный PTS не проверен.`
-                    : "Кадр из предоставленного фрагмента; точный PTS исходного мастера не проверен."}</span>
+                    : example.still.samplingKind === "clip"
+                      ? "Кадр из предоставленного фрагмента; точный PTS исходного мастера не проверен."
+                      : "Прямая выборка исходного MKV; точный PTS кадра не удостоверен."}</span>
                   <span>{example.still.credit}</span>
                 </figcaption>
               </figure>
