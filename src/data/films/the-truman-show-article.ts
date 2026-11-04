@@ -189,7 +189,7 @@ export const theTrumanShowArticle: FilmArticle = {
             {
               id: "truman-article-anchor-radio",
               timestampSeconds: 1798.265,
-              label: "В оригинальном звуке и субтитрах слышна команда о маршруте статистов; внешний вид радиопередатчика этим не подтверждён",
+              label: "В английских субтитрах записана команда статистам; её говорящий и звучание по этому доказательству не установлены",
               evidenceId: "truman-ev-radio",
             },
             {

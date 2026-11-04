@@ -6019,6 +6019,13 @@ test("scene quotations disclose grid, clip or direct-master provenance without e
     "truman-ev-ghost", "truman-ev-europe", "truman-ev-setting-sail", "truman-ev-sail-139", "truman-ev-wall",
     "truman-ev-sylvia", "truman-ev-elevator", "truman-ev-mococoa", "truman-ev-nothing-left", "truman-ev-seahaven-design",
   ].sort(), "each selected frame should illustrate a distinct evidence anchor");
+  // The radio record's canonical basis is subtitle-track, not a certified audio transcript.
+  const radioAnchor = article.sections.flatMap(section => section.blocks.flatMap(block =>
+    block.kind === "timeline" ? block.items : [])).find(item => item.id === "truman-article-anchor-radio");
+  assert.ok(radioAnchor);
+  assert.equal(radioAnchor.still, undefined, "a subtitle-only claim must not carry an unrelated frame");
+  assert.match(radioAnchor.label, /субтитр/i);
+  assert.doesNotMatch(radioAnchor.label, /оригинальн.{0,12}звук/i);
   assert.equal(items.filter((item) => item.still?.samplingKind === "grid").length, 4);
   const clips = items.filter((item) => item.still?.samplingKind === "clip");
   assert.equal(clips.length, 3);
