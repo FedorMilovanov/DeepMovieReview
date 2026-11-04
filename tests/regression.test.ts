@@ -6015,11 +6015,11 @@ test("scene quotations disclose grid, clip or direct-master provenance without e
     block.kind === "timeline" ? block.items.filter(item => item.still) : []));
   assert.deepEqual(items.map((item) => item.evidenceId).sort(), [
     "truman-ev-exit", "truman-ev-knife", "truman-ev-knife-tools", "truman-ev-light",
-    "truman-ev-marlon-retake", "truman-ev-meryl-held", "truman-ev-radio", "truman-ev-rain", "truman-ev-reunion",
+    "truman-ev-meryl-held", "truman-ev-rain", "truman-ev-reunion",
     "truman-ev-ghost", "truman-ev-europe", "truman-ev-setting-sail", "truman-ev-sail-139", "truman-ev-wall",
     "truman-ev-sylvia", "truman-ev-elevator", "truman-ev-mococoa", "truman-ev-nothing-left", "truman-ev-seahaven-design",
   ].sort(), "each selected frame should illustrate a distinct evidence anchor");
-  assert.equal(items.filter((item) => item.still?.samplingKind === "grid").length, 6);
+  assert.equal(items.filter((item) => item.still?.samplingKind === "grid").length, 4);
   const clips = items.filter((item) => item.still?.samplingKind === "clip");
   assert.equal(clips.length, 3);
   const direct = items.filter((item) => item.still?.samplingKind === "direct");
@@ -6389,12 +6389,17 @@ test("Film 001 is published, and the stills carry their provenance", () => {
       section.blocks.flatMap((block) => (block.kind === "timeline" ? block.items.filter((item) => item.still) : [])),
     );
 
-  assert.equal(stillsOf(withFrames).length, 19);
+  assert.equal(stillsOf(withFrames).length, 17);
+  // Audio/subtitle claims remain linked to evidence, but do not acquire unrelated film frames.
+  for (const id of ["truman-ev-radio", "truman-ev-marlon-retake"]) {
+    assert.equal(stillsOf(withFrames).some((item) => item.evidenceId === id), false,
+      `${id}: an audio or dialogue claim must not imply that its words are visible in a still`);
+  }
   assert.equal(stillsOf(withoutFrames).length, 0, "a page with stills disabled must not cite a frame");
   for (const [level, expected] of [
     ["NONE", ["truman-ev-light"]],
-    ["MINOR", ["truman-ev-light", "truman-ev-rain", "truman-ev-radio", "truman-ev-ghost", "truman-ev-europe", "truman-ev-elevator"]],
-    ["MAJOR", ["truman-ev-light", "truman-ev-rain", "truman-ev-radio", "truman-ev-ghost", "truman-ev-europe", "truman-ev-marlon-retake", "truman-ev-knife-tools", "truman-ev-meryl-held", "truman-ev-reunion", "truman-ev-elevator", "truman-ev-sylvia"]],
+    ["MINOR", ["truman-ev-light", "truman-ev-rain", "truman-ev-ghost", "truman-ev-europe", "truman-ev-elevator"]],
+    ["MAJOR", ["truman-ev-light", "truman-ev-rain", "truman-ev-ghost", "truman-ev-europe", "truman-ev-knife-tools", "truman-ev-meryl-held", "truman-ev-reunion", "truman-ev-elevator", "truman-ev-sylvia"]],
   ] as const) {
     const projected = projectArticleSections(theTrumanShowCanonicalPackage.article!, level, { stills: true });
     assert.deepEqual(stillsOf(projected).map((item) => item.evidenceId).sort(), [...expected].sort(), `${level}: no higher-spoiler frame may leak`);

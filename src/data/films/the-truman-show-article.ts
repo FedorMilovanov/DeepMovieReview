@@ -189,9 +189,8 @@ export const theTrumanShowArticle: FilmArticle = {
             {
               id: "truman-article-anchor-radio",
               timestampSeconds: 1798.265,
-              label: "В субтитрах записан маршрут и команда статистам; отдельно показан кадр Трумана в машине",
+              label: "В оригинальном звуке и субтитрах слышна команда о маршруте статистов; внешний вид радиопередатчика этим не подтверждён",
               evidenceId: "truman-ev-radio",
-              still: trumanArticleStills.radio,
             },
             {
               id: "truman-article-anchor-newspaper",
@@ -324,9 +323,8 @@ export const theTrumanShowArticle: FilmArticle = {
             {
               id: "truman-article-anchor-marlon-retake",
               timestampSeconds: 3459.2,
-              label: "Обещание повторяется в субтитрах почти дословно; фильм показывает аппаратную",
+              label: "Обещание повторяется в субтитрах почти дословно; изображение монитора не доказывает слова реплики",
               evidenceId: "truman-ev-marlon-retake",
-              still: trumanArticleStills.monitor,
             },
           ],
         },

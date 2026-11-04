@@ -18,9 +18,9 @@ mkdirSync(dir, { recursive: true });
 const results = [];
 const stillsAtLevel = {
   NONE: ["truman-light-210.jpg"],
-  MINOR: ["truman-light-210.jpg", "truman-rain-750.jpg", "truman-radio-1800.jpg",
+  MINOR: ["truman-light-210.jpg", "truman-rain-750.jpg",
     "truman-ghost-913.jpg", "truman-newspaper-1842.jpg", "truman-elevator-2110.jpg"],
-  MAJOR: ["truman-light-210.jpg", "truman-rain-750.jpg", "truman-radio-1800.jpg", "truman-monitor-3450.jpg",
+  MAJOR: ["truman-light-210.jpg", "truman-rain-750.jpg",
     "truman-meryl-tools-3265.jpg", "truman-kitchen-screen-3275.jpg", "truman-reunion-3591.jpg",
     "truman-ghost-913.jpg", "truman-newspaper-1842.jpg", "truman-elevator-2110.jpg", "truman-sylvia-1605.jpg"],
 };
@@ -280,7 +280,7 @@ for (const engine of requested) {
           await check(`${engine} no-js scene stills and provenance`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
             const figures = page.locator(".articleSceneStill");
-            assert.equal(await figures.count(), 19, "all nineteen direct, grid and clip stills must render");
+            assert.equal(await figures.count(), 17, "only seventeen critically necessary direct, grid and clip stills render");
             let grid = 0;
             let clips = 0;
             let direct = 0;
@@ -318,7 +318,7 @@ for (const engine of requested) {
                 assert.ok((await response.body()).length > 1000, `${path} must contain image bytes`);
               }
             }
-            assert.equal(grid, 6);
+            assert.equal(grid, 4);
             assert.equal(clips, 3);
             assert.equal(direct, 10);
           });
