@@ -337,7 +337,24 @@ try {
   // summary name one word at a time and falsely stop on its day number.
   await action("mobile evidence link in scene", () => perform(mac ? reader.keyboardCommands.findNextLink : reader.keyboardCommands.moveToNextLink, navigationOptions),
     [/день\s*10\s*909/i, /link|ссылк/i]);
-  if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
+  if (mac) {
+    // The evidence link sits inside a disclosure list inside a scene table.
+    // One VO-Shift-Up may exit only the inner group, leaving the table as the
+    // active navigation scope: VO-Command-T then reports "Last table".
+    // Follow real nested VoiceOver exit announcements, never DOM focus/labels.
+    const outOfTable = /out of[\s\S]*table|(?:вне|выход)[\s\S]*таблиц/i;
+    let exited = false;
+    for (let depth = 1; depth <= 4; depth++) {
+      const speech = await action("mobile VoiceOver leave scene-table group " + depth,
+        () => perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions));
+      if (outOfTable.test(speech.join(" "))) {
+        report.sceneTableExitDepth = depth;
+        exited = true;
+        break;
+      }
+    }
+    assert.ok(exited, "VoiceOver must audibly exit the scene table before navigating to the register");
+  }
   const registerSpeech = await findNamedTable("mobile evidence register name", /реестр проверок/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   else if (!firstTableCellSpoken(registerSpeech)) {
