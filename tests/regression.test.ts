@@ -6446,7 +6446,7 @@ test("Film 001 every evidence card states the basis of its own verification", ()
   assert.equal(sail.basis.material, "frames");
   assert.equal(sail.basis.observations, 3);
   assert.equal(sail.basis.outcome, "seen");
-  assert.match(sail.observation, /SANTA MARIA.*не доказывает.*намеренно/i);
+  assert.match(sail.observation, /4980–4982.*SANTA MARIA.*не доказывает.*создатели задумывали.*Колумба.*библейскую аллюзию/i);
 
   // A tally over linked records, not over links: the map renders one card per
   // claim–record link, and counting those is how «47 опор» comes to read as
@@ -7072,7 +7072,7 @@ test("split claims have their own matching material, or an explicitly pending sh
   assert.match(amnesia.observation, /Amnesia.*Brilliant.*не называют говорящих.*не прослушан/i);
   assert.doesNotMatch(amnesia.observation, /утонул, но выжил/i);
   assert.match(amnesia.basis.note ?? "", /блоки 487–490/);
-  assert.match(records.get("truman-ev-setting-sail")?.observation ?? "", /SANTA MARIA.*4980–4982.*не доказывает/i);
+  assert.match(records.get("truman-ev-setting-sail")?.observation ?? "", /4980–4982.*SANTA MARIA.*не доказывает.*создатели задумывали/i);
   const rendered = renderToStaticMarkup(createElement(EvidenceBasisLine, { basis: call.basis }));
   assert.match(rendered, /встроенные субтитры.*не проверяет звук.*1 наблюдение/i);
   assert.doesNotMatch(rendered, /общая основа родительской записи/i);
