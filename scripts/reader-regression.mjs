@@ -18,11 +18,14 @@ mkdirSync(dir, { recursive: true });
 const results = [];
 const stillsAtLevel = {
   NONE: ["truman-light-210.jpg"],
-  MINOR: ["truman-light-210.jpg", "truman-rain-750.jpg", "truman-radio-1800.jpg"],
+  MINOR: ["truman-light-210.jpg", "truman-rain-750.jpg", "truman-radio-1800.jpg",
+    "truman-ghost-913.jpg", "truman-newspaper-1842.jpg"],
   MAJOR: ["truman-light-210.jpg", "truman-rain-750.jpg", "truman-radio-1800.jpg", "truman-monitor-3450.jpg",
-    "truman-meryl-tools-3265.jpg", "truman-kitchen-screen-3275.jpg", "truman-reunion-3591.jpg"],
+    "truman-meryl-tools-3265.jpg", "truman-kitchen-screen-3275.jpg", "truman-reunion-3591.jpg",
+    "truman-ghost-913.jpg", "truman-newspaper-1842.jpg"],
 };
-stillsAtLevel.ENDING = [...stillsAtLevel.MAJOR, "truman-kitchen-3240.jpg", "truman-exit-5700.jpg"];
+stillsAtLevel.ENDING = [...stillsAtLevel.MAJOR, "truman-kitchen-3240.jpg", "truman-exit-5700.jpg",
+  "truman-santa-maria-4981.jpg", "truman-sail-139-5235.jpg", "truman-wall-stairs-5510.jpg"];
 stillsAtLevel.FULL = stillsAtLevel.ENDING;
 let failures = 0;
 function checkpoint(inProgress = null, completed = false) {
@@ -276,9 +279,10 @@ for (const engine of requested) {
           await check(`${engine} no-js scene stills and provenance`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
             const figures = page.locator(".articleSceneStill");
-            assert.equal(await figures.count(), 9);
+            assert.equal(await figures.count(), 14, "all fourteen direct, grid and clip stills must render");
             let grid = 0;
             let clips = 0;
+            let direct = 0;
             for (let i = 0; i < await figures.count(); i++) {
               const figure = figures.nth(i);
               const image = figure.locator("img");
@@ -297,7 +301,14 @@ for (const engine of requested) {
               const caption = await figure.locator("figcaption").innerText();
               assert.match(caption, /Шоу Трумана.*1998.*Питер Уир/);
               if (caption.includes("Номинальная отметка сетки")) grid++;
-              else { assert.match(caption, /Кадр из фрагмента.*примерно.*точный таймкод исходника не проверен/); clips++; }
+              else if (caption.includes("Кадр из фрагмента")) {
+                assert.match(caption, /Кадр из фрагмента.*примерно.*точный таймкод исходника не проверен/);
+                clips++;
+              } else {
+                assert.match(caption, /Прямая выборка исходного MKV около.*точный PTS кадра не удостоверен/,
+                  "direct source frame must expose both original-master provenance and uncertified PTS");
+                direct++;
+              }
               const avif = await figure.locator('source[type="image/avif"]').getAttribute("srcset");
               for (const [path, type] of [[jpeg, "image/jpeg"], [avif, "image/avif"]]) {
                 const response = await page.request.get(`${base}${path}`);
@@ -308,6 +319,7 @@ for (const engine of requested) {
             }
             assert.equal(grid, 6);
             assert.equal(clips, 3);
+            assert.equal(direct, 5);
           });
           await check(`${engine} no-js article paragraph evidence link`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
