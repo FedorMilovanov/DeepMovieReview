@@ -6741,6 +6741,33 @@ test("published methodology does not turn supplied metadata into a viewing or au
   assert.doesNotMatch(theTrumanShowArticle.standfirst, /у каждой опоры указан материал/i);
 });
 
+test("Film 001 reader distinguishes local master verification from detector reruns and sampled dialogue from voice attribution", () => {
+  const blocks = theTrumanShowArticle.sections.flatMap((section) => section.blocks);
+  const paragraph = (id: string) => {
+    const block = blocks.find((item) => item.id === id);
+    assert.ok(block && block.kind === "paragraph", `Expected paragraph: ${id}`);
+    return block.text;
+  };
+  const cast = paragraph("truman-article-cast-marlon");
+  assert.match(cast, /выборочная машинная сверка оригинальной английской дорожки.*повтор близких фраз/);
+  assert.match(cast, /не удостоверила голоса.*интонации.*не проверялся/);
+  assert.doesNotMatch(cast, /звук и непрерывный монтаж мы не проверяли/);
+
+  const relationship = paragraph("truman-article-bonds-friendship-2");
+  assert.match(relationship, /машинное распознавание исходной английской дорожки.*не установило личность говорящего/);
+  assert.match(relationship, /не удостоверило интонацию/);
+  const duel = blocks.find((item) => item.id === "truman-article-duel-promise");
+  assert.ok(duel && duel.kind === "duel");
+  assert.match(duel.open, /исходного английского звука.*не удостоверяет.*интонацией/);
+
+  const totals = blocks.find((item) => item.id === "truman-article-craft-totals");
+  assert.ok(totals && totals.kind === "measurement");
+  assert.match(totals.text, /SHA-256 исходного файла независимо пересчитан.*детектор кадровой разницы заново не запускался/);
+  const craftLimit = paragraph("truman-article-craft-4");
+  assert.match(craftLimit, /повторная проверка SHA-256.*не означает повторного запуска самого детектора/);
+  assert.doesNotMatch([totals.text, craftLimit].join(" "), /сам файл здесь повторно не проверялся|повторно сам мастер мы не проверяли/);
+});
+
 test("NONE character profile does not reveal the later Sylvia, Fiji or father plot", () => {
   const film = theTrumanShowCanonicalPackage;
   const characters = film.modules.find((module): module is CharactersModule => module.kind === "characters");
