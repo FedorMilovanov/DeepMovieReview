@@ -205,7 +205,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 2110,
               label: "За дверью служебного лифта нет кабины: там коридор, по которому ходят люди со съёмочной группы",
               evidenceId: "truman-ev-elevator",
-            still: trumanArticleStills.elevator,
+              still: trumanArticleStills.elevator,
             },
           ],
         },
@@ -313,7 +313,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 1615.201,
               label: "Единственная правда, сказанная в лицо: «Это фальшивка. Всё это для тебя. Небо…»",
               evidenceId: "truman-ev-sylvia",
-            still: trumanArticleStills.sylvia,
+              still: trumanArticleStills.sylvia,
             },
             {
               id: "truman-article-anchor-album",
@@ -636,7 +636,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 3226.152,
               label: "Посреди ссоры жена поворачивается к камере и рекламирует какао",
               evidenceId: "truman-ev-mococoa",
-            still: trumanArticleStills.mococoa,
+              still: trumanArticleStills.mococoa,
             },
             {
               id: "truman-article-anchor-knife",
@@ -1131,7 +1131,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 4052.5,
               label: "Создатель объясняет замысел: Сихейвен — то, каким мир должен быть",
               evidenceId: "truman-ev-seahaven-design",
-            still: trumanArticleStills.christofMonitor,
+              still: trumanArticleStills.christofMonitor,
             },
             {
               id: "truman-article-anchor-manufactured",
@@ -1144,7 +1144,7 @@ export const theTrumanShowArticle: FilmArticle = {
               timestampSeconds: 3847.7,
               label: "Школьный флешбэк: мальчику, который хочет стать исследователем, отвечают, что исследовать нечего",
               evidenceId: "truman-ev-nothing-left",
-            still: trumanArticleStills.school,
+              still: trumanArticleStills.school,
             },
             {
               id: "truman-article-anchor-born-live",
