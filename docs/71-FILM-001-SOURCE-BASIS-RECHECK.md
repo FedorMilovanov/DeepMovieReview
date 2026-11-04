@@ -1,5 +1,8 @@
 # Film 001: source and evidence-basis recheck
 
+> **Subsequent direct witness (2026-11-04):** The exact viewing MKV became locally available after this document's 2026-11-03 recheck. Its full SHA-256 and measured properties were independently verified and selected original picture/audio intervals checked. Read the dated [direct-master ledger](72-FILM-001-DIRECT-MASTER-RECHECK.md); the earlier limitation below remains accurate **for its own run date**, not as a statement that the MKV is still unavailable.
+
+
 Rechecked 2026-11-03. This is an addendum to the historical ledgers, not a new continuous viewing of the master. The full master and audio were not available, and the declared master digest was not independently recalculated.
 
 ## External sources

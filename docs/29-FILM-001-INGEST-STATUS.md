@@ -1,5 +1,8 @@
 # DeepMovieReview — Film 001 Ingest Status
 
+> **Historical record, not current registry state.** This document captures the 2026-09 pre-lock intake. As of 2026-11-04 the canonical package is `LOCKED` and `published` (publication decision 2026-10-30); the exact original viewing MKV was independently rehashed and sample-checked with picture and English audio on 2026-11-04. See [the direct-master witness](72-FILM-001-DIRECT-MASTER-RECHECK.md), [the edition lock](48-FILM-001-EDITION-LOCK.md) and [publication decision](53-FILM-001-SIGNATURE-AND-SOURCES.md). Statements below retain their original date-specific scope.
+
+
 > Film: **The Truman Show (1998)**
 > Status: **identified master + draft research ingest (`MASTER_IDENTIFIED` + `SECONDARY_SOURCES`)**
 > Date: 2026-09-11 — updated 2026-09-15

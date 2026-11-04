@@ -1,5 +1,8 @@
 # Film 001 — Edition lock
 
+> **Date-scoped checkpoint:** the `draft` status in the header and table below describes the original **2026-10-28 edition-lock event**, not current `main`. The owner separately authorized `film.status: "published"` on **2026-10-30** (see [docs/53](53-FILM-001-SIGNATURE-AND-SOURCES.md)). The exact MKV was independently rehashed and sample-checked on **2026-11-04** (see [docs/72](72-FILM-001-DIRECT-MASTER-RECHECK.md)); neither event converts the original lock into a full synchronized picture-and-sound editorial review.
+
+
 > Film: **The Truman Show (1998)**
 > Viewing master: SHA-256 `E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575`
 > Measured runtime: **6177.792 s**

@@ -1,0 +1,53 @@
+# Film 001 — direct master provenance and bounded audiovisual witness
+
+> Recorded: **2026-11-04**. Supplements [the historical ingest](29-FILM-001-INGEST-STATUS.md), [edition lock](48-FILM-001-EDITION-LOCK.md) and [2026-11-03 source-basis audit](71-FILM-001-SOURCE-BASIS-RECHECK.md). Tracker: [issue #43](https://github.com/FedorMilovanov/DeepMovieReview/issues/43).
+>
+> This is a **source-led, selected-window technical review** of the exact local viewing master, **not** a continuous full-length human picture/audio review, restoration of upstream retail provenance, rights clearance, or authorization to index the site.
+
+## Exact-master identity
+
+The owner's actual local file, identified publicly only by basename `The Truman Show (1998) BDRip.mkv`, was **read in place** (not uploaded or committed). A fresh full-file Windows PowerShell `Get-FileHash -Algorithm SHA256` on 2026-11-04 returned:
+
+`E8543F612DA5063D94A11DBC5D434489B8C24718932A30FDD21E78B124B3B575`
+
+This **exactly matches** the existing locked edition's recorded digest. `ffprobe` independently reported:
+
+| Measurement | Direct observation |
+| --- | --- |
+| File size | `13,099,008,485` bytes |
+| Runtime | `6,177.792` seconds, Matroska |
+| Video | H.264, 1920×1080, `24000/1001` FPS |
+| Embedded chapters | 24 |
+| English original | DTS, six channels at 48 kHz, stream `0:5` |
+| Embedded English transcript | SubRip, stream `0:8`; two Russian SubRip streams also present |
+
+This settles the **current file-to-edition identity** for the checked local copy, but not a claim that it is a particular physical disc, untouched retail remux or studio master. The original size and modification timestamp were reconfirmed after inspection.
+
+## Method and evidence levels
+
+- **Picture:** FFmpeg sampled frames at the listed regular intervals from that exact MKV; contact sheets and a few full-resolution frames were inspected. A reported window is a sampling window, **not every frame observed** and not a whole-scene visual continuity review.
+- **Sound:** FFmpeg decoded bounded windows from the original English DTS track to memory; the preinstalled offline `faster-whisper-small` CPU model generated candidate phrases, then those were compared against the embedded English SubRip cues where available. Speech recognition is **not** speaker diarization, independent human listening or reliable transcription of low-speech/music passages.
+- **Time convention:** offsets in seconds from the declared Matroska presentation origin. Contact-sheet and ASR sample offsets are approximate; when corroborated by original SRT, that cue's own timing is cited separately. No sampled image was promoted into proof that a detail appears nowhere else.
+- **Privacy/rights:** no original film, soundtrack, frames, ASR verbatim transcript or screenshot artifacts were committed or uploaded to GitHub. Local temporary diagnostic media and the ASR script were removed after this ledger was written. Public stills and generated images have their own use-rights review gate in issue #43.
+
+## Selected-window witness ledger
+
+| Witness | Direct local window | Observed and verified | Boundaries that remain |
+| --- | --- | --- | --- |
+| `F001-RAIN` | Picture ~736–816 s, 4 s sampling | Localized rain falls over Truman and subsequently broadens across more of the scene. This corrects the former denial of the localized-rain beat. | The exact artificial-rain mechanism, director's intent and every intervening image were not audited. Earlier nominal still `truman-ev-rain` retains its historical basis. |
+| `F001-NEWS` | Picture 1830–1910 s, 4 s sampling; original English SRT cue starting `1841.935` s | Newspaper visibly bears `CRACKDOWN ON HOMELESS`; matching title is in the embedded SRT. | The photograph's subject is **not** independently identified as the man Truman had encountered; the competing `Who Needs Europe?` headline is not disproved elsewhere. Existing `truman-ev-europe` dates to an earlier still-only witness. |
+| `F001-KITCHEN` | Picture 3210–3310 s, 5 s sampling; original sound 3235–3295 s; SRT cue `3272.199–3275.236` | Cocoa presentation, tools and subsequent physical restraint appear in separate frames. The isolated English soundtrack and SRT both contain the brief `Do something!` request, followed by questions directed at the utterance. | ASR and SRT do not alone authenticate every speaker, addressee, motive or continuous physical action. Updated `truman-ev-knife-call` reflects only the added sound witness. |
+| `F001-MARLON` | Original English sound 3400–3535 s, sampled picture ~3410–3640 s | The soundtrack contains two close phrasings of a pledge to step into traffic for Truman, then the pledge not to lie to him. Sampled picture shows Marlon near Truman and alternating production-control imagery. | These checks establish an audible repetition, **not** its full behind-the-scenes causal chain or unique attribution of each overlapping voice. Do not infer what Marlon secretly feels. |
+| `F001-FATHER` | Sampled picture ~3500–3640 s | A figure approaches across the bridge in fog; Truman reacts; the scene alternates with production-control screens and a later reunion. | The exact prior knowledge and production role of every participant were not independently established. |
+| `F001-ESCAPE` | Picture 4530–4690 s (8 s), tighter 4580–4660 s (4 s); sound 4580–4680 s | Camera/control-room views show a search of the cluttered basement, followed by discovery that Truman is missing. The original soundtrack and SRT include `He's gone` and `Cut transmission!`. | The exact physical exit route, presence/extent of a tunnel and who spoke each overlapping line are not established by these samples. The external tunnel narrative remains unpromoted. |
+| `F001-SAIL` | Picture ~4880–5080 and 5040–5520 s; full-resolution sampled frames **5234–5236 s** | Numerals **139** are visibly printed on the sail during the storm, independently of a secondary interpretation. | The boat name **Santa Maria** has not been independently established by these checked frames; an intentional reference to Psalm 139 cannot be deduced from a visible number alone. The older `truman-ev-setting-sail` at ~4970 s is an earlier, different narrative point and must not be silently treated as a witness to 5235 s. |
+| `F001-FINALE` | Picture ~5380–5650 s at 7–8 s sampling; sound 5490–5650 s | The vessel meets a painted sky barrier, Truman goes toward a stairway, and the sequence alternates his reactions with the control room. The English dialogue track was decoded; ASR accurately caught portions but is unreliable for long pauses/music. | Full line-by-line speaker attribution, soundtrack scoring/silence, theological symbolism and complete continuity still need synchronized human review. The embedded SRT remains the text basis. |
+
+## Open editorial decisions — do not claim full closure
+
+1. Complete and sign off a **continuous picture-plus-sound master pass** for contested scene causal chains, speaker identities, character inferences, editorial synopsis and moral/biblical synthesis; record evidence/counterevidence per claim. A successful hash and sampled ASR do not satisfy this.
+2. Audit every currently public still and derivative according to a jurisdiction-appropriate rights/use determination. As of this check the still registry has **nine images in two encodings (18 binaries)**; the earlier publication memo's four stills describe its own historical milestone.
+3. Keep indexing disabled on the existing preview host unless the owner authorizes a public searchable launch; `LOCKED`, `published`, successful CI and full-file SHA match are **not** indexing permission.
+4. Keep historical dated documents intact and update present-tense descriptions through dated addenda; avoid claiming the pre-2026-11-04 reviewers had evidence they lacked.
+
+No media is included in this repository entry. Further changes to canonical evidence graph IDs or spoiler constraints require their own tested atomic migration; the direct observations above do **not** silently promote unsupported interpretation.
