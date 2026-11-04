@@ -1360,7 +1360,7 @@ export const trumanProductionClaims: ProductionClaim[] = [
   },
   {
     id: "claim-santa-maria",
-    text: "Lozier Institute и Mark P. Shea называют лодку «Санта-Мария»; Lozier сопоставляет её название с флагманом Колумба. Отдельный кадр надписи в доступном журнале не проверен.",
+    text: "Lozier Institute и Mark P. Shea называют лодку «Санта-Мария»; Lozier сопоставляет её название с флагманом Колумба. Надпись «SANTA MARIA» независимо подтверждена на корме на кадрах исходного MKV около 4980–4982 с (документ 72); намеренный замысел сопоставления не доказан.",
     sourceIds: ["src-lozier", "src-markpshea"],
     status: "CONFIRMED",
   },

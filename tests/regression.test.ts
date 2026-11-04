@@ -6435,15 +6435,18 @@ test("Film 001 every evidence card states the basis of its own verification", ()
   assert.match(boatMarkup, /не отдельная проверка/);
   assert.doesNotMatch(boatMarkup, /наблюдение подтверждено/);
 
-  // The rain rewrite has its own basis. The sailing record cites 4970s, outside
-  // the parent's window; it must not present that window as its own check.
+  // The earlier parent boat scan remains pending at 4840s. The later independent
+  // full-resolution source frames establish the SANTA MARIA stern title near
+  // 4981s without pretending that the old 4830/4850 samples established it.
   const sail = theTrumanShowCanonicalPackage.evidence?.find((record) => record.id === "truman-ev-setting-sail");
   assert.ok(sail?.basis);
-  assert.equal(sail.basis.inheritedFrom, "truman-ev-boat");
-  assert.equal(sail.basis.window, undefined);
-  assert.equal(sail.basis.anchorRelation, "outside");
-  assert.deepEqual(sail.basis.observationTimes, [4830, 4850]);
-  assert.equal(sail.basis.outcome, "pending");
+  assert.equal(sail.timestampSeconds, 4981);
+  assert.equal(sail.basis.inheritedFrom, undefined);
+  assert.deepEqual(sail.basis.window, { from: 4980, to: 4982 });
+  assert.equal(sail.basis.material, "frames");
+  assert.equal(sail.basis.observations, 3);
+  assert.equal(sail.basis.outcome, "seen");
+  assert.match(sail.observation, /SANTA MARIA.*не доказывает.*намеренно/i);
 
   // A tally over linked records, not over links: the map renders one card per
   // claim–record link, and counting those is how «47 опор» comes to read as
@@ -7053,7 +7056,7 @@ test("split claims have their own matching material, or an explicitly pending sh
     ["truman-ev-reunion", { material: "clip-frames", outcome: "seen", observations: 2, window: { from: 3591, to: 3611 } }],
     ["truman-ev-reunion-amnesia", { material: "subtitle-track", outcome: "subtitle", observations: 4, window: { from: 3865.143, to: 3882.947 } }],
     ["truman-ev-boat", { material: "frames", outcome: "pending", observations: 2, inheritedFrom: "truman-ev-boat", window: { from: 4830, to: 4850 } }],
-    ["truman-ev-setting-sail", { material: "frames", outcome: "pending", observations: 2, inheritedFrom: "truman-ev-boat" }],
+    ["truman-ev-setting-sail", { material: "frames", outcome: "seen", observations: 3, window: { from: 4980, to: 4982 } }],
   ];
   assert.deepEqual([...expectations.map(([id]) => id)].sort(), Object.values(expectedByParent).flat().sort());
   for (const [id, expected] of expectations) expectBasis(records.get(id), expected);
@@ -7069,7 +7072,7 @@ test("split claims have their own matching material, or an explicitly pending sh
   assert.match(amnesia.observation, /Amnesia.*Brilliant.*не называют говорящих.*не прослушан/i);
   assert.doesNotMatch(amnesia.observation, /утонул, но выжил/i);
   assert.match(amnesia.basis.note ?? "", /блоки 487–490/);
-  assert.match(records.get("truman-ev-setting-sail")?.observation ?? "", /нет отдельной проверки/i);
+  assert.match(records.get("truman-ev-setting-sail")?.observation ?? "", /SANTA MARIA.*4980–4982.*не доказывает/i);
   const rendered = renderToStaticMarkup(createElement(EvidenceBasisLine, { basis: call.basis }));
   assert.match(rendered, /встроенные субтитры.*не проверяет звук.*1 наблюдение/i);
   assert.doesNotMatch(rendered, /общая основа родительской записи/i);
@@ -7145,14 +7148,14 @@ test("corrected sources and absence claims stay within the public registry and s
   assert.match(markup, /встроенные субтитры.*подтверждено по тексту субтитров/i);
 });
 
-test("confirmed sail number does not confirm boat name, Psalm intent or subtitle speakers", () => {
+test("confirmed sail number and stern name do not prove authorial Psalm intent or subtitle speakers", () => {
   const pkg = requireFilmPackageBySlug("the-truman-show");
   const blocks = pkg.article!.sections.flatMap((section) => section.blocks);
   const sail = blocks.find((block) => block.id === "truman-article-biblical-sail");
   const voice = blocks.find((block) => block.id === "truman-article-biblical-voice");
   assert.ok(sail && sail.kind === "paragraph");
   assert.ok(voice && voice.kind === "paragraph");
-  assert.match(sail.text, /Lozier Institute.*139.*5235 с.*цифры 139.*Название лодки.*не подтверждено.*авторский замысел.*не установлены/i);
+  assert.match(sail.text, /Lozier Institute.*Псалом 138:9–10.*SANTA MARIA.*4981 с.*139.*5235 с.*авторский замысел.*не установлены/i);
   assert.doesNotMatch(sail.text, /надписи отдельно не проверены|установленная отсылка/i);
   assert.deepEqual(sail.contextSourceIds, ["src-lozier"]);
   assert.deepEqual(sail.support?.evidenceIds, ["truman-ev-setting-sail", "truman-ev-sail-139"]);
@@ -7164,9 +7167,9 @@ test("confirmed sail number does not confirm boat name, Psalm intent or subtitle
   assert.equal(direct.basis?.material, "frames");
   assert.equal(direct.basis?.outcome, "seen");
   assert.equal(direct.basis?.observations, 3);
-  assert.match(direct.observation, /139.*не подтверждают название судна.*не доказывают намеренную отсылку/i);
+  assert.match(direct.observation, /139.*отдельно подтверждают кадры 4980–4982 с.*не доказывают намеренную отсылку/i);
   assert.match(voice.text, /субтитрах.*не устанавливает говорящего или звучание.*если сцена подтвердит/i);
-  assert.equal(pkg.evidence?.find((record) => record.id === "truman-ev-setting-sail")?.basis?.outcome, "pending");
+  assert.equal(pkg.evidence?.find((record) => record.id === "truman-ev-setting-sail")?.basis?.outcome, "seen");
   assert.equal(pkg.evidence?.find((record) => record.id === "truman-ev-dialog")?.basis?.material, "subtitle-track");
 
   const dossier = getProductionDossier("the-truman-show");
@@ -7175,10 +7178,12 @@ test("confirmed sail number does not confirm boat name, Psalm intent or subtitle
   const reading = productionBlocks.find((block) => block.id === "prod-read-13");
   const myths = productionBlocks.flatMap((block) => block.kind === "myths" ? block.rows : []);
   assert.ok(reading && reading.kind === "paragraph");
-  assert.match(reading.text, /Lozier Institute.*139.*подтверждены цифры 139.*название судна и авторский замысел не установлены/i);
-  assert.match(myths.find((row) => row.id === "prod-myth-row-12")?.verdict ?? "", /139.*не устанавливает авторский замысел.*не подтверждает название судна/i);
+  assert.match(reading.text, /Lozier Institute.*139.*SANTA MARIA.*4981 с.*139.*5235 с.*авторского намерения/i);
+  assert.match(myths.find((row) => row.id === "prod-myth-row-12")?.verdict ?? "", /139.*5235 с.*SANTA MARIA.*4981 с.*не устанавливают авторский замысел/i);
   const sailNumber = dossier.claims.find((claim) => claim.id === "claim-psalm-139-sail");
   assert.match(sailNumber?.text ?? "", /Lozier Institute сообщает.*139.*независимо подтверждён.*замысел авторов отдельно не доказан/i);
+  const nameClaim = dossier.claims.find((claim) => claim.id === "claim-santa-maria");
+  assert.match(nameClaim?.text ?? "", /Lozier Institute.*SANTA MARIA.*4980–4982 с.*замысел.*не доказан/i);
   const intent = dossier.claims.find((claim) => claim.id === "claim-psalm-139-intent");
   assert.match(intent?.text ?? "", /139.*проверен на кадрах.*интенция/i);
   assert.ok(!sailNumber?.sourceIds.includes("src-markpshea"));

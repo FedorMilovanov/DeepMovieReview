@@ -822,7 +822,7 @@ export const theTrumanShowArticle: FilmArticle = {
           kind: "paragraph",
           id: "truman-article-decision-4",
           text:
-            "В прежней записи парусник назван «Санта-Мария», но кадр не проверен. Если надпись подтвердится, её можно сопоставить с кораблём Колумба.",
+            "На кадрах оригинального фильма около 4980–4982 с читается название «SANTA MARIA» на корме лодки. Оно позволяет провести ассоциацию с одноимённым кораблём Колумба, но не устанавливает, что создатели фильма намеренно заложили эту параллель.",
           support: { evidenceIds: ["truman-ev-setting-sail"] },
         },
         {
@@ -850,8 +850,8 @@ export const theTrumanShowArticle: FilmArticle = {
           items: [
             {
               id: "truman-article-anchor-setting-sail",
-              timestampSeconds: 4970,
-              label: "Парусник «Санта-Мария»: отметка требует отдельной проверки",
+              timestampSeconds: 4981,
+              label: "Корма лодки: название «SANTA MARIA» видно в кадре",
               evidenceId: "truman-ev-setting-sail",
             },
             {
@@ -1160,7 +1160,7 @@ export const theTrumanShowArticle: FilmArticle = {
           kind: "paragraph",
           id: "truman-article-biblical-sail",
           text:
-            "Lozier Institute называет лодку «Санта-Мария» и сопоставляет номер 139 с Псалмом 138:9–10. На кадрах оригинального MKV около 5235 с действительно видны цифры 139. Название лодки этими кадрами не подтверждено; авторский замысел и намеренная библейская отсылка не установлены.",
+            "Lozier Institute сопоставляет название лодки «Санта-Мария» и номер 139 на парусе со словами Писания (Псалом 138:9–10). В самом фильме независимо подтверждены две надписи: «SANTA MARIA» на корме около 4981 с и «139» на парусе около 5235 с. Обе надписи видимы, но авторский замысел и намеренная библейская отсылка не установлены.",
           support: { evidenceIds: ["truman-ev-setting-sail", "truman-ev-sail-139"] },
           contextSourceIds: ["src-lozier"],
           scriptureRefs: ["Псалом 138:9–10"],
