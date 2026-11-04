@@ -43,6 +43,26 @@ This settles the **current file-to-edition identity** for the checked local copy
 | `F001-SAIL` | Picture ~4880–5080 and 5040–5520 s; full-resolution sampled frames **5234–5236 s** | Numerals **139** are visibly printed on the sail during the storm, independently of a secondary interpretation. | The boat name **Santa Maria** has not been independently established by these checked frames; an intentional reference to Psalm 139 cannot be deduced from a visible number alone. The older `truman-ev-setting-sail` at ~4970 s is an earlier, different narrative point and must not be silently treated as a witness to 5235 s. |
 | `F001-FINALE` | Picture ~5380–5650 s at 7–8 s sampling; sound 5490–5650 s | The vessel meets a painted sky barrier, Truman goes toward a stairway, and the sequence alternates his reactions with the control room. The English dialogue track was decoded; ASR accurately caught portions but is unreliable for long pauses/music. | Full line-by-line speaker attribution, soundtrack scoring/silence, theological symbolism and complete continuity still need synchronized human review. The embedded SRT remains the text basis. |
 
+## All nine published stills: exact binary digests and bounded direct-master matches
+
+On 2026-11-04, downloaded the repository's nine JPEG and nine AVIF **bytes** under `assets/film-stills/` directly to disposable local memory and confirmed **all 18 SHA-256 values** match the corresponding `imageSha256` and `avifSha256` in `src/data/films/the-truman-show-stills.ts`. This is a complete check of the **registered published image inventory**, not a legal use-rights determination. The nine JPEGs were also compared with decoded frames from the independently hashed original master in bounded windows at one-second sampling (400×225 luminance correlation); one-second intervals are **not exact PTS resolution**. Full-size selected frames were visually inspected for ambiguous cases.
+
+| Still | Historic nominal bin/start (s) | Best sampled master location (s) | Luminance correlation | Interpretation |
+| --- | ---: | ---: | ---: | --- |
+| Light | 210 | ~225 | 0.8919 | Visual scene matches, nominal 30-s bin start versus midpoint |
+| Rain | 750 | ~766 | 0.8936 | Visual scene matches, nominal bin versus midpoint |
+| Radio | 1800 | ~1815 | 0.6082 | Exact original still visually matched a higher-resolution 1815-s frame; low grayscale score due transient face pose / image comparison, not evidence of wrong film |
+| Monitor | 3450 | ~3464 | 0.9785 | Strong direct frame match |
+| Kitchen product | 3240 | ~3255 | 0.1419 | **Visual inspection** of full-size original 3255-s frame shows the same hand/packaging shot as the JPEG, although 1-s image matcher picked a low-score other frame; do not treat low numerical score as a failed provenance proof |
+| Meryl tools | 3265 | ~3265 | 0.4354 | Full-resolution source 3265-s frame shows matching actress, tools and composition; weak score from transcode/crop/nearby motion |
+| Meryl held | 3275 | ~3275 | 0.9807 | Strong direct frame match |
+| Reunion | 3591 | ~3590 | 0.8436 | Direct scene matches within sampling uncertainty |
+| Exit | 5700 | ~5716 | 0.9576 | Strong direct frame match, nominal bin versus midpoint |
+
+**Important:** `sampleTimeSeconds` for each 30-second **grid** still denotes the historic **bin start** (multiples of 30), not an independently measured source-frame PTS. The selected image falls approximately 15 s later; a timestamp *labelled as an exact frame capture* would be misleading. Preserve the existing schema and historical sampling semantics rather than silently changing all labels to measured values inferred from one-second comparison. Clip images use clip-origin + offset separately. Do not change canonical evidence timestamps or interpretations based solely on this alignment, and do not claim every byte of each still was re-derived identically by FFmpeg; image digests and visual scene matches are distinct checks.
+
+No copyrighted stills or extracted master frames were added to the repository. The local inspection script, fetched still bytes and sampled frames were ephemeral and discarded after this check.
+
 ## Open editorial decisions — do not claim full closure
 
 1. Complete and sign off a **continuous picture-plus-sound master pass** for contested scene causal chains, speaker identities, character inferences, editorial synopsis and moral/biblical synthesis; record evidence/counterevidence per claim. A successful hash and sampled ASR do not satisfy this.

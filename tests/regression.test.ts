@@ -6701,11 +6701,13 @@ test("published methodology does not turn supplied metadata into a viewing or au
   const sources = theTrumanShowCanonicalPackage.modules.find((module) => module.kind === "sources-method");
   assert.ok(sources && sources.kind === "sources-method");
   assert.match(sources.analyzedEdition, /фильм опубликован/i);
-  assert.match(sources.analyzedEdition, /хеш повторно не пересчитан/i);
-  assert.match(sources.analyzedEdition, /не означает, что её прослушали/i);
+  assert.match(sources.analyzedEdition, /SHA-256 всего MKV.*повторно измерены.*совпали/i);
+  assert.doesNotMatch(sources.analyzedEdition, /хеш повторно не пересчитан|исходный файл при этой проверке недоступен/i);
+  assert.match(sources.analyzedEdition, /не непрерывное прослушивание фильма.*не удостоверение голоса/i);
   assert.doesNotMatch(sources.analyzedEdition, /remains draft|scene-by-scene|Dialogue basis/i);
   const master = sources.sources.find((source) => source.kind === "film-edition");
-  assert.match(master?.locator ?? "", /не прослушана/i);
+  assert.match(master?.locator ?? "", /выборочно декодирована.*офлайн-ASR.*не было/i);
+  assert.doesNotMatch(master?.locator ?? "", /Дорожка не прослушана в этой проверке/i);
   assert.equal(evidenceBasisMaterialLabels.frames, "отдельные кадры");
   assert.match(evidenceBasisOutcomeLabels.subtitle, /тексту субтитров/);
 
@@ -6713,7 +6715,8 @@ test("published methodology does not turn supplied metadata into a viewing or au
   assert.ok(verdict && verdict.kind === "final-synthesis");
   assert.ok(verdict.qualifications.some((item) => /не заменяют просмотр со звуком/.test(item)));
   assert.doesNotMatch(verdict.qualifications.join(" "), /фильм при этом остаётся черновиком/);
-  assert.match(theTrumanShowArticle.closing?.text ?? "", /исходный файл здесь повторно не проверялся/i);
+  assert.match(theTrumanShowArticle.closing?.text ?? "", /4 ноября 2026 года.*независимо пересчитан по SHA-256.*полного непрерывного просмотра со звуком это не заменяет/i);
+  assert.doesNotMatch(theTrumanShowArticle.closing?.text ?? "", /исходный файл здесь повторно не проверялся/i);
   assert.doesNotMatch(theTrumanShowArticle.standfirst, /на измеренном файле/i);
   const productionMethod = theTrumanShowProductionDossier.sections.flatMap((section) => section.blocks)
     .find((block) => block.id === "prod-met-1");
@@ -7059,8 +7062,9 @@ test("split claims have their own matching material, or an explicitly pending sh
   assert.ok(call?.basis && amnesia?.basis);
   assert.match(call.label, /субтитрах/i);
   assert.doesNotMatch(call.label, /крик|пустот/i);
-  assert.match(call.observation, /Do something!.*не называет говорящего или адресата.*не прослушан/i);
-  assert.match(call.basis.note ?? "", /блок 391.*не три проверки/i);
+  assert.match(call.observation, /Do something!.*оригинальной звуковой дорожки.*не установлено/i);
+  assert.doesNotMatch(call.observation, /не прослушан|произнёс Мэрил|обращена к Кристофу/i);
+  assert.match(call.basis.note ?? "", /блок 391.*исходной английской дорожки.*ASR не удостоверяет говорящего/i);
   assert.match(amnesia.observation, /Amnesia.*Brilliant.*не называют говорящих.*не прослушан/i);
   assert.doesNotMatch(amnesia.observation, /утонул, но выжил/i);
   assert.match(amnesia.basis.note ?? "", /блоки 487–490/);
@@ -7115,7 +7119,8 @@ test("corrected sources and absence claims stay within the public registry and s
   assert.equal(escape?.basis?.material, "subtitle-track");
   assert.deepEqual(escape?.basis?.window, { from: 4642.986, to: 4650.235 });
   assert.equal(escape?.basis?.observations, 2);
-  assert.match(escape?.observation ?? "", /не объясняет способ исчезновения.*не прослушан/i);
+  assert.match(escape?.observation ?? "", /Независимая выборка.*английской дорожки.*не доказывают точный путь побега.*личности говорящих/i);
+  assert.doesNotMatch(escape?.observation ?? "", /прорыл подкоп|вырыл тоннель|звук отдельно не прослушан/i);
   assert.match(escape?.basis?.note ?? "", /блоки 603–604/);
 
   for (const level of ["NONE", "MINOR", "MAJOR", "ENDING"] as const) {
