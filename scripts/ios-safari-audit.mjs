@@ -113,7 +113,17 @@ function hostSimulatorProcesses() {
 }
 try {
   report.initialDeveloperDirectory = execFileSync("xcode-select", ["-p"], { encoding: "utf8", timeout: 30000, env: systemEnv }).trim();
-  const xcode = newestStableXcode(readdirSync("/Applications"));
+  // Pin a complete installed Xcode+iOS Simulator runtime only when CI
+  // explicitly asks for one. Xcode 26.6/iOS 26.5 has shown a real CoreSimulator
+  // Recap digitizer disappearing mid-tap (native touchstart → touchcancel);
+  // this selects an independently installed stable toolchain for strict native
+  // testing, not a relaxed/mocked gesture or a pass based on diagnostics.
+  const installations = readdirSync("/Applications");
+  const version = process.env.DMR_IOS_XCODE_VERSION;
+  if (version) assert.match(version, /^\\d+(?:\\.\\d+){1,2}$/, "Expected explicit stable Xcode version");
+  const desired = version ? `Xcode_${version}.app` : newestStableXcode(installations);
+  assert.ok(installations.includes(desired), `Requested installed native Xcode is missing: ${desired}`);
+  const xcode = desired;
   const developerDirectory = realpathSync(`/Applications/${xcode}/Contents/Developer`);
   process.env.DEVELOPER_DIR = developerDirectory;
   // LaunchServices/XPC helpers do not necessarily inherit this Node process's
