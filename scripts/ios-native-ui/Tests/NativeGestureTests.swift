@@ -26,9 +26,11 @@ final class NativeGestureTests: XCTestCase {
         // expanded/navigation state. No gesture is replayed or synthesized.
         waitForBarrier("menu-home")
         verifyMenu(in: safari, screenshot: "DMR-menu-home-open")
+        openNativeRoute("/films", in: safari)
         waitForPageMarker("Индекс предпросмотра", in: safari, name: "films index")
         waitForBarrier("menu-films")
         verifyMenu(in: safari, screenshot: "DMR-menu-films-open")
+        openNativeRoute("/films/the-truman-show/article?spoilers=full", in: safari)
         // The rail's accessible name begins with the visible word and current
         // section number; the number can change after the real native scroll.
         let readingRailName = NSPredicate(format: "label MATCHES %@", "Разделы [0-9]{2,} — оглавление статьи")
@@ -36,9 +38,11 @@ final class NativeGestureTests: XCTestCase {
         XCTAssertTrue(articleRail.waitForExistence(timeout: 90), "The FULL article did not arrive for its menu test")
         waitForBarrier("menu-article")
         verifyMenu(in: safari, screenshot: "DMR-menu-article-open")
+        openNativeRoute("/films/the-truman-show/making", in: safari)
         waitForPageMarker("поиск режиссёра и город", in: safari, name: "making article")
         waitForBarrier("menu-making")
         verifyMenu(in: safari, screenshot: "DMR-menu-making-open")
+        openNativeRoute("/films/the-truman-show/article?spoilers=full", in: safari)
 
         // Safari can briefly expose the earlier article's AX tree while the
         // new document is loading. Wait for the passive observer to see the
@@ -63,6 +67,7 @@ final class NativeGestureTests: XCTestCase {
         rail.tap()
         Thread.sleep(forTimeInterval: 1)
         capture("DMR-after-native-rail-tap")
+        openNativeRoute("/films/the-truman-show?spoilers=none#scene-truman-sc-day-10909", in: safari)
 
         // The harness then opens the safe scene URL in the same normal Safari.
         // It only navigates: all interactions below are native XCUITest input,
@@ -109,6 +114,7 @@ final class NativeGestureTests: XCTestCase {
         tapVisibleCenter(link, in: safari, name: "Scene evidence link")
         Thread.sleep(forTimeInterval: 2)
         capture("DMR-scene-evidence")
+        openNativeRoute("/films/the-truman-show/article?spoilers=full", in: safari)
 
         // The harness returns to a fresh FULL article after the evidence
         // screenshot. Its only automatic action is navigation to FULL: this
@@ -139,6 +145,29 @@ final class NativeGestureTests: XCTestCase {
         // its exact SSR sections and the trusted uninterrupted touch + click.
         Thread.sleep(forTimeInterval: 5)
         capture("DMR-spoiler-after-input")
+    }
+
+    // Native Safari URL opening avoids racing external simctl openurl against
+    // the active XCTest session. Browser UI interactions are still real native
+    // taps and drags; the passive observer must validate every next document.
+    @MainActor
+    private func openNativeRoute(_ route: String, in safari: XCUIApplication) {
+        let allowed: Set<String> = [
+            "/films",
+            "/films/the-truman-show/article?spoilers=full",
+            "/films/the-truman-show/making",
+            "/films/the-truman-show?spoilers=none#scene-truman-sc-day-10909",
+        ]
+        guard allowed.contains(route),
+              let address = ProcessInfo.processInfo.environment["DMR_BARRIER_URL"],
+              let barrier = URL(string: address),
+              barrier.scheme == "http", barrier.host == "127.0.0.1", barrier.port != nil,
+              let target = URL(string: route, relativeTo: barrier)?.absoluteURL,
+              target.scheme == barrier.scheme, target.host == barrier.host, target.port == barrier.port else {
+            XCTFail("Native Safari navigation rejected an unexpected URL or missing loopback barrier")
+            return
+        }
+        safari.open(target)
     }
 
     @MainActor
