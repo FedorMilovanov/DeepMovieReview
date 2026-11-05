@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { AnalysisWorkbench } from "@/components/analysis-workbench";
 import { LivingFrame } from "@/components/living-frame";
 import { TiltSurface } from "@/components/tilt-surface";
@@ -729,16 +730,22 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
               <article className="characterCard" key={character.id}>
                 {art && character.visual ? (
                   <figure className="homeCharacterVisual">
-                    <img
-                      src={art.src}
-                      srcSet={art.srcSet}
-                      sizes="(max-width: 720px) 100vw, 36vw"
-                      alt={`ИИ-иллюстрация, не кадр фильма. ${art.alt}`}
-                      width={art.width}
-                      height={art.height}
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <picture>
+                      {art.sources.map((source) => (
+                        <source key={source.type} type={source.type} srcSet={source.srcSet} sizes="(max-width: 720px) 100vw, 36vw" />
+                      ))}
+                      <source srcSet={art.srcSet} sizes="(max-width: 720px) 100vw, 36vw" />
+                      <Image
+                        unoptimized
+                        src={art.src}
+                        sizes="(max-width: 720px) 100vw, 36vw"
+                        alt={`ИИ-иллюстрация, не кадр фильма. ${art.alt}`}
+                        width={art.width}
+                        height={art.height}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
                     <figcaption>{character.visual.caption}</figcaption>
                   </figure>
                 ) : null}
