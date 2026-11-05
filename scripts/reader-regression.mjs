@@ -231,8 +231,12 @@ for (const engine of requested) {
           assert.doesNotMatch(footer, /Предзапуск/, 'do not assert a deployment state the registry does not establish');
           const raw = await response.text();
           assert.doesNotMatch(raw, /Фиджи|Сильви|Край неба и дверь/, "homepage HTML/RSC must not contain later plot");
-          assert.ok(await page.locator('.lensEvidenceFigure img').isVisible());
-          assert.match(await page.locator('.lensEvidenceFigure img').getAttribute('alt') ?? '', /Sirius.*продолжение закрыто/i);
+          // A source-film frame is contextual quotation within the article, not homepage artwork.
+          assert.equal(await page.locator('.lensEvidenceFigure').count(), 0, "homepage cannot duplicate film-frame quotations");
+          const lensIllustration = page.locator('.lensFrameWrap .livingFrame img');
+          assert.ok(await lensIllustration.isVisible(), "the editorial method illustration must remain visible");
+          assert.match(await lensIllustration.getAttribute('alt') ?? '', /Фигура спиной перед светящимся дверным проёмом/i);
+          assert.doesNotMatch(raw, /\/film-stills\//, "homepage HTML/RSC must not expose standalone film-still URLs");
           const geometry = await page.evaluate(() => ({ documentWidth: document.documentElement.scrollWidth, viewport: innerWidth }));
           assert.ok(geometry.documentWidth <= geometry.viewport + 1, JSON.stringify(geometry));
           const supportsHas = await page.evaluate(() => CSS.supports('selector(:has(*))'));
