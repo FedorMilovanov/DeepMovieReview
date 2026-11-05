@@ -758,7 +758,11 @@ jobs:
   # accessibility permission setup and the desktop Safari process lifecycle.
   native-ios:
     name: Native iOS Safari
-    runs-on: macos-26
+    runs-on: macos-26-intel
+    # GitHub hosted macos-26 ARM64 pool repeatedly cancelled this sole job
+    # before runner assignment; macos-26-intel is a standard supported x64
+    # image with the same pinned Xcode 26.4.1 and iOS 26.4 Simulator.
+    # Preserve actual native gesture, AX and observer assertions unchanged.
     # Xcode 26.6 / iOS 26.5 logged duplicate Recap HID touchscreen services
     # and canceled real touch input (observed on two isolated XCUITest devices).
     # Test unchanged native gestures on installed Xcode 26.4.1 / iOS 26.4.
