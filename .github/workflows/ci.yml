@@ -758,15 +758,12 @@ jobs:
   # accessibility permission setup and the desktop Safari process lifecycle.
   native-ios:
     name: Native iOS Safari
-    runs-on: macos-26-intel
-    # GitHub hosted macos-26 ARM64 pool repeatedly cancelled this sole job
-    # before runner assignment; macos-26-intel is a standard supported x64
-    # image with the same pinned Xcode 26.4.1 and iOS 26.4 Simulator.
-    # Preserve actual native gesture, AX and observer assertions unchanged.
-    # Xcode 26.6 / iOS 26.5 logged duplicate Recap HID touchscreen services
-    # and canceled real touch input (observed on two isolated XCUITest devices).
-    # Test unchanged native gestures on installed Xcode 26.4.1 / iOS 26.4.
-    # This toolchain pin is not a test waiver or a synthetic event substitute.
+    runs-on: macos-15-intel
+    # Xcode 26 / iOS 26 on hosted macOS 26 repeatedly stalled CoreSimulator
+    # bootstrap, SafariDriver and native XCTest despite clean-device isolation.
+    # Run the unchanged strict native contract on supported macOS 15 Intel,
+    # Xcode 16.4 and its installed iOS 18.5 iPhone Simulator. This is a real
+    # independent OS/browser compatibility target, not synthetic input.
     # A correlated Simulator digitizer cancellation may trigger one complete
     # strict rerun on a fresh device; the failed attempt is retained. Allow time
     # for both cold boots and evidence publication, never for repeated taps.
@@ -776,7 +773,7 @@ jobs:
       actions: read
       checks: write
     env:
-      DMR_IOS_XCODE_VERSION: "26.4.1"
+      DMR_IOS_XCODE_VERSION: "16.4"
       DMR_PREVIEW_CONTENT_ENABLED: "true"
       DMR_SITE_INDEXING_ENABLED: "false"
     steps:
