@@ -234,12 +234,15 @@ final class NativeGestureTests: XCTestCase {
         XCTAssertGreaterThan(frame.width, 0, "\(name) must have a nonempty native accessibility frame")
         XCTAssertGreaterThan(frame.height, 0, "\(name) must have a nonempty native accessibility frame")
         XCTAssertTrue(appFrame.contains(center), "\(name) accessibility frame must intersect the native screen: \(frame)")
-        // XCTest differentiates an actual tap() from press(forDuration:),
-        // which is a press-and-hold even at 0.08 seconds. Previously the hold
-        // yielded touchstart/touchcancel instead of a click. Keep the existing
-        // centre-of-AX-frame check and independent native touchend, trusted
-        // click, target and menu-expanded-state checks unchanged.
-        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Use the accessibility element's built-in native tap rather than a
+        // separately resolved coordinate tap. On the iOS 26.4 CI Simulator the
+        // coordinate produced real trusted touchstart/touchend on the correct
+        // button but WebKit emitted no click. XCTest's AX-targeted tap is still
+        // a single real native interaction: the frame guard above remains,
+        // and the independent observer must prove trusted touchstart, touchend,
+        // click and the actual expanded/open/closed menu states. No retries,
+        // DOM click injection or success based on the XCTest command alone.
+        element.tap()
     }
 
     @MainActor
