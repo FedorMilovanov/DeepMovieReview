@@ -143,7 +143,7 @@ for (const name of selected) {
             await page.keyboard.press("Enter");
           }
 
-          const concreteScene = route === "/" && await page.locator('.lensEvidenceFigure').count() > 0;
+          const concreteScene = route === "/" && await page.locator('.lensSceneLink').count() > 0;
           if (width === 390 && route === "/") {
             for (const lens of ["story", "people", "relationships", "ideas", "moral-world", "craft"]) {
               await page.locator(`label[for="lens-radio-${lens}"]`).click();
@@ -154,8 +154,8 @@ for (const name of selected) {
                   return node && +getComputedStyle(node).opacity === 1 && (!section || +getComputedStyle(section).opacity === 1);
                 }, reading);
                 assert.ok(await page.locator(`${reading} .lensEvidenceLinks a`).first().isVisible(), `${lens}: a visible reading must have an evidence link`);
-                // Unlike the generic illustration demo, the still has no
-                // decorative chips. Audit each actual reading and its links.
+                // The published scene uses authored method art, but each actual
+                // reading still needs its real visible evidence links.
                 await scan(`lens-${lens}`, reading);
               } else {
                 await page.waitForFunction(lens => {
@@ -180,9 +180,13 @@ for (const name of selected) {
 
           if (route === "/") {
             if (concreteScene) {
-              assert.equal(await page.locator('.lensEvidenceFigure .lensMarkGroup, .lensEvidenceFigure .lensTrace').count(), 0,
-                'a film still must not be obscured by decorative labels or traces');
-              assert.match(await page.locator('.lensEvidenceFigure img').getAttribute('alt') ?? '', /Sirius.*продолжение закрыто/i);
+              // Source-film frames are quoted inside the critical article only.
+              const editorialArt = page.locator(".lensFrameWrap .livingFrame img");
+              assert.ok(await editorialArt.isVisible(), "the method illustration must stay visible");
+              assert.match(await editorialArt.getAttribute("alt") ?? "", /Фигура спиной перед светящимся дверным проёмом/i);
+              assert.equal(await page.locator(".lensEvidenceFigure").count(), 0, "homepage must not display a source-film still");
+              assert.equal(await page.locator(".lensFrameWrap .lensMarkGroup, .lensFrameWrap .lensTrace").count(), 0,
+                "the published method illustration must not masquerade as film evidence");
             } else {
               const layers = await page.evaluate(() => ({
                 marks: +getComputedStyle(document.querySelector('.lensMarkGroup[data-lens="story"]')).zIndex,
