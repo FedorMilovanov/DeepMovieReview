@@ -120,7 +120,7 @@ try {
   // testing, not a relaxed/mocked gesture or a pass based on diagnostics.
   const installations = readdirSync("/Applications");
   const version = process.env.DMR_IOS_XCODE_VERSION;
-  if (version) assert.match(version, /^\\d+(?:\\.\\d+){1,2}$/, "Expected explicit stable Xcode version");
+  if (version) assert.match(version, /^\d+(?:\.\d+){1,2}$/, "Expected explicit stable Xcode version");
   const desired = version ? `Xcode_${version}.app` : newestStableXcode(installations);
   assert.ok(installations.includes(desired), `Requested installed native Xcode is missing: ${desired}`);
   const xcode = desired;
@@ -143,8 +143,18 @@ try {
   report.availableRuntimes = Object.keys(devices.devices);
   // The list is oldest-first on hosted images; prefer the newest installed iOS
   // runtime rather than silently pairing Safari26 with the first iOS18 device.
+  // A pinned Xcode must not silently select a newer Simulator runtime from a
+  // different installed Xcode. In particular, Xcode 26.4 uses iOS 26.4, not
+  // the 26.5 runtime whose Recap HID input failed the native touch contract.
+  const pinnedMinor = version ? Number(simulatorSdk.split(".")[1] ?? 0) : null;
   const candidates = Object.entries(devices.devices)
-    .filter(([runtime]) => runtimeMatchesSdk(runtime, simulatorSdk))
+    .filter(([runtime]) => {
+      if (!runtimeMatchesSdk(runtime, simulatorSdk)) return false;
+      if (pinnedMinor === null) return true;
+      const found = /\.iOS-(\d+)-(\d+)/.exec(runtime);
+      const sdkMajor = Number(simulatorSdk.split(".")[0]);
+      return Boolean(found && Number(found[1]) === sdkMajor && Number(found[2]) <= pinnedMinor);
+    })
     .sort(([a], [b]) => b.localeCompare(a, undefined, { numeric: true })).flatMap(([runtime, devices]) => devices.map(device => ({ ...device, runtime })));
   const device = candidates.find(device => device.name.startsWith("iPhone") && device.isAvailable);
   assert.ok(device, "No installed iPhone Simulator runtime");
