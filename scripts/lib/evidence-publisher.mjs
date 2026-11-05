@@ -3,7 +3,11 @@ import { createHash } from "node:crypto";
 import { EVIDENCE_CHUNK_SIZE, EVIDENCE_MAX_PARTS, EVIDENCE_PART_CHUNKS } from "./evidence-transfer.mjs";
 
 const digest = buffer => createHash("sha256").update(buffer).digest("hex");
-const transient = error => Number.isInteger(error?.status) && error.status >= 500 && error.status < 600;
+// Newly created GitHub Checks may briefly return 404 on PATCH/GET before
+// propagation. Reconcile exact annotations with a bounded read instead of
+// replaying a possibly accepted PATCH blindly; missing data remains fatal.
+const transient = error => Number.isInteger(error?.status) &&
+  (error.status === 404 || (error.status >= 500 && error.status < 600));
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function readAnnotations(api, id, maximum, wait) {

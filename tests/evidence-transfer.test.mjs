@@ -127,6 +127,33 @@ test("permanently invisible annotations fail closed after a finite read-back bud
   assert.match(check.output.text, /Missing annotation chunks/);
 });
 
+test("new GitHub checks reconcile a 404 whether the first PATCH committed or not", async () => {
+  for (const acceptedBefore404 of [false, true]) {
+    const { api: base, checks } = fakeChecks();
+    let patchCalls = 0;
+    const api = async (path, method = "GET", body) => {
+      if (method === "PATCH" && body?.output?.annotations) {
+        patchCalls++;
+        if (patchCalls === 1) {
+          if (acceptedBefore404) await base(path, method, body);
+          throw Object.assign(new Error("new check not yet visible"), { status: 404 });
+        }
+      }
+      return base(path, method, body);
+    };
+    const source = randomBytes(9000);
+    const result = await publishEvidence({ bytes: source, revision, head, label: "new-check",
+      summary: payload.summary, api, wait: async () => {} });
+    const check = checks.get(result.checks[0].id);
+    assert.equal(check.conclusion, "success");
+    assert.equal(check.rows.length, result.manifest.chunks);
+    assert.equal(new Set(check.rows.map(row => row.title)).size, check.rows.length);
+    assert.equal(patchCalls, acceptedBefore404 ? 1 : 2,
+      "404 reconciliation must never duplicate a committed PATCH");
+    assert.deepEqual(Buffer.from(check.rows.map(row => row.message).join(""), "base64"), source);
+  }
+});
+
 test("a transient annotation append is reconciled before any retry, including partial or complete writes", async () => {
   for (const mode of ["before", "partial", "after"]) {
     const { api: base, checks } = fakeChecks();

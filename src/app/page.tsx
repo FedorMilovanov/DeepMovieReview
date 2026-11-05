@@ -741,7 +741,7 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
                         alt={`ИИ-иллюстрация, не кадр фильма. ${art.alt}`}
                         width={art.width}
                         height={art.height}
-                        loading="lazy"
+                        loading="eager"
                         decoding="async"
                       />
                     </picture>

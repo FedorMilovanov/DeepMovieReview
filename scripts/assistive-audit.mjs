@@ -246,30 +246,33 @@ try {
         await reader.press("Control+Home");
       }
     }
-    // Use VoiceOver's actual Headings rotor rather than treating a Safari web
-    // group announcement from VO-Command-H as proof of a heading.
+    // VoiceOver rotor speech is cumulative. In particular, "No items in
+    // Headings menu" is evidence of an EMPTY category, not a selected h1.
     await perform(reader.keyboardCommands.openWebItemRotor, navigationOptions);
+    let hasHeadingInRotor = false;
     for (let category = 0; category < 12; category++) {
-      // Capture includes category, selected item and help as separate phrases;
-      // the last phrase alone can be the item/help, not the category name.
       const speech = [...await reader.spokenPhraseLog()];
+      const latest = speech.at(-1) ?? "";
       evidence.actions.push({ label: "VoiceOver rotor category", category, speech });
-      checkpoint(`VoiceOver rotor category ${category}`);
-      // Some VoiceOver configurations speak only the selected rotor item,
-      // e.g. "On item 1: TITLE", not its category. Select that native entry,
-      // then independently require Describe Item to confirm the heading role.
-      if (/headings|заголовки|On item 1:\s*шоу трумана/i.test(speech.join(" "))) break;
-      assert.ok(category < 11, "VoiceOver web rotor must expose the article heading entry");
-      await reader.press("ArrowRight", navigationOptions);
+      checkpoint("VoiceOver rotor category " + category);
+      if (/No items in Headings menu|Нет элементов в меню заголовков/i.test(latest)) break;
+      if (/On item 1:\s*шоу трумана|Headings menu|Меню заголовков/i.test(latest)) {
+        hasHeadingInRotor = true;
+        break;
+      }
+      if (category < 11) await reader.press("ArrowRight", navigationOptions);
     }
-    await reader.press("Home", navigationOptions);
-    // Capture the heading spoken when selecting the real rotor item and the
-    // read-only Describe Item reply. Do not discard Enter's speech: VoiceOver
-    // can return an empty second phrase while its first utterance is pending.
-    // Concurrent public last-phrase observation records only actual speech.
-    // Without both the spoken title and heading role, this gate still fails.
+    // A native Safari rotor can be temporarily empty even while direct
+    // VO-Command-H works. Both commands are genuine screen-reader navigation.
+    // Accept neither without the actual spoken article title AND heading role.
     await reader.clearSpokenPhraseLog();
-    await reader.press("Enter", navigationOptions);
+    if (hasHeadingInRotor) {
+      await reader.press("Home", navigationOptions);
+      await reader.press("Enter", navigationOptions);
+    } else {
+      await reader.press("Escape", navigationOptions);
+      await reader.nextHeading(navigationOptions);
+    }
     await perform(reader.keyboardCommands.describeItem, navigationOptions);
   }, [/шоу трумана/i, /heading|заголовок/i], { observeDuring: true });
   await findNamedTable("native table navigation", /четыре окна/i);

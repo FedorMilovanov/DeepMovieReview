@@ -483,8 +483,20 @@ test("fresh CI Simulator runs the complete callback once, uses another UDID and 
   let fake = makeRunner(), callbacks = 0;
   const result = await withFreshGestureSimulator(config, async device => { callbacks++; assert.equal(device.udid, created); return "strict pass"; }, fake);
   assert.equal(result, "strict pass"); assert.equal(callbacks, 1);
+  const warmIndex = fake.calls.findIndex(call => call[1] === "simctl" && call[2] === "launch" &&
+    call[3] === created && call[4] === "com.apple.mobilesafari");
+  const bootIndex = fake.calls.findIndex(call => call[1] === "simctl" && call[2] === "bootstatus");
+  assert.ok(bootIndex >= 0 && warmIndex > bootIndex,
+    "Fresh native Safari must warm after boot and before XCTest");
   assert.deepEqual(fake.calls.filter(call => call[1] === "simctl" && ["shutdown", "delete"].includes(call[2]))
     .map(call => [call[2], call[3]]), [["shutdown", original.udid], ["shutdown", created], ["delete", created]]);
+  fake = makeRunner((_command, args) => args[1] === "launch");
+  callbacks = 0;
+  await assert.rejects(withFreshGestureSimulator(config, async () => { callbacks++; }, fake),
+    /fake simctl failure/);
+  assert.equal(callbacks, 0, "Failed Safari launch must not invoke native tests");
+  assert.ok(fake.calls.some(call => call[2] === "delete" && call[3] === created),
+    "Failed warmup must clean up its disposable Simulator");
   fake = makeRunner(); callbacks = 0;
   await assert.rejects(withFreshGestureSimulator({ ...config, ci: false }, async () => { callbacks++; }, fake), /disposable CI/);
   assert.equal(fake.calls.length, 0); assert.equal(callbacks, 0);
