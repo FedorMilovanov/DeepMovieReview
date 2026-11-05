@@ -284,8 +284,23 @@ try {
     const automatic = await action("table row navigation", () => perform(reader.keyboardCommands.moveDown, navigationOptions),
       libraryDetectionRowSpeech, { required: false, observeDuring: true });
     if (needsTableRowRead(automatic)) {
-      await action("table row read on demand", () => perform(reader.keyboardCommands.readTableRow, navigationOptions),
-        libraryDetectionRowSpeech, { observeDuring: true });
+      const onDemand = await action("table row read on demand",
+        () => perform(reader.keyboardCommands.readTableRow, navigationOptions),
+        libraryDetectionRowSpeech, { required: false, observeDuring: true });
+      if (needsTableRowRead([...automatic, ...onDemand])) {
+        // VoiceOver may say only "row 2 of 5" for VO-R, despite exposing the
+        // actual row. Read both cells using native table-column commands;
+        // their real spoken words must jointly name the row and exact value.
+        // No DOM read, replayed tap or synthetic speech can satisfy this gate.
+        const heading = await action("table row header via native column",
+          () => perform(reader.keyboardCommands.moveToPreviousColumn, navigationOptions),
+          /библиотека/i, { observeDuring: true });
+        const count = await action("table row detected count via native column",
+          () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions),
+          /\b0 обнаруженных переходов/i, { observeDuring: true });
+        assert.match([...heading, ...count].join(" "), libraryDetectionRowSpeech,
+          "Real VoiceOver must speak the named row and exact detector count");
+      }
     }
   } else {
     await action("table row header and value", () => perform(reader.keyboardCommands.moveToNextRow, navigationOptions), libraryDetectionRowSpeech);

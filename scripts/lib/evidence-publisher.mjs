@@ -58,6 +58,20 @@ async function appendAnnotations(api, check, manifest, previous, batch, wait) {
   }
 }
 
+// GitHub's Checks API can acknowledge PATCH before new annotations become
+// visible through GET. Observe only: never resend a successfully PATCHed batch.
+// Absent chunks remain a hard failure after this bounded visibility budget.
+async function readAnnotationsUntilComplete(api, id, count, wait) {
+  let rows = [];
+  for (let attempt = 0; attempt < 30; attempt++) {
+    rows = await readAnnotations(api, id, count, wait);
+    if (rows.length === count) return rows;
+    if (attempt < 29) await wait(2000);
+  }
+  assert.equal(rows.length, count, "Missing annotation chunks after bounded read-back");
+  return rows;
+}
+
 /** Keep the 1,000-annotation budget per check, not per complete receipt. */
 export function planEvidence(bytes, revision) {
   assert.match(revision, /^[a-f0-9]{40}$/);
@@ -109,8 +123,7 @@ export async function publishEvidence({ bytes, revision, head, label, summary, a
     }
     const received = [];
     for (const [partIndex, group] of groups.entries()) {
-      const partRows = await readAnnotations(api, created[partIndex].id, group.length, wait);
-      assert.equal(partRows.length, group.length, "Missing annotation chunks");
+      const partRows = await readAnnotationsUntilComplete(api, created[partIndex].id, group.length, wait);
       received.push(...partRows);
     }
     received.sort((a, b) => a.title.localeCompare(b.title));

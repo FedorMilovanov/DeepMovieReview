@@ -731,10 +731,9 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
                 {art && character.visual ? (
                   <figure className="homeCharacterVisual">
                     <picture>
-                      {art.sources.map((source) => (
-                        <source key={source.type} type={source.type} srcSet={source.srcSet} sizes="(max-width: 720px) 100vw, 36vw" />
-                      ))}
-                      <source srcSet={art.srcSet} sizes="(max-width: 720px) 100vw, 36vw" />
+                      {/* Homepage portrait prioritizes dependable first-paint JPEG decoding in native browsers.
+                          Both optimised widths remain responsive; AVIF is still available inside articles. */}
+                      <source type="image/jpeg" srcSet={art.srcSet} sizes="(max-width: 720px) 100vw, 36vw" />
                       <Image
                         unoptimized
                         src={art.src}
