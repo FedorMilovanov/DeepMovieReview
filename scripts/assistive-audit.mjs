@@ -234,13 +234,15 @@ try {
       await reader.press("ArrowRight", navigationOptions);
     }
     await reader.press("Home", navigationOptions);
-    // The assertion below must come from the selected heading itself, not the
-    // earlier web-area title or the rotor's category/help announcement.
+    // Capture the heading spoken when selecting the real rotor item and the
+    // read-only Describe Item reply. Do not discard Enter's speech: VoiceOver
+    // can return an empty second phrase while its first utterance is pending.
+    // Concurrent public last-phrase observation records only actual speech.
+    // Without both the spoken title and heading role, this gate still fails.
     await reader.clearSpokenPhraseLog();
     await reader.press("Enter", navigationOptions);
-    await reader.clearSpokenPhraseLog();
     await perform(reader.keyboardCommands.describeItem, navigationOptions);
-  }, [/шоу трумана/i, /heading|заголовок/i]);
+  }, [/шоу трумана/i, /heading|заголовок/i], { observeDuring: true });
   await findNamedTable("native table navigation", /четыре окна/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   await action("table column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);
