@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { AnalysisWorkbench } from "@/components/analysis-workbench";
 import { LivingFrame } from "@/components/living-frame";
 import { TiltSurface } from "@/components/tilt-surface";
@@ -730,7 +729,21 @@ function DataSections({ data, published }: { data: HomepageViewModel; published:
               <article className="characterCard" key={character.id}>
                 {art && character.visual ? (
                   <figure className="homeCharacterVisual">
-                    <Image src={art.src} alt={`ИИ-иллюстрация, не кадр фильма. ${art.alt}`} width={art.width} height={art.height} sizes="(max-width: 720px) 100vw, 36vw" />
+                    <picture>
+                      {art.sources.map((source) => (
+                        <source key={source.type} srcSet={source.srcSet} sizes="(max-width: 720px) 100vw, 36vw" type={source.type} />
+                      ))}
+                      <img
+                        src={art.src}
+                        srcSet={art.srcSet}
+                        sizes="(max-width: 720px) 100vw, 36vw"
+                        alt={`ИИ-иллюстрация, не кадр фильма. ${art.alt}`}
+                        width={art.width}
+                        height={art.height}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
                     <figcaption>{character.visual.caption}</figcaption>
                   </figure>
                 ) : null}
