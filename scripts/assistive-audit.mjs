@@ -94,31 +94,32 @@ async function findNamedTable(label, name) {
     const described = await action(`${label}: VoiceOver Describe Item`,
       () => perform(reader.keyboardCommands.describeItem, navigationOptions), expected, { required: false });
     if (needsNamedTableRead(described, name)) {
-      // When VoiceOver's cursor remains on the confirmed skip link after a
-      // native zoom/navigation, "find next table" may say "Table not found".
-      // Select the actual table via VoiceOver's public Tables web rotor instead
-      // of treating the help hint or DOM as the requested accessibility proof.
-      // Every category, item and final table role must be spoken by VoiceOver.
-      await action(`${label}: VoiceOver Tables rotor`, async () => {
+      // The rotor may announce a table as "On item [caption]. 3 columns,
+      // 5 rows" without a literal "Tables menu" category. Find that *actual
+      // native rotor item* and select it. A mere menu mention is not proof:
+      // a second read-only VoiceOver description must confirm that the cursor
+      // is now on the named table, with its role or row/column semantics.
+      const rotorDimensionSpeech = /\b\d+\s+columns?\s*,?\s*\d+\s+rows?\b/i;
+      await action(`${label}: locate named table in VoiceOver rotor`, async () => {
         await perform(reader.keyboardCommands.openWebItemRotor, navigationOptions);
-        let lastCount = 0, tableCategory = false;
-        for (let index = 0; index < 14; index++) {
-          const log = await reader.spokenPhraseLog();
-          const fresh = log.slice(lastCount).join(" ");
-          lastCount = log.length;
-          evidence.actions.push({ label: `${label}: rotor category`, index, speech: fresh });
-          if (/\btables\b|таблиц|сцены фильма/i.test(fresh)) {
-            tableCategory = true;
+        let selected = false;
+        for (let step = 0; step < 30; step++) {
+          const spoken = await reader.spokenPhraseLog();
+          const current = spoken.at(-1) ?? "";
+          evidence.actions.push({ label: `${label}: native rotor item`, step, speech: current });
+          if (name.test(current) && rotorDimensionSpeech.test(current)) {
+            selected = true;
             break;
           }
-          assert.ok(index < 13, "Native VoiceOver rotor did not expose a Tables category");
-          await reader.press("ArrowRight", navigationOptions);
+          if (step < 29) await reader.press("ArrowRight", navigationOptions);
         }
-        assert.ok(tableCategory, "Native VoiceOver Tables rotor category absent");
-        await reader.press("Home", navigationOptions);
+        assert.ok(selected, `${label}: native VoiceOver rotor never named the expected table and row/column count`);
         await reader.press("Enter", navigationOptions);
-        await perform(reader.keyboardCommands.describeItem, navigationOptions);
-      }, expected, { observeDuring: true });
+      });
+      await action(`${label}: VoiceOver selected table description`,
+        () => perform(reader.keyboardCommands.describeItem, navigationOptions),
+        [name, /table|таблиц|\b\d+\s+columns?\s*,?\s*\d+\s+rows?\b/i],
+        { observeDuring: true });
     }
   }
   return automatic;
