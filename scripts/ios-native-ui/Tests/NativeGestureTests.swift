@@ -167,7 +167,11 @@ final class NativeGestureTests: XCTestCase {
             XCTFail("Native Safari navigation rejected an unexpected URL or missing loopback barrier")
             return
         }
-        safari.open(target)
+        if #available(macOS 13.3, iOS 16.4, *) {
+            safari.open(target)
+        } else {
+            XCTFail("Native XCUIApplication.open(URL) is unavailable on this OS")
+        }
     }
 
     @MainActor
