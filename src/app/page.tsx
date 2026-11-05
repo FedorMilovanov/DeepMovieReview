@@ -10,7 +10,6 @@ import { SpoilerLadder } from "@/components/home/spoiler-ladder";
 import type { LensKey, NarrativePermissionState } from "@/lib/content";
 import { filmPackages, getFilmPackageBySlug, requireFilmPackageBySlug } from "@/data/film-registry";
 import { pluralRu } from "@/lib/plural-ru";
-import { formatTimecode } from "@/lib/timecode";
 import { filmStillsServable, homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { illustrationView } from "@/data/film-illustrations";
 import { getFilmHomeAsset } from "@/data/visual-assets";
@@ -269,57 +268,38 @@ function LensStage({ example, filmSlug }: { example?: HomepageViewModel["sceneEx
       <div className="lensStage">
         <div className="lensStageGrid">
           <div className="lensFrameWrap">
-            {example?.still ? (
-              <figure className="lensEvidenceFigure">
-                <picture>
-                  <source type="image/avif" srcSet={example.still.avifSrc} />
-                  <Image src={example.still.src} alt={example.still.alt} width={example.still.width} height={example.still.height} unoptimized />
-                </picture>
-                <figcaption>
-                  <strong>{example.still.caption}</strong>
-                  <span>{example.still.samplingKind === "grid"
-                    ? `Номинальная отметка сетки ${formatTimecode(example.still.sampleTimeSeconds)}; исходный PTS не проверен.`
-                    : example.still.samplingKind === "clip"
-                      ? "Кадр из предоставленного фрагмента; точный PTS исходного мастера не проверен."
-                      : "Прямая выборка исходного MKV; точный PTS кадра не удостоверен."}</span>
-                  <span>{example.still.credit}</span>
-                </figcaption>
-              </figure>
-            ) : (
-              <>
-                <LivingFrame
-                  art={lensMaster}
-                  alt="Фигура спиной перед светящимся дверным проёмом в тёмном коридоре"
-                  metaLeft="Иллюстрация"
-                  metaRight="2.39:1"
-                  label="Иллюстрация: шесть линз прочтения, не кадр фильма"
-                  className="lensFrame"
-                  sizes="(max-width: 1020px) 100vw, 58vw"
-                >
-                  {!example ? lensStageLenses.map((lens) => (
-                    <span className="lensGrade" data-lens={lens.key} key={`grade-${lens.key}`} aria-hidden="true" />
-                  )) : null}
-                  {!example ? (
-                    <>
-                      <svg className="lensTrace" data-lens="story" viewBox="0 0 100 41.8" preserveAspectRatio="none" aria-hidden="true">
-                        <path d="M14,25.9 C26,25 32,14.5 44,14.2 C56,14 60,24.5 72,24.2" />
-                      </svg>
-                      <svg className="lensTrace" data-lens="relationships" viewBox="0 0 100 41.8" preserveAspectRatio="none" aria-hidden="true">
-                        <path d="M12,14.2 C24,14.2 32,9.2 44,9.2 C56,9.2 60,14.2 70,14.2" />
-                      </svg>
-                      {lensStageLenses.map((lens) => (
-                        <div className="lensMarkGroup" data-lens={lens.key} key={lens.key}>
-                          {lens.marks.map((mark) => (
-                            <span className="lensMark" style={{ left: mark.x, top: mark.y }} key={mark.label}>{mark.label}</span>
-                          ))}
-                        </div>
+            {/* Film frames remain in the analytical article, not in homepage teasers. */}
+            <LivingFrame
+              art={lensMaster}
+              alt="Фигура спиной перед светящимся дверным проёмом в тёмном коридоре"
+              metaLeft="Иллюстрация"
+              metaRight="2.39:1"
+              label="Иллюстрация: шесть линз прочтения, не кадр фильма"
+              className="lensFrame"
+              sizes="(max-width: 1020px) 100vw, 58vw"
+            >
+              {!example ? lensStageLenses.map((lens) => (
+                <span className="lensGrade" data-lens={lens.key} key={`grade-${lens.key}`} aria-hidden="true" />
+              )) : null}
+              {!example ? (
+                <>
+                  <svg className="lensTrace" data-lens="story" viewBox="0 0 100 41.8" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M14,25.9 C26,25 32,14.5 44,14.2 C56,14 60,24.5 72,24.2" />
+                  </svg>
+                  <svg className="lensTrace" data-lens="relationships" viewBox="0 0 100 41.8" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M12,14.2 C24,14.2 32,9.2 44,9.2 C56,9.2 60,14.2 70,14.2" />
+                  </svg>
+                  {lensStageLenses.map((lens) => (
+                    <div className="lensMarkGroup" data-lens={lens.key} key={lens.key}>
+                      {lens.marks.map((mark) => (
+                        <span className="lensMark" style={{ left: mark.x, top: mark.y }} key={mark.label}>{mark.label}</span>
                       ))}
-                    </>
-                  ) : null}
-                </LivingFrame>
-                <p className="lensFrameNote">{example ? "Иллюстрация метода, не изображение этой сцены." : "Демонстрация инструмента: разметка живёт в иллюстрации, а не в тексте эссе."}</p>
-              </>
-            )}
+                    </div>
+                  ))}
+                </>
+              ) : null}
+            </LivingFrame>
+            <p className="lensFrameNote">{example ? "Иллюстрация метода, не изображение этой сцены." : "Демонстрация инструмента: разметка живёт в иллюстрации, а не в тексте эссе."}</p>
           </div>
           <div className="lensPanel">
             <fieldset className="lensSelector">
