@@ -82,8 +82,8 @@ async function runAndRecordNativeGesture(device = report.device, directory = ges
   evidence.actions.push({ route: sceneRoute, label: "native XCUITest scene support → evidence; full trace and screenshots in ios-gesture evidence",
     observed: gestureReport.observedScene });
 }
-async function runNativeGestureWithOneIsolatedRetry() {
-  try { await runAndRecordNativeGesture(); return; }
+async function runNativeGestureWithOneIsolatedRetry(device = report.device, evidenceDirectory = gestureDirectory) {
+  try { await runAndRecordNativeGesture(device, evidenceDirectory); return; }
   catch (firstError) {
     const trigger = retryableSimulatorCancellation(gestureReport);
     if (!trigger || process.env.GITHUB_ACTIONS !== "true") throw firstError;
@@ -105,10 +105,10 @@ async function runNativeGestureWithOneIsolatedRetry() {
         report.restoredAutomationPreference = automation.original;
         automation = undefined;
       }
-      await withFreshGestureSimulator({ original: report.device, simulatorApp: report.toolchain.simulatorApp, ci: true,
+      await withFreshGestureSimulator({ original: device, simulatorApp: report.toolchain.simulatorApp, ci: true,
         diagnostic: item => {
           report.nativeGestureRetry.lifecycle.push(structuredClone(item));
-          if (item.phase === "original-shutdown") report.device.state = "Shutdown";
+          if (item.phase === "original-shutdown" && device.udid === report.device.udid) report.device.state = "Shutdown";
         } }, async device => {
         await runAndRecordNativeGesture(device, `${gestureDirectory}/isolated-retry`);
       });
@@ -121,6 +121,35 @@ async function runNativeGestureWithOneIsolatedRetry() {
       throw new AggregateError([firstError, retryError], "Both the original native attempt and the isolated retry failed");
     }
   }
+}
+
+/**
+ * SafariDriver and XCTest must not compete for one Simulator's automation or
+ * accessibility services. SafariDriver is already closed. Shut down its
+ * device, then run the entire strict real-touch scenario on a fresh iPhone.
+ * Failure to provision, observe AX or complete touches remains a hard failure.
+ */
+async function runNativeGestureOnIndependentSimulator() {
+  if (process.env.GITHUB_ACTIONS !== "true") {
+    await runNativeGestureWithOneIsolatedRetry();
+    return;
+  }
+  if (automation) {
+    automation.restore();
+    report.restoredAutomationPreference = automation.original;
+    automation = undefined;
+  }
+  report.nativeGestureIsolation = { method: "fresh iPhone after SafariDriver", lifecycle: [] };
+  await withFreshGestureSimulator({
+    original: report.device, simulatorApp: report.toolchain.simulatorApp, ci: true,
+    diagnostic: item => {
+      report.nativeGestureIsolation.lifecycle.push(structuredClone(item));
+      if (item.phase === "original-shutdown") report.device.state = "Shutdown";
+    },
+  }, async device => {
+    await runNativeGestureWithOneIsolatedRetry(device, `${gestureDirectory}/independent-device`);
+  });
+  report.nativeGestureIsolation.status = "passed all strict native tests";
 }
 
 function hostSimulatorProcesses() {
@@ -335,8 +364,8 @@ try {
   report.safariVersion = safari.version;
   await safari.close();
   safari = undefined;
-  report.phase = "XCUITest native menus, scroll, scene and spoiler input";
-  await runNativeGestureWithOneIsolatedRetry();
+  report.phase = "XCUITest native menus, scroll, scene and spoiler input on independent iPhone";
+  await runNativeGestureOnIndependentSimulator();
 } catch (error) {
   // These are bounded, boolean/timing-only samples from the failed passive
   // readiness wait; they do not turn the earlier failure into a passing scan.
@@ -390,7 +419,7 @@ try {
   if (shouldRunGestureAfterDriverFailure(report, gestureReport)) {
     report.independentGestureAfterDriverFailure = { attempted: true, driverFailurePhase: report.phase };
     try {
-      await runAndRecordNativeGesture();
+      await runNativeGestureOnIndependentSimulator();
       report.independentGestureAfterDriverFailure.result = "passed";
     } catch (error) {
       report.independentGestureAfterDriverFailure.result = "failed";
