@@ -346,6 +346,18 @@ test("native spoiler trace requires one completed trusted touch and the exact in
   assert.throws(() => validateNativeSpoilerTrace(trace(), origin, { ...baseline, afterScene: { kind: "ready", timestamp: 1000 } }));
 });
 
+test("Safari bootstrap observes host-launched foreground and closes only real native onboarding", () => {
+  const swift = readFileSync("scripts/ios-native-ui/Tests/NativeGestureTests.swift", "utf8");
+  assert.match(swift, /wait\(for: \.runningForeground, timeout: 60\)/);
+  assert.doesNotMatch(swift, /safari\.activate\(\)/, "Never re-launch Safari during native UI tests");
+  assert.match(swift, /View Bookmarks, Share Menu, and Open Tabs/);
+  assert.match(swift, /safari\.staticTexts\.matching\(/);
+  assert.match(swift, /closeSafariOnboarding\.tap\(\)/);
+  assert.match(swift, /XCTAssertFalse\(safariOnboarding\.exists/);
+  assert.match(swift, /waitForBarrier\("menu-home"\)/,
+    "Site-level native gesture verification must remain in the test");
+});
+
 test("native scene lookup retains the complete accessible name and emits failure diagnostics", () => {
   const swift = readFileSync("scripts/ios-native-ui/Tests/NativeGestureTests.swift", "utf8");
   assert.match(swift, /let description = "Опоры · 6 — сцена «День 10 909»"/);

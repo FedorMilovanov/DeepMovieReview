@@ -18,8 +18,30 @@ final class NativeGestureTests: XCTestCase {
     func testNativeScrollAndRail() {
         continueAfterFailure = false
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
-        safari.activate()
-        XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 45), "Mobile Safari did not come to the foreground")
+        // The host already launched the genuine Safari app on this simulator.
+        // XCUIApplication.activate() can attempt a second OS launch that times
+        // out while the first-launch Safari onboarding coachmark is showing.
+        // Observe the real foreground state first, without a competing relaunch.
+        XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 60),
+            "Host-launched Mobile Safari never reached the foreground")
+        // The iOS 26 first-launch toolbar tutorial is a native Safari overlay,
+        // not a site UI element. Real simulator screenshots and XCTest recording
+        // showed it covering the page for the entire failed run. Close only
+        // this exact native onboarding tip with a real XCTest tap; never remove
+        // or fake a website action, and fail if the tip cannot be dismissed.
+        let safariOnboarding = safari.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "View Bookmarks, Share Menu, and Open Tabs")
+        ).firstMatch
+        if safariOnboarding.exists {
+            let closeSafariOnboarding = safari.buttons["Close"].firstMatch
+            XCTAssertTrue(closeSafariOnboarding.waitForExistence(timeout: 10),
+                "Safari native onboarding is visible but its Close button is unavailable")
+            XCTAssertTrue(closeSafariOnboarding.isHittable,
+                "Safari native onboarding Close button is not hittable")
+            closeSafariOnboarding.tap()
+            XCTAssertFalse(safariOnboarding.exists,
+                "Safari native onboarding remained visible after a real Close tap")
+        }
         // One native open and close on each distinct page. The Node harness
         // navigates to the next route only after the passive observer validates
         // the previous page's ordered trusted touchstart/end/click and real
