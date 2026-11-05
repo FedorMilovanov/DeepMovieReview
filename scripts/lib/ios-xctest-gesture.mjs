@@ -191,8 +191,8 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
   const root = resolve(directory), bundle = join(root, "native-gesture.xcresult"), attachments = join(root, "attachments");
   assert.ok(!existsSync(bundle) && !existsSync(attachments), "Native XCTest result paths must be fresh");
   const derivedData = mkdtempSync(join(tmpdir(), "dmr-ios-xctest-"));
-  let proxy, sceneNavigation, sceneTriggerPageId, spoilerNavigation;
-  const completedMenus = [];
+  let proxy, sceneNavigation, sceneNavigationError, sceneTriggerPageId, spoilerNavigation, spoilerNavigationError;
+  const completedMenus = [], menuPromises = [], menuErrors = [];
   report.menuNavigations = [];
   try {
     // These are fresh responses from the same build, not hard-coded section
@@ -227,29 +227,36 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
         if (completed) {
           completedMenus.push(completed);
           const to = nativeMenuRoutes[index + 1] ?? `${nativeArticlePath}?spoilers=full`;
-          // The XCTest process itself opens the next URL with the supported
-          // native XCUIApplication.open API, avoiding a competing simctl IPC.
-          // A complete native menu trace must still precede this route.
-          report.menuNavigations.push({ from: route, to,
-            method: "XCUIApplication.open(URL) after validated menu close",
-            requestedAt: Date.now() });
+          const url = `${proxy.baseUrl}${to}`;
+          const navigation = { from: route, to, method: "simctl openurl after validated native menu close", scheduledAt: Date.now() };
+          report.menuNavigations.push(navigation);
+          // Screenshot is taken while the menu is open, before its close tap.
+          // This small pause also lets XCTest finish its closed-state check.
+          menuPromises.push(delay(2500).then(async () => {
+            navigation.startedAt = Date.now();
+            try { await exec("xcrun", ["simctl", "openurl", device.udid, url], { timeout: 60000 }); }
+            finally { navigation.finishedAt = Date.now(); }
+          }).catch(error => { menuErrors[index] = error; }));
         }
       }
       if (!sceneNavigation && event.kind === "rail-state" && event.rail?.expanded === "true") {
         sceneTriggerPageId = event.pageId;
-        // XCTest itself opens the safe scene after its post-rail screenshot.
-        // We record the native rail expansion and require a distinct observed
-        // scene document before the next real touchscreen action.
-        sceneNavigation = { method: "XCUIApplication.open(URL) after rail", url:
-          `${proxy.baseUrl}${nativeScenePath}?spoilers=none#scene-truman-sc-day-10909` };
-        report.sceneNavigation = sceneNavigation;
+        // Let XCTest retain its post-rail screenshot before opening the safe
+        // scene. simctl only navigates; native input and the passive trace gate.
+        sceneNavigation = delay(5000).then(async () => {
+          const sceneUrl = `${proxy.baseUrl}${nativeScenePath}?spoilers=none#scene-truman-sc-day-10909`;
+          report.sceneNavigation = { method: "simctl openurl after rail screenshot", url: sceneUrl };
+          await exec("xcrun", ["simctl", "openurl", device.udid, sceneUrl], { timeout: 60000 });
+        }).catch(error => { sceneNavigationError = error; });
       }
       if (!spoilerNavigation && event.kind === "scene-evidence-arrived") {
-        // XCTest opens a fresh FULL article after the native evidence click.
-        // The observer must still see the separate document before a NONE tap.
-        spoilerNavigation = { method: "XCUIApplication.open(URL) after scene evidence", url:
-          `${proxy.baseUrl}${nativeArticlePath}?spoilers=full` };
-        report.spoilerNavigation = spoilerNavigation;
+        // After the native evidence click and screenshot, return to a fresh FULL
+        // article. XCTest must tap NONE; no helper navigates to NONE on its behalf.
+        spoilerNavigation = delay(6000).then(async () => {
+          const fullUrl = `${proxy.baseUrl}${nativeArticlePath}?spoilers=full`;
+          report.spoilerNavigation = { method: "simctl openurl FULL after scene screenshot", url: fullUrl };
+          await exec("xcrun", ["simctl", "openurl", device.udid, fullUrl], { timeout: 60000 });
+        }).catch(error => { spoilerNavigationError = error; });
       }
     } });
   } catch (error) { rmSync(derivedData, { recursive: true, force: true }); throw error; }
@@ -279,9 +286,10 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     // Allow in-flight same-origin beacon requests to reach the loopback proxy.
     await delay(1000);
     assert.equal(run.code, 0, `XCUITest failed or timed out: ${JSON.stringify({ code: run.code, signal: run.signal, timedOut: run.timedOut })}`);
-    assert.equal(report.menuNavigations.length, nativeMenuRoutes.length, "All four native menu traces must precede the new documents");
+    assert.equal(menuPromises.length, nativeMenuRoutes.length, "All four native menu traces must trigger their next route");
     assert.ok(sceneNavigation && sceneTriggerPageId, "The observed rail opening must trigger the separate scene navigation");
     assert.ok(spoilerNavigation, "The observed scene evidence must trigger the separate FULL article navigation");
+    await Promise.all(menuPromises); await sceneNavigation; await spoilerNavigation;
     const summaryText = await exec("xcrun", ["xcresulttool", "get", "test-results", "summary", "--path", bundle], { timeout: 60000, maxBuffer: 4 * 1024 * 1024 });
     report.xctestSummary = JSON.parse(summaryText.stdout);
     validateXCTestSummary(report.xctestSummary, device.udid);
@@ -294,19 +302,18 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
       "The scroll test must use a fresh document distinct from all menu pages");
     report.menuNavigations = report.menuNavigations.map((item, index) => {
       const next = report.observedMenus[index + 1]?.ready ?? report.observedGesture.before;
-      // This validates new, ordered, independently observed browser documents.
-      // The old simctl outcome helper's success label does not apply here.
-      validateMenuNavigationOutcome({ error: null, from: report.observedMenus[index],
-        to: item.to, next, baseUrl: proxy.baseUrl });
-      return { ...item, status: "native-XCTest-open-verified" };
+      return { ...item, ...validateMenuNavigationOutcome({ error: menuErrors[index], from: report.observedMenus[index],
+        to: item.to, next, baseUrl: proxy.baseUrl }) };
     });
-    const navigation = validateSceneNavigationOutcome({ error: null, events: proxy.events, baseUrl: proxy.baseUrl });
+    const navigation = validateSceneNavigationOutcome({ error: sceneNavigationError, events: proxy.events, baseUrl: proxy.baseUrl });
     report.observedScene = navigation.scene;
-    report.sceneNavigation = { ...report.sceneNavigation, status: "native-XCTest-open-verified" };
-    const spoilerNavigationResult = validateSpoilerNavigationOutcome({ error: null, events: proxy.events,
+    report.sceneNavigation = { ...report.sceneNavigation, status: navigation.status,
+      ...(navigation.commandError ? { commandError: navigation.commandError } : {}) };
+    const spoilerNavigationResult = validateSpoilerNavigationOutcome({ error: spoilerNavigationError, events: proxy.events,
       baseUrl: proxy.baseUrl, baseline: report.spoilerBaseline, afterScene: report.observedScene.arrived });
     report.observedSpoiler = spoilerNavigationResult.spoiler;
-    report.spoilerNavigation = { ...report.spoilerNavigation, status: "native-XCTest-open-verified" };
+    report.spoilerNavigation = { ...report.spoilerNavigation, status: spoilerNavigationResult.status,
+      ...(spoilerNavigationResult.commandError ? { commandError: spoilerNavigationResult.commandError } : {}) };
     for (const menu of report.observedMenus) evidence.actions.push({ route: menu.route,
       label: "XCUITest native menu open and close; ordered trusted touches and passive state observation", ...menu });
     evidence.actions.push({ route: `${nativeArticlePath}?spoilers=full`,
@@ -336,6 +343,11 @@ export async function runNativeGestureXCTest({ device, directory, report, eviden
     throw error;
   } finally {
     // Do not leave scheduled simctl commands running after a failure.
+    await Promise.allSettled([...menuPromises, ...(sceneNavigation ? [sceneNavigation] : []), ...(spoilerNavigation ? [spoilerNavigation] : [])]);
+    report.menuNavigations = report.menuNavigations.map((navigation, index) => ({ ...navigation,
+      command: simctlCommandOutcome(menuErrors[index]) }));
+    if (report.sceneNavigation) report.sceneNavigation.command = simctlCommandOutcome(sceneNavigationError);
+    if (report.spoilerNavigation) report.spoilerNavigation.command = simctlCommandOutcome(spoilerNavigationError);
     report.events = proxy.events; report.observerErrors = proxy.errors;
     if (primaryError && existsSync(bundle)) {
       // Preserve a narrow OS-log excerpt for a cancelled native touch. This is

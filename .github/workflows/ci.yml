@@ -758,12 +758,7 @@ jobs:
   # accessibility permission setup and the desktop Safari process lifecycle.
   native-ios:
     name: Native iOS Safari
-    runs-on: macos-15-intel
-    # Xcode 26 / iOS 26 on hosted macOS 26 repeatedly stalled CoreSimulator
-    # bootstrap, SafariDriver and native XCTest despite clean-device isolation.
-    # Run the unchanged strict native contract on supported macOS 15 Intel,
-    # Xcode 16.4 and its installed iOS 18.5 iPhone Simulator. This is a real
-    # independent OS/browser compatibility target, not synthetic input.
+    runs-on: macos-26
     # A correlated Simulator digitizer cancellation may trigger one complete
     # strict rerun on a fresh device; the failed attempt is retained. Allow time
     # for both cold boots and evidence publication, never for repeated taps.
@@ -773,7 +768,6 @@ jobs:
       actions: read
       checks: write
     env:
-      DMR_IOS_XCODE_VERSION: "16.4"
       DMR_PREVIEW_CONTENT_ENABLED: "true"
       DMR_SITE_INDEXING_ENABLED: "false"
     steps:
