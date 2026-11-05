@@ -759,6 +759,10 @@ jobs:
   native-ios:
     name: Native iOS Safari
     runs-on: macos-26
+    # Xcode 26.6 / iOS 26.5 logged duplicate Recap HID touchscreen services
+    # and canceled real touch input (observed on two isolated XCUITest devices).
+    # Test unchanged native gestures on installed Xcode 26.4.1 / iOS 26.4.
+    # This toolchain pin is not a test waiver or a synthetic event substitute.
     # A correlated Simulator digitizer cancellation may trigger one complete
     # strict rerun on a fresh device; the failed attempt is retained. Allow time
     # for both cold boots and evidence publication, never for repeated taps.
@@ -768,6 +772,7 @@ jobs:
       actions: read
       checks: write
     env:
+      DMR_IOS_XCODE_VERSION: "26.4.1"
       DMR_PREVIEW_CONTENT_ENABLED: "true"
       DMR_SITE_INDEXING_ENABLED: "false"
     steps:
