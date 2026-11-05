@@ -27,6 +27,23 @@ const systemEnv = { ...process.env };
 delete systemEnv.DEVELOPER_DIR;
 let safari, restoreDeveloperDirectory, automation;
 const sceneRoute = "/films/the-truman-show?spoilers=none#scene-truman-sc-day-10909";
+const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+let capturedSimulatorScreenshots = 0;
+// Capture the real displayed iPhone Simulator framebuffer independently of
+// SafariDriver. Screenshot transport must not hold the WebDriver session in
+// a state where XCTest cannot acquire the same device's accessibility service.
+// An absent/corrupt native PNG is still an unconditional test FAILURE.
+function captureNativeSimulatorScreenshot() {
+  assert.match(report.device?.udid ?? "", /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i);
+  const file = `${directory}/native-simulator-screen-${String(++capturedSimulatorScreenshots).padStart(2, "0")}.png`;
+  execFileSync("xcrun", ["simctl", "io", report.device.udid, "screenshot", file], { timeout: 45000 });
+  const bytes = readFileSync(file);
+  assert.ok(bytes.length > pngHeader.length && bytes.subarray(0, pngHeader.length).equals(pngHeader),
+    "Native simulator display capture must be a real PNG");
+  report.nativeScreenshotTransport = { command: "simctl io screenshot", count: capturedSimulatorScreenshots };
+  return bytes.toString("base64");
+}
+
 async function runAndRecordNativeGesture(device = report.device, directory = gestureDirectory) {
   gestureReport.attempted = true;
   gestureReport.failures = [];
@@ -256,7 +273,7 @@ try {
     assert.equal(box.lang, "ru"); assert.equal(box.h1, 1);
     assert.ok(box.expanded === "false" && box.inert === true && box.visible === false,
       `${route}: hydrated navigation must start closed and inert`);
-    evidence.screenshots.push({ route, data: await safari.screenshot() });
+    evidence.screenshots.push({ route, data: captureNativeSimulatorScreenshot() });
     evidence.actions.push({ route, label: "native iOS Safari layout and menu hit-test (no input)", box });
     if (route.includes("/article?")) {
       const sectionIds = await safari.execute("return Array.from(document.querySelectorAll('.articleSection'), section => section.id)");
@@ -285,7 +302,7 @@ try {
         const rect = el.getBoundingClientRect(), hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
         return { rect: rect.toJSON(), scrollY, innerWidth, innerHeight, hitContained: !!hit && el.contains(hit) };`);
       evidence.actions.push({ route, label: "native FULL spoiler target before independent XCUITest", ...report.spoilerTarget });
-      evidence.screenshots.push({ route: `${route} — FULL spoiler target before XCUITest`, data: await safari.screenshot() });
+      evidence.screenshots.push({ route: `${route} — FULL spoiler target before XCUITest`, data: captureNativeSimulatorScreenshot() });
 
     }
   }
@@ -309,7 +326,7 @@ try {
     supportGeometry.rect.top >= 60 && supportGeometry.rect.bottom <= supportGeometry.innerHeight && supportGeometry.hitContained && supportGeometry.scrollLeft === 0,
     `Mobile scene support must be visible and hittable without horizontal scrolling: ${JSON.stringify(supportGeometry)}`);
   evidence.actions.push({ route: sceneRoute, label: "native scene support geometry before independent XCUITest", supportGeometry });
-  evidence.screenshots.push({ route: `${sceneRoute} — support before input`, data: await safari.screenshot() });
+  evidence.screenshots.push({ route: `${sceneRoute} — support before input`, data: captureNativeSimulatorScreenshot() });
 
   // Close the isolated SafariDriver automation window before XCUITest drives
   // normal MobileSafari. Both the earlier projection checks and this separate
@@ -356,7 +373,7 @@ try {
     } catch (diagnosticError) { report.failedActiveSimulatorDiagnostic = diagnosticError.message; }
     try {
       report.failedPageState = await safari.execute("return ({url:location.href,expanded:document.querySelector('.menuButton')?.getAttribute('aria-expanded'),button:document.querySelector('.menuButton')?.getBoundingClientRect().toJSON(),width:innerWidth,scrollY})");
-      evidence.screenshots.push({ route: "failed native state", data: await safari.screenshot() });
+      evidence.screenshots.push({ route: "failed native state", data: captureNativeSimulatorScreenshot() });
     } catch (diagnosticError) { report.failedPageDiagnostic = diagnosticError.message; }
   }
   try { report.failedHostSimulatorProcesses = hostSimulatorProcesses(); }
