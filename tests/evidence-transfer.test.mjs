@@ -91,6 +91,69 @@ test("security evidence uses a distinct check and preserves a failed source verd
   await assert.rejects(publishEvidence({ bytes, revision, head, label: "bad", kind: "other", summary: payload.summary, api }), /Unknown evidence kind/);
 });
 
+test("eventually visible Checks annotations are verified without appending duplicates", async () => {
+  const { api: base, checks } = fakeChecks();
+  const source = randomBytes(38000), sleeps = [];
+  let hiddenReads = 2, patches = 0;
+  const api = async (path, method = "GET", body) => {
+    if (method === "PATCH" && body?.output?.annotations) patches++;
+    if (method === "GET" && path.includes("/annotations?") && hiddenReads-- > 0) return [];
+    return base(path, method, body);
+  };
+  const result = await publishEvidence({ bytes: source, revision, head, label: "delayed", summary: payload.summary,
+    api, wait: async ms => { sleeps.push(ms); } });
+  const check = checks.get(result.checks[0].id);
+  assert.equal(check.conclusion, "success");
+  assert.equal(check.rows.length, result.manifest.chunks);
+  assert.equal(patches, 1, "Visibility polling must never replay successful PATCH");
+  assert.deepEqual(sleeps, [2000, 2000]);
+  assert.deepEqual(Buffer.from(check.rows.map(row => row.message).join(""), "base64"), source);
+});
+
+test("permanently invisible annotations fail closed after a finite read-back budget", async () => {
+  const { api: base, checks } = fakeChecks();
+  let reads = 0, patches = 0;
+  const api = async (path, method = "GET", body) => {
+    if (method === "PATCH" && body?.output?.annotations) patches++;
+    if (method === "GET" && path.includes("/annotations?")) { reads++; return []; }
+    return base(path, method, body);
+  };
+  await assert.rejects(publishEvidence({ bytes: randomBytes(9000), revision, head,
+    label: "invisible", summary: payload.summary, api, wait: async () => {} }), /Missing annotation chunks/);
+  assert.equal(reads, 30);
+  assert.equal(patches, 1, "Missing chunks must never be replaced by duplicate PATCH");
+  const check = [...checks.values()][0];
+  assert.equal(check.conclusion, "failure");
+  assert.match(check.output.text, /Missing annotation chunks/);
+});
+
+test("new GitHub checks reconcile a 404 whether the first PATCH committed or not", async () => {
+  for (const acceptedBefore404 of [false, true]) {
+    const { api: base, checks } = fakeChecks();
+    let patchCalls = 0;
+    const api = async (path, method = "GET", body) => {
+      if (method === "PATCH" && body?.output?.annotations) {
+        patchCalls++;
+        if (patchCalls === 1) {
+          if (acceptedBefore404) await base(path, method, body);
+          throw Object.assign(new Error("new check not yet visible"), { status: 404 });
+        }
+      }
+      return base(path, method, body);
+    };
+    const source = randomBytes(9000);
+    const result = await publishEvidence({ bytes: source, revision, head, label: "new-check",
+      summary: payload.summary, api, wait: async () => {} });
+    const check = checks.get(result.checks[0].id);
+    assert.equal(check.conclusion, "success");
+    assert.equal(check.rows.length, result.manifest.chunks);
+    assert.equal(new Set(check.rows.map(row => row.title)).size, check.rows.length);
+    assert.equal(patchCalls, acceptedBefore404 ? 1 : 2,
+      "404 reconciliation must never duplicate a committed PATCH");
+    assert.deepEqual(Buffer.from(check.rows.map(row => row.message).join(""), "base64"), source);
+  }
+});
+
 test("a transient annotation append is reconciled before any retry, including partial or complete writes", async () => {
   for (const mode of ["before", "partial", "after"]) {
     const { api: base, checks } = fakeChecks();

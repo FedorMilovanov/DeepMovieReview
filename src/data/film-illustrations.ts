@@ -192,7 +192,7 @@ export const articleIllustrations: VisualAssetManifest[] = [
         format: "avif",
         width: 800,
         height: 533,
-        byteSize: 19224,
+        byteSize: 18664,
       },
       {
         id: "illu-truman-caric-tag-1200",
@@ -210,7 +210,7 @@ export const articleIllustrations: VisualAssetManifest[] = [
         format: "avif",
         width: 1200,
         height: 800,
-        byteSize: 55769,
+        byteSize: 55510,
       },
       {
         id: "illu-truman-caric-tag-master",

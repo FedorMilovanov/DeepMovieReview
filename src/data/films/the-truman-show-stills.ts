@@ -1,8 +1,10 @@
 import type { ArticleSceneStill } from "@/lib/film-package";
 
 // Direct local master SHA-256 verification (2026-11-04) confirmed the LOCKED
-// edition; all nine JPEG and nine AVIF asset digests were checked against this
-// registry. Sampled comparisons place 30-second GRID images near the midpoint
+// edition; all nine previous JPEG/AVIF pairs were checked against this registry.
+// Five more independent picture samples were decoded directly from that master
+// in this separate staging pass (2026-11-04); their seek seconds are approximate,
+// not certified presentation timestamps. Image rights still require review. Sampled comparisons place 30-second GRID images near the midpoint
 // of their historical windows (e.g. nominal 210 ~225, 750 ~766, 1800 ~1815,
 // 3240 ~3255, 3450 ~3464, 5700 ~5716 seconds). sampleTimeSeconds stays the
 // historical GRID BIN START, NOT an exact original-master presentation PTS.
@@ -19,6 +21,7 @@ const provenance = {
   height: 450,
 };
 const grid = { ...provenance, samplingKind: "grid" as const, samplingIntervalSeconds: 30 as const };
+const direct = { ...provenance, samplingKind: "direct" as const };
 const kitchenClip = {
   file: "04-meryl-kitchen.mp4",
   sha256: "f4adfa6e7ffabeccab4f8d98633f8ed9b5b6715c062f286a8ca457dcc3738b4f",
@@ -52,26 +55,6 @@ export const trumanArticleStills = {
     sampleTimeSeconds: 750,
     alt: "Труман наклонился под узкой струёй дождя посреди тёмной улицы.",
     caption: "Узкая струя дождя падает на Трумана.",
-  },
-  radio: {
-    ...grid,
-    src: "/film-stills/truman-radio-1800.jpg",
-    imageSha256: "b07698208a85f9847d3156f1d478618e1f17fd60d198a14f5fcdd7fa459815ac",
-    avifSrc: "/film-stills/truman-radio-1800.avif",
-    avifSha256: "467db345dafcf88f03c0f462f2cbb009792f02d4320bf8da15e4216162f60a78",
-    sampleTimeSeconds: 1800,
-    alt: "Труман оглядывается в салоне автомобиля.",
-    caption: "Труман в машине; номинал сетки — 1800 секунд.",
-  },
-  monitor: {
-    ...grid,
-    src: "/film-stills/truman-monitor-3450.jpg",
-    imageSha256: "0ccc3243d82ca3901cde847212294fcdd632dbff9862f195a2f900380878e7a3",
-    avifSrc: "/film-stills/truman-monitor-3450.avif",
-    avifSha256: "302b9f4311a4247f10e76da8f18d982c3656e1d695f4bca747a63b2f32cfb552",
-    sampleTimeSeconds: 3450,
-    alt: "Крупный план Трумана на телевизионном мониторе.",
-    caption: "Труман на мониторе во время разговора; повтор реплики виден в субтитрах, не на этом кадре.",
   },
   kitchen: {
     ...grid,
@@ -128,5 +111,105 @@ export const trumanArticleStills = {
     sampleTimeSeconds: 5700,
     alt: "Труман стоит спиной перед открытым выходом в искусственном небе.",
     caption: "Открытая дверь в декорации неба.",
+  },
+  ghost: {
+    ...direct,
+    src: "/film-stills/truman-ghost-913.jpg",
+    imageSha256: "2fda7074a57027e9b361f131832cc085f91682aa9abd38c5ff3119b181b122e8",
+    avifSrc: "/film-stills/truman-ghost-913.avif",
+    avifSha256: "fcd95908ffa2780bfff36dfbbf727f9da1e0cf4179a541c69110bb7387ade40d",
+    sampleTimeSeconds: 913,
+    alt: "Пожилой седовласый мужчина снимает кепку перед Труманом; по одному кадру нельзя установить родство.",
+    caption: "Пожилой мужчина снимает кепку перед Труманом; его биография по этому кадру не устанавливается.",
+  },
+  newspaper: {
+    ...direct,
+    src: "/film-stills/truman-newspaper-1842.jpg",
+    imageSha256: "f7a88780775168c869179bca97434a32fe9e628c2086d92104fa5171b0425a08",
+    avifSrc: "/film-stills/truman-newspaper-1842.avif",
+    avifSha256: "9ca20dfdfe7179027b936798c595b251e1148a6d411e22ba550e7a9d12310b81",
+    sampleTimeSeconds: 1842,
+    alt: "Газета The Island с заголовком CRACKDOWN ON HOMELESS и фотографией полицейского с мужчиной.",
+    caption: "Газета сообщает о борьбе с бездомностью; личность человека на фотографии не установлена.",
+  },
+  santaMaria: {
+    ...direct,
+    src: "/film-stills/truman-santa-maria-4981.jpg",
+    imageSha256: "0b91a653702c1b1d1b7d14f3c852a1810415bc4f8c39131fabb627ba4a400588",
+    avifSrc: "/film-stills/truman-santa-maria-4981.avif",
+    avifSha256: "7b6dd968eeff38e06b674add599aa074070275a44a38e43d2caaa9207f8c16c6",
+    sampleTimeSeconds: 4981,
+    alt: "На корме парусника в море отчётливо написано SANTA MARIA.",
+    caption: "Название SANTA MARIA видно на корме; намеренный исторический или библейский символизм не подтверждён.",
+  },
+  sail139: {
+    ...direct,
+    src: "/film-stills/truman-sail-139-5235.jpg",
+    imageSha256: "5ec9b3ac1e10114bed6d833db63bd067400d742438610a05a9b6bd87b455f85f",
+    avifSrc: "/film-stills/truman-sail-139-5235.avif",
+    avifSha256: "e13df5ab26099336b8477baf97427c12f315800e147ad352ed3d946d45eecca7",
+    sampleTimeSeconds: 5235,
+    alt: "На парусе лодки во время шторма видна цифра 139 в нижней части затемнённого кадра.",
+    caption: "Число 139 видно на парусе; замысел намеренной отсылки к Псалму 139 не установлен.",
+  },
+  wallStairs: {
+    ...direct,
+    src: "/film-stills/truman-wall-stairs-5510.jpg",
+    imageSha256: "847e98b101f669aaf850c1cf8a812a14b3e4188f74f4f4a09e168bd2646b79eb",
+    avifSrc: "/film-stills/truman-wall-stairs-5510.avif",
+    avifSha256: "3903afaef640011baa8120525d886156c5009b2008d5de0cfd2b1aaab6cc5bbb",
+    sampleTimeSeconds: 5510,
+    alt: "Труман поднимается по лестнице у стены, расписанной голубым небом и облаками.",
+    caption: "Труман поднимается по лестнице у искусственного неба; кадр показывает устройство декорации.",
+  },
+  sylvia: {
+    ...direct,
+    src: "/film-stills/truman-sylvia-1605.jpg",
+    imageSha256: "d6019cd2bebbf10aa84cdecf20db8286185c246bbf9226491ac9e999864c3347",
+    avifSrc: "/film-stills/truman-sylvia-1605.avif",
+    avifSha256: "a396fe08b0394709f8ec1ae013c063d83d7a8bf2b1cb4e18fa906432e799fd3c",
+    sampleTimeSeconds: 1605,
+    alt: "На тёмном берегу Сильвия стоит рядом с Труманом; он вытягивает руку перед собой.",
+    caption: "Труман и Сильвия вместе смотрят в сторону света; содержание их разговора кадр не удостоверяет.",
+  },
+  elevator: {
+    ...direct,
+    src: "/film-stills/truman-elevator-2110.jpg",
+    imageSha256: "474888a8610e15442a9155395c3fdb637dbeb9d3a3d84f6c18bbd3d88e815b64",
+    avifSrc: "/film-stills/truman-elevator-2110.avif",
+    avifSha256: "af3115a1e741c6fcbcc68545a924ebab4c37f3233c8a32072c8ac429991ab1d4",
+    sampleTimeSeconds: 2110,
+    alt: "Труман в пиджаке и мужчина в рабочей рубашке стоят у открытого технического проёма с оборудованием.",
+    caption: "В служебном проёме видны люди и оборудование; устройство помещения показано лишь в границах кадра.",
+  },
+  mococoa: {
+    ...direct,
+    src: "/film-stills/truman-mococoa-3230.jpg",
+    imageSha256: "430f783eabfc19df5e487b904e3c441025e7eb12e1643ac1ddeadb0177bce833",
+    avifSrc: "/film-stills/truman-mococoa-3230.avif",
+    avifSha256: "7db19191f3c8d65a676cdf7550940c2f1eee521d84b43c87985e4469f86a28fa",
+    sampleTimeSeconds: 3230,
+    alt: "Мэрил повёрнута к камере и показывает банку Mococoa лицевой этикеткой к зрителю.",
+    caption: "Мэрил демонстрирует банку Mococoa во время кухонной сцены; текст её речи проверяется отдельно.",
+  },
+  school: {
+    ...direct,
+    src: "/film-stills/truman-school-3848.jpg",
+    imageSha256: "9c1cd8e9bc1c8d983c1dd11abfe9d3acaea6afca6248f033aea789390c427eb5",
+    avifSrc: "/film-stills/truman-school-3848.avif",
+    avifSha256: "712a6373b0531935189c60b2dad39604cd55bef733c6376027549919837809b4",
+    sampleTimeSeconds: 3848,
+    alt: "Юный Труман стоит у парты в школьном классе; позади сидят другие ученики.",
+    caption: "Школьный флешбэк показывает мальчика в классе; реплика учителя подтверждается отдельно.",
+  },
+  christofMonitor: {
+    ...direct,
+    src: "/film-stills/truman-christof-monitor-4052.jpg",
+    imageSha256: "f66d7f18d3041a702c66726d0e7b31869319307255485aacf744c5a903a1c6a3",
+    avifSrc: "/film-stills/truman-christof-monitor-4052.avif",
+    avifSha256: "41c1377da7cfde0fb8acec147aff1436284fb1317fb191958f7ab17e909594ef",
+    sampleTimeSeconds: 4052,
+    alt: "Кристоф показан крупным планом на телевизионном мониторе; в правом верхнем углу изображения — маленькая вставка.",
+    caption: "Кристоф на телевизионном экране; о его внутренних мотивах по отдельному кадру судить нельзя.",
   },
 } satisfies Record<string, ArticleSceneStill>;

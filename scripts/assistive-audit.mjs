@@ -91,7 +91,36 @@ async function findNamedTable(label, name) {
   const automatic = await action(label, () => perform(mac ? reader.keyboardCommands.findNextTable : reader.keyboardCommands.moveToNextTable, navigationOptions),
     expected, { required: !mac });
   if (mac && needsNamedTableRead(automatic, name)) {
-    await action(`${label}: VoiceOver Describe Item`, () => perform(reader.keyboardCommands.describeItem, navigationOptions), expected);
+    const described = await action(`${label}: VoiceOver Describe Item`,
+      () => perform(reader.keyboardCommands.describeItem, navigationOptions), expected, { required: false });
+    if (needsNamedTableRead(described, name)) {
+      // The rotor may announce a table as "On item [caption]. 3 columns,
+      // 5 rows" without a literal "Tables menu" category. Find that *actual
+      // native rotor item* and select it. A mere menu mention is not proof:
+      // a second read-only VoiceOver description must confirm that the cursor
+      // is now on the named table, with its role or row/column semantics.
+      const rotorDimensionSpeech = /\b\d+\s+columns?\s*,?\s*\d+\s+rows?\b/i;
+      await action(`${label}: locate named table in VoiceOver rotor`, async () => {
+        await perform(reader.keyboardCommands.openWebItemRotor, navigationOptions);
+        let selected = false;
+        for (let step = 0; step < 30; step++) {
+          const spoken = await reader.spokenPhraseLog();
+          const current = spoken.at(-1) ?? "";
+          evidence.actions.push({ label: `${label}: native rotor item`, step, speech: current });
+          if (name.test(current) && rotorDimensionSpeech.test(current)) {
+            selected = true;
+            break;
+          }
+          if (step < 29) await reader.press("ArrowRight", navigationOptions);
+        }
+        assert.ok(selected, `${label}: native VoiceOver rotor never named the expected table and row/column count`);
+        await reader.press("Enter", navigationOptions);
+      });
+      await action(`${label}: VoiceOver selected table description`,
+        () => perform(reader.keyboardCommands.describeItem, navigationOptions),
+        [name, /table|таблиц|\b\d+\s+columns?\s*,?\s*\d+\s+rows?\b/i],
+        { observeDuring: true });
+    }
   }
   return automatic;
 }
@@ -217,30 +246,35 @@ try {
         await reader.press("Control+Home");
       }
     }
-    // Use VoiceOver's actual Headings rotor rather than treating a Safari web
-    // group announcement from VO-Command-H as proof of a heading.
+    // VoiceOver rotor speech is cumulative. In particular, "No items in
+    // Headings menu" is evidence of an EMPTY category, not a selected h1.
     await perform(reader.keyboardCommands.openWebItemRotor, navigationOptions);
+    let hasHeadingInRotor = false;
     for (let category = 0; category < 12; category++) {
-      // Capture includes category, selected item and help as separate phrases;
-      // the last phrase alone can be the item/help, not the category name.
       const speech = [...await reader.spokenPhraseLog()];
+      const latest = speech.at(-1) ?? "";
       evidence.actions.push({ label: "VoiceOver rotor category", category, speech });
-      checkpoint(`VoiceOver rotor category ${category}`);
-      // Some VoiceOver configurations speak only the selected rotor item,
-      // e.g. "On item 1: TITLE", not its category. Select that native entry,
-      // then independently require Describe Item to confirm the heading role.
-      if (/headings|заголовки|On item 1:\s*шоу трумана/i.test(speech.join(" "))) break;
-      assert.ok(category < 11, "VoiceOver web rotor must expose the article heading entry");
-      await reader.press("ArrowRight", navigationOptions);
+      checkpoint("VoiceOver rotor category " + category);
+      if (/No items in Headings menu|Нет элементов в меню заголовков/i.test(latest)) break;
+      if (/On item 1:\s*шоу трумана|Headings menu|Меню заголовков/i.test(latest)) {
+        hasHeadingInRotor = true;
+        break;
+      }
+      if (category < 11) await reader.press("ArrowRight", navigationOptions);
     }
-    await reader.press("Home", navigationOptions);
-    // The assertion below must come from the selected heading itself, not the
-    // earlier web-area title or the rotor's category/help announcement.
+    // A native Safari rotor can be temporarily empty even while direct
+    // VO-Command-H works. Both commands are genuine screen-reader navigation.
+    // Accept neither without the actual spoken article title AND heading role.
     await reader.clearSpokenPhraseLog();
-    await reader.press("Enter", navigationOptions);
-    await reader.clearSpokenPhraseLog();
+    if (hasHeadingInRotor) {
+      await reader.press("Home", navigationOptions);
+      await reader.press("Enter", navigationOptions);
+    } else {
+      await reader.press("Escape", navigationOptions);
+      await reader.nextHeading(navigationOptions);
+    }
     await perform(reader.keyboardCommands.describeItem, navigationOptions);
-  }, [/шоу трумана/i, /heading|заголовок/i]);
+  }, [/шоу трумана/i, /heading|заголовок/i], { observeDuring: true });
   await findNamedTable("native table navigation", /четыре окна/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   await action("table column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);
@@ -253,8 +287,23 @@ try {
     const automatic = await action("table row navigation", () => perform(reader.keyboardCommands.moveDown, navigationOptions),
       libraryDetectionRowSpeech, { required: false, observeDuring: true });
     if (needsTableRowRead(automatic)) {
-      await action("table row read on demand", () => perform(reader.keyboardCommands.readTableRow, navigationOptions),
-        libraryDetectionRowSpeech, { observeDuring: true });
+      const onDemand = await action("table row read on demand",
+        () => perform(reader.keyboardCommands.readTableRow, navigationOptions),
+        libraryDetectionRowSpeech, { required: false, observeDuring: true });
+      if (needsTableRowRead([...automatic, ...onDemand])) {
+        // VoiceOver may say only "row 2 of 5" for VO-R, despite exposing the
+        // actual row. Read both cells using native table-column commands;
+        // their real spoken words must jointly name the row and exact value.
+        // No DOM read, replayed tap or synthetic speech can satisfy this gate.
+        const heading = await action("table row header via native column",
+          () => perform(reader.keyboardCommands.moveToPreviousColumn, navigationOptions),
+          /библиотека/i, { observeDuring: true });
+        const count = await action("table row detected count via native column",
+          () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions),
+          /\b0 обнаруженных переходов/i, { observeDuring: true });
+        assert.match([...heading, ...count].join(" "), libraryDetectionRowSpeech,
+          "Real VoiceOver must speak the named row and exact detector count");
+      }
     }
   } else {
     await action("table row header and value", () => perform(reader.keyboardCommands.moveToNextRow, navigationOptions), libraryDetectionRowSpeech);
@@ -337,7 +386,24 @@ try {
   // summary name one word at a time and falsely stop on its day number.
   await action("mobile evidence link in scene", () => perform(mac ? reader.keyboardCommands.findNextLink : reader.keyboardCommands.moveToNextLink, navigationOptions),
     [/день\s*10\s*909/i, /link|ссылк/i]);
-  if (mac) await perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions);
+  if (mac) {
+    // The evidence link sits inside a disclosure list inside a scene table.
+    // One VO-Shift-Up may exit only the inner group, leaving the table as the
+    // active navigation scope: VO-Command-T then reports "Last table".
+    // Follow real nested VoiceOver exit announcements, never DOM focus/labels.
+    const outOfTable = /out of[\s\S]*table|(?:вне|выход)[\s\S]*таблиц/i;
+    let exited = false;
+    for (let depth = 1; depth <= 4; depth++) {
+      const speech = await action("mobile VoiceOver leave scene-table group " + depth,
+        () => perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions));
+      if (outOfTable.test(speech.join(" "))) {
+        report.sceneTableExitDepth = depth;
+        exited = true;
+        break;
+      }
+    }
+    assert.ok(exited, "VoiceOver must audibly exit the scene table before navigating to the register");
+  }
   const registerSpeech = await findNamedTable("mobile evidence register name", /реестр проверок/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   else if (!firstTableCellSpoken(registerSpeech)) {

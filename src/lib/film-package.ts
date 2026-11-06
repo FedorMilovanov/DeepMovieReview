@@ -585,7 +585,7 @@ export type ArticleSceneStill = {
   height: number;
   alt: string;
   caption: string;
-  /** Nominal grid time or estimated master time from the clip manifest, not source PTS. */
+  /** Nominal grid time, clip offset or directly requested MKV seek time, not certified source-frame PTS. */
   sampleTimeSeconds: number;
   sourceId: string;
   /** The edition named by the supplied material; not independent proof of its origin. */
@@ -611,6 +611,12 @@ export type ArticleSceneStill = {
         /** Requested position within the transcoded clip, not verified master PTS. */
         offsetSeconds: number;
       };
+    }
+  | {
+      /** A selected frame directly decoded from the SHA-matched full MKV. */
+      samplingKind: "direct";
+      samplingIntervalSeconds?: never;
+      clip?: never;
     }
 );
 

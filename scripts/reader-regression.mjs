@@ -18,11 +18,15 @@ mkdirSync(dir, { recursive: true });
 const results = [];
 const stillsAtLevel = {
   NONE: ["truman-light-210.jpg"],
-  MINOR: ["truman-light-210.jpg", "truman-rain-750.jpg", "truman-radio-1800.jpg"],
-  MAJOR: ["truman-light-210.jpg", "truman-rain-750.jpg", "truman-radio-1800.jpg", "truman-monitor-3450.jpg",
-    "truman-meryl-tools-3265.jpg", "truman-kitchen-screen-3275.jpg", "truman-reunion-3591.jpg"],
+  MINOR: ["truman-light-210.jpg", "truman-rain-750.jpg",
+    "truman-ghost-913.jpg", "truman-newspaper-1842.jpg", "truman-elevator-2110.jpg"],
+  MAJOR: ["truman-light-210.jpg", "truman-rain-750.jpg",
+    "truman-meryl-tools-3265.jpg", "truman-kitchen-screen-3275.jpg", "truman-reunion-3591.jpg",
+    "truman-ghost-913.jpg", "truman-newspaper-1842.jpg", "truman-elevator-2110.jpg", "truman-sylvia-1605.jpg"],
 };
-stillsAtLevel.ENDING = [...stillsAtLevel.MAJOR, "truman-kitchen-3240.jpg", "truman-exit-5700.jpg"];
+stillsAtLevel.ENDING = [...stillsAtLevel.MAJOR, "truman-kitchen-3240.jpg", "truman-exit-5700.jpg",
+  "truman-santa-maria-4981.jpg", "truman-sail-139-5235.jpg", "truman-wall-stairs-5510.jpg",
+  "truman-mococoa-3230.jpg", "truman-school-3848.jpg", "truman-christof-monitor-4052.jpg"];
 stillsAtLevel.FULL = stillsAtLevel.ENDING;
 let failures = 0;
 function checkpoint(inProgress = null, completed = false) {
@@ -227,8 +231,12 @@ for (const engine of requested) {
           assert.doesNotMatch(footer, /Предзапуск/, 'do not assert a deployment state the registry does not establish');
           const raw = await response.text();
           assert.doesNotMatch(raw, /Фиджи|Сильви|Край неба и дверь/, "homepage HTML/RSC must not contain later plot");
-          assert.ok(await page.locator('.lensEvidenceFigure img').isVisible());
-          assert.match(await page.locator('.lensEvidenceFigure img').getAttribute('alt') ?? '', /Sirius.*продолжение закрыто/i);
+          // A source-film frame is contextual quotation within the article, not homepage artwork.
+          assert.equal(await page.locator('.lensEvidenceFigure').count(), 0, "homepage cannot duplicate film-frame quotations");
+          const lensIllustration = page.locator('.lensFrameWrap .livingFrame img');
+          assert.ok(await lensIllustration.isVisible(), "the editorial method illustration must remain visible");
+          assert.match(await lensIllustration.getAttribute('alt') ?? '', /Фигура спиной перед светящимся дверным проёмом/i);
+          assert.doesNotMatch(raw, /\/film-stills\//, "homepage HTML/RSC must not expose standalone film-still URLs");
           const geometry = await page.evaluate(() => ({ documentWidth: document.documentElement.scrollWidth, viewport: innerWidth }));
           assert.ok(geometry.documentWidth <= geometry.viewport + 1, JSON.stringify(geometry));
           const supportsHas = await page.evaluate(() => CSS.supports('selector(:has(*))'));
@@ -276,9 +284,10 @@ for (const engine of requested) {
           await check(`${engine} no-js scene stills and provenance`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });
             const figures = page.locator(".articleSceneStill");
-            assert.equal(await figures.count(), 9);
+            assert.equal(await figures.count(), 17, "only seventeen critically necessary direct, grid and clip stills render");
             let grid = 0;
             let clips = 0;
+            let direct = 0;
             for (let i = 0; i < await figures.count(); i++) {
               const figure = figures.nth(i);
               const image = figure.locator("img");
@@ -297,7 +306,14 @@ for (const engine of requested) {
               const caption = await figure.locator("figcaption").innerText();
               assert.match(caption, /Шоу Трумана.*1998.*Питер Уир/);
               if (caption.includes("Номинальная отметка сетки")) grid++;
-              else { assert.match(caption, /Кадр из фрагмента.*примерно.*точный таймкод исходника не проверен/); clips++; }
+              else if (caption.includes("Кадр из фрагмента")) {
+                assert.match(caption, /Кадр из фрагмента.*примерно.*точный таймкод исходника не проверен/);
+                clips++;
+              } else {
+                assert.match(caption, /Прямая выборка исходного MKV около.*точный PTS кадра не удостоверен/,
+                  "direct source frame must expose both original-master provenance and uncertified PTS");
+                direct++;
+              }
               const avif = await figure.locator('source[type="image/avif"]').getAttribute("srcset");
               for (const [path, type] of [[jpeg, "image/jpeg"], [avif, "image/avif"]]) {
                 const response = await page.request.get(`${base}${path}`);
@@ -306,8 +322,9 @@ for (const engine of requested) {
                 assert.ok((await response.body()).length > 1000, `${path} must contain image bytes`);
               }
             }
-            assert.equal(grid, 6);
+            assert.equal(grid, 4);
             assert.equal(clips, 3);
+            assert.equal(direct, 10);
           });
           await check(`${engine} no-js article paragraph evidence link`, page, async () => {
             await page.goto(`${base}/films/the-truman-show/article?spoilers=FULL`, { waitUntil: "load" });

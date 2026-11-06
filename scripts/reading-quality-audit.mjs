@@ -451,6 +451,13 @@ try {
       await page.goto(`${base}/`, { waitUntil: "load" });
       const grid = page.locator(".characterGridSingle");
       assert.equal(await grid.locator(".characterCard").count(), 1, "fixture must contain one character card");
+      // Next/Image marks this below-the-fold editorial image loading="lazy".
+      // A screenshot does not guarantee image decode completed in Chromium;
+      // scroll the real element into view and require native image decoding.
+      // Broken URLs/decode still reject rather than passing a placeholder.
+      const characterImage = grid.locator(".characterCard img");
+      await characterImage.scrollIntoViewIfNeeded();
+      await characterImage.evaluate(image => image.decode());
       await grid.screenshot({ path: `${dir}/single-character-card.png` });
       const sizes = await grid.evaluate(element => ({
         grid: element.getBoundingClientRect().width,

@@ -297,8 +297,10 @@ function ArticleBlockView({
                     <span>{item.still.caption}</span>
                     {item.still.samplingKind === "grid" ? (
                       <small>Номинальная отметка сетки {formatTimecode(item.still.sampleTimeSeconds)} · шаг {item.still.samplingIntervalSeconds} с; время исходного кадра может отличаться</small>
-                    ) : (
+                    ) : item.still.samplingKind === "clip" ? (
                       <small>Кадр из фрагмента {item.still.clip.file} · примерно {formatTimecode(item.still.sampleTimeSeconds)} по смещению в манифесте; точный таймкод исходника не проверен</small>
+                    ) : (
+                      <small>Прямая выборка исходного MKV около {formatTimecode(item.still.sampleTimeSeconds)}; точный PTS кадра не удостоверен</small>
                     )}
                     <small>{item.still.credit}</small>
                   </figcaption>

@@ -44,7 +44,19 @@ export async function withFreshGestureSimulator({ original, simulatorApp, ci, di
     finally { diagnostic({ phase: "bootstatus", elapsedMs: Math.round(performance.now() - started), timeoutMs: 480000,
       bootLog: simulatorBootLog(bootNote, output, errorOutput) }); }
     device.state = "Booted";
-    diagnostic({ phase: "running", device });
+    // Boot completion can precede MobileSafari's first launch on a disposable
+    // Simulator. Warm the genuine system app before handing input to XCTest.
+    // If actual launch fails, the strict native scenario never reports success.
+    const warmStarted = performance.now();
+    let safariLaunch;
+    try {
+      safariLaunch = String(run("xcrun", ["simctl", "launch", udid, "com.apple.mobilesafari"],
+        { encoding: "utf8", timeout: 120000 })).trim();
+    } finally {
+      diagnostic({ phase: "native-safari-warmup", elapsedMs: Math.round(performance.now() - warmStarted),
+        timeoutMs: 120000, app: "com.apple.mobilesafari" });
+    }
+    diagnostic({ phase: "running", device, safariLaunch });
     result = await action(device);
   } catch (error) { primaryError = error; }
   let cleanupError;

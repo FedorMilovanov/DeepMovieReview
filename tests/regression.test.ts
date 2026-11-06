@@ -5181,8 +5181,39 @@ test("Film 001 share art is declared, validated and shaped like a card", () => {
 // source from a new session means adding its date here first.
 // Variety, Gutenberg and the current archive page were reopened on 2026-10-30 UTC.
 // The 2026-11-03 sitting rechecked only these sources (docs/71).
-const RESEARCH_SITTINGS = ["2026-10-28", "2026-10-29", "2026-10-30", "2026-11-03"];
+const RESEARCH_SITTINGS = ["2026-10-28", "2026-10-29", "2026-10-30", "2026-11-03", "2026-11-04"];
 const RECHECKED_ON_NOVEMBER_3 = new Set(["src-lozier", "src-markpshea"]);
+
+const RECHECKED_ON_NOVEMBER_4 = new Set(["src-niccol-2002-interview","src-dga-weir-carrey","src-latimes-hopper-1997","src-index-hopper-1999","src-denofgeek-harris-role","src-glass-weir-1998-notes","src-glass-bfi-film-notes","src-bafta-1999-results","src-acmi-weir-2023","src-filmgent-10909"]);
+
+test("Film 001 source tiers and confirmed claims use independent research", () => {
+  const dossier = theTrumanShowProductionDossier;
+  const map = new Map(dossier.sources.map((source) => [source.id, source]));
+  const wikipedia = dossier.sources.filter((source) => source.id.startsWith("src-wikipedia-"));
+  assert.equal(wikipedia.length, 8);
+  for (const source of wikipedia) {
+    assert.equal(source.tier, "TERTIARY", source.id + " is a tertiary lead");
+  }
+  const nov4 = dossier.sources.filter((source) => source.checkedOn === "2026-11-04");
+  assert.equal(nov4.length, RECHECKED_ON_NOVEMBER_4.size);
+  for (const source of nov4) {
+    assert.ok(RECHECKED_ON_NOVEMBER_4.has(source.id), source.id + " must be documented");
+  }
+  const audited = ["claim-niccol-direct","claim-robin-williams","claim-hopper-cast","claim-hopper-two-days","claim-harris-hunchback","claim-cgi-upper-floors","claim-dallwitz-hired","claim-glass-cameo","claim-bafta-wins","claim-weir-irony","claim-day-count"];
+  for (const id of audited) {
+    const claim = dossier.claims.find((item) => item.id === id);
+    assert.ok(claim, "retained claim " + id);
+    assert.equal(claim.status, "CONFIRMED");
+    assert.ok(claim.sourceIds.some((sourceId) => {
+      const source = map.get(sourceId);
+      return source && source.tier !== "TERTIARY" && !/(^|\.)wikipedia\.org$/u.test(new URL(source.url).hostname);
+    }), id + " must have independently credible support");
+  }
+  const hopper = dossier.claims.find((claim) => claim.id === "claim-hopper-two-days");
+  assert.ok(hopper?.text.includes("одном съёмочном дне"));
+  assert.ok(!dossier.sections.some((section) => section.heading === "Семь имён на одну режиссёрскую ставку"));
+  assert.doesNotMatch(JSON.stringify(dossier.sections), /пресс-джуне/);
+});
 
 test("Film 001 production dossier holds its own register", () => {
   const dossier = theTrumanShowProductionDossier;
@@ -5978,17 +6009,36 @@ test("browser failures retain measured details in escaped workflow annotations",
   assert.ok(workflowError(message).includes('"focused":false'));
 });
 
-test("scene quotations disclose grid or clip provenance rather than claiming exact master PTS", () => {
+test("scene quotations disclose grid, clip or direct-master provenance without exact PTS claims", () => {
   const article = structuredClone(theTrumanShowArticle);
   const items = article.sections.flatMap(section => section.blocks.flatMap(block =>
     block.kind === "timeline" ? block.items.filter(item => item.still) : []));
   assert.deepEqual(items.map((item) => item.evidenceId).sort(), [
     "truman-ev-exit", "truman-ev-knife", "truman-ev-knife-tools", "truman-ev-light",
-    "truman-ev-marlon-retake", "truman-ev-meryl-held", "truman-ev-radio", "truman-ev-rain", "truman-ev-reunion",
+    "truman-ev-meryl-held", "truman-ev-rain", "truman-ev-reunion",
+    "truman-ev-ghost", "truman-ev-europe", "truman-ev-setting-sail", "truman-ev-sail-139", "truman-ev-wall",
+    "truman-ev-sylvia", "truman-ev-elevator", "truman-ev-mococoa", "truman-ev-nothing-left", "truman-ev-seahaven-design",
   ].sort(), "each selected frame should illustrate a distinct evidence anchor");
-  assert.equal(items.filter((item) => item.still?.samplingKind === "grid").length, 6);
+  // The radio record's canonical basis is subtitle-track, not a certified audio transcript.
+  const radioAnchor = article.sections.flatMap(section => section.blocks.flatMap(block =>
+    block.kind === "timeline" ? block.items : [])).find(item => item.id === "truman-article-anchor-radio");
+  assert.ok(radioAnchor);
+  assert.equal(radioAnchor.still, undefined, "a subtitle-only claim must not carry an unrelated frame");
+  assert.match(radioAnchor.label, /субтитр/i);
+  assert.doesNotMatch(radioAnchor.label, /оригинальн.{0,12}звук/i);
+  assert.equal(items.filter((item) => item.still?.samplingKind === "grid").length, 4);
   const clips = items.filter((item) => item.still?.samplingKind === "clip");
   assert.equal(clips.length, 3);
+  const direct = items.filter((item) => item.still?.samplingKind === "direct");
+  assert.equal(direct.length, 10);
+  const observed = direct.map((item) => [item.evidenceId, item.still?.sampleTimeSeconds]);
+  assert.deepEqual(observed.sort((a,b) => String(a[0]).localeCompare(String(b[0]))), [
+    ["truman-ev-ghost", 913], ["truman-ev-europe", 1842],
+    ["truman-ev-setting-sail", 4981], ["truman-ev-sail-139", 5235],
+    ["truman-ev-wall", 5510],
+    ["truman-ev-sylvia", 1605], ["truman-ev-elevator", 2110],
+    ["truman-ev-mococoa", 3230], ["truman-ev-nothing-left", 3848], ["truman-ev-seahaven-design", 4052],
+  ].sort((a,b) => String(a[0]).localeCompare(String(b[0]))));
   assert.deepEqual(clips.map((item) => {
     assert.ok(item.still?.samplingKind === "clip");
     return [item.evidenceId, item.still.clip.file, item.still.clip.sha256, item.still.clip.sourceStartSeconds, item.still.clip.offsetSeconds];
@@ -6013,6 +6063,9 @@ test("scene quotations disclose grid or clip provenance rather than claiming exa
     if (still.samplingKind === "clip") {
       assert.match(still.clip.sha256, /^[a-f0-9]{64}$/);
       assert.equal(still.sampleTimeSeconds, still.clip.sourceStartSeconds + still.clip.offsetSeconds);
+    } else if (still.samplingKind === "direct") {
+      assert.equal(still.clip, undefined);
+      assert.equal(still.samplingIntervalSeconds, undefined);
     }
   }
   for (const [override, expected] of [
@@ -6051,6 +6104,17 @@ test("scene quotations disclose grid or clip provenance rather than claiming exa
     assert.ok(clipItem?.still?.samplingKind === "clip");
     Object.assign(clipItem.still.clip, override);
     assert.match(validateFilmArticle(copy, trumanArticleContext()).join("\n"), /clip still needs/);
+  }
+  for (const override of [
+    { sampleTimeSeconds: 913.5 }, { samplingIntervalSeconds: 30 },
+    { clip: { file: "incorrect.mp4" } },
+  ]) {
+    const copy = structuredClone(article);
+    const record = copy.sections.flatMap(s => s.blocks.flatMap(b =>
+      b.kind === "timeline" ? b.items : [])).find(i => i.evidenceId === "truman-ev-ghost");
+    assert.ok(record?.still?.samplingKind === "direct");
+    Object.assign(record.still, override);
+    assert.match(validateFilmArticle(copy, trumanArticleContext()).join("\n"), /direct-master still needs/);
   }
 });
 
@@ -6332,12 +6396,17 @@ test("Film 001 is published, and the stills carry their provenance", () => {
       section.blocks.flatMap((block) => (block.kind === "timeline" ? block.items.filter((item) => item.still) : [])),
     );
 
-  assert.equal(stillsOf(withFrames).length, 9);
+  assert.equal(stillsOf(withFrames).length, 17);
+  // Audio/subtitle claims remain linked to evidence, but do not acquire unrelated film frames.
+  for (const id of ["truman-ev-radio", "truman-ev-marlon-retake"]) {
+    assert.equal(stillsOf(withFrames).some((item) => item.evidenceId === id), false,
+      `${id}: an audio or dialogue claim must not imply that its words are visible in a still`);
+  }
   assert.equal(stillsOf(withoutFrames).length, 0, "a page with stills disabled must not cite a frame");
   for (const [level, expected] of [
     ["NONE", ["truman-ev-light"]],
-    ["MINOR", ["truman-ev-light", "truman-ev-rain", "truman-ev-radio"]],
-    ["MAJOR", ["truman-ev-light", "truman-ev-rain", "truman-ev-radio", "truman-ev-marlon-retake", "truman-ev-knife-tools", "truman-ev-meryl-held", "truman-ev-reunion"]],
+    ["MINOR", ["truman-ev-light", "truman-ev-rain", "truman-ev-ghost", "truman-ev-europe", "truman-ev-elevator"]],
+    ["MAJOR", ["truman-ev-light", "truman-ev-rain", "truman-ev-ghost", "truman-ev-europe", "truman-ev-knife-tools", "truman-ev-meryl-held", "truman-ev-reunion", "truman-ev-elevator", "truman-ev-sylvia"]],
   ] as const) {
     const projected = projectArticleSections(theTrumanShowCanonicalPackage.article!, level, { stills: true });
     assert.deepEqual(stillsOf(projected).map((item) => item.evidenceId).sort(), [...expected].sort(), `${level}: no higher-spoiler frame may leak`);

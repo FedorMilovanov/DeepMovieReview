@@ -27,6 +27,23 @@ const systemEnv = { ...process.env };
 delete systemEnv.DEVELOPER_DIR;
 let safari, restoreDeveloperDirectory, automation;
 const sceneRoute = "/films/the-truman-show?spoilers=none#scene-truman-sc-day-10909";
+const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+let capturedSimulatorScreenshots = 0;
+// Capture the real displayed iPhone Simulator framebuffer independently of
+// SafariDriver. Screenshot transport must not hold the WebDriver session in
+// a state where XCTest cannot acquire the same device's accessibility service.
+// An absent/corrupt native PNG is still an unconditional test FAILURE.
+function captureNativeSimulatorScreenshot() {
+  assert.match(report.device?.udid ?? "", /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i);
+  const file = `${directory}/native-simulator-screen-${String(++capturedSimulatorScreenshots).padStart(2, "0")}.png`;
+  execFileSync("xcrun", ["simctl", "io", report.device.udid, "screenshot", file], { timeout: 45000 });
+  const bytes = readFileSync(file);
+  assert.ok(bytes.length > pngHeader.length && bytes.subarray(0, pngHeader.length).equals(pngHeader),
+    "Native simulator display capture must be a real PNG");
+  report.nativeScreenshotTransport = { command: "simctl io screenshot", count: capturedSimulatorScreenshots };
+  return bytes.toString("base64");
+}
+
 async function runAndRecordNativeGesture(device = report.device, directory = gestureDirectory) {
   gestureReport.attempted = true;
   gestureReport.failures = [];
@@ -65,8 +82,8 @@ async function runAndRecordNativeGesture(device = report.device, directory = ges
   evidence.actions.push({ route: sceneRoute, label: "native XCUITest scene support → evidence; full trace and screenshots in ios-gesture evidence",
     observed: gestureReport.observedScene });
 }
-async function runNativeGestureWithOneIsolatedRetry() {
-  try { await runAndRecordNativeGesture(); return; }
+async function runNativeGestureWithOneIsolatedRetry(device = report.device, evidenceDirectory = gestureDirectory) {
+  try { await runAndRecordNativeGesture(device, evidenceDirectory); return; }
   catch (firstError) {
     const trigger = retryableSimulatorCancellation(gestureReport);
     if (!trigger || process.env.GITHUB_ACTIONS !== "true") throw firstError;
@@ -88,10 +105,10 @@ async function runNativeGestureWithOneIsolatedRetry() {
         report.restoredAutomationPreference = automation.original;
         automation = undefined;
       }
-      await withFreshGestureSimulator({ original: report.device, simulatorApp: report.toolchain.simulatorApp, ci: true,
+      await withFreshGestureSimulator({ original: device, simulatorApp: report.toolchain.simulatorApp, ci: true,
         diagnostic: item => {
           report.nativeGestureRetry.lifecycle.push(structuredClone(item));
-          if (item.phase === "original-shutdown") report.device.state = "Shutdown";
+          if (item.phase === "original-shutdown" && device.udid === report.device.udid) report.device.state = "Shutdown";
         } }, async device => {
         await runAndRecordNativeGesture(device, `${gestureDirectory}/isolated-retry`);
       });
@@ -106,6 +123,35 @@ async function runNativeGestureWithOneIsolatedRetry() {
   }
 }
 
+/**
+ * SafariDriver and XCTest must not compete for one Simulator's automation or
+ * accessibility services. SafariDriver is already closed. Shut down its
+ * device, then run the entire strict real-touch scenario on a fresh iPhone.
+ * Failure to provision, observe AX or complete touches remains a hard failure.
+ */
+async function runNativeGestureOnIndependentSimulator() {
+  if (process.env.GITHUB_ACTIONS !== "true") {
+    await runNativeGestureWithOneIsolatedRetry();
+    return;
+  }
+  if (automation) {
+    automation.restore();
+    report.restoredAutomationPreference = automation.original;
+    automation = undefined;
+  }
+  report.nativeGestureIsolation = { method: "fresh iPhone after SafariDriver", lifecycle: [] };
+  await withFreshGestureSimulator({
+    original: report.device, simulatorApp: report.toolchain.simulatorApp, ci: true,
+    diagnostic: item => {
+      report.nativeGestureIsolation.lifecycle.push(structuredClone(item));
+      if (item.phase === "original-shutdown") report.device.state = "Shutdown";
+    },
+  }, async device => {
+    await runNativeGestureWithOneIsolatedRetry(device, `${gestureDirectory}/independent-device`);
+  });
+  report.nativeGestureIsolation.status = "passed all strict native tests";
+}
+
 function hostSimulatorProcesses() {
   try {
     return nativeSimulatorProcessLines(execFileSync("ps", ["-axo", "pid=,state=,pcpu=,comm="], { encoding: "utf8", timeout: 10000 }));
@@ -113,7 +159,17 @@ function hostSimulatorProcesses() {
 }
 try {
   report.initialDeveloperDirectory = execFileSync("xcode-select", ["-p"], { encoding: "utf8", timeout: 30000, env: systemEnv }).trim();
-  const xcode = newestStableXcode(readdirSync("/Applications"));
+  // Pin a complete installed Xcode+iOS Simulator runtime only when CI
+  // explicitly asks for one. Xcode 26.6/iOS 26.5 has shown a real CoreSimulator
+  // Recap digitizer disappearing mid-tap (native touchstart → touchcancel);
+  // this selects an independently installed stable toolchain for strict native
+  // testing, not a relaxed/mocked gesture or a pass based on diagnostics.
+  const installations = readdirSync("/Applications");
+  const version = process.env.DMR_IOS_XCODE_VERSION;
+  if (version) assert.match(version, /^\d+(?:\.\d+){1,2}$/, "Expected explicit stable Xcode version");
+  const desired = version ? `Xcode_${version}.app` : newestStableXcode(installations);
+  assert.ok(installations.includes(desired), `Requested installed native Xcode is missing: ${desired}`);
+  const xcode = desired;
   const developerDirectory = realpathSync(`/Applications/${xcode}/Contents/Developer`);
   process.env.DEVELOPER_DIR = developerDirectory;
   // LaunchServices/XPC helpers do not necessarily inherit this Node process's
@@ -133,8 +189,18 @@ try {
   report.availableRuntimes = Object.keys(devices.devices);
   // The list is oldest-first on hosted images; prefer the newest installed iOS
   // runtime rather than silently pairing Safari26 with the first iOS18 device.
+  // A pinned Xcode must not silently select a newer Simulator runtime from a
+  // different installed Xcode. In particular, Xcode 26.4 uses iOS 26.4, not
+  // the 26.5 runtime whose Recap HID input failed the native touch contract.
+  const pinnedMinor = version ? Number(simulatorSdk.split(".")[1] ?? 0) : null;
   const candidates = Object.entries(devices.devices)
-    .filter(([runtime]) => runtimeMatchesSdk(runtime, simulatorSdk))
+    .filter(([runtime]) => {
+      if (!runtimeMatchesSdk(runtime, simulatorSdk)) return false;
+      if (pinnedMinor === null) return true;
+      const found = /\.iOS-(\d+)-(\d+)/.exec(runtime);
+      const sdkMajor = Number(simulatorSdk.split(".")[0]);
+      return Boolean(found && Number(found[1]) === sdkMajor && Number(found[2]) <= pinnedMinor);
+    })
     .sort(([a], [b]) => b.localeCompare(a, undefined, { numeric: true })).flatMap(([runtime, devices]) => devices.map(device => ({ ...device, runtime })));
   const device = candidates.find(device => device.name.startsWith("iPhone") && device.isAvailable);
   assert.ok(device, "No installed iPhone Simulator runtime");
@@ -236,7 +302,7 @@ try {
     assert.equal(box.lang, "ru"); assert.equal(box.h1, 1);
     assert.ok(box.expanded === "false" && box.inert === true && box.visible === false,
       `${route}: hydrated navigation must start closed and inert`);
-    evidence.screenshots.push({ route, data: await safari.screenshot() });
+    evidence.screenshots.push({ route, data: captureNativeSimulatorScreenshot() });
     evidence.actions.push({ route, label: "native iOS Safari layout and menu hit-test (no input)", box });
     if (route.includes("/article?")) {
       const sectionIds = await safari.execute("return Array.from(document.querySelectorAll('.articleSection'), section => section.id)");
@@ -265,7 +331,7 @@ try {
         const rect = el.getBoundingClientRect(), hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
         return { rect: rect.toJSON(), scrollY, innerWidth, innerHeight, hitContained: !!hit && el.contains(hit) };`);
       evidence.actions.push({ route, label: "native FULL spoiler target before independent XCUITest", ...report.spoilerTarget });
-      evidence.screenshots.push({ route: `${route} — FULL spoiler target before XCUITest`, data: await safari.screenshot() });
+      evidence.screenshots.push({ route: `${route} — FULL spoiler target before XCUITest`, data: captureNativeSimulatorScreenshot() });
 
     }
   }
@@ -289,7 +355,7 @@ try {
     supportGeometry.rect.top >= 60 && supportGeometry.rect.bottom <= supportGeometry.innerHeight && supportGeometry.hitContained && supportGeometry.scrollLeft === 0,
     `Mobile scene support must be visible and hittable without horizontal scrolling: ${JSON.stringify(supportGeometry)}`);
   evidence.actions.push({ route: sceneRoute, label: "native scene support geometry before independent XCUITest", supportGeometry });
-  evidence.screenshots.push({ route: `${sceneRoute} — support before input`, data: await safari.screenshot() });
+  evidence.screenshots.push({ route: `${sceneRoute} — support before input`, data: captureNativeSimulatorScreenshot() });
 
   // Close the isolated SafariDriver automation window before XCUITest drives
   // normal MobileSafari. Both the earlier projection checks and this separate
@@ -298,8 +364,8 @@ try {
   report.safariVersion = safari.version;
   await safari.close();
   safari = undefined;
-  report.phase = "XCUITest native menus, scroll, scene and spoiler input";
-  await runNativeGestureWithOneIsolatedRetry();
+  report.phase = "XCUITest native menus, scroll, scene and spoiler input on independent iPhone";
+  await runNativeGestureOnIndependentSimulator();
 } catch (error) {
   // These are bounded, boolean/timing-only samples from the failed passive
   // readiness wait; they do not turn the earlier failure into a passing scan.
@@ -336,7 +402,7 @@ try {
     } catch (diagnosticError) { report.failedActiveSimulatorDiagnostic = diagnosticError.message; }
     try {
       report.failedPageState = await safari.execute("return ({url:location.href,expanded:document.querySelector('.menuButton')?.getAttribute('aria-expanded'),button:document.querySelector('.menuButton')?.getBoundingClientRect().toJSON(),width:innerWidth,scrollY})");
-      evidence.screenshots.push({ route: "failed native state", data: await safari.screenshot() });
+      evidence.screenshots.push({ route: "failed native state", data: captureNativeSimulatorScreenshot() });
     } catch (diagnosticError) { report.failedPageDiagnostic = diagnosticError.message; }
   }
   try { report.failedHostSimulatorProcesses = hostSimulatorProcesses(); }
@@ -353,7 +419,7 @@ try {
   if (shouldRunGestureAfterDriverFailure(report, gestureReport)) {
     report.independentGestureAfterDriverFailure = { attempted: true, driverFailurePhase: report.phase };
     try {
-      await runAndRecordNativeGesture();
+      await runNativeGestureOnIndependentSimulator();
       report.independentGestureAfterDriverFailure.result = "passed";
     } catch (error) {
       report.independentGestureAfterDriverFailure.result = "failed";

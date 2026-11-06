@@ -425,6 +425,13 @@ function checkBlock(
                 Math.abs(frame.sampleTimeSeconds - (clip.sourceStartSeconds + clip.offsetSeconds)) > 0.001) {
               errors.push(`${itemPath}: clip still needs a file, SHA-256, valid manifest range and matching approximate offset.`);
             }
+          } else if (frame.samplingKind === "direct") {
+            // Direct original-master FFmpeg input seek, not a historical 30s grid
+            // or derivative clip. The nominal seek offset is not certified PTS.
+            if (!Number.isInteger(frame.sampleTimeSeconds) || frame.sampleTimeSeconds < 0 ||
+                frame.samplingIntervalSeconds !== undefined || frame.clip !== undefined) {
+              errors.push(`${itemPath}: direct-master still needs a nonnegative seek second with no grid/clip metadata.`);
+            }
           } else {
             errors.push(`${itemPath}: still needs a declared sampling kind.`);
           }
