@@ -53,6 +53,18 @@ Before calling a branch merge-ready, the exact PR head must pass locked install,
 
 Any new dependency with an install lifecycle script requires explicit review and a version-pinned `allowScripts` entry; `.npmrc` keeps unreviewed install scripts fail-closed.
 
+## Arena Sandbox browser fallback
+
+If the normal Playwright browser download is blocked in **Arena Sandbox**, Chromium 153.0.8010.0 has been launched through `@sparticuz/chromium@153.0.0` with Playwright 1.64.1. Install the sandbox-only tools **outside** the repository:
+
+```bash
+npm install --prefix /tmp/arena-browser --no-audit --no-fund @sparticuz/chromium@153.0.0 playwright@1.64.1
+```
+
+Call `Chromium.executablePath()`; if NSS libraries are missing, Brotli-decompress `@sparticuz/chromium/bin/al2023.tar.br`, untar into `/tmp/arena-browser/libs` and prepend `/tmp/arena-browser/libs/lib` to `LD_LIBRARY_PATH` (preserve the prior value). Playwright: use the returned `executablePath`, `headless: true`, and `args: ['--no-sandbox', '--disable-dev-shm-usage']`. Do **not** copy all of `Chromium.args` (includes `--disable-web-security`); no NSS patch or `LD_PRELOAD` was needed in the verified setup.
+
+Treat `/tmp` as ephemeral and perform a smoke test. Log any narrowly scoped external-request stubs; never silently replace all external requests. This does **not** replace WebKit, Firefox, devices or CI evidence. Other working browser setups are welcome.
+
 ## Next.js specifics
 
 Route `params` and `searchParams` are asynchronous. Keep client boundaries narrow and serializable. Film slugs are generated from the validated registry; unknown slugs are not valid dynamic content. Remember that Next.js streamed `notFound()` responses can carry HTTP 200 while rendering the canonical not-found boundary, so tests must verify the semantic not-found result rather than assuming status alone.
