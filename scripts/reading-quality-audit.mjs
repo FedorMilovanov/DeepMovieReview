@@ -415,6 +415,39 @@ async function pdf(page, file, metadata, background) {
 
 try {
 
+  for (const viewport of viewports.filter(item => item.label === "phone" || item.label === "desktop")) {
+    await check(`DIVE Sirius ${viewport.label}: inspect, branch, classify, reconsider, return`, () =>
+      withPage({ viewport: { width: viewport.width, height: viewport.height } }, `dive-${viewport.label}`, async page => {
+        await page.goto(base + article, { waitUntil: "load" });
+        const entry = page.locator(".diveEntryAction");
+        await entry.click();
+        const dialog = page.locator(".diveDialog");
+        await dialog.getByRole("button", { name: "Рассмотреть маркировку" }).click();
+        await dialog.getByRole("button", { name: "Сформулировать гипотезу" }).click();
+        await dialog.getByRole("button", { name: "Обычная случайность" }).click();
+        await dialog.getByRole("button", { name: "Выбрать способ проверки" }).click();
+        await dialog.getByRole("button", { name: "Сообщение", exact: true }).click();
+        await dialog.getByRole("button", { name: "Такое объяснение присутствует в тексте." }).click();
+        await page.screenshot({ path: `${dir}/dive-${viewport.label}-branch.png` });
+        await dialog.getByRole("button", { name: "Соединить сведения" }).click();
+        for (const [i, label] of ["Наблюдение", "Сообщение", "Гипотеза"].entries()) {
+          await dialog.locator(".diveSort").nth(i).getByRole("button", {name: label, exact: true}).click();
+        }
+        await dialog.getByRole("button", {name:"Вернуться к первому выводу"}).click();
+        await dialog.getByRole("button", {name:"Недостаточно сведений",exact:true}).click();
+        await dialog.getByRole("button", {name:"Открыть итог"}).click();
+        await dialog.getByRole("heading",{name:"Вы открыли различие"}).waitFor();
+        await page.screenshot({path:`${dir}/dive-${viewport.label}-synthesis.png`});
+        await dialog.getByRole("button",{name:"Продолжить статью"}).click();
+        assert.equal(await dialog.evaluate(el => el.open), false);
+        assert.equal(await entry.evaluate(el => document.activeElement === el), true);
+        await entry.click();
+        await dialog.getByRole("heading",{name:"Вы открыли различие"}).waitFor();
+        await page.keyboard.press("Escape");
+        assert.equal(await dialog.evaluate(el => el.open), false);
+        return {viewport:viewport.label, resumed:true};
+      }));
+  }
   // #152: follow the reader journey on both viewport classes, not an isolated
   // component fixture. Screenshots are taken only after the actual actions.
   for (const viewport of viewports.filter(item => item.label === "phone" || item.label === "desktop")) {

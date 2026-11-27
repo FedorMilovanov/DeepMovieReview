@@ -1,6 +1,7 @@
 import type { ProductionSource } from "@/lib/production-dossier";
 import { EvidenceBasisLine } from "@/components/evidence-basis";
 import { ReadingOutline } from "./reading-outline";
+import { DiveEntry } from "./dive-entry";
 import { ArticleTable } from "./article-table";
 import { ArticleCorrectionTable } from "./article-correction-table";
 import Link from "next/link";
@@ -404,6 +405,10 @@ function ArticleReadingBlock(props: Parameters<typeof ArticleBlockView>[0]) {
     <>
       <ArticleBlockView {...props} />
       {props.block.id === "truman-article-method-3" ? <OpeningKnowledgeDiagram /> : null}
+      {props.block.id === "truman-article-method-4" && props.evidenceById?.has("truman-ev-light") && props.evidenceById.has("truman-ev-light-explanation") ? (
+        <DiveEntry observation={props.evidenceById.get("truman-ev-light")!.observation}
+          report={props.evidenceById.get("truman-ev-light-explanation")!.observation} />
+      ) : null}
     </>
   );
 }
