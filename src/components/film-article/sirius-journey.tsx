@@ -18,7 +18,7 @@ const questions = [
 const chapters = ["Наблюдение", "Гипотеза", "Развилка", "Проверка", "Синтез"];
 const findings = [
   "Надпись позволяет описать предмет, но не причину его появления.",
-  "Запись подтверждает, что объяснение прозвучало в тексте субтитров, а не что оно истинно.",
+  "Субтитры подтверждают наличие объяснения, но не его истинность.",
   "Несколько повторов одного сообщения не являются независимыми подтверждениями.",
 ] as const;
 
@@ -73,8 +73,7 @@ function ReportExperiment({ mode, setMode }: { mode: number; setMode: (mode: num
         <button type="button" className="diveSortButton" aria-pressed={mode === 1} onClick={() => setMode(1)}>Как сообщение</button>
       </div>
       <div className="diveReportLine">
-        {mode === 1 ? <span>В субтитрах обломки объясняются как </span> : null}
-        <strong>детали самолёта.</strong>
+        {mode === 1 ? <><span>В субтитрах обломки объясняются как </span><strong>детали самолёта.</strong></> : <strong>Предмет — деталь самолёта.</strong>}
       </div>
       <p role="status">{mode === 0 ? "Формулировка отбрасывает сведения о происхождении утверждения и звучит как установленный факт. Но у нас нет такого подтверждения." : "Теперь предложение точно указывает, что подтверждено: наличие объяснения в субтитрах, а не происхождение предмета."}</p>
     </div>
@@ -117,7 +116,7 @@ function SiriusArtifact({ inspected }: { inspected: boolean }) {
 }
 
 /** The same field changes from an object to a map of reasoning, not a decorative new scene. */
-function ReasoningField({ step, path, sorted, completed }: { step: number; path: number | null; sorted: number[]; completed: boolean }) {
+function ReasoningField({ step, path, sorted, completed, explored }: { step: number; path: number | null; sorted: number[]; completed: boolean; explored: boolean[] }) {
   const branchNames = ["ПРЕДМЕТ", "СООБЩЕНИЕ", "ПРОВЕРКА"];
   const colors = ["#9ec5de", "#d9b986", "#c5a5d6"];
   return (
@@ -133,15 +132,15 @@ function ReasoningField({ step, path, sorted, completed }: { step: number; path:
       </g>
       {step === 2 ? <>
         <g fill="none" stroke="url(#dive-field-path)" strokeWidth="2">
-          {branchNames.map((name,i) => <path key={name} d={`M320 125 C320 175 ${110+i*210} 155 ${110+i*210} 244`} opacity={path === null || path === i ? 1 : .22} strokeWidth={path === i ? 4 : 1.5}/>)}
+          {branchNames.map((name,i) => <path key={name} d={`M320 125 C320 175 ${110+i*210} 155 ${110+i*210} 244`} opacity={path === null || path === i || explored[i] ? 1 : .22} strokeWidth={path === i ? 4 : explored[i] ? 2.5 : 1.5}/>)}
         </g>
         <rect x="241" y="58" width="158" height="67" rx="8" fill="#192c40" stroke="#c5d5e0"/>
         <text x="320" y="84" textAnchor="middle" fill="#a9c2d5" fontSize="11" letterSpacing="2">ИСХОДНЫЙ ВОПРОС</text>
         <text x="320" y="106" textAnchor="middle" fill="#f3eee6" fontSize="19">SIRIUS</text>
-        {branchNames.map((name,i) => <g key={name} opacity={path === null || path === i ? 1 : .35}>
+        {branchNames.map((name,i) => <g key={name} opacity={path === null || path === i || explored[i] ? 1 : .35}>
           <ellipse cx={110+i*210} cy="284" rx="73" ry="40" fill="#1b2b3c" stroke={colors[i]} strokeWidth={path === i ? 2.5 : 1}/>
           <ellipse cx={110+i*210} cy="284" rx="90" ry="51" fill="none" stroke={colors[i]} opacity=".3"/>
-          <text x={110+i*210} y="279" textAnchor="middle" fill={colors[i]} fontSize="13">0{i+1}</text>
+          <text x={110+i*210} y="279" textAnchor="middle" fill={colors[i]} fontSize="13">0{i+1}{explored[i] ? " ✓" : ""}</text>
           <text x={110+i*210} y="297" textAnchor="middle" fill="#eef1f4" fontSize="12">{name}</text>
         </g>)}
         <path d="M110 326 Q110 402 320 416 Q530 402 530 326 M320 326V416" fill="none" stroke="#8ba1b6" strokeDasharray="4 7" opacity=".6"/>
@@ -213,9 +212,9 @@ export default function SiriusJourney({ observation, report, onFinish }: { obser
         {chapters.map((chapter, i) => <span key={chapter} aria-current={i === step ? "step" : undefined} data-reached={i <= step}><i>{String(i + 1).padStart(2, "0")}</i><span>{chapter}</span></span>)}
       </nav>
       <div className="diveScene">
-        <div className="diveStageArt" aria-hidden="true">
+        <div className="diveStageArt" data-inspected={inspected} aria-hidden="true">
           <div className="diveOrbit diveOrbitOne" /><div className="diveOrbit diveOrbitTwo" />
-          {step < 2 ? <SiriusArtifact inspected={inspected} /> : <ReasoningField key={step} step={step} path={path} sorted={sorted} completed={completed} />}
+          {step < 2 ? <SiriusArtifact inspected={inspected} /> : <ReasoningField key={step} step={step} path={path} sorted={sorted} completed={completed} explored={explored} />}
           <div className="diveArtMeta"><span>SEAHAVEN / 001</span><span>{chapters[step].toUpperCase()}</span></div>
         </div>
         <section className="diveRoom" key={step + "-" + String(completed)} aria-labelledby="dive-room-title">

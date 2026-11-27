@@ -110,3 +110,12 @@ html:has(.diveDialog[open]) { overflow: hidden; }
 .diveTrace strong { color: #e1c49b; font-size: .85rem; }
 .diveTrace p { font-size: .85rem; }
 .diveBranch[data-explored="true"] span { color: #e4d6ab; }
+
+/* Inspection reveals the label as a closer visual plane; the drawing remains symbolic. */
+.diveJourney[data-depth="0"] .diveStageArt[data-inspected="true"] .diveArtifact { transform: scale(1.16) translate(3%, -1%); }
+.diveJourney[data-depth="0"] .diveStageArt[data-inspected="true"] { border-color: #b7c8d8; }
+@media (max-width: 760px) {
+  .diveBranches { grid-template-columns: repeat(3,minmax(0,1fr)); gap: .3rem; }
+  .diveBranch { padding: .6rem .45rem; font-size: .79rem; }
+  .diveExperiment { padding: .8rem; }
+}
