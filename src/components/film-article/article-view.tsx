@@ -455,6 +455,7 @@ export function ArticleView({
         </div>
         <p className="articleReadingNote">{complete ? "Открыт весь текст, включая финал." : spoilerLevel === "NONE" ? "Начало без спойлеров. По ходу чтения открывайте следующие главы; весь фильм можно раскрыть через меню «Разделы»." : "Продолжайте чтение; следующие сюжетные повороты открываются отдельно."}</p>
         <div className="articleHeaderLinks">
+          {filmSlug === "the-truman-show" && evidenceById?.has("truman-ev-light") && evidenceById.has("truman-ev-light-explanation") ? <Link className="buttonPrimary" href={`${pathname}/dive`}>Начать погружение →</Link> : null}
           <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
           <a className="microLabel" href="#film-evidence-appendix">Сцены и источники ↓</a>
         </div>

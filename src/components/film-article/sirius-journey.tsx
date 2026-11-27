@@ -181,7 +181,7 @@ function ReasoningField({ step, path, sorted, completed, explored }: { step: num
   );
 }
 
-export default function SiriusJourney({ observation, report, onFinish }: { observation: string; report: string; onFinish: () => void }) {
+export default function SiriusJourney({ observation, report, onFinish, standalone = false }: { observation: string; report: string; onFinish: () => void; standalone?: boolean }) {
   const [step, setStep] = useState(0);
   const [inspected, setInspected] = useState(false);
   const [hypothesis, setHypothesis] = useState<number | null>(null);
@@ -193,7 +193,7 @@ export default function SiriusJourney({ observation, report, onFinish }: { obser
   const [revised, setRevised] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => { heading.current?.focus({ preventScroll: false }); }, [step, completed]);
+  useEffect(() => { if (!standalone || step > 0 || completed) heading.current?.focus({ preventScroll: false }); }, [step, completed, standalone]);
   function reset() {
     setStep(0); setInspected(false); setHypothesis(null); setPath(null); setAnswers([-1,-1,-1]); setExperiments([0,0,0]); setExplored([false,false,false]);
     setSorted([-1,-1,-1]); setRevised(null); setCompleted(false);
@@ -262,7 +262,7 @@ export default function SiriusJourney({ observation, report, onFinish }: { obser
             {!valid ? <div className="diveInsight"><strong>Сопоставление категорий</strong>{cards.map(item => <p key={item.text}>{item.category} — {item.text}</p>)}</div> : null}
             <div className="diveTrace"><strong>Пройденный путь · {exploredCount} из 3 ветвей</strong>{findings.filter((_,i) => explored[i]).map(item => <p key={item}>{item}</p>)}</div>
             <p>В этом и состоит первое открытие фильма: увидеть странность недостаточно. Нужно понять, насколько обосновано объяснение, которому мы доверяем.</p>
-            <button type="button" className="divePrimary" onClick={onFinish}>Продолжить статью <span aria-hidden="true">→</span></button>
+            <button type="button" className="divePrimary" onClick={onFinish}>{standalone ? "Перейти к разбору фильма" : "Продолжить статью"} <span aria-hidden="true">→</span></button>
             <button type="button" className="diveChoice" onClick={reset}>Исследовать заново</button>
           </>}
           {step > 0 && !completed ? <button type="button" className="diveBack" onClick={() => setStep(step - 1)}>← Предыдущий слой</button> : null}

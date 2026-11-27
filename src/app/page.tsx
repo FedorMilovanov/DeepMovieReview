@@ -10,6 +10,7 @@ import { SpoilerLadder } from "@/components/home/spoiler-ladder";
 import type { LensKey, NarrativePermissionState } from "@/lib/content";
 import { filmPackages, getFilmPackageBySlug, requireFilmPackageBySlug } from "@/data/film-registry";
 import { pluralRu } from "@/lib/plural-ru";
+import { getDiveOpening } from "@/lib/dive-opening";
 import { filmStillsServable, homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { illustrationView } from "@/data/film-illustrations";
 import { getFilmHomeAsset } from "@/data/visual-assets";
@@ -620,11 +621,12 @@ function PlatformLanding({ preview }: { preview: boolean }) {
 
 function FilmHero({ data }: { data: HomepageViewModel }) {
   const { featuredFilm } = data;
+  const dive = getDiveOpening(featuredFilmPackage);
   const homeArt = getFilmHomeAsset(featuredFilm.slug);
   const homeArtSrc = homeArt?.variants.find((variant) => variant.purpose === "display")?.src;
   return (
     <section className="heroSection heroFilmSection sectionShell heroEnter" aria-labelledby="hero-title">
-      <div className="eyebrow">Исследование кино через библейскую картину мира · избранный разбор</div>
+      <div className="eyebrow">{dive ? "Интерактивное исследование кино · DIVE" : "Исследование кино через библейскую картину мира · избранный разбор"}</div>
       <div className="heroGrid">
         <div className="heroCopy">
           <p className="kicker">
@@ -633,8 +635,10 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
           <h1 id="hero-title">{featuredFilm.title}</h1>
           <p className="lede">{featuredFilm.premise}</p>
           <p className="heroFilmQuestion">{featuredFilm.thesisQuestion}</p>
+          {dive ? <p className="lede">Войдите в историю. Исследуйте странные события, проверяйте гипотезы и открывайте новые уровни понимания своими решениями.</p> : null}
           <div className="heroActions">
-            <Link className="buttonPrimary" href={`/films/${featuredFilm.slug}`}>{featuredFilmPackage.article ? "Читать разбор" : "Открыть разбор"}</Link>
+            <Link className="buttonPrimary" href={dive ? `/films/${featuredFilm.slug}/dive` : `/films/${featuredFilm.slug}`}>{dive ? "Начать погружение" : featuredFilmPackage.article ? "Читать разбор" : "Открыть разбор"}</Link>
+            {dive ? <Link className="buttonGhost" href={`/films/${featuredFilm.slug}`}>Читать статью</Link> : null}
             {!featuredFilmPackage.article && data.paths.hasScenes ? <a className="heroSceneLink" href={`/films/${featuredFilm.slug}#film-scene-table-title`}>Сцены и опоры →</a> : null}
             {data.sceneExample ? <Link className="heroSceneLink" href="#lenses">Шесть прочтений одной сцены ↓</Link> : null}
           </div>
@@ -652,6 +656,7 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
             tilt
           />
           <p className="heroArtCredit">Редакционная ИИ-иллюстрация, не кадр фильма.</p>
+          {dive ? <div className="diveHomeLegend"><strong>01 / SIRIUS</strong><span>Первое погружение · пять уровней · без спойлеров</span></div> : null}
         </div>
       </div>
     </section>

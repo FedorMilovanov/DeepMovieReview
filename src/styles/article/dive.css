@@ -119,3 +119,27 @@ html:has(.diveDialog[open]) { overflow: hidden; }
   .diveBranch { padding: .6rem .45rem; font-size: .79rem; }
   .diveExperiment { padding: .8rem; }
 }
+
+/* Primary experience: a navigable, full-page journey rather than a modal-only extra. */
+.diveStandalone {
+  color: #f0eee7; background: radial-gradient(ellipse at 29% 30%, #223d53 0, #101c29 42%, #090e15 85%);
+  min-height: 78dvh; padding: clamp(1.1rem, 3.5vw, 3.5rem); isolation: isolate;
+}
+.diveStandaloneInner { max-width: 1280px; margin-inline: auto; }
+.diveStandaloneHeader { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid #90a5ba55; }
+.diveStandaloneHeader h1 { font-family: var(--font-display); font-size: clamp(2rem,4vw,4rem); line-height: 1; margin: .4rem 0; color: #f1e7d5; }
+.diveStandaloneHeader p { max-width: 60ch; color: #c3d0db; margin: .6rem 0 0; line-height: 1.55; }
+.diveStandaloneRead { color: #e2c99e; border: 1px solid #c0a57b77; border-radius: 6px; padding: .8rem 1rem; text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
+.diveStandaloneRead:hover { background: #d3b88a22; }
+.diveStandalone .diveJourney { padding-inline: 0; }
+.diveStandalone .diveStageArt { top: 5.2rem; }
+.diveStandalone .diveStageArt { box-shadow: 0 25px 100px #04091088; }
+.diveStandalone button:focus-visible, .diveStandalone a:focus-visible { outline: 2px solid #f1d7a9; outline-offset: 3px; }
+.diveHomeLegend { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 0; color: var(--ink-2); border-top: 1px solid var(--stroke-warm); font-size: .82rem; }
+.diveHomeLegend strong { color: var(--accent-restoration); font: .8rem var(--font-meta); letter-spacing: .1em; }
+@media (max-width: 760px) {
+  .diveStandaloneHeader { grid-template-columns: 1fr; }
+  .diveStandaloneHeader h1 { font-size: 2.2rem; }
+  .diveStandaloneRead { justify-self: start; }
+  .diveStandalone .diveStageArt { top: auto; }
+}
