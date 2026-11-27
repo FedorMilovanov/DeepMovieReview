@@ -181,7 +181,6 @@ test("a page's own robots tag never contradicts robots.txt", () => {
   // preview deployment that made a published page indexable by its own tag.
   const filmRoutes = [
     readFileSync("src/app/films/[slug]/page.tsx", "utf8"),
-    readFileSync("src/app/films/[slug]/article/page.tsx", "utf8"),
     readFileSync("src/app/films/[slug]/making/page.tsx", "utf8"),
   ];
   for (const source of filmRoutes) {
@@ -5016,7 +5015,7 @@ test("Film 001 page metadata describes the page, not the site, and cannot spoil 
 
   const articlePage = articlePageMetadata(theTrumanShowCanonicalPackage, shareImage);
   assert.ok(articlePage);
-  assert.equal(articlePage.openGraph.url, "/films/the-truman-show/article");
+  assert.equal(articlePage.openGraph.url, "/films/the-truman-show");
   assert.equal(
     articlePage.openGraph.images[0].url,
     "/og/truman-show-share.jpg",
@@ -5826,13 +5825,13 @@ test("a breadcrumb names the film, never the edition's state", () => {
     assert.match(source, /filmTitle: string/, `${name} receives the film title explicitly`);
     assert.ok(
       source.includes(name === "article-view"
-        ? "label: filmTitle, href: withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)"
+        ? "label: filmTitle"
         : "label: filmTitle, href: `/films/${filmSlug}`"),
       `${name} links the film crumb by title; the article preserves its spoiler level`,
     );
   }
 
-  for (const page of ["src/app/films/[slug]/article/page.tsx", "src/app/films/[slug]/making/page.tsx"]) {
+  for (const page of ["src/components/film-article/film-article-reading.tsx", "src/app/films/[slug]/making/page.tsx"]) {
     const source = readFileSync(page, "utf8");
     assert.match(
       source,
@@ -5842,13 +5841,14 @@ test("a breadcrumb names the film, never the edition's state", () => {
   }
 });
 
-test("both article return links use the selected spoiler level; making is separate", () => {
+test("one film reading route preserves the spoiler query on old article addresses", () => {
+  const route = readFileSync("src/app/films/[slug]/article/page.tsx", "utf8");
+  assert.match(route, /permanentRedirect\(withSpoilerQuery/);
+  assert.match(route, /parseSpoilerLevel\(query.spoilers\)/);
+  assert.doesNotMatch(route, /ArticleView/);
   const source = readFileSync("src/components/film-article/article-view.tsx", "utf8");
-  assert.ok(source.includes("label: filmTitle, href: withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)"));
-  assert.ok(source.includes("href={withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}>← Разбор фильма"));
-  assert.ok(source.includes("href={`/films/${filmSlug}/making`}>Как это снимали"));
-  // All five values, existing queries, duplicate spoiler keys and fragments are
-  // separately checked above; the real links are also exercised in the browser.
+  assert.ok(source.includes('href={`/films/${filmSlug}/making`}>Как это снимали'));
+  assert.ok(source.includes('fullHref={complete ? undefined : withSpoilerQuery(pathname, "FULL")}'));
 });
 
 test("tilt never keeps a position the pointer no longer holds", () => {
@@ -6804,9 +6804,9 @@ test("published methodology does not turn supplied metadata into a viewing or au
   const articleLimits = theTrumanShowArticle.sections.flatMap((section) => section.blocks)
     .find((block) => block.id === "truman-article-method-4");
   assert.ok(articleLimits?.kind === "paragraph");
-  assert.match(articleLimits.text, /прямо сказано, что он не записан/i);
-  assert.match(articleLimits.text, /не заменяет просмотра всей сцены со звуком/i);
-  assert.match(theTrumanShowArticle.standfirst, /отмечено, что он не записан/i);
+  assert.match(articleLimits.text, /независимой возможности проверить/i);
+  assert.match(theTrumanShowArticle.closing?.text ?? "", /полного непрерывного просмотра со звуком это не заменяет/i);
+  assert.match(theTrumanShowArticle.standfirst, /доверять собственным глазам/i);
   assert.doesNotMatch(theTrumanShowArticle.standfirst, /у каждой опоры указан материал/i);
 });
 

@@ -6,6 +6,7 @@ import { ArticleCorrectionTable } from "./article-correction-table";
 import Link from "next/link";
 import type {
   ArticleBlock,
+  ArticleSection,
   ArticleMeasurementRef,
   EvidenceRecord,
   FilmArticle,
@@ -118,11 +119,12 @@ function ArticleDuel({
   return (
     <section id={block.id} className="articleDuel" aria-label={block.label}>
       <p className="articleDuelLabel">{block.label}</p>
+      <p className="articlePerspectiveHint">Откройте разные перспективы и сравните, что меняется в прочтении сцены.</p>
       <h3 className="articleDuelQuestion">{block.question}</h3>
       <div className="articleDuelSides">
         {block.sides.map((side) => (
-          <article className="articleDuelSide" key={side.id}>
-            <h4>{side.label}</h4>
+          <details className="articleDuelSide" key={side.id} id={side.id}>
+            <summary>{side.label}</summary>
             <p>{side.reading}</p>
             <ul className="articleDuelEvidence" aria-label="Опора этой стороны">
               {side.evidenceIds.map((id) => {
@@ -140,7 +142,7 @@ function ArticleDuel({
                 );
               })}
             </ul>
-          </article>
+          </details>
         ))}
       </div>
       <p className="articleDuelOpen">
@@ -246,7 +248,7 @@ function ArticleBlockView({
       }
       const withoutStill = block.items.filter(item => !item.still);
       return (
-        <div id={block.id} className="articleSceneSequence">
+        <div id={block.id} className="articleSceneSequence" hidden={!block.items.length}>
           {block.items.map(item => {
             const still = item.still;
             if (!still) return null;
@@ -292,7 +294,7 @@ function ArticleBlockView({
     }
     case "measurement-table":
       return (
-        <details id={block.id} className="articleVerdictContext">
+        <details className="articleVerdictContext">
           <summary>Монтажные измерения</summary>
           <ArticleTable blockId={block.id} caption={block.caption}>
           <thead>
@@ -305,7 +307,7 @@ function ArticleBlockView({
               const view = describeMeasurement(row.measurement);
               if (!view) return null;
               return (
-                <tr key={row.id}>
+                <tr key={row.id} id={row.id}>
                   <th scope="row">
                     {row.label}
                     {/* The span and the rate belong to the row, not to a hover
@@ -323,7 +325,7 @@ function ArticleBlockView({
         </details>
       );
     case "corrections":
-      return <details id={block.id} className="articleVerdictContext"><summary>Редакционные уточнения к распространённым пересказам</summary><ArticleCorrectionTable block={block} filmSlug={filmSlug} spoilerLevel={spoilerLevel}
+      return <details className="articleVerdictContext"><summary>Редакционные уточнения к распространённым пересказам</summary><ArticleCorrectionTable block={block} filmSlug={filmSlug} spoilerLevel={spoilerLevel}
         evidenceById={evidenceById} describeMeasurement={describeMeasurement} /></details>;
   }
 }
@@ -344,7 +346,7 @@ function OpeningKnowledgeDiagram() {
         <g textAnchor="middle" fill="currentColor" fontSize="13">
           <text x="82" y="34">Что видно</text>
           <text x="82" y="58" fontSize="20" fontWeight="bold">Sirius</text>
-          <text x="82" y="78">Осветительный прибор</text>
+          <text x="82" y="78" fontSize="11">Осветительный прибор</text>
           <text x="238" y="34">Что говорят</text>
           <text x="238" y="57">Деталь</text>
           <text x="238" y="76">самолёта</text>
@@ -355,6 +357,45 @@ function OpeningKnowledgeDiagram() {
       <figcaption>Авторская схема прочтения: различие между наблюдением и готовым объяснением. Не план камеры и не кадр фильма.</figcaption>
     </figure>
   );
+}
+
+/** Editorial placement, using only items that survived the server spoiler/rights projection. */
+const trumanStillPlacement: Record<string, string> = {
+  "truman-article-anchor-rain": "truman-article-machine-rain",
+  "truman-article-anchor-ghost": "truman-article-machine-4",
+  "truman-article-anchor-newspaper": "truman-article-machine-4",
+  "truman-article-anchor-elevator": "truman-article-machine-5",
+  "truman-article-anchor-sylvia": "truman-article-cast-sylvia",
+  "truman-article-bond-tools": "truman-article-bonds-marriage-2",
+  "truman-article-bond-held": "truman-article-bonds-marriage-2",
+  "truman-article-bond-reunion": "truman-article-bonds-friendship-3",
+  "truman-article-anchor-mococoa": "truman-article-props-grater",
+  "truman-article-anchor-knife": "truman-article-props-grater",
+  "truman-article-anchor-wall": "truman-article-props-ladder",
+  "truman-article-anchor-setting-sail": "truman-article-decision-4",
+  "truman-article-anchor-sail-number": "truman-article-decision-4",
+  "truman-article-anchor-decision-exit": "truman-article-decision-5",
+  "truman-article-anchor-seahaven": "truman-article-morality-2",
+  "truman-article-anchor-nothing-left": "truman-article-morality-4",
+};
+
+function readingBlocks(section: ArticleSection): ArticleBlock[] {
+  const targets = new Set(section.blocks.map(block => block.id));
+  const placements = new Map<string, Extract<ArticleBlock, { kind: "timeline" }>["items"]>();
+  const rest = section.blocks.map(block => {
+    if (block.kind !== "timeline") return block;
+    const items = block.items.filter(item => {
+      const target = trumanStillPlacement[item.id];
+      if (!item.still || !target || !targets.has(target)) return true;
+      placements.set(target, [...(placements.get(target) ?? []), item]);
+      return false;
+    });
+    return { ...block, items };
+  });
+  return rest.flatMap(block => {
+    const items = placements.get(block.id);
+    return items ? [block, { kind: "timeline" as const, id: block.id + "-frames", items }] : [block];
+  });
 }
 
 function ArticleReadingBlock(props: Parameters<typeof ArticleBlockView>[0]) {
@@ -430,7 +471,7 @@ export function ArticleView({
           <div className="articleBody">
             {/* Projection keeps every block in its original section order; the
                 compact position key avoids serializing long editorial IDs twice. */}
-            {section.blocks.map((block) => (
+            {readingBlocks(section).map((block) => (
               <ArticleReadingBlock key={block.id} block={block} filmSlug={filmSlug} spoilerLevel={spoilerLevel}
                 describeMeasurement={describeMeasurement} evidenceById={evidenceById}
                 contextSourcesById={contextSourcesById} formatTimecode={formatTimecode} />

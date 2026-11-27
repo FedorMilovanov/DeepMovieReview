@@ -445,3 +445,10 @@
 
 .articleReveal { max-width: 67.5rem; }
 .articleReveal .articleSectionHead { max-width: 62ch; }
+
+/* Perspectives are ordinary native disclosures, usable with keyboard and without JS. */
+.articleDuelSide > summary { cursor: pointer; min-height: 2.75rem; font-weight: 650; color: var(--ink-1); line-height: 1.4; padding-block: .4rem; }
+.articleDuelSide > summary:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }
+.articlePerspectiveHint { color: var(--ink-3); font-size: .875rem; line-height: 1.55; }
+.articleSceneSequence[hidden] { display: none; }
+.articleSceneStill, [data-reading-block], .articleDuelSide { scroll-margin-block-start: 5rem; }
