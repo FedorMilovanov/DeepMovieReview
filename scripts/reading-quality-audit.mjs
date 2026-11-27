@@ -15,7 +15,8 @@ const engine = { chromium, firefox, webkit }[name];
 assert.ok(engine, `Unknown reading audit browser: ${name}`);
 const dir = resolve(process.env.READING_AUDIT_DIR ?? `browser-audit/reading-${name}`);
 mkdirSync(dir, { recursive: true });
-const article = "/films/the-truman-show/article";
+const article = "/films/the-truman-show";
+const legacyArticle = `${article}/article`;
 const levels = ["NONE", "MINOR", "MAJOR", "ENDING", "FULL"];
 const viewports = [
   { label: "phone", width: 390, height: 844 },
@@ -324,7 +325,7 @@ async function testOutline(page, viewport) {
   assert.equal(await trigger.getAttribute("aria-expanded"), "false");
   assert.ok(await trigger.evaluate(element => document.activeElement === element), "Escape did not return focus to outline trigger");
 
-  const hashes = await panel.locator("a").evaluateAll(links => links.map(link => link.hash));
+  const hashes = await panel.locator('a[href^="#"]').evaluateAll(links => links.map(link => link.hash));
   const sectionIds = await page.locator(".articleSection").evaluateAll(sections => sections.map(section => `#${section.id}`));
   assert.deepEqual(hashes, sectionIds, "outline must expose exactly the projected sections");
   const reached = [];
@@ -413,6 +414,63 @@ async function pdf(page, file, metadata, background) {
 }
 
 try {
+
+  // #152: follow the reader journey on both viewport classes, not an isolated
+  // component fixture. Screenshots are taken only after the actual actions.
+  for (const viewport of viewports.filter(item => item.label === "phone" || item.label === "desktop")) {
+    await check(`reader journey ${viewport.label}: entry, opening, evidence, full text and legacy links`, () =>
+      withPage({ viewport: { width: viewport.width, height: viewport.height } }, `reader-${viewport.label}`, async page => {
+        await page.goto(base, { waitUntil: "load" });
+        const entry = page.locator(`a.buttonPrimary[href="${article}"]`).filter({ hasText: "Читать разбор" });
+        assert.equal(await entry.count(), 1, "one primary film entry");
+        await entry.click();
+        await page.waitForURL(url => url.pathname === article && !url.search);
+        await page.locator(".readingOutlineTrigger").waitFor({ state: "visible" });
+        assert.equal(await page.locator("h1").count(), 1);
+        assert.equal(await page.locator(".articleSection").count(), 1, "opening is the only projected chapter");
+        assert.ok(await page.locator("#truman-article-method-title").isVisible());
+        assert.equal(await page.locator("#article-verdict").count(), 0);
+        assert.equal(await page.locator(".filmReadingAppendix").evaluate(el => el.open), false);
+        await page.screenshot({ path: `${dir}/reader-${viewport.label}-entry.png` });
+
+        const paragraph = page.locator("#truman-article-method-2");
+        const support = paragraph.locator("xpath=following-sibling::details[1]");
+        await support.locator("summary").click();
+        assert.equal(await support.evaluate(el => el.open), true);
+        assert.ok(await support.locator("a[href*='#evidence-']").first().isVisible());
+        assert.equal(new URL(page.url()).pathname, article);
+        await page.screenshot({ path: `${dir}/reader-${viewport.label}-evidence.png` });
+        await support.locator("summary").click();
+
+        const next = page.locator(".articleReveal a.buttonPrimary");
+        const nextUrl = new URL(await next.getAttribute("href"), base);
+        await next.click();
+        await page.waitForURL(url => url.searchParams.get("spoilers") === nextUrl.searchParams.get("spoilers") && url.hash === nextUrl.hash);
+        assert.ok(await page.locator(".articleSection").count() > 1);
+        assert.equal(await page.locator("#article-verdict").count(), 0);
+
+        await paragraph.evaluate(el => el.scrollIntoView({ block: "start" }));
+        await page.locator(".readingOutlineTrigger").click();
+        const activeParagraph = await page.evaluate(() => [...document.querySelectorAll("[data-reading-block]")].filter(el => el.getBoundingClientRect().top <= innerHeight * 0.28).at(-1)?.id);
+        assert.ok(activeParagraph, "a paragraph is in the reading position");
+        await page.locator(".readingOutlinePanel .readingOutlineFull").click();
+        await page.waitForURL(url => url.searchParams.get("spoilers") === "full" && url.hash === "#" + activeParagraph);
+        await page.locator("#article-verdict").waitFor({ state: "attached" });
+        await page.waitForFunction(id => {
+          const el = document.getElementById(id);
+          const rect = el?.getBoundingClientRect();
+          return rect && rect.top < innerHeight && rect.bottom > 0;
+        }, activeParagraph);
+        await page.screenshot({ path: `${dir}/reader-${viewport.label}-full-resumed.png` });
+
+        await page.goto(`${base}${legacyArticle}?spoilers=FULL#truman-article-method-2`, { waitUntil: "load" });
+        await page.waitForURL(url => url.pathname === article && url.searchParams.get("spoilers") === "full" && url.hash === "#truman-article-method-2");
+        await page.goto(`${base}${article}#evidence-truman-ev-light`, { waitUntil: "load" });
+        await page.waitForFunction(() => document.getElementById("film-evidence-appendix")?.open === true);
+        assert.ok(await page.locator("#evidence-truman-ev-light").isVisible());
+        return { resumed: activeParagraph, legacy: true, viewport: viewport.label };
+      }));
+  }
   for (const viewport of viewports) {
     await check(`outline ${viewport.label}: real wheel, panel, Escape, every link`, () =>
       withPage({ viewport: { width: viewport.width, height: viewport.height } }, `outline-${viewport.label}`, page => testOutline(page, viewport)));
@@ -508,7 +566,7 @@ try {
       await openArticle(page);
       await observeOutlineEvents(page);
       const trigger = page.locator(".readingOutlineTrigger");
-      const links = page.locator(".readingOutlinePanel a");
+      const links = page.locator('.readingOutlinePanel a[href^="#"]');
       const first = await links.first().getAttribute("href");
       const last = await links.last().getAttribute("href");
       const historyBefore = await page.evaluate(() => history.length);
@@ -547,7 +605,7 @@ try {
         await observeOutlineEvents(page);
         const trigger = page.locator(".readingOutlineTrigger");
         const panel = page.locator(".readingOutlinePanel");
-        const hashes = await panel.locator("a").evaluateAll(links => links.map(link => link.hash));
+        const hashes = await panel.locator('a[href^="#"]').evaluateAll(links => links.map(link => link.hash));
         const sectionIds = await page.locator(".articleSection").evaluateAll(sections => sections.map(section => `#${section.id}`));
         assert.ok(hashes.length > 0, `${level}: projected outline is empty`);
         assert.deepEqual(hashes, sectionIds, `${level}: outline includes a section outside the projection`);
@@ -570,10 +628,10 @@ try {
       withPage({ viewport: { width: 390, height: 844 } }, "outline-modified-click", async (page, context) => {
         await openArticle(page, "NONE");
         await page.locator(".readingOutlineTrigger").click();
-        const hash = await page.locator(".readingOutlinePanel a").first().getAttribute("href");
+        const hash = await page.locator('.readingOutlinePanel a[href^="#"]').first().getAttribute("href");
         const [newPage] = await Promise.all([
           context.waitForEvent("page"),
-          page.locator(".readingOutlinePanel a").first().click({ modifiers: ["Control"] }),
+          page.locator('.readingOutlinePanel a[href^="#"]').first().click({ modifiers: ["Control"] }),
         ]);
         await newPage.waitForLoadState("domcontentloaded");
         const original = new URL(page.url());
@@ -602,7 +660,7 @@ try {
       await openArticle(page);
       await observeOutlineEvents(page);
       const trigger = page.locator(".readingOutlineTrigger");
-      const hash = await page.locator(".readingOutlinePanel a").first().getAttribute("href");
+      const hash = await page.locator('.readingOutlinePanel a[href^="#"]').first().getAttribute("href");
       const headingId = await page.locator(`[id="${hash.slice(1)}"]`).getAttribute("aria-labelledby");
       await trigger.focus();
       await page.keyboard.press("Enter");
@@ -623,9 +681,9 @@ try {
     withPage({ viewport: { width: 390, height: 844 }, reducedMotion: "no-preference" }, "outline-motion", async page => {
       await openArticle(page);
       await observeOutlineEvents(page);
-      await page.locator(".articleTableFigure").first().evaluate(element => element.scrollIntoView({ block: "center", behavior: "instant" }));
+      await page.locator(".articleVerdictContext").last().locator("summary").scrollIntoViewIfNeeded();
       const trigger = page.locator(".readingOutlineTrigger");
-      const first = page.locator(".readingOutlinePanel a").first();
+      const first = page.locator('.readingOutlinePanel a[href^="#"]').first();
       const hash = await first.getAttribute("href");
       for (let attempt = 0; attempt < 2; attempt += 1) {
         if (attempt) {
@@ -650,9 +708,10 @@ try {
       const before = await details.evaluateAll(items => items.map(item => item.open));
       assert.ok(before.length > 2 && before.every(open => !open));
       await page.emulateMedia({ media: "print" });
-      for (const selector of [".siteHeader", ".siteFooter", ".skipLink", ".articleVerdictCore"]) {
+      for (const selector of [".siteHeader", ".siteFooter", ".skipLink"]) {
         assert.equal(await page.locator(selector).first().evaluate(element => getComputedStyle(element).display), "none", `${selector} must not print`);
       }
+      assert.equal(await page.locator(".articleVerdictCore").count(), 0, "decorative verdict renderer is not part of the article");
       assert.ok(await page.locator(".articleVerdictGrid").isVisible(), "textual verdict must print");
       assert.equal(await page.locator(".articleClosing").evaluate(element => getComputedStyle(element).breakInside), "avoid",
         "the editorial kicker, heading and note must stay together when possible");
@@ -746,10 +805,10 @@ try {
             else {
               const fallback = page.locator('nav[aria-label="Разделы статьи без JavaScript"]');
               assert.ok(await fallback.isVisible());
-              const hashes = await fallback.locator("a").evaluateAll(links => links.map(link => link.hash));
+              const hashes = await fallback.locator('a[href^="#"]').evaluateAll(links => links.map(link => link.hash));
               const ids = await page.locator(".articleSection").evaluateAll(sections => sections.map(section => `#${section.id}`));
               assert.deepEqual(hashes, ids);
-              await fallback.locator("a").last().click();
+              await fallback.locator('a[href^="#"]').last().click();
               assert.equal(new URL(page.url()).hash, ids.at(-1));
             }
             await pdf(page, `level-${level.toLowerCase()}-${javascript ? "js" : "nojs"}.pdf`, { level, javascript, theme: "dark", opened: false }, false);
@@ -766,10 +825,10 @@ try {
       await page.goto(`${base}${article}?spoilers=FULL`, { waitUntil: "domcontentloaded" });
       const fallback = page.locator('nav[aria-label="Разделы статьи без JavaScript"]');
       assert.ok(await fallback.isVisible());
-      const hashes = await fallback.locator("a").evaluateAll(links => links.map(link => link.hash));
+      const hashes = await fallback.locator('a[href^="#"]').evaluateAll(links => links.map(link => link.hash));
       const ids = await page.locator(".articleSection").evaluateAll(sections => sections.map(section => `#${section.id}`));
       assert.deepEqual(hashes, ids);
-      await fallback.locator("a").last().click();
+      await fallback.locator('a[href^="#"]').last().click();
       assert.equal(new URL(page.url()).hash, ids.at(-1));
       return { links: hashes.length };
     }));

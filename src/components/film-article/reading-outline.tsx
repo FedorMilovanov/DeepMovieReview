@@ -173,7 +173,6 @@ export function ReadingOutline({ sections, fullHref }: { sections: ReadingSectio
       </button>
       <nav id="reading-outline-panel" className="articleOutline readingOutlinePanel" hidden={!open} aria-label="Разделы статьи">
         <div className="readingOutlineHeading">В этом разборе <span>{activeIndex + 1} / {sections.length}</span></div>
-        {fullHref ? <a className="readingOutlineFull" href={fullHref} onClick={fullRead}>Читать всё, включая финал</a> : null}
         {sections.map(({ id, number, heading }) => (
           <a
             key={id}
@@ -197,6 +196,7 @@ export function ReadingOutline({ sections, fullHref }: { sections: ReadingSectio
             <span>{String(number).padStart(2, "0")}</span><strong>{heading}</strong>
           </a>
         ))}
+        {fullHref ? <a className="readingOutlineFull" href={fullHref} onClick={fullRead}>Читать всё, включая финал</a> : null}
       </nav>
     </div>
   );
@@ -208,10 +208,10 @@ export function ReadingOutline({ sections, fullHref }: { sections: ReadingSectio
   return (
     <>
       <nav className="sectionShell articleOutline" aria-label="Разделы статьи без JavaScript">
-        {fullHref ? <a className="readingOutlineFull" href={fullHref}>Читать всё, включая финал</a> : null}
         {sections.map(({ id, number, heading }) => (
           <a key={id} href={`#${id}`}><span>{number}</span><strong>{heading}</strong></a>
         ))}
+        {fullHref ? <a className="readingOutlineFull" href={fullHref}>Читать всё, включая финал</a> : null}
       </nav>
       {outline}
     </>

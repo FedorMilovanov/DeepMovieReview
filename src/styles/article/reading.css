@@ -442,3 +442,6 @@
 .filmReadingAppendix > .sectionShell { width: 100%; }
 .readingOutlineFull { color: var(--ink-1); }
 @media print { .filmReadingAppendix, .articleReveal { display: none; } }
+
+.articleReveal { max-width: 67.5rem; }
+.articleReveal .articleSectionHead { max-width: 62ch; }

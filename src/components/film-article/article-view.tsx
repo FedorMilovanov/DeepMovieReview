@@ -449,7 +449,7 @@ export function ArticleView({
       ))}
 
       {nextHiddenLevel && nextSection ? (
-        <section className="sectionShell articleSection articleReveal" aria-labelledby="article-reveal-title">
+        <section className="sectionShell sectionRule articleReveal" aria-labelledby="article-reveal-title">
           <div className="articleSectionHead">
             <h2 id="article-reveal-title">{nextHiddenLevel === "ENDING" ? "Дальше — финал фильма" : "Продолжить чтение?"}</h2>
             <p className="sectionIntro">{nextHiddenLevel === "ENDING" ? "Следующая часть обсуждает развязку. Откройте её, если готовы узнать финал." : nextHiddenLevel === "MINOR" ? "Дальше разбираем несколько ранних событий фильма." : nextHiddenLevel === "MAJOR" ? "Дальше обсуждаем существенные сюжетные повороты." : "Далее — итоговое прочтение всей картины."}</p>
@@ -486,7 +486,7 @@ export function ArticleView({
       {article.closing && complete ? (
         <footer className="sectionShell sectionRule articleClosing">
           <details className="articleVerdictContext">
-            <summary>Как проверяли материал</summary>
+            <summary>{article.closing.heading} — как проверяли материал</summary>
             <p>{article.closing.text}</p>
           </details>
         </footer>
