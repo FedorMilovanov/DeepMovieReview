@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import type { DiveFearData } from "@/lib/dive-opening";
+import type { DiveDiscovery, DiveFearData } from "@/lib/dive-opening";
 
 const actions = ["Переправиться сейчас", "Проверить условия и попросить помощи", "Отложить переправу"] as const;
 const levels = ["Безопасность", "Память", "Предупреждение", "Суждение"] as const;
@@ -37,7 +37,7 @@ function WaterField({ risk, trusted, memory, decision }: { risk: boolean; truste
   );
 }
 
-export default function FearJourney({data,onFinish,onReturn,articleHref}: {data:DiveFearData;onFinish:()=>void;onReturn:()=>void;articleHref:string}) {
+export default function FearJourney({data,onFinish,onReturn,articleHref}: {data:DiveFearData;onFinish:(discovery:DiveDiscovery)=>void;onReturn:()=>void;articleHref:string}) {
   const [step,setStep] = useState(0);
   const [risk,setRisk] = useState(true);
   const [trusted,setTrusted] = useState(false);
@@ -92,7 +92,7 @@ export default function FearJourney({data,onFinish,onReturn,articleHref}: {data:
             <p>{first === second ? "Вы сохранили первое решение. Теперь сравните основания: одинаковый поступок в разных обстоятельствах может быть разумным по разным причинам." : "Вы изменили решение. Вопрос не в том, лучше ли второй выбор сам по себе, а в том, какие новые сведения его обосновали."}</p>
             <p>Фильм предлагает исследовать не только страх, но и среду, в которой человек вынужден выбирать. Забота помогает понять опасность и принять решение; контроль может превращать предупреждение в средство ограничения чужих возможностей. Пока мы не раскрываем позднейшие события.</p>
             <div className="diveInsight"><strong>Открытие</strong><p>Страх может быть настоящим, даже если его обстоятельствами пользуются другие. Ни отсутствие страха, ни его наличие не являются сами по себе мерой мудрости или мужества.</p></div>
-            {finished ? <p role="status">Две комнаты доступны для повторного исследования. Дальнейшие комнаты ещё разрабатываются.</p> : <button type="button" className="divePrimary" onClick={()=>{setFinished(true);onFinish()}}>Завершить второе погружение</button>}
+            {finished ? <p role="status">Вторая комната исследована. Открытия сохранены в карте путешествия.</p> : <button type="button" className="divePrimary" onClick={()=>{setFinished(true);onFinish({before:actions[first??2],after:actions[second??2],insight:"Страх и нынешняя опасность не одно и то же; забота не отменяет свободу выбора.",grounds:[risk?"Условная переправа опасна.":"Условная переправа признана приемлемой по проверке.",trusted?"Предупреждение имеет независимое подтверждение.":"Предупреждение не подтверждено независимо."]})}}>Завершить второе погружение</button>}
             <Link className="diveStandaloneRead" href={articleHref}>Читать анализ фильма →</Link>
             <button type="button" className="diveChoice" onClick={onReturn}>Вернуться в SIRIUS</button>
           </>}

@@ -21,3 +21,15 @@ export function getDiveFear(filmPackage: FilmPackage, spoilerLevel: SpoilerLevel
   return { memory: memory.observation, ferry: ferry.observation, warning: warning.observation };
 }
 export type DiveFearData = NonNullable<ReturnType<typeof getDiveFear>>;
+
+/** Memory uses early records only; later explanations are deliberately not sent. */
+export function getDiveMemory(filmPackage: FilmPackage, spoilerLevel: SpoilerLevel) {
+  if (!getDiveOpening(filmPackage) || !canRevealSpoiler(spoilerLevel, "MINOR")) return undefined;
+  const visible = filmPackage.evidence?.filter(record => canRevealSpoiler(spoilerLevel, record.spoilerLevel)) ?? [];
+  const album = visible.find(record => record.id === "truman-ev-album");
+  const fiji = visible.find(record => record.id === "truman-ev-fiji");
+  if (!album || !fiji) return undefined;
+  return { album: album.observation, fiji: fiji.observation };
+}
+export type DiveMemoryData = NonNullable<ReturnType<typeof getDiveMemory>>;
+export type DiveDiscovery = { before: string; after: string; insight: string; grounds: string[] };
