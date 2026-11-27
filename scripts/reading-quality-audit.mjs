@@ -427,7 +427,15 @@ try {
         await dialog.getByRole("button", { name: "Обычная случайность" }).click();
         await dialog.getByRole("button", { name: "Выбрать способ проверки" }).click();
         await dialog.getByRole("button", { name: "Сообщение", exact: true }).click();
+        await dialog.getByRole("button", { name: "Как сообщение", exact: true }).click();
         await dialog.getByRole("button", { name: "Такое объяснение присутствует в тексте." }).click();
+        await dialog.getByRole("button", { name: "Независимая проверка", exact: true }).click();
+        await dialog.getByRole("button", { name: "Разные первоисточники", exact: true }).click();
+        assert.equal(await dialog.locator(".diveExperiment svg").getAttribute("aria-label"), "Три сообщения из трёх условно независимых источников");
+        await dialog.getByRole("button", { name: "Независимо проверяемая запись происхождения предмета." }).click();
+        await dialog.getByRole("button", { name: "Сообщение", exact: true }).click();
+        assert.equal(await dialog.getByRole("button", { name: "Такое объяснение присутствует в тексте." }).getAttribute("aria-pressed"), "true");
+        assert.equal(await dialog.getByRole("button", { name: "Как сообщение", exact: true }).getAttribute("aria-pressed"), "true");
         await page.screenshot({ path: `${dir}/dive-${viewport.label}-branch.png` });
         await dialog.getByRole("button", { name: "Соединить сведения" }).click();
         for (const [i, label] of ["Наблюдение", "Сообщение", "Гипотеза"].entries()) {

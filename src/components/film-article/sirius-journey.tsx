@@ -16,6 +16,70 @@ const questions = [
   { title: "Независимость сведений", question: "Какое дополнительное сведение было бы полезнее?", options: ["Независимо проверяемая запись происхождения предмета.", "Повтор того же объяснения тем же источником."], explanation: "Это мысленный эксперимент: такого независимого свидетельства здесь не предъявлено. Повторение не равно независимому подтверждению." },
 ] as const;
 const chapters = ["Наблюдение", "Гипотеза", "Развилка", "Проверка", "Синтез"];
+const findings = [
+  "Надпись позволяет описать предмет, но не причину его появления.",
+  "Запись подтверждает, что объяснение прозвучало в тексте субтитров, а не что оно истинно.",
+  "Несколько повторов одного сообщения не являются независимыми подтверждениями.",
+] as const;
+
+function SourceExperiment({ mode, setMode }: { mode: number; setMode: (mode: number) => void }) {
+  const independent = mode === 1;
+  return (
+    <div className="diveExperiment">
+      <p className="diveEyebrow">Мысленный эксперимент · не события фильма</p>
+      <h3>Три сообщения. Сколько источников?</h3>
+      <div className="diveExperimentControls">
+        <button type="button" className="diveSortButton" aria-pressed={!independent} onClick={() => setMode(0)}>Один первоисточник</button>
+        <button type="button" className="diveSortButton" aria-pressed={independent} onClick={() => setMode(1)}>Разные первоисточники</button>
+      </div>
+      <svg viewBox="0 0 360 184" role="img" aria-label={independent ? "Три сообщения из трёх условно независимых источников" : "Три сообщения, восходящие к одному источнику"}>
+        <g fill="none" stroke="#9ab6ce" strokeWidth="1.5">
+          {[60,180,300].map(x => <path key={x} d={`M${independent ? x : 180} 55 Q${independent ? x : 180} 88 ${x} 117`}/>)}
+        </g>
+        {(independent ? [60,180,300] : [180]).map((x,i) => <g key={x}><rect x={x-43} y="14" width="86" height="42" rx="5" fill="#263d50" stroke="#9ab6ce"/><text x={x} y="39" textAnchor="middle" fill="#e1e9ee" fontSize="11">Источник {i+1}</text></g>)}
+        {[60,180,300].map((x,i) => <g key={x}><rect x={x-48} y="117" width="96" height="42" rx="5" fill="#322f28" stroke="#d3b88a"/><text x={x} y="142" textAnchor="middle" fill="#f3e5ce" fontSize="11">Сообщение {i+1}</text></g>)}
+      </svg>
+      <p role="status">{independent ? "Если источники действительно независимы и заслуживают доверия, совпадение их сведений может усилить обоснованность вывода. Само совпадение ещё не доказывает истину." : "Три сообщения, но всего один исходный источник. Повторение может создавать ощущение подтверждения, хотя новой независимой опоры не появилось."}</p>
+    </div>
+  );
+}
+
+function ClaimExperiment({ mode, setMode }: { mode: number; setMode: (mode: number) => void }) {
+  return (
+    <div className="diveExperiment">
+      <p className="diveEyebrow">Один предмет · два уровня утверждения</p>
+      <h3>Насколько далеко можно зайти?</h3>
+      <div className="diveExperimentControls">
+        <button type="button" className="diveSortButton" aria-pressed={mode === 0} onClick={() => setMode(0)}>Описание</button>
+        <button type="button" className="diveSortButton" aria-pressed={mode === 1} onClick={() => setMode(1)}>Происхождение</button>
+      </div>
+      <div className="diveClaimLayers">
+        <div data-active={mode === 0}><small>НАБЛЮДАЕМОЕ</small><strong>Синий прибор · Sirius</strong></div>
+        <span aria-hidden="true">↓</span>
+        <div data-active={mode === 1}><small>ТРЕБУЕТ ПРОВЕРКИ</small><strong>Откуда и почему он появился?</strong></div>
+      </div>
+      <p role="status">{mode === 0 ? "Описание удерживает вывод в границах видимого. Оно ничего не сообщает о причине падения." : "Для утверждения о происхождении нужен дополнительный материал: например, надёжно установленная последовательность событий. Сам предмет не восполняет этот пробел."}</p>
+    </div>
+  );
+}
+
+function ReportExperiment({ mode, setMode }: { mode: number; setMode: (mode: number) => void }) {
+  return (
+    <div className="diveExperiment">
+      <p className="diveEyebrow">Лингвистическая лаборатория</p>
+      <h3>Снимите слой уверенности</h3>
+      <div className="diveExperimentControls">
+        <button type="button" className="diveSortButton" aria-pressed={mode === 0} onClick={() => setMode(0)}>Как факт</button>
+        <button type="button" className="diveSortButton" aria-pressed={mode === 1} onClick={() => setMode(1)}>Как сообщение</button>
+      </div>
+      <div className="diveReportLine">
+        {mode === 1 ? <span>В субтитрах обломки объясняются как </span> : null}
+        <strong>детали самолёта.</strong>
+      </div>
+      <p role="status">{mode === 0 ? "Формулировка отбрасывает сведения о происхождении утверждения и звучит как установленный факт. Но у нас нет такого подтверждения." : "Теперь предложение точно указывает, что подтверждено: наличие объяснения в субтитрах, а не происхождение предмета."}</p>
+    </div>
+  );
+}
 
 function SiriusArtifact({ inspected }: { inspected: boolean }) {
   return (
@@ -123,17 +187,23 @@ export default function SiriusJourney({ observation, report, onFinish }: { obser
   const [inspected, setInspected] = useState(false);
   const [hypothesis, setHypothesis] = useState<number | null>(null);
   const [path, setPath] = useState<number | null>(null);
-  const [answer, setAnswer] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<number[]>([-1,-1,-1]);
+  const [experiments, setExperiments] = useState<number[]>([0,0,0]);
+  const [explored, setExplored] = useState<boolean[]>([false,false,false]);
   const [sorted, setSorted] = useState<number[]>([-1,-1,-1]);
   const [revised, setRevised] = useState<number | null>(null);
   const [completed, setCompleted] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus({ preventScroll: false }); }, [step, completed]);
   function reset() {
-    setStep(0); setInspected(false); setHypothesis(null); setPath(null); setAnswer(null);
+    setStep(0); setInspected(false); setHypothesis(null); setPath(null); setAnswers([-1,-1,-1]); setExperiments([0,0,0]); setExplored([false,false,false]);
     setSorted([-1,-1,-1]); setRevised(null); setCompleted(false);
   }
   const route = questions[path ?? 0];
+  const answer = path === null ? -1 : answers[path];
+  const exploredCount = explored.filter(Boolean).length;
+  function updateExperiment(mode: number) { if (path !== null) setExperiments(old => old.map((value,i) => i === path ? mode : value)); }
+  function selectAnswer(i: number) { if (path !== null) { setAnswers(old => old.map((value,k) => k === path ? i : value)); setExplored(old => old.map((value,k) => k === path ? true : value)); } }
   const ready = sorted.every(value => value >= 0);
   const valid = sorted.every((value, index) => categories[value] === cards[index].category);
   const titles = ["Что упало с неба?", "Ваше первое объяснение", path === null ? "Куда направить исследование?" : route.title, "Разложите сведения", completed ? "Вы открыли различие" : "Возвращение к гипотезе"];
@@ -161,17 +231,19 @@ export default function SiriusJourney({ observation, report, onFinish }: { obser
             {hypotheses.map((item, i) => <button key={item} type="button" className="diveChoice" aria-pressed={hypothesis === i} onClick={() => setHypothesis(i)}>{item}</button>)}
             <button type="button" className="divePrimary" disabled={hypothesis === null} onClick={() => setStep(2)}>Выбрать способ проверки <span aria-hidden="true">→</span></button>
           </> : step === 2 ? <>
-            <p>Откройте один путь. Можно сравнить и остальные, прежде чем идти дальше.</p>
-            <div className="diveBranches">{paths.map((item, i) => <button key={item} type="button" className="diveBranch" aria-pressed={path === i} onClick={() => {setPath(i);setAnswer(null);}}><span aria-hidden="true">0{i+1}</span>{item}</button>)}</div>
+            <p>Выберите направление исследования. Каждая ветвь открывает свой эксперимент. Можно пройти одну или сопоставить все три.</p>
+            <div className="diveBranches">{paths.map((item, i) => <button key={item} type="button" className="diveBranch" aria-pressed={path === i} onClick={() => setPath(i)} data-explored={explored[i]}><span aria-hidden="true">0{i+1}{explored[i] ? " ✓" : ""}</span>{item}</button>)}</div>
             {path !== null ? <div className="diveBranchContent" key={path}>
               <p>{path === 0 ? observation : path === 1 ? report : "Представьте возможность проверить предмет по независимому источнику. Это условная ситуация, не событие фильма."}</p>
+              {path === 0 ? <ClaimExperiment mode={experiments[path]} setMode={updateExperiment} /> : path === 1 ? <ReportExperiment mode={experiments[path]} setMode={updateExperiment} /> : <SourceExperiment mode={experiments[path]} setMode={updateExperiment} />}
               <strong>{route.question}</strong>
-              {route.options.map((item, i) => <button type="button" className="diveChoice" key={item} aria-pressed={answer === i} onClick={() => setAnswer(i)}>{item}</button>)}
-              {answer !== null ? <div className="diveInsight" role="status"><strong>{answer === 0 ? "Обоснованный вывод" : "Здесь необходима дополнительная проверка"}</strong><p>{route.explanation}</p></div> : null}
+              {route.options.map((item, i) => <button type="button" className="diveChoice" key={item} aria-pressed={answer === i} onClick={() => selectAnswer(i)}>{item}</button>)}
+              {answer >= 0 ? <div className="diveInsight" role="status"><strong>{answer === 0 ? "Обоснованный вывод" : "Здесь необходима дополнительная проверка"}</strong><p>{route.explanation}</p></div> : null}
             </div> : null}
-            <button type="button" className="divePrimary" disabled={answer === null} onClick={() => setStep(3)}>Соединить сведения <span aria-hidden="true">→</span></button>
+            <button type="button" className="divePrimary" disabled={exploredCount === 0} onClick={() => setStep(3)}>Соединить сведения <span aria-hidden="true">→</span></button>
           </> : step === 3 ? <>
             <p>Распределите три утверждения по категориям. Можно исправлять решения сколько угодно.</p>
+            <div className="diveTrace"><strong>Ваши открытия · {exploredCount} из 3 ветвей</strong>{findings.filter((_,i) => explored[i]).map(item => <p key={item}>{item}</p>)}</div>
             {cards.map((item, index) => <fieldset className="diveSort" key={item.text}>
               <legend>{item.text}</legend>
               <div>{categories.map((category, i) => <button key={category} type="button" className="diveSortButton" aria-pressed={sorted[index] === i} onClick={() => setSorted(previous => previous.map((value, j) => j === index ? i : value))}>{category}</button>)}</div>
@@ -182,12 +254,14 @@ export default function SiriusJourney({ observation, report, onFinish }: { obser
           </> : !completed ? <>
             <div className="diveInsight"><strong>Ваша первая гипотеза</strong><p>{hypotheses[hypothesis ?? 2]}</p></div>
             <p>Предмет и сообщение — разные виды сведений. Достаточно ли их, чтобы принять прежнее объяснение? Выберите теперь.</p>
+            <div className="diveTrace"><strong>Основания, которые вы исследовали</strong>{findings.filter((_,i) => explored[i]).map(item => <p key={item}>{item}</p>)}</div>
             {hypotheses.map((item, i) => <button key={item} type="button" className="diveChoice" aria-pressed={revised === i} onClick={() => setRevised(i)}>{item}</button>)}
             <button type="button" className="divePrimary" disabled={revised === null} onClick={() => setCompleted(true)}>Открыть итог <span aria-hidden="true">→</span></button>
           </> : <>
             <div className="diveBeforeAfter"><div><small>Первый вывод</small><strong>{hypotheses[hypothesis ?? 2]}</strong></div><span aria-hidden="true">→</span><div><small>После исследования</small><strong>{hypotheses[revised ?? 2]}</strong></div></div>
             <p>Вы {hypothesis === revised ? "сохранили первоначальную гипотезу" : "пересмотрели первоначальную гипотезу"}. Важно не само изменение, а основание вывода: наблюдение подтверждает предмет, сообщение — существование объяснения, гипотеза требует проверки.</p>
             {!valid ? <div className="diveInsight"><strong>Сопоставление категорий</strong>{cards.map(item => <p key={item.text}>{item.category} — {item.text}</p>)}</div> : null}
+            <div className="diveTrace"><strong>Пройденный путь · {exploredCount} из 3 ветвей</strong>{findings.filter((_,i) => explored[i]).map(item => <p key={item}>{item}</p>)}</div>
             <p>В этом и состоит первое открытие фильма: увидеть странность недостаточно. Нужно понять, насколько обосновано объяснение, которому мы доверяем.</p>
             <button type="button" className="divePrimary" onClick={onFinish}>Продолжить статью <span aria-hidden="true">→</span></button>
             <button type="button" className="diveChoice" onClick={reset}>Исследовать заново</button>

@@ -92,3 +92,21 @@ html:has(.diveDialog[open]) { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) { .diveDialog[open], .diveRoom, .diveBranchContent, .diveReasoningField { animation: none; } .diveArtifact { transition: none; } .diveDialog::backdrop { backdrop-filter: none; } }
 @media print { .diveEntry { display: none; } }
+
+/* Experiments are different manipulations of the same inquiry, not visual clones. */
+.diveExperiment { display: grid; gap: .75rem; padding: 1rem; background: linear-gradient(140deg,#172d40,#101a25); border: 1px solid #7694aa66; border-radius: 7px; }
+.diveExperiment h3 { font-family: var(--font-display); color: #f0e9dd; font-size: 1.3rem; line-height: 1.25; margin: 0; }
+.diveExperimentControls { display: flex; flex-wrap: wrap; gap: .45rem; }
+.diveExperiment svg { display: block; width: 100%; height: auto; }
+.diveExperiment p { font-size: .88rem; }
+.diveClaimLayers { display: grid; gap: .4rem; text-align: center; }
+.diveClaimLayers > div { display: grid; gap: .3rem; padding: .8rem; border: 1px solid #728ba266; color: #b6c6d5; }
+.diveClaimLayers > div[data-active="true"] { border-color: #e3c18f; background: #d3b88a15; color: #f4e3c9; }
+.diveClaimLayers small { font: .65rem var(--font-meta); letter-spacing: .08em; }
+.diveClaimLayers > span { color: #c4a779; }
+.diveReportLine { min-height: 85px; display: block; padding: 1rem; background: #0c151f; border-left: 2px solid #d3b88a; line-height: 1.7; color: #b7c9d6; }
+.diveReportLine strong { color: #f3e2bf; font-size: 1.1rem; }
+.diveTrace { display: grid; gap: .55rem; padding: .9rem; border-top: 1px solid #8299ac66; border-bottom: 1px solid #8299ac66; }
+.diveTrace strong { color: #e1c49b; font-size: .85rem; }
+.diveTrace p { font-size: .85rem; }
+.diveBranch[data-explored="true"] span { color: #e4d6ab; }
