@@ -1,13 +1,13 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
 
 type ReadingSection = { id: string; number: number; heading: string };
 
 /** One spoiler-projected contents list: mouse preview, click pin and keyboard access. */
-export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
+export function ReadingOutline({ sections, fullHref }: { sections: ReadingSection[]; fullHref?: string }) {
   const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
@@ -120,6 +120,16 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
 
   if (!sections.length) return null;
   const activeIndex = Math.max(0, sections.findIndex(section => section.id === active));
+  function fullRead(event: MouseEvent<HTMLAnchorElement>) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const line = window.innerHeight * 0.28;
+    const paragraphs = Array.from(document.querySelectorAll<HTMLElement>("[data-reading-block]"));
+    const target = paragraphs.filter(paragraph => paragraph.getBoundingClientRect().top <= line).at(-1);
+    const url = new URL(event.currentTarget.href);
+    url.hash = target?.id ?? sections[0]?.id ?? "article-top";
+    event.preventDefault();
+    window.location.assign(url.toString());
+  }
   const position = String(activeIndex + 1).padStart(2, "0");
   const outline = (
     <div
@@ -163,6 +173,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
       </button>
       <nav id="reading-outline-panel" className="articleOutline readingOutlinePanel" hidden={!open} aria-label="Разделы статьи">
         <div className="readingOutlineHeading">В этом разборе <span>{activeIndex + 1} / {sections.length}</span></div>
+        {fullHref ? <a className="readingOutlineFull" href={fullHref} onClick={fullRead}>Читать всё, включая финал</a> : null}
         {sections.map(({ id, number, heading }) => (
           <a
             key={id}
@@ -197,6 +208,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
   return (
     <>
       <nav className="sectionShell articleOutline" aria-label="Разделы статьи без JavaScript">
+        {fullHref ? <a className="readingOutlineFull" href={fullHref}>Читать всё, включая финал</a> : null}
         {sections.map(({ id, number, heading }) => (
           <a key={id} href={`#${id}`}><span>{number}</span><strong>{heading}</strong></a>
         ))}

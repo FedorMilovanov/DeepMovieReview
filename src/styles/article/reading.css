@@ -419,3 +419,26 @@
 .articleSupportSingle { margin: 0 0 var(--space-3); font-size: var(--type-meta); line-height: 1.45; }
 .articleSupportSingle a { display: inline-block; padding: 0.45rem 0; color: var(--ink-3); text-underline-offset: 0.2em; }
 .articleSupportSingle a:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }
+
+/* Editorial reading: unobtrusive references, captions and the optional dossier. */
+.articleReadingNote { max-width: 62ch; color: var(--ink-3); line-height: 1.55; }
+.articleBody > .articleSupport { margin-block-start: var(--space-1); margin-block-end: var(--space-4); }
+.articleSupport summary { min-height: 2.75rem; padding-block: 0.55rem; }
+.articleSupport li > div { min-width: 0; }
+.articleSupport li p { margin-block: var(--space-2); line-height: 1.55; }
+.articleSceneSequence { display: flow-root; }
+.articleSceneSequence .articleSceneStill { margin-block: var(--space-5); }
+.articleSceneReferences { padding-inline-start: var(--space-5); }
+.articleSceneReferences li { display: list-item; }
+.articleIllustration figcaption, .articleKnowledgeDiagram figcaption {
+  color: var(--ink-3); font-size: 0.875rem; line-height: 1.5; margin-block-start: var(--space-2);
+}
+.articleKnowledgeDiagram { width: min(100%, 25rem); margin-inline: auto; color: var(--ink-2); }
+.articleKnowledgeDiagram svg { display: block; width: 100%; height: auto; }
+.articleReveal .buttonPrimary { justify-self: start; }
+.filmReadingAppendix { margin-block: var(--space-6); padding-block: var(--space-5); border-top: 1px solid var(--stroke-default); }
+.filmReadingAppendix > summary { cursor: pointer; min-height: 2.75rem; color: var(--ink-2); font-size: var(--type-body); }
+.filmReadingAppendix > summary:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }
+.filmReadingAppendix > .sectionShell { width: 100%; }
+.readingOutlineFull { color: var(--ink-1); }
+@media print { .filmReadingAppendix, .articleReveal { display: none; } }

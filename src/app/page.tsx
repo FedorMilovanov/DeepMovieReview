@@ -634,13 +634,8 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
           <p className="lede">{featuredFilm.premise}</p>
           <p className="heroFilmQuestion">{featuredFilm.thesisQuestion}</p>
           <div className="heroActions">
-            <Link className="buttonPrimary" href={`/films/${featuredFilm.slug}`}>Открыть разбор</Link>
-            {featuredFilmPackage.article ? (
-              <Link className="buttonGhost" href={`/films/${featuredFilm.slug}/article`}>
-                Читать текст
-              </Link>
-            ) : null}
-            {data.paths.hasScenes ? <a className="heroSceneLink" href={`/films/${featuredFilm.slug}#film-scene-table-title`}>Сцены и опоры →</a> : null}
+            <Link className="buttonPrimary" href={`/films/${featuredFilm.slug}`}>{featuredFilmPackage.article ? "Читать разбор" : "Открыть разбор"}</Link>
+            {!featuredFilmPackage.article && data.paths.hasScenes ? <a className="heroSceneLink" href={`/films/${featuredFilm.slug}#film-scene-table-title`}>Сцены и опоры →</a> : null}
             {data.sceneExample ? <Link className="heroSceneLink" href="#lenses">Шесть прочтений одной сцены ↓</Link> : null}
           </div>
         </div>
@@ -959,10 +954,7 @@ function EditionEntry() {
       </dl>
       <div className="heroActions">
         <Link className="buttonPrimary" href={`/films/${edition.film.slug}`}>
-          Открыть разбор
-        </Link>
-        <Link className="buttonGhost" href={`/films/${edition.film.slug}/article`}>
-          Читать текст
+          Читать разбор
         </Link>
       </div>
       <p className="heroPreviewNote">
@@ -987,7 +979,7 @@ export default function HomePage() {
     return (
       <>
         <FilmHero data={data} />
-        <HomepagePaths data={data} />
+        {!featuredFilmPackage.article ? <HomepagePaths data={data} /> : null}
         <LensStage example={data.sceneExample} filmSlug={data.featuredFilm.slug} />
         <DataSections data={data} published />
       </>
