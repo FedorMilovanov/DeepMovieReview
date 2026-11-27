@@ -47,7 +47,7 @@ export default function FearJourney({data,onFinish,onReturn,articleHref}: {data:
   const [finished,setFinished] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   function go(next:number) {setStep(next); requestAnimationFrame(() => heading.current?.focus());}
-  const action = step === 0 ? first : second;
+  const action = step < 2 ? first : second;
   const guidance = risk
     ? "При подтверждённых опасных условиях отсрочка может быть разумной. Само наличие страха не делает решение ошибочным."
     : "Если независимая проверка подтверждает приемлемые условия переправы, прежний страх не доказывает нынешнюю опасность. Решение всё равно остаётся за человеком.";
@@ -89,6 +89,7 @@ export default function FearJourney({data,onFinish,onReturn,articleHref}: {data:
           </> : <>
             <div className="diveBeforeAfter"><div><small>Первое решение</small><strong>{actions[first??2]}</strong></div><span aria-hidden="true">→</span><div><small>После изменения условий</small><strong>{actions[second??2]}</strong></div></div>
             <p>{guidance}</p>
+            <p>{first === second ? "Вы сохранили первое решение. Теперь сравните основания: одинаковый поступок в разных обстоятельствах может быть разумным по разным причинам." : "Вы изменили решение. Вопрос не в том, лучше ли второй выбор сам по себе, а в том, какие новые сведения его обосновали."}</p>
             <p>Фильм предлагает исследовать не только страх, но и среду, в которой человек вынужден выбирать. Забота помогает понять опасность и принять решение; контроль может превращать предупреждение в средство ограничения чужих возможностей. Пока мы не раскрываем позднейшие события.</p>
             <div className="diveInsight"><strong>Открытие</strong><p>Страх может быть настоящим, даже если его обстоятельствами пользуются другие. Ни отсутствие страха, ни его наличие не являются сами по себе мерой мудрости или мужества.</p></div>
             {finished ? <p role="status">Две комнаты доступны для повторного исследования. Дальнейшие комнаты ещё разрабатываются.</p> : <button type="button" className="divePrimary" onClick={()=>{setFinished(true);onFinish()}}>Завершить второе погружение</button>}

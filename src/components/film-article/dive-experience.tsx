@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DiveFearData } from "@/lib/dive-opening";
 import SiriusJourney from "./sirius-journey";
@@ -14,12 +14,21 @@ export function DiveExperience({title,articleHref,journeyHref,observation,report
   const [firstShown, setFirstShown] = useState(false);
   const inFear = Boolean(fear) && !firstShown;
   const [secondDone, setSecondDone] = useState(false);
+  const titleRef = useRef<HTMLDivElement>(null);
+  const lastRoom = useRef(inFear);
+  useEffect(() => {
+    if (lastRoom.current !== inFear) {
+      lastRoom.current = inFear;
+      titleRef.current?.focus({preventScroll:true});
+      titleRef.current?.scrollIntoView({block:"start",behavior:"instant"});
+    }
+  }, [inFear]);
   return (
     <section className="diveStandalone" aria-labelledby="dive-standalone-title" data-room={inFear ? "fear" : "sirius"}>
       <div className="diveStandaloneInner">
         <header className="diveStandaloneHeader">
           <div>
-            <div className="diveEyebrow">DIVE / Погружение · {inFear ? "02 / FEAR" : "01 / SIRIUS"}</div>
+            <div ref={titleRef} tabIndex={-1} className="diveEyebrow diveRoomFocus">DIVE / Погружение · {inFear ? "02 / FEAR" : "01 / SIRIUS"}</div>
             <h1 id="dive-standalone-title">{title}</h1>
             <p>{inFear ? "Исследуйте, как память об опасности, доверие к предупреждениям и доступность выбора меняют решение человека." : "Один странный предмет. Несколько объяснений. Исследуйте сцену и постройте собственное суждение. Первое путешествие без спойлеров."}</p>
           </div>

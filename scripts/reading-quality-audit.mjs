@@ -471,7 +471,22 @@ try {
         assert.equal(await page.locator("#article-verdict").count(), 0);
         await page.screenshot({path:`${dir}/dive-${viewport.label}-standalone.png`});
         assert.equal(await page.locator(".fearJourney").count(),0,"fear is not rendered before consent");
-        await page.goto(base + article + "/dive?spoilers=minor", {waitUntil:"load"});
+        const sirius = page.locator(".diveStandalone .diveJourney");
+        await sirius.getByRole("button",{name:"Рассмотреть маркировку"}).click();
+        await sirius.getByRole("button",{name:"Сформулировать гипотезу"}).click();
+        await sirius.getByRole("button",{name:"Недостаточно сведений",exact:true}).click();
+        await sirius.getByRole("button",{name:"Выбрать способ проверки"}).click();
+        await sirius.getByRole("button",{name:"Предмет",exact:true}).click();
+        await sirius.getByRole("button",{name:"На приборе видна надпись.",exact:true}).click();
+        await sirius.getByRole("button",{name:"Соединить сведения"}).click();
+        for (const [i,label] of ["Наблюдение","Сообщение","Гипотеза"].entries()) {
+          await sirius.locator(".diveSort").nth(i).getByRole("button",{name:label,exact:true}).click();
+        }
+        await sirius.getByRole("button",{name:"Вернуться к первому выводу"}).click();
+        await sirius.getByRole("button",{name:"Недостаточно сведений",exact:true}).click();
+        await sirius.getByRole("button",{name:"Открыть итог"}).click();
+        await sirius.getByRole("button",{name:"Открыть следующую комнату"}).click();
+        await page.waitForURL(url => url.searchParams.get("spoilers") === "minor");
         const fear = page.locator(".fearJourney");
         await fear.getByRole("button",{name:"Отложить переправу",exact:true}).click();
         await fear.getByRole("button",{name:"Открыть прошлое героя"}).click();
@@ -482,7 +497,12 @@ try {
         await page.screenshot({path:`${dir}/dive-${viewport.label}-fear.png`});
         await fear.getByRole("button",{name:"Сопоставить решения"}).click();
         await fear.getByRole("button",{name:"Завершить второе погружение"}).click();
-        assert.equal(await page.locator(".diveRoomRail").getByText("Исследовано").count(),1);
+        assert.equal(await page.locator(".diveRoomRail").getByText("Исследовано",{exact:true}).count(),2);
+        await fear.getByRole("button",{name:"Вернуться в SIRIUS"}).click();
+        assert.equal(await sirius.getByRole("heading",{name:"Вы открыли различие"}).isVisible(),true);
+        await page.locator(".diveRoomRail").getByRole("button",{name:/FEAR/}).click();
+        assert.equal(await fear.getByRole("heading",{name:"Страх и свобода"}).isVisible(),true);
+        assert.equal(await fear.getByText("Вы изменили решение.",{exact:false}).isVisible(),true);
         await page.goto(base + article + "/dive", {waitUntil:"load"});
         await page.locator(".diveStandaloneRead").click();
         await page.waitForURL(url => url.pathname === article && !url.search);
