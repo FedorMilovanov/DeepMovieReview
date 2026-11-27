@@ -52,6 +52,72 @@ function SiriusArtifact({ inspected }: { inspected: boolean }) {
   );
 }
 
+/** The same field changes from an object to a map of reasoning, not a decorative new scene. */
+function ReasoningField({ step, path, sorted, completed }: { step: number; path: number | null; sorted: number[]; completed: boolean }) {
+  const branchNames = ["ПРЕДМЕТ", "СООБЩЕНИЕ", "ПРОВЕРКА"];
+  const colors = ["#9ec5de", "#d9b986", "#c5a5d6"];
+  return (
+    <svg className="diveReasoningField" viewBox="0 0 640 520" aria-hidden="true">
+      <defs>
+        <radialGradient id="dive-field"><stop stopColor="#436782" stopOpacity=".4"/><stop offset="1" stopColor="#0b1019" stopOpacity="0"/></radialGradient>
+        <linearGradient id="dive-field-path" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#7f9cb7"/><stop offset="1" stopColor="#d8b886"/></linearGradient>
+      </defs>
+      <rect width="640" height="520" fill="url(#dive-field)"/>
+      <g transform="translate(320 250) scale(1 .65)" fill="none" stroke="#7195b4" strokeOpacity=".2">
+        {[95,153,220,282].map(r => <circle key={r} r={r}/>)}
+        <path d="M-300 0H300M0 -330V330M-230 -230L230 230M230 -230L-230 230"/>
+      </g>
+      {step === 2 ? <>
+        <g fill="none" stroke="url(#dive-field-path)" strokeWidth="2">
+          {branchNames.map((name,i) => <path key={name} d={`M320 125 C320 175 ${110+i*210} 155 ${110+i*210} 244`} opacity={path === null || path === i ? 1 : .22} strokeWidth={path === i ? 4 : 1.5}/>)}
+        </g>
+        <rect x="241" y="58" width="158" height="67" rx="8" fill="#192c40" stroke="#c5d5e0"/>
+        <text x="320" y="84" textAnchor="middle" fill="#a9c2d5" fontSize="11" letterSpacing="2">ИСХОДНЫЙ ВОПРОС</text>
+        <text x="320" y="106" textAnchor="middle" fill="#f3eee6" fontSize="19">SIRIUS</text>
+        {branchNames.map((name,i) => <g key={name} opacity={path === null || path === i ? 1 : .35}>
+          <ellipse cx={110+i*210} cy="284" rx="73" ry="40" fill="#1b2b3c" stroke={colors[i]} strokeWidth={path === i ? 2.5 : 1}/>
+          <ellipse cx={110+i*210} cy="284" rx="90" ry="51" fill="none" stroke={colors[i]} opacity=".3"/>
+          <text x={110+i*210} y="279" textAnchor="middle" fill={colors[i]} fontSize="13">0{i+1}</text>
+          <text x={110+i*210} y="297" textAnchor="middle" fill="#eef1f4" fontSize="12">{name}</text>
+        </g>)}
+        <path d="M110 326 Q110 402 320 416 Q530 402 530 326 M320 326V416" fill="none" stroke="#8ba1b6" strokeDasharray="4 7" opacity=".6"/>
+        <circle cx="320" cy="416" r="13" fill="#d9b986" opacity=".7"/>
+        <text x="320" y="451" textAnchor="middle" fill="#d9b986" fontSize="12" letterSpacing="2">СЛЕДУЮЩИЙ СЛОЙ</text>
+      </> : step === 3 ? <>
+        {categories.map((category,i) => <g key={category}>
+          <rect x={32+i*198} y="280" width="180" height="92" rx="8" fill="#16293a" stroke={colors[i]}/>
+          <text x={122+i*198} y="340" textAnchor="middle" fontSize="13" fill={colors[i]}>{category}</text>
+        </g>)}
+        {cards.map((item,i) => {
+          const selected = sorted[i];
+          const target = 122 + (selected >= 0 ? selected : i)*198;
+          return <g key={item.text}>
+            <path d={`M${122+i*198} 134 Q${122+i*198} 205 ${target} 280`} fill="none" stroke={selected >= 0 ? colors[selected] : "#6b8298"} strokeDasharray={selected >= 0 ? undefined : "4 7"} strokeWidth={selected >= 0 ? 2 : 1}/>
+            <rect x={75+i*198} y="72" width="94" height="62" rx="6" fill="#1b2b3b" stroke="#8fa9bd"/>
+            <text x={122+i*198} y="96" textAnchor="middle" fontSize="11" fill="#a4bdcf">СВЕДЕНИЕ</text>
+            <text x={122+i*198} y="119" textAnchor="middle" fontSize="19" fill="#e3eaf0">0{i+1}</text>
+          </g>;
+        })}
+        <text x="320" y="431" textAnchor="middle" fill="#d9b986" fontSize="12" letterSpacing="2">РАЗЛИЧИТЬ ВИДЫ ЗНАНИЯ</text>
+      </> : <>
+        <g fill="none" stroke="#9ab2c6">
+          <circle cx="320" cy="246" r="164" opacity=".2"/>
+          <circle cx="320" cy="246" r="116" opacity=".4"/>
+          <path d="M320 94L169 330H471Z" opacity=".7"/>
+          <path d="M320 94V246M169 330L320 246M471 330L320 246" opacity=".6" strokeDasharray="4 7"/>
+        </g>
+        {["НАБЛЮДЕНИЕ","СООБЩЕНИЕ","ГИПОТЕЗА"].map((item,i) => {
+          const x=[320,169,471][i], y=[94,330,330][i];
+          return <g key={item}><circle cx={x} cy={y} r="60" fill="#1a2c3b" stroke={colors[i]}/><text x={x} y={y+4} fill={colors[i]} textAnchor="middle" fontSize="12">{item}</text></g>;
+        })}
+        <circle cx="320" cy="246" r="55" fill={completed ? "#5b4933" : "#1d3142"} stroke="#d9b986" strokeWidth="2"/>
+        <text x="320" y="250" textAnchor="middle" fill="#efdbb9" fontSize="14">{completed ? "ОТКРЫТИЕ" : "СИНТЕЗ"}</text>
+        <text x="320" y="453" textAnchor="middle" fill="#d9b986" fontSize="12" letterSpacing="2">ОБОСНОВАННОЕ СУЖДЕНИЕ</text>
+      </>}
+    </svg>
+  );
+}
+
 export default function SiriusJourney({ observation, report, onFinish }: { observation: string; report: string; onFinish: () => void }) {
   const [step, setStep] = useState(0);
   const [inspected, setInspected] = useState(false);
@@ -79,7 +145,7 @@ export default function SiriusJourney({ observation, report, onFinish }: { obser
       <div className="diveScene">
         <div className="diveStageArt" aria-hidden="true">
           <div className="diveOrbit diveOrbitOne" /><div className="diveOrbit diveOrbitTwo" />
-          <SiriusArtifact inspected={inspected} />
+          {step < 2 ? <SiriusArtifact inspected={inspected} /> : <ReasoningField key={step} step={step} path={path} sorted={sorted} completed={completed} />}
           <div className="diveArtMeta"><span>SEAHAVEN / 001</span><span>{chapters[step].toUpperCase()}</span></div>
         </div>
         <section className="diveRoom" key={step + "-" + String(completed)} aria-labelledby="dive-room-title">
@@ -121,6 +187,7 @@ export default function SiriusJourney({ observation, report, onFinish }: { obser
           </> : <>
             <div className="diveBeforeAfter"><div><small>Первый вывод</small><strong>{hypotheses[hypothesis ?? 2]}</strong></div><span aria-hidden="true">→</span><div><small>После исследования</small><strong>{hypotheses[revised ?? 2]}</strong></div></div>
             <p>Вы {hypothesis === revised ? "сохранили первоначальную гипотезу" : "пересмотрели первоначальную гипотезу"}. Важно не само изменение, а основание вывода: наблюдение подтверждает предмет, сообщение — существование объяснения, гипотеза требует проверки.</p>
+            {!valid ? <div className="diveInsight"><strong>Сопоставление категорий</strong>{cards.map(item => <p key={item.text}>{item.category} — {item.text}</p>)}</div> : null}
             <p>В этом и состоит первое открытие фильма: увидеть странность недостаточно. Нужно понять, насколько обосновано объяснение, которому мы доверяем.</p>
             <button type="button" className="divePrimary" onClick={onFinish}>Продолжить статью <span aria-hidden="true">→</span></button>
             <button type="button" className="diveChoice" onClick={reset}>Исследовать заново</button>
@@ -128,7 +195,7 @@ export default function SiriusJourney({ observation, report, onFinish }: { obser
           {step > 0 && !completed ? <button type="button" className="diveBack" onClick={() => setStep(step - 1)}>← Предыдущий слой</button> : null}
         </section>
       </div>
-      <footer className="diveFoot"><span>Авторская схема прибора · не кадр фильма</span><span>Ваши ответы остаются в текущем сеансе.</span></footer>
+      <footer className="diveFoot"><span>Авторская визуализация · не кадр фильма</span><span>Ваши ответы остаются в текущем сеансе.</span></footer>
     </div>
   );
 }
