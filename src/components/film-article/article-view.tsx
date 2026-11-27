@@ -194,6 +194,7 @@ function ArticleBlockView({
                       <a href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>{counter ? "Контрдовод: " : ""}{record.label}</a>
                       <p>{record.observation}</p>
                       {record.basis ? <EvidenceBasisLine basis={record.basis} /> : <small>Материал проверки не записан.</small>}
+                      {record.id === "truman-ev-rain" && filmSlug === "the-truman-show" ? <a href="https://github.com/FedorMilovanov/DeepMovieReview/blob/main/docs/72-FILM-001-DIRECT-MASTER-RECHECK.md">Дополнительная сверка оригинала от 4 ноября 2026 года</a> : null}
                     </div>
                   </li>
                 ))}
@@ -294,7 +295,7 @@ function ArticleBlockView({
     }
     case "measurement-table":
       return (
-        <details className="articleVerdictContext">
+        <details id={block.id} className="articleVerdictContext">
           <summary>Монтажные измерения</summary>
           <ArticleTable blockId={block.id} caption={block.caption}>
           <thead>
@@ -325,7 +326,7 @@ function ArticleBlockView({
         </details>
       );
     case "corrections":
-      return <details className="articleVerdictContext"><summary>Редакционные уточнения к распространённым пересказам</summary><ArticleCorrectionTable block={block} filmSlug={filmSlug} spoilerLevel={spoilerLevel}
+      return <details id={block.id} className="articleVerdictContext"><summary>Редакционные уточнения к распространённым пересказам</summary><ArticleCorrectionTable block={block} filmSlug={filmSlug} spoilerLevel={spoilerLevel}
         evidenceById={evidenceById} describeMeasurement={describeMeasurement} /></details>;
   }
 }
@@ -516,7 +517,7 @@ export function ArticleView({
             </dl>
           </details>
           {synthesis.qualifications.length ? (
-            <details className="articleVerdictContext">
+            <details className="articleVerdictContext articleQualifications">
               <summary>Что важно оговорить</summary>
               <ul>{synthesis.qualifications.map(text => <li key={text}>{text}</li>)}</ul>
             </details>

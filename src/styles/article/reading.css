@@ -451,4 +451,7 @@
 .articleDuelSide > summary:focus-visible { outline: 2px solid var(--focus-color); outline-offset: var(--focus-offset); }
 .articlePerspectiveHint { color: var(--ink-3); font-size: .875rem; line-height: 1.55; }
 .articleSceneSequence[hidden] { display: none; }
-.articleSceneStill, [data-reading-block], .articleDuelSide { scroll-margin-block-start: 5rem; }
+/* Keep the existing responsive anchor margin for paragraphs, stills and perspectives. */
+.articleDuelSide { min-width: 0; }
+.articleDuelSide:not([open]) { padding-block: .5rem; }
+.articleDuelSide[open] > summary { border-bottom: 1px solid var(--stroke-default); margin-bottom: var(--space-3); }

@@ -463,6 +463,23 @@ try {
         }, activeParagraph);
         await page.screenshot({ path: `${dir}/reader-${viewport.label}-full-resumed.png` });
 
+        const promise = page.locator("#truman-article-duel-promise");
+        const sides = promise.locator(".articleDuelSide");
+        assert.equal(await sides.count(), 3);
+        for (const side of await sides.all()) {
+          await side.locator("summary").click();
+          assert.equal(await side.evaluate(el => el.open), true);
+          assert.ok(await side.locator("p").isVisible());
+        }
+        await page.screenshot({ path: `${dir}/reader-${viewport.label}-perspectives.png` });
+        assert.equal(await page.locator(".articleSceneStill").count(), 17);
+        const duplicateIds = await page.locator(".articleShell [id]").evaluateAll(elements => {
+          const seen = new Set(); return elements.map(el => el.id).filter(id => seen.has(id) || !seen.add(id));
+        });
+        assert.deepEqual(duplicateIds, []);
+        const rain = page.locator("#truman-article-anchor-rain");
+        assert.ok(await rain.locator("xpath=ancestor::div[contains(@class,'articleSceneSequence')]/preceding-sibling::p[1][@id='truman-article-machine-rain']").count(), "rain follows its own argument");
+
         await page.goto(`${base}${legacyArticle}?spoilers=FULL#truman-article-method-2`, { waitUntil: "load" });
         await page.waitForURL(url => url.pathname === article && url.searchParams.get("spoilers") === "full" && url.hash === "#truman-article-method-2");
         await page.goto(`${base}${article}#evidence-truman-ev-light`, { waitUntil: "load" });
@@ -722,7 +739,7 @@ try {
       assert.ok(contents.length > 10 && contents.every(item => item.visible), JSON.stringify(contents.filter(item => !item.visible)));
       assert.deepEqual(await details.evaluateAll(items => items.map(item => item.open)), before);
       await page.emulateMedia({ media: "screen" });
-      assert.ok(!(await page.locator(".articleVerdictContext").last().locator("li").first().isVisible()));
+      assert.ok(!(await page.locator(".articleQualifications li").first().isVisible()));
       return { closedDetails: before.length, printVisibleItems: contents.length };
     }));
 
@@ -785,7 +802,7 @@ try {
             const file = `${theme}-${background ? "backgrounds" : "no-backgrounds"}-${opened ? "open" : "closed"}.pdf`;
             await withPage({ viewport: { width: 390, height: 844 }, colorScheme: theme }, `pdf-${file}`, async page => {
               await openArticle(page);
-              if (opened) await page.locator(".articleVerdictContext").last().locator("summary").click();
+              if (opened) await page.locator(".articleQualifications summary").click();
               const item = { level: "FULL", javascript: true, theme, opened };
               await pdf(page, file, item, background);
               if (!pdfManifest.fullSections.length) pdfManifest.fullSections = (await manifest(page)).sections;
