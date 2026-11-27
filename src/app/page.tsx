@@ -656,7 +656,7 @@ function FilmHero({ data }: { data: HomepageViewModel }) {
             tilt
           />
           <p className="heroArtCredit">Редакционная ИИ-иллюстрация, не кадр фильма.</p>
-          {dive ? <div className="diveHomeLegend"><strong>01 / SIRIUS</strong><span>Первое погружение · пять уровней · без спойлеров</span></div> : null}
+          {dive ? <div className="diveHomeLegend"><strong>01 / SIRIUS</strong><span>Путь начинается без спойлеров · две исследовательские комнаты</span></div> : null}
         </div>
       </div>
     </section>

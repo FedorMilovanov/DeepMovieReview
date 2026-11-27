@@ -1,0 +1,25 @@
+/* Water is an analytical field, not a reconstruction of a film shot. */
+.diveStandalone[data-room="fear"] { background: radial-gradient(ellipse at 30% 35%,#183b4e,#0c2332 43%,#07111d 85%); }
+.diveRoomRail { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:.6rem; padding: 1.1rem 0; }
+.diveRoomRail > * { display:grid; grid-template-columns:auto minmax(0,1fr); align-content:center; gap:.3rem .6rem; padding:.75rem; min-width:0; border:1px solid #7694aa55; background:#0f1b27; color:#b6c4cf; border-radius:6px; text-align:start; font:inherit; }
+.diveRoomRail > button { cursor:pointer; }
+.diveRoomRail > [aria-current="step"] { border-color:#d6b98c; color:#f0dfc0; background:#243441; }
+.diveRoomRail > * > span { grid-row:span 2; font:.85rem var(--font-meta); color:#d5b783; align-self:center; }
+.diveRoomRail strong { font-size:.85rem; overflow-wrap:anywhere; }
+.diveRoomRail small { color:#b8c5d0; font-size:.7rem; }
+.fearJourney { padding-block: 0 var(--space-5); }
+.fearProgress { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.fearStage { position:sticky; top:5.2rem; min-width:0; border:1px solid #83a6ae66; border-radius:10px; overflow:hidden; background:#081d2b; box-shadow:0 20px 70px #02070c88; animation:diveRoomArrival 650ms var(--ease-standard) both; }
+.fearWaterField { display:block; width:100%; height:auto; }
+.fearStage > p { font-size:.74rem; line-height:1.5; margin:0; padding:.65rem 1rem; color:#b8c9d5; border-top:1px solid #83a6ae44; }
+.fearWaterLines { transform-origin:center; animation:fearWaterDrift 9s ease-in-out infinite alternate; }
+.fearRoom { padding-top:.35rem; }
+@keyframes fearWaterDrift { from { transform:translateX(-1%) scaleY(.985); } to { transform:translateX(1%) scaleY(1.015); } }
+@media (max-width:760px) {
+  .diveRoomRail { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .diveRoomRail .diveRailFuture { grid-column:1/-1; }
+  .fearStage { position:relative; top:auto; }
+  .fearWaterField { height: min(45vh, 300px); }
+  .fearStage > p { padding:.5rem .75rem; }
+}
+@media (prefers-reduced-motion: reduce) { .fearStage,.fearWaterLines { animation:none; } }
