@@ -6,8 +6,6 @@ export function ExperienceControls() {
   const {
     experienceMode,
     motionPreference,
-    tier,
-    backend,
     setExperienceMode,
     setMotionPreference,
   } = useExperienceQuality();
@@ -15,8 +13,9 @@ export function ExperienceControls() {
   return (
     <details className="experienceControls">
       <summary>
-        Качество
-        <span>{experienceMode === "lite" ? "Lite" : `${tier} / ${backend}`}</span>
+        <svg className="experienceControlIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/></svg>
+        <span className="experienceControlLabel">Качество</span>
+        <span className="experienceControlMode">{experienceMode === "lite" ? "Lite" : "Авто"}</span>
       </summary>
       <div className="experienceControlsPanel">
         <fieldset>

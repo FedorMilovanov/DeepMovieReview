@@ -39,3 +39,14 @@
   margin-bottom: 0;
 }
 
+
+/* A quiet editorial colophon and comfortably sized links on every route. */
+.siteFooter { grid-template-columns:minmax(0,1.3fr) minmax(0,.65fr) minmax(0,.95fr) minmax(210px,.8fr); gap:clamp(1rem,3vw,2.2rem); border-top-color:var(--instrument-line); font-size:.82rem; color:var(--instrument-muted); }
+.footerBrand { min-width:0; }
+.footerBrand strong { font:400 1.15rem/1.3 Georgia,"Times New Roman",serif; color:var(--instrument-gold); }
+.footerNav { gap:0; }
+.footerNav a { display:flex; align-items:center; min-height:44px; padding-block:.45rem; color:var(--instrument-ice); font-size:.82rem; text-transform:none; letter-spacing:0; border-bottom:1px solid var(--instrument-line); }
+.footerNav a:hover,.footerNav a:focus-visible { color:var(--instrument-text); text-decoration:underline; text-underline-offset:.2em; }
+.footerMeta { min-width:0; overflow-wrap:anywhere; }
+@media (max-width:1020px) { .siteFooter { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:640px) { .siteFooter { grid-template-columns:minmax(0,1fr); gap:1.25rem; } .footerNav { grid-template-columns:1fr; } }

@@ -151,3 +151,28 @@
     gap: 0.35rem;
   }
 }
+
+/* Methodology is a companion essay, not a second dashboard. */
+.methodologyHero { min-height:0; padding-block:clamp(2.5rem,7vw,6rem); }
+.methodologyHero h1 { font:400 clamp(2.2rem,5vw,4.8rem)/1.14 Georgia,"Times New Roman",serif; max-width:24ch; letter-spacing:-.03em; text-transform:none; overflow-wrap:break-word; }
+:is(.methodologyHero,.methodologyEvidence,.methodologyPermission,.methodologyVersion) h2,main:has(.methodologyHero) .sectionShell h2 { font:400 clamp(1.7rem,3.5vw,3.1rem)/1.2 Georgia,"Times New Roman",serif; letter-spacing:-.02em; text-transform:none; max-width:31ch; }
+.methodologyAxioms { background:none; border:0; gap:.65rem; }
+.methodologyAxioms article { min-width:0; min-height:0; background:var(--instrument-base); border:1px solid var(--instrument-line); border-radius:6px; padding:clamp(1rem,2.5vw,1.65rem); }
+.methodologyAxioms h3,.methodologyLensList h3 { font:400 clamp(1.2rem,2.1vw,1.65rem)/1.26 Georgia,"Times New Roman",serif; text-transform:none; letter-spacing:-.01em; max-width:none; }
+.methodologyAxioms p,.methodologyLensList p { color:var(--instrument-muted); line-height:1.65; }
+.methodologyAxioms p { margin-bottom:0; }
+.methodologyLensList { border-color:var(--instrument-line); }
+.methodologyLensList article { grid-template-columns:3rem minmax(0,.6fr) minmax(0,1.4fr); border-color:var(--instrument-line); }
+.methodologyLensList article > span { color:var(--instrument-gold); font: .8rem var(--font-meta); font-variant-numeric:tabular-nums; }
+.methodologyEvidence ol { border-color:var(--instrument-line); counter-reset:evidence; }
+.methodologyEvidence li { counter-increment:evidence; grid-template-columns:minmax(0,.55fr) minmax(0,1fr); padding:.85rem 0; border-color:var(--instrument-line); }
+.methodologyEvidence li > span { display:flex; align-items:baseline; gap:.5rem; font-size:.8rem; color:var(--instrument-gold); letter-spacing:0; text-transform:none; overflow-wrap:anywhere; }
+.methodologyEvidence li > span::before { content:counter(evidence,decimal-leading-zero); font:.7rem var(--font-meta); color:var(--instrument-muted); flex:none; }
+.methodologyEvidence li p { color:var(--instrument-text); }
+.permissionScale { background:none; border:0; gap:.5rem; }
+.permissionScale span { min-height:72px; border:1px solid var(--instrument-line-strong); border-radius:5px; background:var(--instrument-base); color:var(--instrument-ice); font-size:.85rem; letter-spacing:0; overflow-wrap:anywhere; padding:.7rem; }
+@media (max-width:720px) {
+ .methodologyLensList article { grid-template-columns:2rem minmax(0,1fr); gap:.45rem .8rem; }
+ .methodologyEvidence li { grid-template-columns:minmax(0,1fr); gap:.4rem; }
+}
+@media (max-width:360px) { .permissionScale span { font-size:.76rem; } }

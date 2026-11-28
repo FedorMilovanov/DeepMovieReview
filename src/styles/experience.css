@@ -217,3 +217,15 @@ html[data-reduced-motion="true"] *::after {
 .experienceControls label strong { color:var(--instrument-text); font-size:.9rem; }
 .experienceControls label small { color:var(--instrument-muted); font-size:.78rem; }
 @media (forced-colors:active) { .experienceControls label:has(input:checked) { outline:2px solid Highlight; outline-offset:-2px; } }
+
+.experienceControls { min-width:0; }
+.experienceControls summary { justify-content:flex-start; gap:.55rem; }
+.experienceControls .experienceControlIcon { width:20px; height:20px; stroke:var(--instrument-gold); stroke-width:1.4; stroke-linecap:round; flex:none; }
+.experienceControls .experienceControlIcon circle { fill:var(--instrument-base); }
+.experienceControls summary > .experienceControlLabel { flex:1; min-width:0; color:var(--instrument-text); font:.85rem var(--font-body); }
+.experienceControls summary > .experienceControlMode { white-space:nowrap; }
+.experienceControls fieldset { min-width:0; }
+.experienceControlsPanel { scrollbar-gutter:stable; }
+@media (min-width:641px) and (max-width:1020px) {
+ .experienceControlsPanel { width:min(430px,calc(100vw - 2*var(--gutter))); }
+}
