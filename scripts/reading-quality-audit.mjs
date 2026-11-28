@@ -739,6 +739,20 @@ try {
       await brand.hover();
       await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>.3 && v.currentTime<2 && v.dataset.seam==="false";});
       await page.mouse.move(400,200);
+      // A rapid re-entry must not be stranded by a stale play/pause event.
+      for(let i=0;i<5;i++){
+        await brand.hover();
+        await page.mouse.move(400,200);
+      }
+      await brand.hover();
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>.6 && v.dataset.seam==="false" && Number(getComputedStyle(v).opacity)>.9;});
+      await page.emulateMedia({reducedMotion:"reduce"});
+      await video.waitFor({state:"detached"});
+      await page.emulateMedia({reducedMotion:"no-preference"});
+      await page.waitForFunction(()=>document.documentElement.dataset.reducedMotion==="false");
+      const stopped=await video.evaluate(v=>v.paused && v.dataset.playing==="false");
+      assert.ok(stopped,"restoring motion cannot restart an old hover");
+      await page.mouse.move(400,200);
       await page.emulateMedia({reducedMotion:"reduce"});
       await video.waitFor({state:"detached"});
       await brand.hover();
