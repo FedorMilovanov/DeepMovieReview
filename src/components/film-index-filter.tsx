@@ -47,7 +47,7 @@ export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
       <div className="filmList">
         {visible.map((film) => (
           <Link className="filmRow" data-has-cover={Boolean(film.coverSrc)} href={`/films/${film.slug}`} key={film.slug} prefetch={false}>
-            {film.coverSrc ? <span className="filmMediaFrame filmMediaFrameIndex" aria-hidden="true"><Image src={film.coverSrc} alt="" fill sizes="(max-width: 640px) 100vw, (max-width: 1020px) 34vw, 360px" /></span>:null}
+            {film.coverSrc ? <span className="filmMediaFrame filmMediaFrameIndex" aria-hidden="true"><Image src={film.coverSrc} alt="" fill sizes="(max-width: 640px) calc(100vw - 3rem), (max-width: 1400px) 36vw, 460px" /></span>:null}
             <span className="filmRowTitle"><strong>{film.title}</strong>{film.originalTitle && film.originalTitle!==film.title ? <small>{film.originalTitle}</small>:null}{film.teaser ? <span className="filmRowTeaser">{film.teaser}</span>:null}{film.coverSrc ? <small className="filmRowArtNote">Редакционная иллюстрация · не кадр фильма</small>:null}</span>
             <span className="filmRowMeta">
               <span className="filmRowYear">{film.year}</span>{!film.published ? <span className="filmRowStatus">{film.status}</span>:null}<span className="filmRowRead">{film.published ? "Читать разбор" : "Предпросмотр"} <span aria-hidden="true">→</span></span>

@@ -9,7 +9,8 @@
 .siteHeader[data-observatory] .brandText small { font:400 .69rem var(--font-body); letter-spacing:.035em; color:#d5d5d5; }
 .siteHeader[data-observatory] .siteNav { text-transform:none; letter-spacing:.025em; color:#ececec; font-size:.84rem; align-items:center; }
 .siteHeader[data-observatory] .siteNav a { min-height:44px; display:inline-flex; align-items:center; }
-.siteHeader[data-observatory] .siteNav a:first-child { color:#edc89b; position:relative; font-weight:650; letter-spacing:.11em; }
+.siteHeader[data-observatory] .siteNav a { position:relative; }
+.siteHeader[data-observatory] .siteNav a:is(:hover,:focus-visible,[aria-current="page"]) { color:var(--instrument-gold); }
 .siteHeader[data-observatory] .siteNav a[aria-current="page"]::after { content:""; position:absolute; inset:auto 0 3px; height:1px; background:#e9c79d; }
 .observatoryScene,.observatoryPicture,.observatoryPicture img,.observatoryShade,.observatoryLight,.observatoryVideo { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 .observatoryScene { z-index:-1; overflow:hidden; }

@@ -128,8 +128,12 @@
 
 /* Journal and catalogue use the same spoiler-safe jacket and ordinary link. */
 .journalFilms { padding-block:clamp(3rem,7vw,6rem); }
-.journalFilms:focus-visible { outline-offset:6px; }
-.journalFilms .sectionIntro,.journalFilms h2 { position:relative; }
+/* A fragment destination is a section, not a giant interactive card.
+   Preserve keyboard focus at the heading without framing the entire viewport. */
+.journalFilms:focus { outline:none; }
+.journalFilms h2 { position:relative; }
+.journalFilms:focus-visible h2::before { content:""; position:absolute; inset-block:.13em; inset-inline-start:-.6rem; border-inline-start:3px solid var(--focus-color); pointer-events:none; }
+@media (forced-colors:active) { .journalFilms:focus-visible h2::before { border-color:Highlight; } }
 .journalFilms h2 { font:400 clamp(2rem,4vw,3.8rem)/1.15 Georgia,"Times New Roman",serif; text-transform:none; letter-spacing:-.03em; }
 .journalFilms .sectionIntro { max-width:64ch; }
 .filmRowTeaser { font-size:.94rem; line-height:1.55; color:var(--ink-2); max-width:54ch; }

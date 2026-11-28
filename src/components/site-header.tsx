@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
 
 const NAV_LINKS = [
@@ -105,7 +105,8 @@ export function SiteHeader() {
     return () => cancelAnimationFrame(frame);
   }, [pendingAnchor]);
 
-  function closeMenuAfterNavigation(href: string) {
+  function closeMenuAfterNavigation(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
     setMenuOpen(false);
     const destination = new URL(href, window.location.href);
     setPendingAnchor(destination.hash ? { pathname: destination.pathname, hash: destination.hash } : null);
@@ -119,7 +120,7 @@ export function SiteHeader() {
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">
         {navLinks.map((link) => (
-          <Link key={link.href} href={link.href} {...linkProps(link.href)}>
+          <Link key={link.href} href={link.href} onClick={(event) => closeMenuAfterNavigation(event, link.href)} {...linkProps(link.href)}>
             {link.label}
           </Link>
         ))}
@@ -156,7 +157,7 @@ export function SiteHeader() {
           <Link
             key={link.href}
             href={link.href}
-            onClick={() => closeMenuAfterNavigation(link.href)}
+            onClick={(event) => closeMenuAfterNavigation(event, link.href)}
             {...linkProps(link.href)}
           >
             {link.label}

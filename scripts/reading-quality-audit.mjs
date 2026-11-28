@@ -504,6 +504,10 @@ try {
         assert.equal(await page.locator(".lensStageSection, .characterGrid, .articleSection").count(),0,"journal does not embed a selected film's analysis");
         await entry.click();
         await page.waitForURL(url => url.pathname === "/" && url.hash === "#films");
+        await page.waitForFunction(() => document.activeElement?.id === "films");
+        const sectionFocus = await page.locator("#films").evaluate(el=>({ outline:getComputedStyle(el).outlineStyle, marker:getComputedStyle(el.querySelector("h2"),"::before").borderInlineStartWidth, keyboard:el.matches(":focus-visible") }));
+        assert.equal(sectionFocus.outline,"none","fragment focus must not frame the whole journal");
+        if(sectionFocus.keyboard) assert.ok(parseFloat(sectionFocus.marker)>=3,"visible focus marker at journal heading");
         const selectedFilm = page.locator(`#films a.filmRow[href="${article}"]`);
         await selectedFilm.scrollIntoViewIfNeeded();
         await selectedFilm.locator("img").evaluate(img=>img.decode());
@@ -709,6 +713,22 @@ try {
       // Position may differ in preview, but the same projected copy is used.
       assert.equal(await catalogueCard.locator(".filmRowTeaser").innerText(), jacket);
       return {jacket};
+    }));
+  await check("desktop navigation reselects the journal fragment with keyboard focus", () =>
+    withPage({ viewport: { width: 1440, height: 900 } }, "journal-desktop-navigation", async page => {
+      await page.goto(`${base}/#films`, { waitUntil: "load" });
+      await page.evaluate(()=>window.scrollTo(0,0));
+      const link=page.locator('.siteNav a[href="/#films"]');
+      await link.focus();
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(()=>document.activeElement?.id==="films");
+      const focus=await page.locator("#films").evaluate(el=>({top:el.getBoundingClientRect().top, header:document.querySelector(".siteHeader").getBoundingClientRect().bottom, keyboard:el.matches(":focus-visible"), outline:getComputedStyle(el).outlineStyle, marker:getComputedStyle(el.querySelector("h2"),"::before").borderInlineStartWidth}));
+      assert.ok(focus.top>=focus.header-1 && focus.top<900,"journal destination stays below header");
+      assert.equal(focus.outline,"none");
+      assert.ok(focus.keyboard && parseFloat(focus.marker)>=3,"keyboard destination remains visible");
+      await page.keyboard.press("Tab");
+      assert.ok(await page.evaluate(()=>document.activeElement?.matches("#films .filmRow")),"next Tab reaches the first film");
+      return focus;
     }));
   await check("footer: settings panel is opaque over underlying text", () =>
     withPage({ viewport: { width: 390, height: 844 } }, "footer-settings", async page => {
