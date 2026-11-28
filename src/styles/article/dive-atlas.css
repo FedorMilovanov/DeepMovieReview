@@ -71,3 +71,5 @@
 
 .memoryStage .diveInstrumentHeader [lang="en"] { color:var(--instrument-gold); }
 .memoryStage .diveInstrumentReadout dd { color:var(--instrument-gold); }
+
+@media (max-height:750px) and (min-width:761px) { .memoryStage { position:relative; top:auto; } }

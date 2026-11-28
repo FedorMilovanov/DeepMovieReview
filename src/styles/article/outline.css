@@ -131,3 +131,20 @@
 
 /* Unlike chapter rows, the complete-reading command is a single text action. */
 .articleOutline a.readingOutlineFull { display: block; min-height: 2.75rem; padding: .8rem .65rem; color: var(--ink-1); border: 1px solid var(--stroke-strong); font-weight: 600; }
+
+/* The header outline is a compact navigational instrument, not a second menu. */
+.readingOutlineTrigger { color:var(--instrument-text); background:var(--instrument-base); border-color:var(--instrument-line); }
+.readingOutlineTrigger[aria-expanded="true"] { border-color:var(--instrument-gold); background:var(--instrument-selected); }
+.readingOutlineWord { text-transform:none; letter-spacing:0; font:500 .8rem var(--font-body); }
+.readingOutlinePosition { color:var(--instrument-gold); }
+.readingOutlinePanel { background:var(--instrument-base); border-color:var(--instrument-line-strong); border-radius:6px; max-height:min(68vh, max(5rem,calc(100vh - 7rem))); max-height:min(68dvh,max(5rem,calc(100dvh - 7rem - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)))); }
+.readingOutlineHeading { background:var(--instrument-base); color:var(--instrument-gold); text-transform:none; letter-spacing:.03em; z-index:1; }
+.readingOutlinePanel a { color:var(--instrument-muted); border-radius:3px; }
+.readingOutlinePanel a[aria-current="location"],.readingOutlinePanel a:hover { color:var(--instrument-text); background:var(--instrument-raised); }
+.readingOutlinePanel a[aria-current="location"] { background:var(--instrument-selected); box-shadow:inset 2px 0 var(--instrument-gold); }
+.readingOutlinePanel a[aria-current="location"] > span { color:var(--instrument-gold); }
+@media (max-width:360px) {
+ .readingOutlineTrigger { padding:.5rem .55rem; gap:.3rem; }
+ .readingOutlineWord { font-size:.75rem; }
+}
+@media (forced-colors:active) { .readingOutlineTrigger[aria-expanded="true"],.readingOutlinePanel a[aria-current="location"] { outline:2px solid Highlight; outline-offset:-2px; } }

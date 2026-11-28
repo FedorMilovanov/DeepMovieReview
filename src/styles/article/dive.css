@@ -195,3 +195,23 @@ html:has(.diveDialog[open]) { overflow: hidden; }
 @media (max-height:650px) and (min-width:761px) {
  .siriusStage,.fearStage,.memoryStage { position:relative; top:auto; }
 }
+
+/* Make the complete study available in short windows and dialog viewports. */
+.diveDialogBar { background:var(--instrument-base); border-color:var(--instrument-line); }
+.diveExit { border-color:var(--instrument-line-strong); color:var(--instrument-ice); }
+.diveExit:hover { background:var(--instrument-raised); }
+.diveSort { border-color:var(--instrument-line); border-radius:5px; background:var(--instrument-base); padding:.75rem; }
+.diveSort legend { color:var(--instrument-text); }
+.diveSort > div { gap:.4rem; }
+.diveSortButton { min-width:0; border-radius:4px; }
+.diveTrace { border-color:var(--instrument-line); }
+.diveEntryCopy h3 { font-family:Georgia,"Times New Roman",serif; font-weight:400; }
+@media (max-height:750px) and (min-width:761px) {
+ .diveJourney .siriusStage,.diveStandalone .siriusStage,.diveStandalone .fearStage,.diveStandalone .memoryStage { position:relative; top:auto; }
+}
+@media (max-width:760px) {
+ .siriusOpticalField { max-height:none; }
+ .siriusStage .diveArtifact,.siriusStage .diveReasoningField { height:clamp(190px,42vh,300px); }
+ .diveJourney[data-depth="0"] .siriusStage[data-inspected="true"] .diveArtifact { transform:scale(1.05); }
+}
+@media (forced-colors:active) { .diveExit,.diveSort { border-color:CanvasText; } }

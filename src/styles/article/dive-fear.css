@@ -47,3 +47,6 @@
  .diveInstrumentReadout dt { margin:0; }
 }
 @media (forced-colors:active) { .diveInstrumentReadout > div { border:1px solid CanvasText; } }
+
+/* Short landscape windows cannot fit the full sticky readout and diagram. */
+@media (max-height:750px) and (min-width:761px) { .fearStage { position:relative; top:auto; } }
