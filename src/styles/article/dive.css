@@ -181,3 +181,17 @@ html:has(.diveDialog[open]) { overflow: hidden; }
  .diveChoice[aria-pressed="true"],.diveBranch[aria-pressed="true"],.diveSortButton[aria-pressed="true"],.diveChoice[aria-expanded="true"] { outline:2px solid Highlight; outline-offset:-2px; }
  .diveChoice[aria-pressed="true"]::before { border-color:Highlight; }
 }
+
+/* Keep the optical canvas and real, responsive instrument data independent. */
+.siriusStage { max-height:none; }
+.siriusOpticalField { position:relative; isolation:isolate; overflow:hidden; }
+.siriusStage .diveInstrumentHeader { position:relative; z-index:1; }
+.siriusStage .diveInstrumentReadout { position:relative; z-index:1; }
+.siriusStage .diveArtifact,.siriusStage .diveReasoningField { max-width:100%; }
+@media (max-width:760px) {
+ .siriusStage { max-height:none; }
+ .siriusOpticalField { max-height:230px; }
+}
+@media (max-height:650px) and (min-width:761px) {
+ .siriusStage,.fearStage,.memoryStage { position:relative; top:auto; }
+}

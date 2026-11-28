@@ -91,6 +91,12 @@ function SiriusArtifact({ inspected }: { inspected: boolean }) {
         <pattern id="dive-grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#718aa2" strokeOpacity=".14"/></pattern>
       </defs>
       <rect width="640" height="520" fill="url(#dive-halo)"/>
+      <rect width="640" height="520" fill="url(#dive-grid)" opacity=".32"/>
+      <g fill="none" stroke="#9bb3c2" strokeOpacity=".6">
+        <path d="M24 50V24h26m540 0h26v26M24 470v26h26m540 0h26v-26"/>
+        <path d="M32 242h18m-9-9v18M590 242h18m-9-9v18"/>
+        <path d="M270 448h100m-100-5v10m25-8v6m25-8v10m25-8v6m25-8v10"/>
+      </g>
       <g transform="translate(320 374) scale(1 .32)">
         {[88,138,196,265].map(r => <circle key={r} r={r} fill="none" stroke="#9bb3c2" strokeOpacity=".25" />)}
         <path d="M-300 0H300M0 -300V300M-220 -220L220 220M220 -220L-220 220" stroke="#7896ad" strokeOpacity=".2"/>
@@ -103,6 +109,11 @@ function SiriusArtifact({ inspected }: { inspected: boolean }) {
         <path d="M-94 -54L-5 -80M-78 -45L11 -71M-62 -36L27 -62M-46 -27L43 -53" stroke="#9ab3c4" strokeOpacity=".55" strokeWidth="3"/>
         <ellipse cx="86" cy="6" rx="45" ry="62" transform="rotate(11 86 6)" fill="#112639" stroke="#b3c9d6" strokeWidth="4"/>
         <ellipse cx="86" cy="6" rx="34" ry="50" transform="rotate(11 86 6)" fill="url(#dive-lens)" stroke="#61859c" strokeWidth="2"/>
+        <ellipse cx="86" cy="6" rx="26" ry="41" transform="rotate(11 86 6)" fill="none" stroke="#b3d5e5" strokeOpacity=".45"/>
+        <path d="M70 -20Q90 -32 100 -13" stroke="#e1f1f3" strokeWidth="2" strokeOpacity=".65" fill="none"/>
+        <g fill="#acc8d6" stroke="#122b3d" strokeWidth="1">
+          <circle cx="-108" cy="-47" r="3"/><circle cx="-48" cy="-18" r="3"/><circle cx="-48" cy="85" r="3"/>
+        </g>
         <path d="M-110 43L-54 70L-54 45L-110 18Z" fill="#d2c7a6" stroke="#e9ddbd"/>
         <text transform="translate(-104 39) skewY(25)" fontSize="13" fontFamily="monospace" fontWeight="bold" fill="#172333">SIRIUS</text>
       </g>
@@ -213,17 +224,24 @@ export default function SiriusJourney({ observation, report, onFinish, standalon
         {chapters.map((chapter, i) => <span key={chapter} aria-current={i === step ? "step" : undefined} data-reached={i <= step}><i>{String(i + 1).padStart(2, "0")}</i><span>{chapter}</span></span>)}
       </nav>
       <div className="diveScene">
-        <div className="diveStageArt" data-inspected={inspected} aria-hidden="true">
-          <div className="diveOrbit diveOrbitOne" /><div className="diveOrbit diveOrbitTwo" />
-          {step < 2 ? <SiriusArtifact inspected={inspected} /> : <ReasoningField key={step} step={step} path={path} sorted={sorted} completed={completed} explored={explored} />}
-          <div className="diveArtMeta"><span>SEAHAVEN / 001</span><span>{chapters[step].toUpperCase()}</span></div>
+        <div className="diveStageArt siriusStage" data-inspected={inspected}>
+          <div className="diveInstrumentHeader"><span lang="en">SIRIUS / EVIDENCE LAB</span><span>Авторская схема</span></div>
+          <div className="siriusOpticalField">
+            <div className="diveOrbit diveOrbitOne" aria-hidden="true" /><div className="diveOrbit diveOrbitTwo" aria-hidden="true" />
+            {step < 2 ? <SiriusArtifact inspected={inspected} /> : <ReasoningField key={step} step={step} path={path} sorted={sorted} completed={completed} explored={explored} />}
+          </div>
+          <dl className="diveInstrumentReadout">
+            <div><dt>Этап</dt><dd>{chapters[step]}</dd></div>
+            <div><dt>{step < 2?"Маркировка":step===2?"Ветви исследования":step===3?"Распределено":"Первый вывод"}</dt><dd>{step<2?(inspected?"Рассмотрена":"Не рассмотрена"):step===2?`${exploredCount} / 3`:step===3?`${sorted.filter(value=>value>=0).length} / 3`:hypotheses[hypothesis??2]}</dd></div>
+            <div><dt>{step<2?"Гипотеза":step===2?"Направление":step===3?"Категории":"После исследования"}</dt><dd>{step<2?(hypothesis===null?"Не выбрана":hypotheses[hypothesis]):step===2?(path===null?"Не выбрано":paths[path]):step===3?(ready?"Распределены":"В процессе"):(revised===null?"Не выбрано":hypotheses[revised])}</dd></div>
+          </dl>
         </div>
         <section className="diveRoom" key={step + "-" + String(completed)} aria-labelledby="dive-room-title">
           <p className="diveEyebrow">Глубина {String(step + 1).padStart(2, "0")} / 05</p>
           <h2 id="dive-room-title" ref={heading} tabIndex={-1}>{titles[step]}</h2>
           {step === 0 ? <>
             <p>На улице обнаружен необычный предмет. Пока не нужно объяснять его происхождение. Начните с того, что можно увидеть.</p>
-            <button type="button" className="diveChoice" aria-expanded={inspected} onClick={() => setInspected(!inspected)}>Рассмотреть маркировку <span aria-hidden="true">◎</span></button>
+            <button type="button" className="diveChoice" aria-expanded={inspected} onClick={() => setInspected(!inspected)}>Рассмотреть маркировку</button>
             {inspected ? <div className="diveInsight"><strong>Наблюдение</strong><p>{observation}</p></div> : null}
             <button type="button" className="divePrimary" disabled={!inspected} onClick={() => setStep(1)}>Сформулировать гипотезу <span aria-hidden="true">→</span></button>
           </> : step === 1 ? <>

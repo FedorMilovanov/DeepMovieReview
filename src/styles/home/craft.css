@@ -273,3 +273,18 @@
   line-height: 1.6;
 }
 
+
+@media screen {
+ .craftPressureCard { background:var(--instrument-base); border-color:var(--instrument-line); border-radius:6px; min-height:0; }
+ .craftPressureCard p { color:var(--instrument-muted); }
+ .spoilerLadder { gap:.45rem; background:none; border:0; grid-template-columns:repeat(5,minmax(0,1fr)); }
+ .spoilerStep { background:var(--instrument-base); border:1px solid var(--instrument-line); border-radius:5px; padding:0; min-width:0; min-height:0; overflow:visible; }
+ .spoilerStep::before { pointer-events:none; }
+ .spoilerButton { min-height:130px; padding:1rem .85rem; }
+ .spoilerStep strong { font-family:Georgia,"Times New Roman",serif; text-transform:none; font-weight:400; letter-spacing:normal; font-size:1.06rem; }
+ .spoilerStep span { color:var(--instrument-muted); }
+ .spoilerStep[data-active="true"] { background:var(--instrument-selected); border-color:var(--instrument-gold); box-shadow:inset 0 -2px var(--instrument-gold); }
+ .spoilerPreview { padding:.9rem 1rem; background:var(--instrument-base); border-color:var(--instrument-gold); }
+}
+@media screen and (max-width:720px) { .spoilerLadder { grid-template-columns:minmax(0,1fr); } .spoilerButton { min-height:64px; padding:.75rem; } }
+@media (forced-colors:active) { .spoilerStep[data-active="true"] { outline:2px solid Highlight; outline-offset:-2px; } }
