@@ -41,8 +41,8 @@ export function generateStaticParams() {
     .map((filmPackage) => ({ slug: filmPackage.film.slug }));
 }
 
-export async function generateMetadata({ params }: FilmPageProps): Promise<Metadata> {
-  const { slug } = await params;
+export async function generateMetadata({ params, searchParams }: FilmPageProps): Promise<Metadata> {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
   const filmPackage = getFilmPackageBySlug(slug);
   if (!filmPackage || (filmPackage.film.status !== "published" && !isPreviewContentEnabled())) return {};
   const { film } = filmPackage;
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
     // deployment the layout's noindex must not be dropped by this route.
     robots:
       film.status === "published" && siteIndexingEnabled()
-        ? undefined
+        ? (parseSpoilerLevel(query.spoilers) === "NONE" ? undefined : { index: false, follow: true })
         : { index: false, follow: false },
   };
 }

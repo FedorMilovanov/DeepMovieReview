@@ -10,13 +10,15 @@
 .siteHeader[data-observatory] .siteNav { text-transform:none; letter-spacing:.025em; color:#e7edf0; font-size:.84rem; align-items:center; }
 .siteHeader[data-observatory] .siteNav a { min-height:44px; display:inline-flex; align-items:center; }
 .siteHeader[data-observatory] .siteNav a:first-child { color:#edc89b; position:relative; font-weight:650; letter-spacing:.11em; }
-.siteHeader[data-observatory] .siteNav a:first-child::after { content:""; position:absolute; inset:auto 0 3px; height:1px; background:#e9c79d; }
+.siteHeader[data-observatory] .siteNav a[aria-current="page"]::after { content:""; position:absolute; inset:auto 0 3px; height:1px; background:#e9c79d; }
 .observatoryScene,.observatoryPicture,.observatoryPicture img,.observatoryShade,.observatoryLight,.observatoryVideo { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 .observatoryScene { z-index:-1; overflow:hidden; }
 .observatoryPicture img,.observatoryVideo { object-fit:cover; object-position:50% 56%; }
 .observatoryPicture img { transform:scale(1.015); }
 .observatoryVideo { opacity:0; transition:opacity .65s ease; }
-.observatoryHero[data-video-ready="true"] .observatoryVideo { opacity:1; }
+.observatoryHero[data-video-ready="true"][data-video-seam="false"] .observatoryVideo { opacity:1; }
+/* Mask the native MP4 wrap behind the matching artwork. This is a soft transition, not a synthesized seamless loop. */
+.observatoryHero[data-video-ready="true"][data-video-seam="true"] .observatoryVideo { opacity:0; }
 .observatoryShade { background:linear-gradient(90deg,rgba(3,12,20,.89) 0%,rgba(4,16,24,.76) 20%,rgba(5,19,29,.38) 42%,transparent 68%),linear-gradient(180deg,rgba(3,10,17,.24),transparent 28%,transparent 66%,rgba(3,10,16,.91)); }
 .observatoryHero[data-art="fallback"] .observatoryShade { background:linear-gradient(90deg,#061522e8,#071722b0 48%,#07172235 72%),linear-gradient(0deg,#041019f0,transparent 35%); }
 .observatoryLight { opacity:.44; background:radial-gradient(ellipse at 68% 3%,rgba(99,191,229,.36),transparent 42%); mix-blend-mode:screen; transform-origin:68% 0; }
@@ -127,3 +129,48 @@
 }
 @media (prefers-reduced-motion:reduce) { .observatoryHero * { animation:none!important; transition:none!important; } .observatoryVideo { display:none; } .observatoryCta:hover .observatoryCtaArrow { transform:none; } }
 @media (forced-colors:active) { .observatoryScene { display:none; } .observatoryHero,.observatoryHero .observatoryCta,.observatoryRead,.observatoryPause { color:CanvasText; background:Canvas; border-color:CanvasText; box-shadow:none; } }
+
+/* Editorial optical system: one decisive entrance, quiet utilities, no duplicate arrows. */
+.observatoryHero { --obs-brass:#e7c99e; }
+.observatoryMain { align-items:center; padding-block:clamp(2rem,6vh,5rem) clamp(4rem,10vh,8rem); }
+.observatoryEditorial { gap:1rem; width:min(100%,34rem); }
+.observatoryHero h1 { font-size:clamp(3.35rem,5.9vw,6.25rem); }
+.observatoryKicker { letter-spacing:.16em; }
+.observatoryHero .observatoryCta { border-radius:8px; min-height:70px; padding:.55rem 1rem .55rem .65rem; background:linear-gradient(112deg,#183240f5,#0c202df5 70%,#1b3038f5); box-shadow:inset 0 1px 0 #f5dfb333,0 6px 24px #020a1580; }
+.observatoryHero .observatoryCta:hover { background:linear-gradient(112deg,#284956,#142d3c 75%,#283e48); box-shadow:0 0 20px #ddbb7d30,0 8px 26px #020a1580; }
+.observatoryCtaIcon { border:0; background:none; color:var(--obs-brass); }
+.observatoryCtaIcon svg { stroke-width:1.15; }
+.observatoryCtaArrow { color:var(--obs-brass); }
+.observatoryRead { border-color:transparent; border-radius:4px; background:transparent; padding-inline:.65rem; text-decoration:underline; text-underline-offset:.32em; text-decoration-color:#c3d9e86b; }
+.observatoryRead:hover { background:#173346a6; border-color:#a6c4d17c; }
+.observatoryEdition { padding:.15rem .8rem .15rem 0; background:none; border:0; border-right:1px solid #d2b88b80; border-radius:0; text-align:left; }
+.observatoryEdition span { font-size:2rem; }
+.observatoryFeature { padding-block:1.1rem 1.4rem; }
+.observatoryStages > div { grid-template-columns:24px minmax(0,1fr); align-items:center; gap:.3rem .45rem; }
+.observatoryStages svg { grid-row:1 / span 2; width:21px; height:21px; stroke:var(--obs-brass); stroke-width:1.25; stroke-linecap:round; stroke-linejoin:round; }
+.observatoryStages strong,.observatoryStageNumber { grid-column:2; }
+.observatoryPause { border-radius:5px; background:#0b1c28a8; }
+@media (min-width:761px) and (max-width:1020px) {
+  .observatoryStages > div { grid-template-columns:minmax(0,1fr); }
+  .observatoryStages svg { grid-row:auto; }
+  .observatoryStages strong,.observatoryStageNumber { grid-column:1; }
+  .observatoryHero h1 { font-size:clamp(3.1rem,6.6vw,5.3rem); }
+}
+@media (max-width:760px) {
+  .observatoryMain { align-items:flex-start; padding-block:clamp(1.3rem,4vh,2.5rem) clamp(6rem,20vh,12rem); }
+  .observatoryEditorial { width:100%; gap:.6rem; }
+  .observatoryHero h1 { font-size:clamp(2.4rem,9.5vw,4.2rem); }
+  .observatoryKicker { letter-spacing:.08em; }
+  .observatoryHero .observatoryCta { min-height:57px; padding:.4rem .8rem .4rem .5rem; }
+  .observatoryRead { background:#07172455; }
+  .observatoryFeature { padding-block:.8rem 1rem; }
+  .observatoryEdition span { font-size:1.6rem; }
+}
+@media (max-width:360px) {
+  .observatoryHero h1 { font-size:2.25rem; }
+  .observatoryMain { padding-block:1.1rem 5.5rem; }
+}
+@media (forced-colors:active) {
+  .observatoryHero .observatoryCta,.observatoryHero .observatoryCta:hover,.observatoryRead,.observatoryRead:hover,.observatoryPause { color:CanvasText; background:Canvas; border-color:CanvasText; box-shadow:none; }
+  .observatoryCtaIcon,.observatoryCtaArrow,.observatoryStages svg { color:CanvasText; stroke:CanvasText; }
+}

@@ -65,7 +65,7 @@ export function SiteHeader({diveHref}: {diveHref?:string}) {
   }, [menuOpen]);
 
   function linkProps(href: string) {
-    const isCurrent = href === "/" ? pathname === "/" : pathname.startsWith(href);
+    const isCurrent = !href.includes("#") && pathname === href;
     return isCurrent ? { "aria-current": "page" as const } : {};
   }
 
@@ -111,7 +111,7 @@ export function SiteHeader({diveHref}: {diveHref?:string}) {
           "DW" into the name or, worse, leave the name saying something the
           visible label does not. */}
       <Link className="brand" href="/" aria-label={observatory ? "Deep Waters / Глубокие воды — на главную" : "Deep Waters — на главную"}>
-        <span className="brandMark" aria-hidden="true">{observatory ? <svg viewBox="0 0 48 32" width="38" height="28" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M2 12c8-6 14-6 22 0s14 6 22 0M2 20c8-6 14-6 22 0s14 6 22 0"/></svg> : null}</span>
+        <span className="brandMark" aria-hidden="true">{observatory ? <svg viewBox="0 0 48 32" width="38" height="28" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="24" cy="16" r="13"/><path d="M11 16h26M24 3v26" opacity=".35"/><path d="M4 16c7-7 13-7 20 0s13 7 20 0M4 22c7-7 13-7 20 0s13 7 20 0" strokeLinecap="round"/><circle cx="24" cy="16" r="3" fill="currentColor" stroke="none"/></svg> : null}</span>
         <span className="brandText">{observatory ? <><strong lang="en">DEEP WATERS</strong><small>Глубокие воды</small></> : "Deep Waters"}</span>
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">
