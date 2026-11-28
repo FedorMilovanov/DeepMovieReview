@@ -1,6 +1,7 @@
 import { filmPackages } from "@/data/film-registry";
 import { filmShareAssets, getFilmShareAsset } from "@/data/film-share-assets";
 import { filmHomeAssets, getFilmHomeAsset } from "@/data/film-home-assets";
+import { observatoryDesktopAsset, observatoryMobileAsset } from "@/data/observatory-manifests";
 import { assertValidVisualAssetRegistry } from "@/lib/visual-asset-integrity";
 import type { VisualAssetManifest } from "@/lib/visual-assets";
 
@@ -225,7 +226,7 @@ export const discoveryMasterAsset: VisualAssetManifest = {
   provenance: { sourceKind: "generated", generator: "Arena image generation", promptVersion: "phase-a-v1", createdAt: "2026-09-14", editorialNotes: "Original platform art generated for the Phase A homepage; the source session did not record an exact model identifier; not a film still." },
 };
 
-const rawVisualAssetManifests: VisualAssetManifest[] = [fixtureHeroAsset, heroMasterAsset, lensMasterAsset, relationshipMasterAsset, autopsyMasterAsset, decisionMasterAsset, craftMasterAsset, discoveryMasterAsset, ...filmShareAssets, ...filmHomeAssets];
+const rawVisualAssetManifests: VisualAssetManifest[] = [fixtureHeroAsset, heroMasterAsset, lensMasterAsset, relationshipMasterAsset, autopsyMasterAsset, decisionMasterAsset, craftMasterAsset, discoveryMasterAsset, observatoryDesktopAsset, observatoryMobileAsset, ...filmShareAssets, ...filmHomeAssets];
 const knownFilmSlugs = filmPackages.map((filmPackage) => filmPackage.film.slug);
 
 assertValidVisualAssetRegistry(rawVisualAssetManifests, knownFilmSlugs);

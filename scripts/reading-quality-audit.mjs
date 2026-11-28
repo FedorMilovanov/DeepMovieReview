@@ -465,6 +465,11 @@ try {
         const entry = page.locator(`a.buttonPrimary[href="${article}/dive"]`).filter({ hasText: "Войти в исследование" });
         assert.equal(await entry.count(), 1, "one primary immersive entry");
         assert.equal(await page.locator(".observatoryHero h1").textContent(),"Здесь кино становится исследованием");
+        assert.equal(await page.locator(".observatoryHero").getAttribute("data-art"),"observatory","the final hero art is present");
+        await page.locator(".observatoryPicture img").evaluate(img=>img.decode());
+        const artSrc=await page.locator(".observatoryPicture img").evaluate(img=>img.currentSrc);
+        assert.ok(artSrc.includes(viewport.width<=760?"observatory-mobile-":"observatory-"),"responsive artwork selected");
+        assert.ok(await entry.evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),"primary CTA remains above fold");
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true,"hero fits viewport");
         await page.screenshot({path:`${dir}/observatory-${viewport.label}.png`});
         await entry.click();

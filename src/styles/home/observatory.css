@@ -62,3 +62,15 @@
 @media (max-width:360px) { .observatoryHero h1 { font-size:2rem; } .observatoryMain { padding-block-start:1.5rem; gap:.65rem; } .observatoryIntro { font-size:.88rem; } }
 @media(prefers-reduced-motion:reduce) { .observatoryHero * { animation:none!important; transition:none!important; } }
 @media(forced-colors:active) { .observatoryScene { display:none; } .observatoryHero,.observatoryHero .observatoryCta,.observatoryRead { color:CanvasText; background:Canvas; border-color:CanvasText; } }
+
+/* Independent optical layers remain confined to the water. No distortion of
+   faces, architecture or type, no perpetual JavaScript render loop. */
+.observatoryWater { position:absolute; inset:0; pointer-events:none; overflow:hidden; mask-image:radial-gradient(ellipse at 54% 26%,#000 0%,#000 22%,transparent 55%); }
+.observatorySuspension { position:absolute; inset:0; width:100%; height:100%; opacity:.55; }
+.observatoryCaustics { position:absolute; inset:-8%; opacity:.2; mix-blend-mode:screen; background:conic-gradient(from 147deg at 69% 0%,transparent 0deg, #7dcae526 7deg,transparent 11deg,#a4e2f52b 16deg,transparent 22deg,#7cc5ed22 26deg,transparent 31deg,transparent 360deg); transform-origin:69% 0; }
+.observatoryHero[data-motion="on"] .observatorySuspension { animation:observatorySuspensionDrift 24s ease-in-out infinite alternate; }
+.observatoryHero[data-motion="on"] .observatoryCaustics { animation:observatoryCausticDrift 15s ease-in-out infinite alternate; }
+.observatoryHero[data-visible="false"] :is(.observatorySuspension,.observatoryCaustics) { animation-play-state:paused; }
+@keyframes observatorySuspensionDrift { from { transform:translate3d(-.5%,1.5%,0); } to { transform:translate3d(.7%,-2%,0); } }
+@keyframes observatoryCausticDrift { from { opacity:.15; transform:rotate(-2deg); } to { opacity:.36; transform:rotate(3deg); } }
+@media (max-width:760px) { .observatoryWater { mask-image:radial-gradient(ellipse at 52% 22%,#000 0%,#000 24%,transparent 62%); } .observatorySuspension { opacity:.4; } }

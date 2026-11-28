@@ -1,13 +1,12 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-
+import { observatoryDesktopAsset, observatoryMobileAsset } from "@/data/observatory-manifests";
 export type ObservatoryArtwork = { src:string; desktop?:string; mobile?:string; original:boolean };
-/** Static build selects local optimized art only after the actual files land.
- * Never depend on the temporary transfer URL at runtime.
- */
 export function getObservatoryArtwork(): ObservatoryArtwork {
-  const names=["observatory-960.webp","observatory-1600.webp","observatory-mobile-540.webp","observatory-mobile-720.webp"];
-  const exists=names.every(name=>existsSync(join(process.cwd(),"public","art",name)));
+  const desktop=observatoryDesktopAsset.variants;
+  const mobile=observatoryMobileAsset.variants;
+  const exists=[...desktop,...mobile].every(item=>existsSync(join(process.cwd(),"public",item.src.slice(1))));
   if (!exists) return {src:"/art/hero-master.jpg",original:false};
-  return {src:"/art/observatory-1600.webp",desktop:"/art/observatory-960.webp 960w, /art/observatory-1600.webp 1600w",mobile:"/art/observatory-mobile-540.webp 540w, /art/observatory-mobile-720.webp 720w",original:true};
+  const srcSet=(items:typeof desktop)=>items.map(item=>item.src+" "+item.width+"w").join(", ");
+  return {src:desktop[desktop.length-1].src,desktop:srcSet(desktop),mobile:srcSet(mobile),original:true};
 }
