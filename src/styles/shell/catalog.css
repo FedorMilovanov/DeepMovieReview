@@ -128,6 +128,8 @@
 
 /* Journal and catalogue use the same spoiler-safe jacket and ordinary link. */
 .journalFilms { padding-block:clamp(3rem,7vw,6rem); }
+.journalFilms:focus-visible { outline-offset:6px; }
+.journalFilms .sectionIntro,.journalFilms h2 { position:relative; }
 .journalFilms h2 { font:400 clamp(2rem,4vw,3.8rem)/1.15 Georgia,"Times New Roman",serif; text-transform:none; letter-spacing:-.03em; }
 .journalFilms .sectionIntro { max-width:64ch; }
 .filmRowTeaser { font-size:.94rem; line-height:1.55; color:var(--ink-2); max-width:54ch; }

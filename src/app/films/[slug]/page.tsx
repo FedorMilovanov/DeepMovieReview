@@ -98,9 +98,9 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
   const dossier = (
     <>
       <section className="sectionShell filmPageHero" aria-labelledby="film-title">
-        <Breadcrumbs
+        {!filmPackage.article ? <Breadcrumbs
           trail={[{ label: "Фильмы", href: "/films" }, { label: film.title }]}
-        />
+        /> : null}
         <FilmMediaFrame slug={film.slug} variant="hero" />
         <div className="sectionIndex">Фильм / {researchDraft ? "исследовательский черновик" : statusLabels[film.status]} / Схема {filmPackage.schemaVersion}</div>
         {filmPackage.article ? <h2 id="film-title">{film.title}: аналитическое досье</h2> : <h1 id="film-title">{film.title}</h1>}

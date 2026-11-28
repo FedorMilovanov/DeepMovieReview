@@ -195,7 +195,7 @@ async function assertEvidenceDisclosure(id) {
 async function positionAtDocumentStart(prefix, probe) {
   if (mac) {
     await macOSActivate(MacOSApplications.Safari);
-    await action(`${prefix} Item Chooser`, () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), voiceOverChooserSpeech);
+    await action(`${prefix} Item Chooser`, () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), /item chooser|VoiceOver Menu|On item\s+(?:Перейти к содержимому\.\s*Page Menu|Шоу Трумана: человек, который заметил камеру)/i);
     await action(`${prefix} web content selection`, () => reader.type("web content", navigationOptions), /web content/i);
     await action(`${prefix} web content chosen`, () => reader.press("Enter", navigationOptions), /web content/i);
     await enterVoiceOverWebArea(prefix, probe);

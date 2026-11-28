@@ -211,7 +211,7 @@
 @media screen {
  .articleKnowledgeDiagram { background:var(--instrument-base); border:1px solid var(--instrument-line); border-radius:6px; padding:0 .4rem .8rem; color:#e7e7e7; }
  .articleKnowledgeDiagram figcaption { color:#c8c8c8; padding-inline:.65rem; }
- .articleKnowledgeDiagram svg { margin-block:.45rem; }
+ .articleKnowledgeDiagram svg { margin-block:.45rem; background:var(--instrument-base); }
  .articleDiagramLabel { color:#cecece; }
  .articleDiagramLabel [lang="en"] { color:#e0c49a; }
 }
