@@ -75,7 +75,7 @@ export function ObservatoryHero({artwork}:{artwork:ObservatoryArtwork}) {
         <p className="observatoryKicker" lang="en"><span aria-hidden="true"/> CINEMA · HUMAN NATURE · WORLDVIEW</p>
         <h1 id="hero-title" lang="en"><span>Look beyond</span><em>the frame.</em></h1>
         <p className="observatoryPromise">Здесь кино становится исследованием.</p>
-        <p className="observatoryIntro">Разгадывайте мотивы героев, исследуйте последствия их решений и открывайте глубинный смысл истории.</p>
+        <p className="observatoryIntro">Мы разбираем, как устроена сцена, почему мы верим герою и какой нравственный вопрос фильм оставляет зрителю.</p>
         <div className="observatoryActions">
           <a className="buttonPrimary observatoryCta" href="#films">
             <span className="observatoryCtaIcon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" opacity=".32"/><circle cx="24" cy="24" r="15"/><path d="m24 9 8.7 5L37 22l-5 9-9 5-9-5-4-9 5-9z" opacity=".55"/><path d="m24 13 8 14-8 9-8-9z"/><path d="M24 13v23m-8-9h16" opacity=".55"/><path d="M24 2v3m22 19h-3M24 46v-3M2 24h3"/></svg></span>

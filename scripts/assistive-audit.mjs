@@ -327,12 +327,25 @@ try {
         // actual row. Read both cells using native table-column commands;
         // their real spoken words must jointly name the row and exact value.
         // No DOM read, replayed tap or synthetic speech can satisfy this gate.
-        const heading = await action("table row header via native column",
-          () => perform(reader.keyboardCommands.moveToPreviousColumn, navigationOptions),
-          /библиотека/i, { observeDuring: true });
-        const count = await action("table row detected count via native column",
-          () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions),
-          /\b0 обнаруженных переходов/i, { observeDuring: true });
+        // The current native cursor may be on either side of the detector cell.
+        // Traverse at most the table width, requiring fresh native speech at
+        // every step; the exact header and exact value are still mandatory.
+        async function seekColumn(label, command, expected) {
+          let spoken = [];
+          for (let step=0;step<3;step++) {
+            const phrase = await action(`${label} ${step+1}`,
+              () => perform(command, navigationOptions), expected,
+              {required:false,observeDuring:true});
+            if (expected.test(phrase.join(" "))) return phrase;
+            spoken.push(...phrase);
+          }
+          assert.match(spoken.join(" "),expected,`${label}: native cursor did not reach expected cell`);
+          return spoken;
+        }
+        const heading = await seekColumn("table row header via native column",
+          reader.keyboardCommands.moveToPreviousColumn, /библиотека/i);
+        const count = await seekColumn("table row detected count via native column",
+          reader.keyboardCommands.moveToNextColumn, /\b0 обнаруженных переходов/i);
         assert.match([...heading, ...count].join(" "), libraryDetectionRowSpeech,
           "Real VoiceOver must speak the named row and exact detector count");
       }

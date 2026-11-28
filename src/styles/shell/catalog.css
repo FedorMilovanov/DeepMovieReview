@@ -135,3 +135,24 @@
 @media (max-width:640px) { .filmRowTeaser { font-size:.82rem; } .filmRowMeta { align-items:baseline; } }
 
 .filmRowTitle .filmRowArtNote { font-size:.68rem; color:var(--ink-3); }
+
+/* Readable jackets rather than a technical register. A missing cover does not
+   fabricate film-specific art. Only the registered illustration is displayed. */
+.filmList .filmRow { grid-template-columns:minmax(0, .8fr) minmax(0,1.2fr); gap:.65rem clamp(1rem,3vw,2.2rem); align-items:start; padding:clamp(.85rem,2vw,1.5rem); max-width:76rem; }
+.filmList .filmRow .filmMediaFrameIndex { grid-column:1; grid-row:1 / span 2; aspect-ratio:16 / 9; min-height:0; align-self:center; background:var(--surface-1); }
+.filmList .filmRowTitle { grid-column:2; grid-row:1; gap:.45rem; align-self:end; }
+.filmList .filmRowTitle strong { font-size:clamp(1.55rem,3.2vw,2.6rem); }
+.filmList .filmRowMeta { grid-column:2; grid-row:2; flex-direction:row; flex-wrap:wrap; align-items:center; gap:.65rem 1rem; }
+.filmList .filmRowRead { display:inline-flex; align-items:center; min-height:44px; margin-inline-start:auto; }
+.filmList .filmRow[data-has-cover="false"] { grid-template-columns:minmax(0,1fr); }
+.filmList .filmRow[data-has-cover="false"] :is(.filmRowTitle,.filmRowMeta) { grid-column:1; }
+.filmList .filmRow:focus-visible { outline:2px solid var(--focus-color); outline-offset:3px; }
+@media (max-width:640px) {
+ .filmList .filmRow { grid-template-columns:minmax(0,1fr); gap:.65rem; }
+ .filmList .filmRow .filmMediaFrameIndex { grid-column:1; grid-row:1; }
+ .filmList .filmRowTitle { grid-column:1; grid-row:2; }
+ .filmList .filmRowMeta { grid-column:1; grid-row:3; }
+ .filmList .filmRow[data-has-cover="false"] .filmRowTitle { grid-row:1; }
+ .filmList .filmRow[data-has-cover="false"] .filmRowMeta { grid-row:2; }
+ .filmList .filmRowTeaser { font-size:.94rem; }
+}
