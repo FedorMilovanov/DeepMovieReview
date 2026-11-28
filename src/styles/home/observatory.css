@@ -83,3 +83,68 @@
 .observatoryHero[data-video-ready="true"] .observatoryPicture img { animation:none; }
 @media(max-width:760px) { .observatoryVideo { object-position:50% 62%; } }
 @media(prefers-reduced-motion:reduce),(forced-colors:active) { .observatoryVideo { display:none; } }
+
+/* Refined first-screen controls: a warm optical entrance against blue depths. */
+.observatoryMain { gap:.95rem; padding-block-start:clamp(1.7rem,5.6vh,4rem); }
+.observatoryKicker { display:flex; align-items:center; gap:.8rem; letter-spacing:.14em; color:#e7d4b8; }
+.observatoryKicker > span { width:clamp(1.2rem,4vw,3rem); height:1px; background:linear-gradient(90deg,transparent,#dfc39b); }
+.observatoryKicker > span:last-child { transform:rotate(180deg); }
+.observatoryHero h1 { font-size:clamp(2.6rem,4.9vw,4.7rem); max-width:24ch; text-shadow:0 2px 24px #020b14; }
+.observatoryIntro { max-width:48ch; font-size:clamp(.97rem,1.3vw,1.12rem); }
+.observatoryActions { gap:1rem; }
+.observatoryHero .observatoryCta {
+  position:relative; isolation:isolate; justify-content:initial; gap:.85rem; min-height:68px; min-width:280px;
+  padding:.55rem .9rem .55rem .65rem; border:1px solid #e4c8a0; border-radius:10px;
+  background:linear-gradient(115deg,#203546f5,#122332f5 65%,#253b48f5); color:#f6e4c8;
+  box-shadow:inset 0 1px 0 #f5dfb344, inset 0 0 22px #9dc9e010,0 6px 26px #020a15a0,0 0 0 3px #d5bd9812;
+  transition:border-color .25s ease, box-shadow .25s ease,background .25s ease,transform .25s var(--ease-standard);
+}
+.observatoryHero .observatoryCta:hover { color:#fff1d9; border-color:#ffe6bf; background:linear-gradient(115deg,#2c4758,#1b3042 65%,#3b4d50); box-shadow:inset 0 1px 0 #ffe5bb66,0 0 24px #ddbb7d33,0 10px 32px #020a15a0; }
+.observatoryCtaIcon { display:grid; place-items:center; width:45px; height:45px; flex:none; border-radius:50%; border:1px solid #a68f6e; background:radial-gradient(circle,#d2b58420,#0c1724 72%); color:#ead3ad; }
+.observatoryCtaIcon svg { width:34px; height:34px; stroke:currentColor; stroke-width:1.15; }
+.observatoryCtaCopy { display:grid; gap:.18rem; text-align:start; line-height:1.22; flex:1; }
+.observatoryCtaCopy strong { font-size:.96rem; font-weight:650; }
+.observatoryCtaCopy small { color:#d5c6b0; font-size:.69rem; font-weight:400; }
+.observatoryCtaArrow { width:22px; height:22px; flex:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; transition:transform .25s var(--ease-standard); }
+.observatoryCta:hover .observatoryCtaArrow { transform:translateX(3px); }
+.observatoryRead { gap:.55rem; background:#0b1b2bed; border:1px solid #afc7d27a; border-radius:8px; padding:.75rem 1rem; min-height:50px; color:#e7edf0; }
+.observatoryRead svg,.observatoryPause svg { width:19px; height:19px; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+.observatoryRead:hover { background:#173346; border-color:#d4e4ea; }
+.observatoryFeature { grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); align-items:end; padding:1.1rem 0 2.8rem; }
+.observatoryFeatureTitle small { display:flex; align-items:center; gap:.45rem; color:#e6d3b4; letter-spacing:.07em; }
+.observatoryFeatureTitle small i { display:block; width:6px; height:6px; border-radius:50%; background:#d5bc95; }
+.observatoryFilmTitle { font:400 clamp(1.4rem,2.4vw,2.1rem) Georgia,"Times New Roman",serif; color:#f3eee4; width:fit-content; }
+.observatoryFilmTitle:hover { text-decoration:underline; text-underline-offset:.2em; }
+.observatoryStages { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.8rem; }
+.observatoryStages > div { display:grid; gap:.3rem; padding-inline-start:.85rem; border-inline-start:1px solid #b1c8d346; }
+.observatoryStages .observatoryStageNumber { font:.67rem var(--font-meta); color:#d6b98c; }
+.observatoryStages strong { color:#ebf0f3; font-weight:500; font-size:.92rem; }
+.observatoryStages small { color:#c0d0da; font-size:.72rem; line-height:1.4; }
+.observatoryPause { display:inline-flex; align-items:center; gap:.4rem; border-radius:999px; background:#0c1a28e8; }
+.observatoryPause svg { width:16px; height:16px; }
+.observatoryHero[data-entering="true"] .observatoryMain { animation:observatoryTextExit 360ms ease-in both; }
+@keyframes observatoryTextExit { to { opacity:.15; transform:translateY(-8px); } }
+@media (max-width:760px) {
+  .observatoryMain { padding-block-start:clamp(1.35rem,4.5vh,2.5rem); gap:.7rem; }
+  .observatoryHero h1 { font-size:clamp(2.05rem,8.4vw,3.8rem); max-width:16ch; }
+  .observatoryKicker { font-size:.6rem; letter-spacing:.09em; gap:.45rem; }
+  .observatoryActions { gap:.45rem; }
+  .observatoryHero .observatoryCta { min-width:0; width:min(100%,328px); min-height:64px; padding:.5rem .7rem; gap:.65rem; }
+  .observatoryCtaIcon { width:41px; height:41px; }
+  .observatoryCtaIcon svg { width:30px; height:30px; }
+  .observatoryRead { border-color:#aec6d14d; min-height:44px; padding:.4rem .8rem; background:#0a1a29dd; }
+  .observatoryFeature { grid-template-columns:1fr; gap:.75rem; padding:.8rem 0 3rem; }
+  .observatoryFilmTitle { font-size:1.4rem; }
+  .observatoryStages { gap:.4rem; }
+  .observatoryStages > div { padding-inline-start:.45rem; gap:.2rem; }
+  .observatoryStages strong { font-size:.76rem; }
+  .observatoryStages small { font-size:.62rem; }
+  .observatoryPause { bottom:.2rem; }
+}
+@media (max-width:360px) {
+  .observatoryHero h1 { font-size:1.95rem; }
+  .observatoryIntro { font-size:.87rem; }
+  .observatoryCtaCopy strong { font-size:.87rem; }
+}
+@media (prefers-reduced-motion:reduce) { .observatoryHero .observatoryCta,.observatoryCtaArrow { transition:none; } .observatoryCta:hover .observatoryCtaArrow { transform:none; } }
+@media (forced-colors:active) { .observatoryHero .observatoryCta,.observatoryRead,.observatoryPause { color:ButtonText; background:ButtonFace; border-color:ButtonText; box-shadow:none; } }

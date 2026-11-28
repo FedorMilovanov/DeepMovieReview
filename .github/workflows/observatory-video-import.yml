@@ -1,4 +1,4 @@
-name: Import observatory video (one time)
+name: Import verified observatory video variants
 on:
   push:
     branches: [max/152-truman-reading]
@@ -36,7 +36,7 @@ jobs:
           ctx.on('page',capture);
           try {
             const page = await ctx.newPage();
-            await page.goto('https://firestorage.ai/en/f/p4A4d9MCV5y-',{waitUntil:'domcontentloaded'});
+            await page.goto('https://firestorage.ai/en/f/28wp2Y40TsrB',{waitUntil:'domcontentloaded'});
             await page.getByRole('button',{name:'Download',exact:true}).click({timeout:20000});
             let download;
             const visited=new Set();
@@ -45,32 +45,28 @@ jobs:
               if(download)break;
               for(const p of ctx.pages()){
                 const url=p.url();
-                if(!url.startsWith('https://firestorage.ai/')||url.endsWith('/p4A4d9MCV5y-')||visited.has(url))continue;
+                if(!url.startsWith('https://firestorage.ai/')||url.endsWith('/28wp2Y40TsrB')||visited.has(url))continue;
                 const button=p.getByRole('button',{name:/^(Download|Download file|Continue to download)$/i}).first();
                 if(await button.isVisible().catch(()=>false)){visited.add(url);await button.click();}
                 else {const link=p.getByRole('link',{name:/^(Download|Download file|Continue to download)$/i}).first();if(await link.isVisible().catch(()=>false)){visited.add(url);await link.click();}}
               }
             }
             if(!download)throw Error('No file download; normal public UI did not complete.');
-            await download.saveAs('/tmp/dmr-observatory.mp4');
-            const bytes=await readFile('/tmp/dmr-observatory.mp4');
+            await download.saveAs('/tmp/dmr-observatory.zip');
+            const bytes=await readFile('/tmp/dmr-observatory.zip');
             const sha=createHash('sha256').update(bytes).digest('hex');
-            if(sha!=='c8fdb04ecb5d58a5477ee4418e1fe2943e7eb437c7a2b7a2a25033f4719cd443')throw Error('Source hash mismatch');
+            if(sha!=='4844ed4f42928bc836e39ff639bdf1ce7c4f1ce6b62c64fac6f34dd98fbb9cc1')throw Error('Source hash mismatch');
             console.log('Verified source SHA-256:',sha);
           }finally{await browser.close();}
           JS
-      - name: Encode quiet responsive background loops
+      - name: Extract and verify the exact locally encoded background loops
         shell: bash
         run: |
           set -euo pipefail
-          if ! command -v ffmpeg >/dev/null; then sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ffmpeg; fi
-          ffmpeg -hide_banner -loglevel error -y -i /tmp/dmr-observatory.mp4 -filter_complex_threads 2 -filter_complex "[0:v]fps=24,split=3[a][b][c];[a]trim=start_frame=18:end_frame=222,setpts=PTS-STARTPTS[body];[b]trim=start_frame=222:end_frame=240,setpts=PTS-STARTPTS,fps=24[tail];[c]trim=start_frame=0:end_frame=18,setpts=PTS-STARTPTS,fps=24[head];[tail][head]xfade=transition=fade:duration=0.708333:offset=0[seam];[body][seam]concat=n=2:v=1:a=0,format=yuv420p[v]" -map '[v]' -an -c:v libx264 -preset medium -crf 24 -maxrate 1400k -bufsize 2800k -movflags +faststart -threads 4 public/art/observatory-desktop.mp4
-          ffmpeg -hide_banner -loglevel error -y -i public/art/observatory-desktop.mp4 -vf 'crop=404:720:476:0' -an -c:v libx264 -preset medium -crf 25 -maxrate 620k -bufsize 1240k -movflags +faststart -threads 4 public/art/observatory-mobile.mp4
-          for file in public/art/observatory-{desktop,mobile}.mp4; do
-            test "$(ffprobe -v error -select_streams v -show_entries stream=codec_name -of csv=p=0 "$file")" = h264
-            test -z "$(ffprobe -v error -select_streams a -show_entries stream=codec_name -of csv=p=0 "$file")"
-            ffprobe -v error -show_entries format=duration,size -show_entries stream=width,height,nb_frames -of compact "$file"
-          done
+          unzip -p /tmp/dmr-observatory.zip observatory-desktop.mp4 > public/art/observatory-desktop.mp4
+          unzip -p /tmp/dmr-observatory.zip observatory-mobile.mp4 > public/art/observatory-mobile.mp4
+          echo '4a874a72cedbd728a4e90a030ac706b3a7b5ed1d2224ede4b4d57db3a5d98709  public/art/observatory-desktop.mp4' | sha256sum -c
+          echo 'ff263667a9ac5f6a38d9c53d75dc2d93b97990dca6ed0e12c1b48a4f76ac57cb  public/art/observatory-mobile.mp4' | sha256sum -c
       - name: Commit only the verified derivatives and remove this transfer workflow
         shell: bash
         run: |

@@ -10,7 +10,7 @@ import type { ObservatoryArtwork } from "@/data/observatory-artwork";
 export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;filmSlug:string;artwork:ObservatoryArtwork}) {
   const router=useRouter();
   const hydrated=useHydrated();
-  const {reducedMotion,tier,documentVisible,forcedColors}=useExperienceQuality();
+  const {reducedMotion,experienceMode,documentVisible,forcedColors}=useExperienceQuality();
   const [paused,setPaused]=useState(false);
   const [visible,setVisible]=useState(true);
   const [entering,setEntering]=useState(false);
@@ -20,7 +20,8 @@ export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;f
   const timer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const diveHref=`/films/${filmSlug}/dive`;
   const articleHref=`/films/${filmSlug}`;
-  const canMove=hydrated&&!reducedMotion&&tier!=="LITE"&&!forcedColors;
+  // A hardware-decoded MP4 does not need the GPU tier used by the 3D scenes.
+  const canMove=hydrated&&!reducedMotion&&experienceMode!=="lite"&&!forcedColors;
   const motion=canMove&&!paused;
   useEffect(()=>{
     if(!root.current||typeof IntersectionObserver==="undefined")return;
@@ -30,9 +31,10 @@ export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;f
   },[]);
   useEffect(()=>()=>{if(timer.current!==null)clearTimeout(timer.current)},[]);
   const videoSources=artwork.video;
+  const [videoFailed,setVideoFailed]=useState(false);
   useEffect(()=>{
     const video=videoRef.current;
-    if(!video||!videoSources)return;
+    if(!video||!videoSources||videoFailed)return;
     const connection=(navigator as Navigator & {connection?:{saveData?:boolean;effectiveType?:string}}).connection;
     const dataSaver=connection?.saveData||["slow-2g","2g"].includes(connection?.effectiveType??"");
     const allowed=motion&&visible&&documentVisible&&!dataSaver;
@@ -44,12 +46,12 @@ export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;f
       const src=media.matches?videoSources.mobile:videoSources.desktop;
       if(video.getAttribute("src")!==src){video.setAttribute("src",src);video.load();}
       video.muted=true;
-      void video.play().catch(()=>{if(active)setVideoReady(false);});
+      void video.play().catch((error: unknown)=>{if(active && !(error instanceof DOMException && error.name==="AbortError"))setVideoReady(false);});
     }
     playSelected();
     media.addEventListener("change",playSelected);
     return ()=>{active=false;media.removeEventListener("change",playSelected);video.pause();};
-  },[motion,visible,documentVisible,videoSources]);
+  },[motion,visible,documentVisible,videoSources,videoFailed]);
   function enter(event:MouseEvent<HTMLAnchorElement>){
     if(!motion||event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     event.preventDefault();
@@ -67,7 +69,7 @@ export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;f
       </picture>
       {videoSources?<video ref={videoRef} className="observatoryVideo" muted loop playsInline preload="none" aria-hidden="true"
         disablePictureInPicture disableRemotePlayback
-        onLoadStart={()=>setVideoReady(false)} onPlaying={()=>setVideoReady(true)} onError={()=>setVideoReady(false)}/>:null}
+        onLoadStart={()=>setVideoReady(false)} onPlaying={()=>setVideoReady(true)} onError={()=>{setVideoReady(false);setVideoFailed(true);}}/>:null}
       <div className="observatoryLight"/>
       {artwork.original?<div className="observatoryWater">
         <svg viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid slice" className="observatorySuspension" aria-hidden="true">
@@ -80,18 +82,32 @@ export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;f
       <div className="observatoryShade"/>
     </div>
     <div className="observatoryMain">
-      <p className="observatoryKicker">Интерактивный анализ фильмов · DIVE</p>
+      <p className="observatoryKicker"><span aria-hidden="true"/> Интерактивный анализ кино <span aria-hidden="true"/></p>
       <h1 id="hero-title">Здесь кино становится исследованием</h1>
-      <p className="observatoryIntro">Войдите в историю. Исследуйте поступки, отношения и идеи, принимайте решения и открывайте смысл.</p>
+      <p className="observatoryIntro">Войдите в историю. Рассмотрите мотивы героев, исследуйте их выбор и откройте смысл фильма.</p>
       <div className="observatoryActions">
-        <Link className="buttonPrimary observatoryCta" href={diveHref} onClick={enter}>Войти в исследование <span aria-hidden="true">→</span></Link>
-        <Link className="observatoryRead" href={articleHref}>Читать статью</Link>
+        <Link className="buttonPrimary observatoryCta" href={diveHref} onClick={enter}>
+          <span className="observatoryCtaIcon" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13"/><path d="M18 7v5m0 12v5M7 18h5m12 0h5"/><path d="m18 12 4 6-4 6-4-6z" fill="currentColor" stroke="none"/></svg></span>
+          <span className="observatoryCtaCopy"><strong>Войти в исследование</strong><small>Интерактивное погружение</small></span>
+          <svg className="observatoryCtaArrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+        </Link>
+        <Link className="observatoryRead" href={articleHref}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v15M3 4c4 0 6 0 9 2 3-2 5-2 9-2v14c-4 0-6 0-9 2-3-2-5-2-9-2z"/></svg>Читать статью</Link>
       </div>
     </div>
     <div className="observatoryFeature">
-      <div className="observatoryFeatureTitle"><small>Первое погружение · без спойлеров</small><strong>{filmTitle}</strong><p>Истина, страх и право на собственную жизнь.</p></div>
-      <div className="observatoryStages"><span>Наблюдение</span><span>Выбор</span><span>Осмысление</span></div>
+      <div className="observatoryFeatureTitle">
+        <small><i aria-hidden="true"/> Первое погружение · без спойлеров</small>
+        <Link href={articleHref} className="observatoryFilmTitle">{filmTitle}</Link>
+        <p>Что происходит, когда привычный мир начинает вызывать вопросы?</p>
+      </div>
+      <div className="observatoryStages" aria-label="Как устроено исследование">
+        <div><span className="observatoryStageNumber">01</span><strong>Увидеть</strong><small>Деталь меняет взгляд</small></div>
+        <div><span className="observatoryStageNumber">02</span><strong>Выбрать</strong><small>Развилка решений</small></div>
+        <div><span className="observatoryStageNumber">03</span><strong>Осмыслить</strong><small>Смысл и последствия</small></div>
+      </div>
     </div>
-    {canMove?<button type="button" className="observatoryPause" aria-pressed={paused} onClick={()=>setPaused(v=>!v)}>{paused?"Оживить фон":"Остановить фон"}</button>:null}
+    {canMove?<button type="button" className="observatoryPause" aria-label={paused?"Оживить фон":"Остановить фон"} aria-pressed={paused} onClick={()=>setPaused(v=>!v)}>
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">{paused?<path d="m9 5 11 7-11 7z" fill="currentColor" stroke="none"/>:<><path d="M9 5v14M15 5v14"/></>}</svg><span>{paused?"Оживить фон":"Остановить фон"}</span>
+    </button>:null}
   </section>;
 }

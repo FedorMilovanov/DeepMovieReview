@@ -473,8 +473,8 @@ try {
         const video=page.locator(".observatoryVideo");
         assert.equal(await video.count(),1,"local background video is present");
         assert.equal(await video.evaluate(el=>el.muted&&el.loop&&el.playsInline),true,"muted inline loop");
-        // Motion policy may select LITE in a headless browser. A source must never
-        // be assigned before the policy permits it; if assigned, select one crop.
+        // Native video playback is independent of the 3D graphics tier. The
+        // chosen source must match the viewport when playback is permitted.
         const videoSrc=await video.getAttribute("src");
         if(videoSrc) assert.equal(videoSrc,viewport.width<=760?"/art/observatory-mobile.mp4":"/art/observatory-desktop.mp4");
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true,"hero fits viewport");
