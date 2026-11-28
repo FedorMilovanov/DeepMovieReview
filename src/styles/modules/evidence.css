@@ -364,3 +364,28 @@
   .evidenceRegisterMobileMeta .evidenceBasis { min-width: 0; }
   .evidenceRegisterMobileMeta summary { min-height: 2.75rem; padding: 0.6rem 0; }
 }
+
+@media screen {
+ .evidenceMapClaim > summary { padding-inline:.65rem; }
+ .evidenceMapClaim > summary > strong,.evidenceMapCard h3 { font-family:Georgia,"Times New Roman",serif; font-weight:400; line-height:1.25; text-transform:none; letter-spacing:normal; }
+ .evidenceMapClaim[open] > summary { background:var(--instrument-base); color:var(--instrument-text); }
+ .evidenceMapCards { background:var(--instrument-line); }
+ .evidenceMapCard { background:var(--instrument-base); color:var(--instrument-text); }
+ .evidenceMapCard > p,.evidenceMapTopline { color:var(--instrument-muted); }
+ .evidenceMapTopline [data-state="draft"] { color:var(--instrument-gold); }
+ .evidenceMapTopline [data-state="verified"] { color:var(--instrument-ice); }
+ .evidenceMapMeta { background:var(--instrument-line); }
+ .evidenceMapMeta > div { background:var(--instrument-panel); }
+ .evidenceMapMeta dt,.evidenceMapSources span { color:var(--instrument-muted); }
+ .evidenceRegisterWrap { border:1px solid var(--instrument-line); border-radius:6px; background:var(--instrument-base); }
+ .evidenceRegisterWrap th,.evidenceRegisterWrap td { border-bottom-color:var(--instrument-line); padding:.75rem .85rem; }
+ .evidenceRegisterWrap thead th { background:var(--instrument-panel); color:var(--instrument-gold); text-transform:none; font-size:.75rem; letter-spacing:.03em; }
+ .evidenceRegisterWrap tbody tr:nth-child(odd) { background:var(--instrument-panel); }
+ .evidenceRegisterWrap tbody tr:target,.evidenceRegisterWrap tbody tr:focus-within { background:var(--instrument-selected); }
+ .evidenceRegisterWrap tbody tr[data-outcome="refused"] :is(td,th) { color:var(--instrument-warning); }
+ .evidenceRegisterTime,.evidenceRegisterObservation,.evidenceBasis { color:var(--instrument-muted); }
+ .evidenceRegisterWrap a { color:var(--instrument-ice); text-decoration:underline; text-underline-offset:.18em; border-bottom:0; }
+ .evidenceBasis[data-outcome="refused"],.evidenceBasisRefusal { color:var(--instrument-warning); }
+}
+@media screen and (hover:hover) { .evidenceMapClaim > summary:hover,.evidenceRegisterWrap tbody tr:hover { background:var(--instrument-raised); } }
+@media screen and (max-width:720px) { .evidenceRegisterWrap th,.evidenceRegisterWrap td { padding:.65rem .55rem; overflow-wrap:anywhere; } }
