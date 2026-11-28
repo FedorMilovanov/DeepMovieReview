@@ -203,7 +203,7 @@ rejects("film data cannot bypass styles with inline declarations", ({ write }) =
 
 test("import reader preserves declarations in cascade order", () => fixture(({ root }) => {
   const surface = readStylesheet(join(root, "src/styles/film-article.css"));
-  const expected = ["body", "tables", "entry", "production", "reading", "duel", "outline"]
+  const expected = ["body", "tables", "entry", "production", "reading", "reading-apparatus", "duel", "outline", "dive", "dive-fear", "dive-atlas"]
     .map((name) => readFileSync(join(root, `src/styles/article/${name}.css`), "utf8")).join("");
   const rules = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s/g, "");
   assert.equal(rules(surface), rules(expected));
@@ -832,7 +832,7 @@ test("reading layout wraps inset artwork and preserves accessible navigation", (
   const view = readFileSync("src/components/film-article/article-view.tsx", "utf8");
   assert.match(view, /<ReadingOutline sections=\{readingSections\}/);
   assert.match(view, /Авторская иллюстрация, не кадр из фильма/);
-  assert.doesNotMatch(view, /<figcaption>\{block.caption\}/);
+  assert.match(view, /<figcaption>Авторская иллюстрация · \{block.caption\}<\/figcaption>/);
   const outline = readFileSync("src/components/film-article/reading-outline.tsx", "utf8");
   assert.match(outline, /aria-label="Разделы статьи без JavaScript"/);
   assert.match(outline, /href=\{`#\$\{id\}`\}/);

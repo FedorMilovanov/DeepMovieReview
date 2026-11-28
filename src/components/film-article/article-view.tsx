@@ -51,7 +51,7 @@ type ArticleViewProps = {
   contextSourcesById?: ReadonlyMap<string, ProductionSource>;
 };
 
-/** Original drawing. Provenance stays in the model and accessible alternative, not a prose caption. */
+/** Original drawing. Keep visible provenance and the accessible alternative distinct from film stills. */
 function ArticleIllustration({
   block,
 }: {
@@ -76,7 +76,7 @@ function ArticleIllustration({
           decoding="async"
         />
       </picture>
-      <figcaption>{block.caption}</figcaption>
+      <figcaption>Авторская иллюстрация · {block.caption}</figcaption>
     </figure>
   );
 }
