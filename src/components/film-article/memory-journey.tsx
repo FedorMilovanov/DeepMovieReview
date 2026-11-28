@@ -15,7 +15,14 @@ function MemoryField({first,seen,lens}:{first:number;seen:boolean[];lens:number|
       <pattern id="memory-grain" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M0 10L30 8M0 22L30 24" stroke="#dac6a8" strokeOpacity=".09" fill="none"/></pattern>
     </defs>
     <rect width="640" height="520" fill="#1a2028"/><rect width="640" height="520" fill="url(#memory-glow)"/><rect width="640" height="520" fill="url(#memory-grain)"/>
-    <g fill="none" stroke="#ceb38b" opacity=".25">{[90,140,200,260].map(r=><ellipse key={r} cx="320" cy="260" rx={r} ry={r*.65}/>)}</g>
+    <g fill="none" stroke="#ceb38b" opacity=".3">
+      <path d="M24 50V26h24m544 0h24v24M24 470v24h24m544 0h24v-24"/>
+      <path d="M320 125v250M40 264h560" strokeDasharray="2 7"/>
+      <path d="M30 148h580M30 378h580"/>
+    </g>
+    <g fill="#e1cba9" fontSize="12" fontFamily="monospace">
+      <text x="40" y="44">01 / ARCHIVE</text><text x="600" y="44" textAnchor="end">02 / FRAGMENTS</text>
+    </g>
     <path d="M115 265Q320 95 525 265" fill="none" stroke="#d3b88a" strokeOpacity={seen.every(Boolean)?".9":".25"} strokeWidth="2" strokeDasharray={seen.every(Boolean)?undefined:"5 8"}/>
     <g className="memoryAlbum" transform={`translate(${first===0?167:473} 264) rotate(-8)`} opacity={seen[0]?1:.42}>
       <rect x="-105" y="-89" width="210" height="174" rx="7" fill="#49382a" stroke="#b09a78" strokeWidth="2"/>
@@ -31,11 +38,11 @@ function MemoryField({first,seen,lens}:{first:number;seen:boolean[];lens:number|
       <path d="M1 0L100 -3L90 87L6 75Z" fill="#c6aa84" stroke="#e0d7c6"/>
       <path d="M-70 -50Q-48 -69 -26 -45M35 -52Q61 -69 79 -45M-62 45Q-25 23 10 43M27 29Q60 57 77 19" fill="none" stroke="#354753" strokeWidth="3" opacity=".72"/>
     </g>
-    <circle cx="320" cy="108" r="25" fill="#a38d6a" fillOpacity=".15" stroke="#ceb38b"/>
+    <g fill="none" stroke="#ceb38b"><circle cx="320" cy="108" r="25" fill="#a38d6a" fillOpacity=".15"/><circle cx="320" cy="108" r="34" strokeDasharray="3 6" opacity=".5"/></g>
     <path d="M320 95V121M307 108H333" stroke="#e0c49b"/>
     <text x="320" y="62" textAnchor="middle" fill="#e1cba9" fontSize="13" letterSpacing="3">ДВА ФРАГМЕНТА</text>
-    <text x="167" y="404" textAnchor="middle" fill="#e0d6c6" fontSize="15">{first===0?"СЕМЕЙНЫЙ АЛЬБОМ":"ФРАГМЕНТЫ ПАМЯТИ"}</text>
-    <text x="473" y="404" textAnchor="middle" fill="#e0d6c6" fontSize="15">{first===1?"СЕМЕЙНЫЙ АЛЬБОМ":"ФРАГМЕНТЫ ПАМЯТИ"}</text>
+    <text x="167" y="404" textAnchor="middle" fill="#e0d6c6" fontSize="16">{first===0?"СЕМЕЙНЫЙ АЛЬБОМ":"ФРАГМЕНТЫ ПАМЯТИ"}</text>
+    <text x="473" y="404" textAnchor="middle" fill="#e0d6c6" fontSize="16">{first===1?"СЕМЕЙНЫЙ АЛЬБОМ":"ФРАГМЕНТЫ ПАМЯТИ"}</text>
     <rect x="100" y="444" width="440" height="40" rx="5" fill="#242b33" stroke="#bba17b66"/>
     <text x="320" y="469" textAnchor="middle" fill="#e0c8a4" fontSize="13">{lens===null?"ВЫБЕРИТЕ СМЫСЛОВУЮ ЛИНЗУ":lenses[lens].toUpperCase()}</text>
   </svg>;
@@ -54,7 +61,7 @@ export default function MemoryJourney({data,onFinish,onReturn,articleHref}:{data
   return <div className="memoryJourney" data-memory-step={step}>
     <nav className="diveProgress memoryProgress" aria-label="Этапы третьей комнаты">{["Фрагменты","Монтаж смысла","Синтез"].map((item,i)=><span key={item} aria-current={step===i?"step":undefined} data-reached={i<=step}><i>0{i+1}</i><span>{item}</span></span>)}</nav>
     <div className="diveScene">
-      <div className="memoryStage"><MemoryField first={first} seen={seen} lens={lens}/><p>Авторская схема предметов, не кадры и не восстановленный порядок монтажа фильма.</p></div>
+      <div className="memoryStage"><div className="diveInstrumentHeader"><span lang="en">MEMORY / EDITING DESK</span><span>Авторская схема</span></div><MemoryField first={first} seen={seen} lens={lens}/><dl className="diveInstrumentReadout"><div><dt>Фрагменты</dt><dd>{seen.filter(Boolean).length} / 2</dd></div><div><dt>Первый в композиции</dt><dd>{objects[first].title}</dd></div><div><dt>Смысловая линза</dt><dd>{lens===null?"Не выбрана":lenses[lens]}</dd></div></dl><p>Авторская схема предметов, не кадры и не восстановленный порядок монтажа фильма.</p></div>
       <section className="diveRoom" aria-labelledby="memory-heading">
         <p className="diveEyebrow">MEMORY / 03</p>
         <h2 id="memory-heading" ref={heading} tabIndex={-1}>{["Две истории о себе","Измените смысловое соседство","Чья это история?"][step]}</h2>
@@ -71,7 +78,7 @@ export default function MemoryJourney({data,onFinish,onReturn,articleHref}:{data
           <div className="diveBeforeAfter"><div><small>Первый акцент</small><strong>{lenses[initial??0]}</strong></div><span aria-hidden="true">→</span><div><small>Последний акцент</small><strong>{lenses[lens??0]}</strong></div></div>
           <p>{captions[lens??0]}</p><p>Альбом и журнальные фрагменты не доказывают, что одна память истинна, а другая ложна. Но их сопоставление помогает увидеть центральный вопрос: кто вправе формировать историю человеческой жизни и насколько эта история открыта правде?</p>
           <div className="diveInsight"><strong>Открытие</strong><p>Семейная близость не исчерпывается общей памятью. Она требует правдивости, иначе рассказ о прошлом может стать способом распоряжаться настоящим другого человека.</p></div>
-          {finished?<p role="status">Третья комната исследована. Откройте «Мои открытия», чтобы связать три уровня путешествия.</p>:<button type="button" className="divePrimary" onClick={()=>{setFinished(true);onFinish({before:lenses[initial??0],after:lenses[lens??0],insight:"Личное воспоминание и рассказ о прошлом следует различать.",grounds:[captions[lens??0],first===0?"Альбом рассмотрен первым.":"Журнальные фрагменты рассмотрены первыми."]})}}>Завершить третье погружение</button>}
+          {finished?<p role="status">Третья комната исследована. Откройте «Мои открытия», чтобы связать три уровня путешествия.</p>:<button type="button" className="divePrimary" onClick={()=>{setFinished(true);onFinish({before:lenses[initial??0],after:lenses[lens??0],insight:"Личное воспоминание и рассказ о прошлом следует различать.",grounds:[captions[lens??0],first===0?"В итоговой композиции альбом поставлен первым.":"В итоговой композиции журнальные фрагменты поставлены первыми."]})}}>Завершить третье погружение</button>}
           <Link className="diveStandaloneRead" href={articleHref}>Читать анализ фильма →</Link><button type="button" className="diveChoice" onClick={onReturn}>Вернуться в FEAR</button>
         </>}
         {step>0?<button type="button" className="diveBack" onClick={()=>{setFinished(false);go(step-1)}}>← Предыдущий слой</button>:null}

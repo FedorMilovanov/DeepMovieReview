@@ -68,3 +68,6 @@
 .diveJournalShift { background:var(--instrument-panel); }
 @media (max-width:360px) { .diveJournalShift { grid-template-columns:1fr; } .diveJournalShift > span { transform:rotate(90deg); justify-self:start; } }
 @media (forced-colors:active) { .diveAtlas .diveRoomRail > [aria-current="step"],.diveAtlasToggle[aria-expanded="true"] { outline:2px solid Highlight; outline-offset:-2px; } }
+
+.memoryStage .diveInstrumentHeader [lang="en"] { color:var(--instrument-gold); }
+.memoryStage .diveInstrumentReadout dd { color:var(--instrument-gold); }

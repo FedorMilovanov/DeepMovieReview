@@ -14,13 +14,26 @@ function WaterField({ risk, trusted, memory, decision }: { risk: boolean; truste
         <linearGradient id="fear-water" x1="0" y1="0" x2="0" y2="1"><stop stopColor="#0b2836"/><stop offset=".5" stopColor="#173b51"/><stop offset="1" stopColor="#071320"/></linearGradient>
         <linearGradient id="fear-bank" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#253e47"/><stop offset="1" stopColor="#0c1a21"/></linearGradient>
         <radialGradient id="fear-light"><stop stopColor="#e9c88b" stopOpacity=".4"/><stop offset="1" stopColor="#e9c88b" stopOpacity="0"/></radialGradient>
+        <pattern id="fear-grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#a3bfce" strokeOpacity=".09"/></pattern>
       </defs>
       <rect width="640" height="560" fill="url(#fear-water)"/>
+      <rect width="640" height="560" fill="url(#fear-grid)"/>
       <g className="fearWaterLines" opacity={risk ? ".75" : ".45"} fill="none" stroke="#7ab5c7">
         {Array.from({length:15},(_,i) => <path key={i} d={`M-30 ${135+i*25} Q80 ${115+i*25-(risk?17:0)} 180 ${138+i*25} T390 ${138+i*25} T675 ${138+i*25}`} strokeWidth={i%3===0?1.6:.8}/>)}
       </g>
       <path d="M0 0H640V75L490 137L411 108L272 135L180 99L0 151Z" fill="url(#fear-bank)" stroke="#83a6ae" strokeOpacity=".6"/>
       <path d="M0 560H640V478L510 437L415 465L298 421L158 464L0 420Z" fill="url(#fear-bank)" stroke="#83a6ae" strokeOpacity=".7"/>
+      <g fill="none" stroke="#8caeb5" strokeOpacity=".24">
+        {[12,24,36].map(offset=><g key={offset}>
+          <path d="M0 151L180 99 272 135 411 108 490 137 640 75" transform={`translate(0 ${-offset})`}/>
+          <path d="M0 420L158 464 298 421 415 465 510 437 640 478" transform={`translate(0 ${offset})`}/>
+        </g>)}
+      </g>
+      <g stroke="#c1d9e3" strokeOpacity=".7" fill="none">
+        <path d="M22 44V22h22m552 0h22v22M22 516v22h22m552 0h22v-22"/>
+        <circle cx="570" cy="183" r="20" strokeOpacity=".35"/><path d="M570 165v36m-18-18h36m-18-18 5 13-5-3-5 3z"/>
+        <path d="M36 356v45m0-45h6m-6 15h4m-4 15h4m-4 15h6"/>
+      </g>
       <ellipse cx="320" cy="111" rx="100" ry="75" fill="url(#fear-light)"/>
       <g stroke="#c8b184" fill="none">
         <path d="M320 452C320 380 265 306 320 226S320 155 320 111" strokeWidth={decision===0?4:1.6} strokeDasharray={risk?"4 8":undefined} opacity={decision===2?.2:1}/>
@@ -32,7 +45,7 @@ function WaterField({ risk, trusted, memory, decision }: { risk: boolean; truste
       <g transform="translate(475 260)"><rect x="-73" y="-25" width="146" height="50" rx="5" fill="#0c1c29" stroke={trusted?"#cbb587":"#8393a2"} strokeDasharray={trusted?undefined:"3 5"}/><text x="0" y="-3" textAnchor="middle" fontSize="11" fill="#d6e0e6">ПРЕДУПРЕЖДЕНИЕ</text><text x="0" y="14" textAnchor="middle" fontSize="11" fill={trusted?"#e5c998":"#b3c4d2"}>{trusted?"ПРОВЕРЕНО":"НЕ ПРОВЕРЕНО"}</text></g>
       <text x="320" y="70" textAnchor="middle" fill="#d6d1bc" fontSize="14" letterSpacing="3">ДРУГОЙ БЕРЕГ</text>
       <text x="320" y="510" textAnchor="middle" fill="#d6d1bc" fontSize="14" letterSpacing="3">ТОЧКА РЕШЕНИЯ</text>
-      <text x="42" y="202" fill="#bbd4df" fontSize="12">{risk?"ОПАСНЫЕ УСЛОВИЯ":"ПОДТВЕРЖДЁННЫЙ ПУТЬ"}</text>
+      <text x="42" y="202" fill={risk?"#efa2a4":"#bbd4df"} fontSize="15">{risk?"ОПАСНЫЕ УСЛОВИЯ":"ПРИЕМЛЕМЫЕ УСЛОВИЯ"}</text>
     </svg>
   );
 }
@@ -56,7 +69,9 @@ export default function FearJourney({data,onFinish,onReturn,articleHref}: {data:
       <nav className="diveProgress fearProgress" aria-label="Этапы второй комнаты">{levels.map((item,i)=><span key={item} aria-current={step===i?"step":undefined} data-reached={i<=step}><i>0{i+1}</i><span>{item}</span></span>)}</nav>
       <div className="diveScene">
         <div className="fearStage">
+          <div className="diveInstrumentHeader"><span lang="en">FEAR / CROSSING STUDY</span><span>Условная модель</span></div>
           <WaterField risk={risk} trusted={trusted} memory={memory} decision={action}/>
+          <dl className="diveInstrumentReadout"><div><dt>Условия</dt><dd data-warning={risk}>{risk?"Опасные":"Приемлемые"}</dd></div><div><dt>Предупреждение</dt><dd>{trusted?"Проверено":"Не проверено"}</dd></div><div><dt>Память</dt><dd>{memory?"Включена":"Скрыта"}</dd></div></dl>
           <p>Условная пространственная модель · не география фильма и не прогноз безопасности переправы</p>
         </div>
         <section className="diveRoom fearRoom" aria-labelledby="fear-heading">
