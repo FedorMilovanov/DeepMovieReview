@@ -7,9 +7,6 @@ import { ExperienceQualityProvider } from "@/components/experience/experience-qu
 import { MoralLensCursor } from "@/components/moral-lens-cursor";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { requireFilmPackageBySlug } from "@/data/film-registry";
-import { getDiveOpening } from "@/lib/dive-opening";
-import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { resolveSiteOrigin } from "@/lib/site-publication-policy";
 import { siteIndexingEnabled } from "@/lib/site-indexing";
 // This side-effect import executes the fail-closed visual manifest registry assertion.
@@ -29,20 +26,12 @@ import "../styles/film-modules.css";
 import "../styles/film-verdict.css";
 import "../styles/experience.css";
 
-const homepageFilmPackage = requireFilmPackageBySlug(homepageFeaturedFilmSlug);
-const previewContentEnabled = isPreviewContentEnabled();
 
 /* Canonical origin for metadata URLs (og:image etc.). Without an explicit
    metadataBase Next falls back to localhost:3000, which social crawlers
    cannot resolve. Pages are statically prerendered, so this is read at
    BUILD time — set DMR_SITE_URL in the deploy build environment. */
 const siteOrigin = resolveSiteOrigin();
-
-if (homepageFilmPackage.film.status === "draft" && !previewContentEnabled) {
-  throw new Error(
-    `Configured homepage feature "${homepageFeaturedFilmSlug}" is draft content. Enable DMR_PREVIEW_CONTENT_ENABLED only for an intentional preview build, or publish/select a safe homepage feature.`,
-  );
-}
 
 const indexingEnabled = siteIndexingEnabled();
 
@@ -111,7 +100,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <a className="skipLink" href="#main">Перейти к содержимому</a>
         <ExperienceQualityProvider>
           <div className="appShell">
-            <SiteHeader diveHref={homepageFilmPackage.film.status === "published" && getDiveOpening(homepageFilmPackage) ? `/films/${homepageFeaturedFilmSlug}/dive` : undefined} />
+            <SiteHeader />
             {/* tabIndex -1 lets the skip link move keyboard focus into main,
                 not just scroll to it (WCAG 2.4.1). */}
             <main id="main" tabIndex={-1}>{children}</main>

@@ -125,3 +125,11 @@
  .filmRow { grid-template-columns:20px minmax(58px,72px) minmax(0,1fr); padding:.55rem; gap:.4rem; }
 }
 @media (forced-colors:active) { .filmRow:focus-visible { outline:2px solid Highlight; } }
+
+/* Journal and catalogue use the same spoiler-safe jacket and ordinary link. */
+.journalFilms { padding-block:clamp(3rem,7vw,6rem); }
+.journalFilms h2 { font:400 clamp(2rem,4vw,3.8rem)/1.15 Georgia,"Times New Roman",serif; text-transform:none; letter-spacing:-.03em; }
+.journalFilms .sectionIntro { max-width:64ch; }
+.filmRowTeaser { font-size:.94rem; line-height:1.55; color:var(--ink-2); max-width:54ch; }
+.filmRowRead { color:var(--ink-1); font-size:.84rem; text-decoration:underline; text-underline-offset:.2em; }
+@media (max-width:640px) { .filmRowTeaser { font-size:.82rem; } .filmRowMeta { align-items:baseline; } }

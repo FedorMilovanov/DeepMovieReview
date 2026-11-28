@@ -21,8 +21,7 @@ export function SiteFooter() {
       </div>
       <nav className="footerNav" aria-label="Карта сайта">
         <Link href="/films">Фильмы</Link>
-        <Link href="/#lenses">Шесть линз</Link>
-        <Link href="/methodology">Методология</Link>
+        <Link href="/methodology">О журнале</Link>
       </nav>
       <div className="footerMeta">
         <p>Опубликовано: {publishedCount} {pluralRu(publishedCount, "разбор", "разбора", "разборов")}</p>

@@ -2,16 +2,11 @@
 
 import { useMemo, useRef, useState } from "react";
 import { FilmMediaFrame } from "@/components/film-media-frame";
-import { FilmTransitionLink } from "@/components/film-transition-link";
-import { filterFilmIndex, type FilmIndexSearchEntry } from "@/lib/film-index";
-import { pluralRu } from "@/lib/plural-ru";
+import Link from "next/link";
+import { filterFilmIndex, type FilmIndexEntry } from "@/lib/film-index";
 import { useHydrated } from "@/lib/use-hydrated";
 
-export type FilmIndexEntry = FilmIndexSearchEntry & {
-  slug: string;
-  modules: number;
-  position: number;
-};
+export type { FilmIndexEntry } from "@/lib/film-index";
 
 /**
  * Client-side index filter. The full list renders in SSR (empty query is
@@ -25,6 +20,7 @@ export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
 
   return (
     <>
+      {films.length > 1 ? <>
       <div className="filmFilter">
         <label htmlFor="film-filter">Поиск по индексу</label>
         <div className="filmFilterField">
@@ -47,21 +43,17 @@ export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
       <p className="filmFilterCount" aria-live="polite">
         Показано {visible.length} из {films.length}
       </p>
+      </> : null}
       <div className="filmList">
         {visible.map((film) => (
-          <FilmTransitionLink
-            className="filmRow"
-            href={`/films/${film.slug}`}
-            key={film.slug}
-            slug={film.slug}
-          >
+          <Link className="filmRow" href={`/films/${film.slug}`} key={film.slug} prefetch={false}>
             <span className="filmRowIndex">{String(film.position).padStart(3, "0")}</span>
             <FilmMediaFrame slug={film.slug} variant="index" />
-            <span className="filmRowTitle"><strong>{film.title}</strong>{film.originalTitle && film.originalTitle!==film.title ? <small>{film.originalTitle}</small>:null}</span>
+            <span className="filmRowTitle"><strong>{film.title}</strong>{film.originalTitle && film.originalTitle!==film.title ? <small>{film.originalTitle}</small>:null}{film.teaser ? <span className="filmRowTeaser">{film.teaser}</span>:null}</span>
             <span className="filmRowMeta">
-              <span className="filmRowYear">{film.year}</span><span className="filmRowStatus">{film.status}</span><span>{film.modules} {pluralRu(film.modules, "модуль", "модуля", "модулей")}</span>
+              <span className="filmRowYear">{film.year}</span>{!film.published ? <span className="filmRowStatus">{film.status}</span>:null}<span className="filmRowRead">{film.published ? "Читать разбор" : "Предпросмотр"} <span aria-hidden="true">→</span></span>
             </span>
-          </FilmTransitionLink>
+          </Link>
         ))}
       </div>
       {visible.length === 0 ? (

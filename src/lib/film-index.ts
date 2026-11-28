@@ -40,3 +40,27 @@ export function filmIndexStatusLabel(filmPackage: FilmPackage): string {
   if (filmPackage.film.status === "published") return "опубликовано";
   return filmPackage.article ? "статья · предпросмотр" : "черновик · статьи нет";
 }
+
+export type FilmIndexEntry = FilmIndexSearchEntry & {
+  slug: string;
+  position: number;
+  published: boolean;
+  teaser?: string;
+};
+
+/** One registry projection for the journal and catalogue. Only an explicit
+ * spoiler-free teaser may leave the package; no scene, article or module
+ * data is projected into the public card. Preview drafts are opt-in. */
+export function projectFilmIndex(packages: readonly FilmPackage[], includePreview = false): FilmIndexEntry[] {
+  return packages.filter(pkg => pkg.film.status === "published" || includePreview)
+    .map((pkg, index) => ({
+      slug: pkg.film.slug,
+      title: pkg.film.title,
+      originalTitle: pkg.film.originalTitle,
+      year: pkg.film.year,
+      status: filmIndexStatusLabel(pkg),
+      position: index + 1,
+      published: pkg.film.status === "published",
+      teaser: pkg.film.status === "published" ? pkg.film.catalogTeaser : undefined,
+    }));
+}

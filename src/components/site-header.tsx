@@ -7,18 +7,17 @@ import { useHydrated } from "@/lib/use-hydrated";
 
 const NAV_LINKS = [
   { href: "/films", label: "Фильмы" },
-  { href: "/#lenses", label: "Обзор" },
-  { href: "/methodology", label: "Методология" },
+  { href: "/methodology", label: "О журнале" },
 ] as const;
 
 /**
  * Site header: low-contrast at top, gains a solid surface after the first
  * scroll; collapses to an accessible disclosure menu on narrow viewports.
  */
-export function SiteHeader({diveHref}: {diveHref?:string}) {
+export function SiteHeader() {
   const pathname = usePathname();
-  const observatory = pathname === "/" && Boolean(diveHref);
-  const navLinks = diveHref ? [{href:diveHref,label:"DIVE"},...NAV_LINKS] : NAV_LINKS;
+  const observatory = pathname === "/";
+  const navLinks = NAV_LINKS;
   const hydrated = useHydrated();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);

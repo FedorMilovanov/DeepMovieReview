@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { filmIndexStatusLabel } from "@/lib/film-index";
-import { FilmIndexFilter, type FilmIndexEntry } from "@/components/film-index-filter";
+import { projectFilmIndex } from "@/lib/film-index";
+import { FilmIndexFilter } from "@/components/film-index-filter";
 import { filmPackages } from "@/data/film-registry";
 import { isPreviewContentEnabled } from "@/data/site-config";
 
@@ -14,7 +14,7 @@ export default function FilmsPage() {
   const publishedPackages = filmPackages.filter((filmPackage) => filmPackage.film.status === "published");
   const previewContentEnabled = isPreviewContentEnabled();
   const isPrelaunch = publishedPackages.length === 0;
-  const visiblePackages = previewContentEnabled ? filmPackages : publishedPackages;
+  const visiblePackages = projectFilmIndex(filmPackages, previewContentEnabled);
 
   return (
     <section className="sectionShell filmIndexHero" aria-labelledby="films-title">
@@ -36,15 +36,7 @@ export default function FilmsPage() {
         <p className="fixtureNotice">Опубликованных разборов пока нет.</p>
       ) : (
         <FilmIndexFilter
-          films={visiblePackages.map((filmPackage, index): FilmIndexEntry => ({
-            slug: filmPackage.film.slug,
-            title: filmPackage.film.title,
-            originalTitle: filmPackage.film.originalTitle,
-            year: filmPackage.film.year,
-            status: filmIndexStatusLabel(filmPackage),
-            modules: filmPackage.modules.length,
-            position: index + 1,
-          }))}
+          films={visiblePackages}
         />
       )}
     </section>
