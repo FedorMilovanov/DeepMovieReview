@@ -714,50 +714,60 @@ try {
       assert.equal(await catalogueCard.locator(".filmRowTeaser").innerText(), jacket);
       return {jacket};
     }));
-  await check("journal emblem plays the real circular video only on deliberate hover", () =>
+  await check("journal emblem is a single frozen video surface with natural playback", () =>
     withPage({ viewport: { width: 1440, height: 900 }, reducedMotion:"no-preference" }, "emblem-hover", async page => {
       await page.goto(base, { waitUntil:"load" });
       const brand=page.locator(".siteHeader .brand");
       const video=page.locator(".brandEmblemVideo");
-      assert.equal(await video.count(),0,"no video requested on cold entry");
+      assert.equal(await video.count(),1,"one surface even before hover");
+      assert.equal(await video.getAttribute("src"),null,"no video requested on cold entry");
+      assert.equal(await video.getAttribute("poster"),"/art/deep-waters-emblem.png");
+      assert.equal(await brand.locator("img").count(),0,"no mismatched overlaid image");
       await page.waitForFunction(()=>Boolean(document.documentElement.dataset.experienceMode));
+      const bounds=await video.boundingBox();
       await brand.hover();
-      await video.waitFor({state:"visible"});
-      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime > .6 && v.dataset.playing==="true" && v.dataset.seam==="false" && Number(getComputedStyle(v).opacity)>.9;});
-      const details=await video.evaluate(v=>({muted:v.muted,loop:v.loop,width:v.videoWidth,height:v.videoHeight,duration:v.duration,mask:getComputedStyle(v).maskImage||getComputedStyle(v).webkitMaskImage,clip:getComputedStyle(v).clipPath}));
-      assert.ok(details.muted && details.loop && details.width===96 && details.height===96);
-      assert.ok(details.duration >= 9.9 && details.duration <= 10.2,"full original motion, not the shortened ping-pong segment");
-      assert.match(details.mask,/radial-gradient/);
-      assert.match(details.clip,/circle/);
-      // Let the actual playback clock advance; a synthetic seek cannot prove
-      // that the full clip keeps playing while the pointer stays over the mark.
-      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>8.5 && Number(getComputedStyle(v).opacity)>.9;},undefined,{timeout:15000});
-      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && v.dataset.seam==="true" && Number(getComputedStyle(v).opacity)<.1;});
-      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && v.currentTime>.6 && v.currentTime<3 && v.dataset.seam==="false" && Number(getComputedStyle(v).opacity)>.9;});
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>.6;});
+      const details=await video.evaluate(v=>({muted:v.muted,loop:v.loop,width:v.videoWidth,height:v.videoHeight,duration:v.duration,opacity:getComputedStyle(v).opacity,transform:getComputedStyle(v).transform,filter:getComputedStyle(v).filter}));
+      assert.ok(details.muted && details.loop && details.width===144 && details.height===144);
+      assert.ok(details.duration >= 10.6 && details.duration <= 10.9,"full motion plus encoded seam");
+      assert.equal(details.opacity,"1");
+      assert.equal(details.transform,"none");
+      assert.equal(details.filter,"none");
+      assert.deepEqual(await video.boundingBox(),bounds,"hover cannot change position or size");
+      await video.screenshot({path:`${dir}/emblem-playing.png`});
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>9.7;},undefined,{timeout:15000});
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime<1;});
+      await page.waitForFunction(()=>document.querySelector(".brandEmblemVideo").currentTime>1.5);
       await page.mouse.move(400,200);
-      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && v.paused && v.dataset.playing==="false";});
+      await page.waitForFunction(()=>document.querySelector(".brandEmblemVideo").paused);
+      const frozen=await video.evaluate(v=>v.currentTime);
+      await page.waitForTimeout(300);
+      assert.ok(Math.abs((await video.evaluate(v=>v.currentTime))-frozen)<.04,"frame freezes without a seek or substitution");
+      await video.screenshot({path:`${dir}/emblem-frozen.png`});
       await brand.hover();
-      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>.3 && v.currentTime<2 && v.dataset.seam==="false";});
+      await page.waitForFunction(t=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>t+.2;},frozen);
       await page.mouse.move(400,200);
-      // A rapid re-entry must not be stranded by a stale play/pause event.
-      for(let i=0;i<5;i++){
-        await brand.hover();
-        await page.mouse.move(400,200);
-      }
+      for(let i=0;i<5;i++){await brand.hover();await page.mouse.move(400,200);}
       await brand.hover();
-      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>.6 && v.dataset.seam==="false" && Number(getComputedStyle(v).opacity)>.9;});
+      await page.waitForFunction(()=>!document.querySelector(".brandEmblemVideo").paused);
       await page.emulateMedia({reducedMotion:"reduce"});
-      await video.waitFor({state:"detached"});
+      await page.waitForFunction(()=>document.querySelector(".brandEmblemVideo").paused);
       await page.emulateMedia({reducedMotion:"no-preference"});
       await page.waitForFunction(()=>document.documentElement.dataset.reducedMotion==="false");
-      const stopped=await video.evaluate(v=>v.paused && v.dataset.playing==="false");
-      assert.ok(stopped,"restoring motion cannot restart an old hover");
+      assert.ok(await video.evaluate(v=>v.paused),"restoring motion cannot restart an old hover");
       await page.mouse.move(400,200);
-      await page.emulateMedia({reducedMotion:"reduce"});
-      await video.waitFor({state:"detached"});
-      await brand.hover();
-      assert.equal(await video.count(),0,"reduced motion prevents playback");
       return details;
+    }));
+  await check("touch and reduced-motion entry keep the emblem as its poster", () =>
+    withPage({ viewport:{width:390,height:844},hasTouch:true,reducedMotion:"reduce" },"emblem-static-mobile",async page=>{
+      await page.goto(base,{waitUntil:"load"});
+      const brand=page.locator(".siteHeader .brand"), video=page.locator(".brandEmblemVideo");
+      await brand.hover();
+      assert.equal(await video.getAttribute("src"),null);
+      assert.ok(await video.evaluate(v=>v.paused));
+      const rect=await brand.boundingBox();
+      assert.ok(rect.width>=44 && rect.height>=44,"mobile link remains a usable target");
+      await video.screenshot({path:`${dir}/emblem-mobile.png`});
     }));
   await check("desktop navigation reselects the journal fragment with keyboard focus", () =>
     withPage({ viewport: { width: 1440, height: 900 } }, "journal-desktop-navigation", async page => {

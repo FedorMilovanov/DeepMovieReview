@@ -5916,8 +5916,8 @@ test("the page survives paper, anchors and the sticky header", () => {
   }
   assert.match(
     header,
-    /className="brandMark" aria-hidden="true"><Image src="\/art\/deep-waters-emblem\.png" alt=""/,
-    "the decorative PNG emblem must not enter the accessible link name",
+    /className="brandMark" aria-hidden="true"><video[\s\S]*?poster="\/art\/deep-waters-emblem\.png"/,
+    "the decorative video emblem must not enter the accessible link name",
   );
 
   // A bare `1fr` track grows to its widest child's min-content; the shell clips

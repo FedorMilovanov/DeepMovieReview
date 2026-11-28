@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -23,34 +22,32 @@ export function SiteHeader() {
   const hydrated = useHydrated();
   const { reducedMotion, forcedColors, experienceMode, documentVisible } = useExperienceQuality();
   const emblemVideoRef = useRef<HTMLVideoElement>(null);
-  const [emblemRequested, setEmblemRequested] = useState(false);
-  const [emblemHovered, setEmblemHovered] = useState(false);
-  const [emblemCycle, setEmblemCycle] = useState(0);
-  const [emblemPlaying, setEmblemPlaying] = useState(false);
-  const [emblemAtSeam, setEmblemAtSeam] = useState(true);
-  const [emblemFailed, setEmblemFailed] = useState(false);
+  const emblemSession = useRef(0);
+  const emblemFailed = useRef(false);
   const emblemAllowed = hydrated && !reducedMotion && !forcedColors && experienceMode !== "lite" && documentVisible;
-  const emblemActive = emblemAllowed && emblemHovered && !emblemFailed;
-  // Losing permission or visibility ends the hover session; it must never
-  // resume by itself when the tab becomes visible or motion is re-enabled.
-  if (!emblemAllowed && emblemHovered) setEmblemHovered(false);
 
-  // Keep the original bronze rim visible; load only on a deliberate mouse hover.
+  // One persistent video surface: poster = decoded first frame. Pausing
+  // leaves the actual decoded frame on screen, with no image substitution.
   useEffect(() => {
     const video = emblemVideoRef.current;
-    if (!video) return;
-    if (!emblemActive) { video.pause(); return; }
-    let current = true;
-    void video.play().catch((error: unknown) => {
-      if (current && !(error instanceof DOMException && error.name === "AbortError")) setEmblemFailed(true);
-    });
-    return () => { current = false; video.pause(); };
-  }, [emblemActive, emblemRequested, emblemCycle]);
+    if (!emblemAllowed) {
+      emblemSession.current++;
+      video?.pause();
+    }
+    return () => { emblemSession.current++; video?.pause(); };
+  }, [emblemAllowed, pathname]);
 
   function endEmblemHover() {
-    setEmblemHovered(false);
-    setEmblemPlaying(false);
+    emblemSession.current++;
     emblemVideoRef.current?.pause();
+  }
+
+  function restoreEmblemPoster(video: HTMLVideoElement) {
+    emblemFailed.current = true;
+    emblemSession.current++;
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
   }
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -152,29 +149,23 @@ export function SiteHeader() {
           if (event.pointerType !== "mouse" || !emblemAllowed || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
           const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
           if (connection?.saveData || ["slow-2g", "2g"].includes(connection?.effectiveType ?? "")) return;
-          if (emblemFailed) return;
           const video = emblemVideoRef.current;
-          video?.pause();
-          if (video && video.readyState >= 1) video.currentTime = 0;
-          setEmblemAtSeam(true);
-          setEmblemPlaying(false);
-          setEmblemRequested(true);
-          setEmblemCycle(value => value + 1);
-          setEmblemHovered(true);
+          if (!video || emblemFailed.current) return;
+          const session = ++emblemSession.current;
+          video.muted = true;
+          if (!video.getAttribute("src")) video.src = "/art/deep-waters-hover.mp4";
+          void video.play().catch((error: unknown) => {
+            if (session !== emblemSession.current || (error instanceof DOMException && error.name === "AbortError")) return;
+            restoreEmblemPoster(video);
+          });
         }}
         onPointerLeave={endEmblemHover}
         onPointerCancel={endEmblemHover}
       >
-        <span className="brandMark" aria-hidden="true"><Image src="/art/deep-waters-emblem.png" alt="" width={128} height={128} loading="eager" unoptimized />
-          {emblemRequested && emblemAllowed && !emblemFailed ? <video ref={emblemVideoRef} className="brandEmblemVideo" src="/art/deep-waters-hover.mp4" data-playing={emblemActive && emblemPlaying} data-seam={emblemAtSeam} muted loop playsInline preload="none" disablePictureInPicture disableRemotePlayback tabIndex={-1} aria-hidden="true"
-            onLoadStart={() => setEmblemAtSeam(true)}
-            onTimeUpdate={event => {
-              const { currentTime, duration } = event.currentTarget;
-              // Fade to the exact static artwork before the native loop wraps.
-              setEmblemAtSeam(!Number.isFinite(duration) || currentTime < .16 || duration - currentTime < .55);
-            }}
-            onPlaying={event => { if (!event.currentTarget.paused) setEmblemPlaying(true); }} onPause={event => { if (event.currentTarget.paused) setEmblemPlaying(false); }} onWaiting={() => setEmblemPlaying(false)} onError={() => setEmblemFailed(true)} /> : null}
-        </span>
+        <span className="brandMark" aria-hidden="true"><video ref={emblemVideoRef} className="brandEmblemVideo"
+          poster="/art/deep-waters-emblem.png" width={144} height={144} muted loop playsInline preload="none"
+          disablePictureInPicture disableRemotePlayback tabIndex={-1} aria-hidden="true"
+          onError={event => { if (event.currentTarget.getAttribute("src")) restoreEmblemPoster(event.currentTarget); }} /></span>
         <span className="brandText"><strong lang="en">DEEP WATERS</strong>{" "}<small>Глубокие воды</small></span>
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">
