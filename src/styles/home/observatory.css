@@ -127,7 +127,7 @@
   .observatoryMain { padding-block-start:1.1rem; padding-block-end:6rem; }
   .observatoryFeatureTitle small { font-size:.6rem; }
 }
-@media (prefers-reduced-motion:reduce) { .observatoryHero * { animation:none!important; transition:none!important; } .observatoryVideo { display:none; } .observatoryCta:hover .observatoryCtaArrow { transform:none; } }
+
 @media (forced-colors:active) { .observatoryScene { display:none; } .observatoryHero,.observatoryHero .observatoryCta,.observatoryRead,.observatoryPause { color:CanvasText; background:Canvas; border-color:CanvasText; box-shadow:none; } }
 
 /* Editorial optical system: one decisive entrance, quiet utilities, no duplicate arrows. */
@@ -179,4 +179,13 @@
 @media (max-width:360px) {
  .siteHeader[data-observatory] .brandText strong { font-size:.8rem; letter-spacing:.08em; }
  .siteHeader[data-observatory] .brandText small { font-size:.57rem; }
+}
+
+/* Match the original state selectors so stillness wins without force priority. */
+@media (prefers-reduced-motion:reduce) {
+ .observatoryHero[data-motion="on"] :is(.observatoryPicture img,.observatoryLight,.observatorySuspension,.observatoryCaustics),
+ .observatoryHero[data-entering="true"] :is(.observatoryScene,.observatoryEditorial) { animation:none; }
+ .observatoryHero :is(.observatoryVideo,.observatoryCta,.observatoryCta::before,.observatoryCtaArrow) { transition:none; }
+ .observatoryHero .observatoryCta:hover .observatoryCtaArrow { transform:none; }
+ .observatoryVideo { display:none; }
 }

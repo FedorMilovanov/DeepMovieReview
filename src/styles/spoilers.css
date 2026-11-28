@@ -130,3 +130,20 @@
 @media (max-width:640px) { .spoilerOption { justify-content:flex-start; text-align:start; min-width:0; padding:.55rem .5rem; } .spoilerOption span:last-of-type { overflow-wrap:anywhere; } .spoilerSelectedMark { margin-inline-start:auto; } }
 @media (prefers-reduced-motion:reduce) { .spoilerOption { transition:none; } }
 @media (forced-colors:active) { .spoilerOptionActive { outline:2px solid Highlight; outline-offset:-2px; } .spoilerDepth i { background:GrayText; forced-color-adjust:none; } .spoilerDepth i[data-filled="true"] { background:Highlight; } }
+
+/* Reserve the selected mark on every level, avoiding a reflow on navigation. */
+.spoilerOption { border-color:var(--instrument-line-strong); }
+.spoilerOptionActive,.spoilerOptionActive:hover,.spoilerOptionActive:focus-visible { border-color:var(--instrument-gold); }
+.spoilerSelectedMark { margin-inline-start:auto; }
+.spoilerSelectedMark[data-selected="false"] { visibility:hidden; }
+.spoilerDepth i { opacity:1; }
+@media (min-width:641px) {
+ .spoilerOptions { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,9.25rem),1fr)); }
+ .spoilerOption { min-width:0; justify-content:flex-start; }
+ .spoilerOption > span:last-of-type { overflow-wrap:anywhere; }
+}
+@media (max-width:380px) {
+ .spoilerOption { gap:.35rem; padding-inline:.45rem; }
+ .spoilerSelectedMark { width:12px; height:12px; }
+ .spoilerDepth { gap:1px; }
+}

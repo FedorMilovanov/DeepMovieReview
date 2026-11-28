@@ -31,7 +31,7 @@ export function SpoilerLevelControl({ pathname, current }: SpoilerLevelControlPr
               {SPOILER_LEVELS.slice(1).map((mark, markIndex) => <i key={mark} data-filled={markIndex < index}/>)}
             </span>
             <span>{LABELS[level]}</span>
-            {level === current ? <svg className="spoilerSelectedMark" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3 8 3 3 7-7"/></svg> : null}
+            <svg className="spoilerSelectedMark" data-selected={level === current} viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3 8 3 3 7-7"/></svg>
           </a>
         ))}
       </div>
