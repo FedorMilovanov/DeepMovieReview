@@ -14,36 +14,36 @@ function MemoryField({first,seen,lens}:{first:number;seen:boolean[];lens:number|
       <linearGradient id="memory-paper" x1="0" x2="1" y1="0" y2="1"><stop stopColor="#e9ddbd"/><stop offset="1" stopColor="#8c7c60"/></linearGradient>
       <pattern id="memory-grain" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M0 10L30 8M0 22L30 24" stroke="#dac6a8" strokeOpacity=".09" fill="none"/></pattern>
     </defs>
-    <rect width="640" height="520" fill="#1a2028"/><rect width="640" height="520" fill="url(#memory-glow)"/><rect width="640" height="520" fill="url(#memory-grain)"/>
+    <rect width="640" height="520" fill="#1f1f1f"/><rect width="640" height="520" fill="url(#memory-glow)"/><rect width="640" height="520" fill="url(#memory-grain)"/>
     <g fill="none" stroke="#ceb38b" opacity=".3">
       <path d="M24 50V26h24m544 0h24v24M24 470v24h24m544 0h24v-24"/>
       <path d="M320 125v250M40 264h560" strokeDasharray="2 7"/>
       <path d="M30 148h580M30 378h580"/>
     </g>
     <g fill="#e1cba9" fontSize="12" fontFamily="monospace">
-      <text x="40" y="44">01 / ARCHIVE</text><text x="600" y="44" textAnchor="end">02 / FRAGMENTS</text>
+      <text x="40" y="44">01 / FRAME</text><text x="600" y="44" textAnchor="end">02 / FRAME</text>
     </g>
     <path d="M115 265Q320 95 525 265" fill="none" stroke="#d3b88a" strokeOpacity={seen.every(Boolean)?".9":".25"} strokeWidth="2" strokeDasharray={seen.every(Boolean)?undefined:"5 8"}/>
     <g className="memoryAlbum" transform={`translate(${first===0?167:473} 264) rotate(-8)`} opacity={seen[0]?1:.42}>
       <rect x="-105" y="-89" width="210" height="174" rx="7" fill="#49382a" stroke="#b09a78" strokeWidth="2"/>
       <path d="M-94 -76H-7V72H-94ZM7 -76H94V72H7Z" fill="url(#memory-paper)" stroke="#d4c2a1"/>
       <path d="M0 -76V72" stroke="#6b5540" strokeWidth="2"/>
-      {[-1,1].map(n=><g key={n} transform={`translate(${n*49} -22)`}><rect x="-32" y="-34" width="64" height="68" fill="#29313a" stroke="#f1dfbf" strokeWidth="4"/><circle cy="-10" r="10" fill="#8c9ca2"/><path d="M-23 27Q-22 0 0 0T23 27" fill="#73858e"/></g>)}
+      {[-1,1].map(n=><g key={n} transform={`translate(${n*49} -22)`}><rect x="-32" y="-34" width="64" height="68" fill="#303030" stroke="#f1dfbf" strokeWidth="4"/><circle cy="-10" r="10" fill="#999999"/><path d="M-23 27Q-22 0 0 0T23 27" fill="#828282"/></g>)}
       <path d="M-83 43H-16M17 43H83M-83 52H-33M17 52H64" stroke="#655746" strokeWidth="2" opacity=".6"/>
     </g>
     <g className="memoryFragments" transform={`translate(${first===1?167:473} 264) rotate(7)`} opacity={seen[1]?1:.42}>
       <path d="M-94 -90L-8 -78L-19 -15L-105 -25Z" fill="#c6bdab" stroke="#ddd3bc"/>
-      <path d="M5 -94L98 -80L87 -18L10 -15Z" fill="#a8b2b5" stroke="#e0d7c6"/>
-      <path d="M-100 -7L-12 -2L-15 78L-91 86Z" fill="#8d9fa7" stroke="#e2dbce"/>
+      <path d="M5 -94L98 -80L87 -18L10 -15Z" fill="#b0b0b0" stroke="#e0d7c6"/>
+      <path d="M-100 -7L-12 -2L-15 78L-91 86Z" fill="#9c9c9c" stroke="#e2dbce"/>
       <path d="M1 0L100 -3L90 87L6 75Z" fill="#c6aa84" stroke="#e0d7c6"/>
-      <path d="M-70 -50Q-48 -69 -26 -45M35 -52Q61 -69 79 -45M-62 45Q-25 23 10 43M27 29Q60 57 77 19" fill="none" stroke="#354753" strokeWidth="3" opacity=".72"/>
+      <path d="M-70 -50Q-48 -69 -26 -45M35 -52Q61 -69 79 -45M-62 45Q-25 23 10 43M27 29Q60 57 77 19" fill="none" stroke="#444444" strokeWidth="3" opacity=".72"/>
     </g>
     <g fill="none" stroke="#ceb38b"><circle cx="320" cy="108" r="25" fill="#a38d6a" fillOpacity=".15"/><circle cx="320" cy="108" r="34" strokeDasharray="3 6" opacity=".5"/></g>
     <path d="M320 95V121M307 108H333" stroke="#e0c49b"/>
     <text x="320" y="62" textAnchor="middle" fill="#e1cba9" fontSize="13" letterSpacing="3">ДВА ФРАГМЕНТА</text>
     <text x="167" y="404" textAnchor="middle" fill="#e0d6c6" fontSize="16">{first===0?"СЕМЕЙНЫЙ АЛЬБОМ":"ФРАГМЕНТЫ ПАМЯТИ"}</text>
     <text x="473" y="404" textAnchor="middle" fill="#e0d6c6" fontSize="16">{first===1?"СЕМЕЙНЫЙ АЛЬБОМ":"ФРАГМЕНТЫ ПАМЯТИ"}</text>
-    <rect x="100" y="444" width="440" height="40" rx="5" fill="#242b33" stroke="#bba17b66"/>
+    <rect x="100" y="444" width="440" height="40" rx="5" fill="#2a2a2a" stroke="#bba17b66"/>
     <text x="320" y="469" textAnchor="middle" fill="#e0c8a4" fontSize="13">{lens===null?"ВЫБЕРИТЕ СМЫСЛОВУЮ ЛИНЗУ":lenses[lens].toUpperCase()}</text>
   </svg>;
 }
