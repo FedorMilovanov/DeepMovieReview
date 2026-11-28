@@ -82,32 +82,38 @@ export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;f
       <div className="observatoryShade"/>
     </div>
     <div className="observatoryMain">
-      <p className="observatoryKicker"><span aria-hidden="true"/> Интерактивный анализ кино <span aria-hidden="true"/></p>
-      <h1 id="hero-title">Здесь кино становится исследованием</h1>
-      <p className="observatoryIntro">Войдите в историю. Рассмотрите мотивы героев, исследуйте их выбор и откройте смысл фильма.</p>
-      <div className="observatoryActions">
-        <Link className="buttonPrimary observatoryCta" href={diveHref} onClick={enter}>
-          <span className="observatoryCtaIcon" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="13"/><path d="M18 7v5m0 12v5M7 18h5m12 0h5"/><path d="m18 12 4 6-4 6-4-6z" fill="currentColor" stroke="none"/></svg></span>
-          <span className="observatoryCtaCopy"><strong>Войти в исследование</strong><small>Интерактивное погружение</small></span>
-          <svg className="observatoryCtaArrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
-        </Link>
-        <Link className="observatoryRead" href={articleHref}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v15M3 4c4 0 6 0 9 2 3-2 5-2 9-2v14c-4 0-6 0-9 2-3-2-5-2-9-2z"/></svg>Читать статью</Link>
+      <div className="observatoryEditorial">
+        <p className="observatoryKicker" lang="en"><span aria-hidden="true"/> CINEMA · HUMAN NATURE · WORLDVIEW</p>
+        <h1 id="hero-title" lang="en"><span>Look beyond</span><em>the frame.</em></h1>
+        <p className="observatoryPromise">Здесь кино становится исследованием.</p>
+        <p className="observatoryIntro">Разгадывайте мотивы героев, исследуйте последствия их решений и открывайте глубинный смысл истории.</p>
+        <div className="observatoryActions">
+          <Link className="buttonPrimary observatoryCta" href={diveHref} onClick={enter}>
+            <span className="observatoryCtaIcon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="20" opacity=".35"/><circle cx="24" cy="24" r="15" strokeDasharray="64 30" transform="rotate(-45 24 24)"/><circle cx="24" cy="24" r="9" opacity=".65"/><path d="M16 24h16m-6-6 6 6-6 6"/></svg></span>
+            <span className="observatoryCtaCopy"><strong>Войти в исследование</strong><small lang="en">DIVE INTO THE STORY</small></span>
+            <svg className="observatoryCtaArrow" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg>
+          </Link>
+          <Link className="observatoryRead" href={articleHref}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v15M3 4c4 0 6 0 9 2 3-2 5-2 9-2v14c-4 0-6 0-9 2-3-2-5-2-9-2z"/></svg>Читать статью</Link>
+        </div>
       </div>
     </div>
     <div className="observatoryFeature">
       <div className="observatoryFeatureTitle">
-        <small><i aria-hidden="true"/> Первое погружение · без спойлеров</small>
-        <Link href={articleHref} className="observatoryFilmTitle">{filmTitle}</Link>
-        <p>Что происходит, когда привычный мир начинает вызывать вопросы?</p>
+        <span className="observatoryEdition" lang="en">DIVE <span>01</span></span>
+        <div>
+          <small>Первое погружение · без спойлеров</small>
+          <Link href={articleHref} className="observatoryFilmTitle">{filmTitle}</Link>
+          <p>Что происходит, когда привычный мир начинает вызывать вопросы?</p>
+        </div>
       </div>
       <div className="observatoryStages" aria-label="Как устроено исследование">
-        <div><span className="observatoryStageNumber">01</span><strong>Увидеть</strong><small>Деталь меняет взгляд</small></div>
-        <div><span className="observatoryStageNumber">02</span><strong>Выбрать</strong><small>Развилка решений</small></div>
-        <div><span className="observatoryStageNumber">03</span><strong>Осмыслить</strong><small>Смысл и последствия</small></div>
+        <div><span className="observatoryStageNumber" lang="en">OBSERVE</span><strong>Увидеть</strong></div>
+        <div><span className="observatoryStageNumber" lang="en">CHOOSE</span><strong>Выбрать</strong></div>
+        <div><span className="observatoryStageNumber" lang="en">REFLECT</span><strong>Осмыслить</strong></div>
       </div>
+      {canMove?<button type="button" className="observatoryPause" aria-label={paused?"Оживить фон":"Остановить фон"} aria-pressed={paused} onClick={()=>setPaused(v=>!v)}>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">{paused?<path d="m9 5 11 7-11 7z" fill="currentColor" stroke="none"/>:<><path d="M9 5v14M15 5v14"/></>}</svg><span>{paused?"Оживить фон":"Остановить фон"}</span>
+      </button>:null}
     </div>
-    {canMove?<button type="button" className="observatoryPause" aria-label={paused?"Оживить фон":"Остановить фон"} aria-pressed={paused} onClick={()=>setPaused(v=>!v)}>
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">{paused?<path d="m9 5 11 7-11 7z" fill="currentColor" stroke="none"/>:<><path d="M9 5v14M15 5v14"/></>}</svg><span>{paused?"Оживить фон":"Остановить фон"}</span>
-    </button>:null}
   </section>;
 }

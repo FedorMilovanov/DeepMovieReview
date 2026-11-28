@@ -110,9 +110,9 @@ export function SiteHeader({diveHref}: {diveHref?:string}) {
           text verbatim (WCAG 2.5.3, label in name). A text node here would put
           "DW" into the name or, worse, leave the name saying something the
           visible label does not. */}
-      <Link className="brand" href="/" aria-label={observatory ? "Глубокие воды — на главную" : "Deep Waters — на главную"}>
+      <Link className="brand" href="/" aria-label={observatory ? "Deep Waters / Глубокие воды — на главную" : "Deep Waters — на главную"}>
         <span className="brandMark" aria-hidden="true">{observatory ? <svg viewBox="0 0 48 32" width="38" height="28" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M2 12c8-6 14-6 22 0s14 6 22 0M2 20c8-6 14-6 22 0s14 6 22 0"/></svg> : null}</span>
-        <span className="brandText">{observatory ? "Глубокие воды" : "Deep Waters"}</span>
+        <span className="brandText">{observatory ? <><strong lang="en">DEEP WATERS</strong><small>Глубокие воды</small></> : "Deep Waters"}</span>
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">
         {navLinks.map((link) => (

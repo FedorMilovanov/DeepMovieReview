@@ -464,7 +464,8 @@ try {
         await page.goto(base, { waitUntil: "load" });
         const entry = page.locator(`a.buttonPrimary[href="${article}/dive"]`).filter({ hasText: "Войти в исследование" });
         assert.equal(await entry.count(), 1, "one primary immersive entry");
-        assert.equal(await page.locator(".observatoryHero h1").textContent(),"Здесь кино становится исследованием");
+        assert.equal(await page.locator(".observatoryHero h1").innerText().then(s=>s.replace(/\s+/g," ").trim()),"Look beyond the frame.");
+        assert.equal(await page.locator(".observatoryPromise").textContent(),"Здесь кино становится исследованием.");
         assert.equal(await page.locator(".observatoryHero").getAttribute("data-art"),"observatory","the final hero art is present");
         await page.locator(".observatoryPicture img").evaluate(img=>img.decode());
         const artSrc=await page.locator(".observatoryPicture img").evaluate(img=>img.currentSrc);
