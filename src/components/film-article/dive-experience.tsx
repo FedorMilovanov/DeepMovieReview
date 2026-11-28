@@ -33,6 +33,13 @@ export function DiveExperience({title,articleHref,journeyHref,observation,report
   function save(id:DiveRoomId,discovery:DiveDiscovery) {
     setDiscoveries(previous=>({...previous,[id]:discovery}));
   }
+  function revise(id:DiveRoomId) {
+    setDiscoveries(previous=>{
+      const next={...previous};
+      delete next[id];
+      return next;
+    });
+  }
   function select(id:DiveRoomId) {
     if ((id==="fear"&&!fear)||(id==="memory"&&!memory)) return;
     setSelected(id);
@@ -55,17 +62,17 @@ export function DiveExperience({title,articleHref,journeyHref,observation,report
         </header>
         <DiveAtlas room={room} fearAvailable={Boolean(fear)} memoryAvailable={Boolean(memory)} discoveries={discoveries} onSelect={select}/>
         <div hidden={room!=="sirius"}>
-          <SiriusJourney observation={observation} report={report} standalone onFinish={finishSirius} finishLabel={fear?"Продолжить в FEAR":"Открыть следующую комнату · ранние спойлеры"}/>
+          <SiriusJourney observation={observation} report={report} standalone onFinish={finishSirius} onRevise={()=>revise("sirius")} finishLabel={fear?"Продолжить в FEAR":"Открыть следующую комнату · ранние спойлеры"}/>
         </div>
         {fear ? <div hidden={room!=="fear"}>
           <Suspense fallback={<p role="status">Открываем следующую комнату…</p>}>
-            <FearJourney data={fear} onFinish={discovery=>save("fear",discovery)} onReturn={()=>select("sirius")} articleHref={articleHref}/>
+            <FearJourney data={fear} onFinish={discovery=>save("fear",discovery)} onRevise={()=>revise("fear")} onReturn={()=>select("sirius")} articleHref={articleHref}/>
           </Suspense>
           {discoveries.fear && memory ? <button className="divePrimary diveRoomContinue" type="button" onClick={()=>select("memory")}>Продолжить в MEMORY →</button>:null}
         </div> : null}
         {memory ? <div hidden={room!=="memory"}>
           <Suspense fallback={<p role="status">Открываем комнату памяти…</p>}>
-            <MemoryJourney data={memory} onFinish={discovery=>save("memory",discovery)} onReturn={()=>select("fear")} articleHref={articleHref}/>
+            <MemoryJourney data={memory} onFinish={discovery=>save("memory",discovery)} onRevise={()=>revise("memory")} onReturn={()=>select("fear")} articleHref={articleHref}/>
           </Suspense>
         </div>:null}
         <noscript><p>Для интерактивного исследования нужен JavaScript. <a href={articleHref}>Разбор доступен в обычном режиме чтения.</a></p></noscript>

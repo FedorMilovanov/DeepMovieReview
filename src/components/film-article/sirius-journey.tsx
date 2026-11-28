@@ -193,7 +193,7 @@ function ReasoningField({ step, path, sorted, completed, explored }: { step: num
   );
 }
 
-export default function SiriusJourney({ observation, report, onFinish, standalone = false, finishLabel }: { observation: string; report: string; onFinish: (discovery: DiveDiscovery) => void; standalone?: boolean; finishLabel?: string }) {
+export default function SiriusJourney({ observation, report, onFinish, onRevise, standalone = false, finishLabel }: { observation: string; report: string; onFinish: (discovery: DiveDiscovery) => void; onRevise?: () => void; standalone?: boolean; finishLabel?: string }) {
   const [step, setStep] = useState(0);
   const [inspected, setInspected] = useState(false);
   const [hypothesis, setHypothesis] = useState<number | null>(null);
@@ -282,7 +282,7 @@ export default function SiriusJourney({ observation, report, onFinish, standalon
             <div className="diveTrace"><strong>Пройденный путь · {exploredCount} из 3 ветвей</strong>{findings.filter((_,i) => explored[i]).map(item => <p key={item}>{item}</p>)}</div>
             <p>В этом и состоит первое открытие фильма: увидеть странность недостаточно. Нужно понять, насколько обосновано объяснение, которому мы доверяем.</p>
             <button type="button" className="divePrimary" onClick={() => onFinish({before:hypotheses[hypothesis??2],after:hypotheses[revised??2],insight:"Наблюдение, сообщение и гипотеза — разные виды знания.",grounds:findings.filter((_,i)=>explored[i])})}>{finishLabel ?? (standalone ? "Перейти к разбору фильма" : "Продолжить статью")} <span aria-hidden="true">→</span></button>
-            <button type="button" className="diveChoice" onClick={reset}>Исследовать заново</button>
+            <button type="button" className="diveChoice" onClick={()=>{onRevise?.();reset();}}>Исследовать заново</button>
           </>}
           {step > 0 && !completed ? <button type="button" className="diveBack" onClick={() => setStep(step - 1)}>← Предыдущий слой</button> : null}
         </section>

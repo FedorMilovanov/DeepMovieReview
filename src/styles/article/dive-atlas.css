@@ -94,3 +94,16 @@
  .diveAtlasSymbol svg { height:42px; }
  .diveAtlasLock svg { height:30px; }
 }
+
+/* Reading history and disclosure are separate states: closing a fragment
+   neither erases its read mark nor disables the next step. */
+.memoryFragment .diveInsight[hidden] { display:none; }
+.memoryFragmentToggle > span:first-child { flex:1; min-width:0; }
+.memoryReadMark { display:inline-flex; align-items:center; gap:.3rem; color:var(--instrument-gold); font-size:.72rem; white-space:nowrap; }
+.memoryReadMark svg { width:15px; height:15px; flex:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.diveRoom .diveCompletion { display:flex; align-items:flex-start; gap:.65rem; padding:.85rem 1rem; border:1px solid var(--instrument-line-strong); border-inline-start:2px solid var(--instrument-gold); border-radius:4px; background:var(--instrument-panel); color:var(--instrument-text); }
+.diveCompletion svg { width:24px; height:24px; flex:none; stroke:var(--instrument-gold); stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+@media (max-width:400px) {
+ .memoryFragmentToggle { flex-wrap:wrap; gap:.4rem; }
+ .memoryReadMark { font-size:.68rem; }
+}

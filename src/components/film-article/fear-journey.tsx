@@ -50,7 +50,7 @@ function WaterField({ risk, trusted, memory, decision }: { risk: boolean; truste
   );
 }
 
-export default function FearJourney({data,onFinish,onReturn,articleHref}: {data:DiveFearData;onFinish:(discovery:DiveDiscovery)=>void;onReturn:()=>void;articleHref:string}) {
+export default function FearJourney({data,onFinish,onRevise,onReturn,articleHref}: {data:DiveFearData;onFinish:(discovery:DiveDiscovery)=>void;onRevise:()=>void;onReturn:()=>void;articleHref:string}) {
   const [step,setStep] = useState(0);
   const [risk,setRisk] = useState(true);
   const [trusted,setTrusted] = useState(false);
@@ -86,7 +86,7 @@ export default function FearJourney({data,onFinish,onReturn,articleHref}: {data:
             <div className="diveInsight"><strong>Сцена фильма</strong><p>{data.memory}</p></div>
             <p>{data.ferry}</p>
             <p>Море связано в истории героя с утратой отца. Это помогает понять его нежелание подниматься на паром. Но воспоминание само по себе не устанавливает опасность каждой следующей переправы.</p>
-            <button type="button" className="diveChoice" aria-pressed={memory} onClick={()=>setMemory(!memory)}>{memory?"Скрыть слой памяти":"Показать слой памяти"}</button>
+            <button type="button" className="diveChoice" aria-pressed={memory} onClick={()=>setMemory(!memory)}>Слой памяти</button>
             <button type="button" className="divePrimary" onClick={()=>go(2)}>Изменить условия →</button>
           </> : step===2 ? <>
             <div className="diveInsight"><strong>Другой эпизод фильма</strong><p>{data.warning}</p></div>
@@ -107,11 +107,11 @@ export default function FearJourney({data,onFinish,onReturn,articleHref}: {data:
             <p>{first === second ? "Вы сохранили первое решение. Теперь сравните основания: одинаковый поступок в разных обстоятельствах может быть разумным по разным причинам." : "Вы изменили решение. Вопрос не в том, лучше ли второй выбор сам по себе, а в том, какие новые сведения его обосновали."}</p>
             <p>Фильм предлагает исследовать не только страх, но и среду, в которой человек вынужден выбирать. Забота помогает понять опасность и принять решение; контроль может превращать предупреждение в средство ограничения чужих возможностей. Пока мы не раскрываем позднейшие события.</p>
             <div className="diveInsight"><strong>Открытие</strong><p>Страх может быть настоящим, даже если его обстоятельствами пользуются другие. Ни отсутствие страха, ни его наличие не являются сами по себе мерой мудрости или мужества.</p></div>
-            {finished ? <p role="status">Вторая комната исследована. Открытия сохранены в карте путешествия.</p> : <button type="button" className="divePrimary" onClick={()=>{setFinished(true);onFinish({before:actions[first??2],after:actions[second??2],insight:"Страх и нынешняя опасность не одно и то же; забота не отменяет свободу выбора.",grounds:[risk?"Условная переправа опасна.":"Условная переправа признана приемлемой по проверке.",trusted?"Предупреждение имеет независимое подтверждение.":"Предупреждение не подтверждено независимо."]})}}>Завершить второе погружение</button>}
+            {finished ? <p className="diveCompletion" role="status"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Вторая комната исследована. Открытия сохранены в карте путешествия.</span></p> : <button type="button" className="divePrimary" onClick={()=>{setFinished(true);onFinish({before:actions[first??2],after:actions[second??2],insight:"Страх и нынешняя опасность не одно и то же; забота не отменяет свободу выбора.",grounds:[risk?"Условная переправа опасна.":"Условная переправа признана приемлемой по проверке.",trusted?"Предупреждение имеет независимое подтверждение.":"Предупреждение не подтверждено независимо."]})}}>Завершить второе погружение</button>}
             <Link className="diveStandaloneRead" href={articleHref}>Читать анализ фильма →</Link>
             <button type="button" className="diveChoice" onClick={onReturn}>Вернуться в SIRIUS</button>
           </>}
-          {step>0 ? <button type="button" className="diveBack" onClick={()=>{setFinished(false);go(step-1)}}>← Предыдущий слой</button>:null}
+          {step>0 ? <button type="button" className="diveBack" onClick={()=>{if(finished)onRevise();setFinished(false);go(step-1)}}>← Предыдущий слой</button>:null}
         </section>
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { DiveDiscovery, DiveMemoryData } from "@/lib/dive-opening";
 
 const lenses = ["Семейная преемственность","Личное воспоминание","Право на собственную историю"] as const;
@@ -48,10 +48,16 @@ function MemoryField({first,seen,lens}:{first:number;seen:boolean[];lens:number|
   </svg>;
 }
 
-export default function MemoryJourney({data,onFinish,onReturn,articleHref}:{data:DiveMemoryData;onFinish:(discovery:DiveDiscovery)=>void;onReturn:()=>void;articleHref:string}) {
+export default function MemoryJourney({data,onFinish,onRevise,onReturn,articleHref}:{data:DiveMemoryData;onFinish:(discovery:DiveDiscovery)=>void;onRevise:()=>void;onReturn:()=>void;articleHref:string}) {
   const [step,setStep]=useState(0);
   const [first,setFirst]=useState(0);
   const [seen,setSeen]=useState([false,false]);
+  const [expanded,setExpanded]=useState([false,false]);
+  const fragmentId=useId();
+  function toggleFragment(i:number) {
+    setExpanded(old=>old.map((v,k)=>k===i?!v:v));
+    setSeen(old=>old.map((v,k)=>k===i?true:v));
+  }
   const [initial,setInitial]=useState<number|null>(null);
   const [lens,setLens]=useState<number|null>(null);
   const [finished,setFinished]=useState(false);
@@ -61,12 +67,12 @@ export default function MemoryJourney({data,onFinish,onReturn,articleHref}:{data
   return <div className="memoryJourney" data-memory-step={step}>
     <nav className="diveProgress memoryProgress" aria-label="Этапы третьей комнаты">{["Фрагменты","Монтаж смысла","Синтез"].map((item,i)=><span key={item} aria-current={step===i?"step":undefined} data-reached={i<=step}><i>0{i+1}</i><span>{item}</span></span>)}</nav>
     <div className="diveScene">
-      <div className="memoryStage"><div className="diveInstrumentHeader"><span lang="en">MEMORY / EDITING DESK</span><span>Авторская схема</span></div><MemoryField first={first} seen={seen} lens={lens}/><dl className="diveInstrumentReadout"><div><dt>Фрагменты</dt><dd>{seen.filter(Boolean).length} / 2</dd></div><div><dt>Первый в композиции</dt><dd>{objects[first].title}</dd></div><div><dt>Смысловая линза</dt><dd>{lens===null?"Не выбрана":lenses[lens]}</dd></div></dl><p>Авторская схема предметов, не кадры и не восстановленный порядок монтажа фильма.</p></div>
+      <div className="memoryStage"><div className="diveInstrumentHeader"><span lang="en">MEMORY / EDITING DESK</span><span>Авторская схема</span></div><MemoryField first={first} seen={seen} lens={lens}/><dl className="diveInstrumentReadout"><div><dt>Фрагменты</dt><dd>{seen.filter(Boolean).length} / 2 изучено</dd></div><div><dt>Первый в композиции</dt><dd>{objects[first].title}</dd></div><div><dt>Смысловая линза</dt><dd>{lens===null?"Не выбрана":lenses[lens]}</dd></div></dl><p>Авторская схема предметов, не кадры и не восстановленный порядок монтажа фильма.</p></div>
       <section className="diveRoom" aria-labelledby="memory-heading">
         <p className="diveEyebrow">MEMORY / 03</p>
         <h2 id="memory-heading" ref={heading} tabIndex={-1}>{["Две истории о себе","Измените смысловое соседство","Чья это история?"][step]}</h2>
         {step===0?<><p>В фильме встречаются два предмета, которые по-разному удерживают прошлое. Выберите первый, затем второй.</p>
-          {[first,1-first].map(i=><div key={i} className="memoryFragment"><button type="button" className="diveChoice" aria-expanded={seen[i]} onClick={()=>setSeen(old=>old.map((v,k)=>k===i?!v:v))}>{objects[i].title}</button>{seen[i]?<div className="diveInsight"><strong>Сцена фильма</strong><p>{objects[i].copy}</p></div>:null}</div>)}
+          {[first,1-first].map(i=><div key={i} className="memoryFragment"><button type="button" className="diveChoice memoryFragmentToggle" aria-expanded={expanded[i]} aria-controls={`${fragmentId}-${i}`} onClick={()=>toggleFragment(i)}><span>{objects[i].title}</span>{seen[i]?<span className="memoryReadMark"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3 8 3 3 7-7"/></svg><span>Изучено</span></span>:null}</button><div id={`${fragmentId}-${i}`} className="diveInsight" hidden={!expanded[i]}><strong>Сцена фильма</strong><p>{objects[i].copy}</p></div></div>)}
           <button type="button" className="divePrimary" disabled={!seen.every(Boolean)} onClick={()=>go(1)}>Собрать два фрагмента →</button>
         </>:step===1?<><p>Порядок, в котором мы рассматриваем предметы, способен менять акцент нашего прочтения. Это редакционный эксперимент, а не утверждение о монтаже оригинала.</p>
           <div className="diveExperiment"><strong>Что поставить первым?</strong><div className="diveExperimentControls">{objects.map((item,i)=><button type="button" key={item.title} className="diveSortButton" aria-pressed={first===i} onClick={()=>setFirst(i)}>{item.title}</button>)}</div><p role="status">{first===0?"Начинаем с истории, которую семья хранит и рассказывает, затем замечаем то, что человек пытается сохранить сам.":"Начинаем с личного усилия удержать образ, затем сопоставляем его с историей, которую предлагает семья."}</p></div>
@@ -78,10 +84,10 @@ export default function MemoryJourney({data,onFinish,onReturn,articleHref}:{data
           <div className="diveBeforeAfter"><div><small>Первый акцент</small><strong>{lenses[initial??0]}</strong></div><span aria-hidden="true">→</span><div><small>Последний акцент</small><strong>{lenses[lens??0]}</strong></div></div>
           <p>{captions[lens??0]}</p><p>Альбом и журнальные фрагменты не доказывают, что одна память истинна, а другая ложна. Но их сопоставление помогает увидеть центральный вопрос: кто вправе формировать историю человеческой жизни и насколько эта история открыта правде?</p>
           <div className="diveInsight"><strong>Открытие</strong><p>Семейная близость не исчерпывается общей памятью. Она требует правдивости, иначе рассказ о прошлом может стать способом распоряжаться настоящим другого человека.</p></div>
-          {finished?<p role="status">Третья комната исследована. Откройте «Мои открытия», чтобы связать три уровня путешествия.</p>:<button type="button" className="divePrimary" onClick={()=>{setFinished(true);onFinish({before:lenses[initial??0],after:lenses[lens??0],insight:"Личное воспоминание и рассказ о прошлом следует различать.",grounds:[captions[lens??0],first===0?"В итоговой композиции альбом поставлен первым.":"В итоговой композиции журнальные фрагменты поставлены первыми."]})}}>Завершить третье погружение</button>}
+          {finished?<p className="diveCompletion" role="status"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Третья комната исследована. Откройте «Мои открытия», чтобы связать три уровня путешествия.</span></p>:<button type="button" className="divePrimary" onClick={()=>{setFinished(true);onFinish({before:lenses[initial??0],after:lenses[lens??0],insight:"Личное воспоминание и рассказ о прошлом следует различать.",grounds:[captions[lens??0],first===0?"В итоговой композиции альбом поставлен первым.":"В итоговой композиции журнальные фрагменты поставлены первыми."]})}}>Завершить третье погружение</button>}
           <Link className="diveStandaloneRead" href={articleHref}>Читать анализ фильма →</Link><button type="button" className="diveChoice" onClick={onReturn}>Вернуться в FEAR</button>
         </>}
-        {step>0?<button type="button" className="diveBack" onClick={()=>{setFinished(false);go(step-1)}}>← Предыдущий слой</button>:null}
+        {step>0?<button type="button" className="diveBack" onClick={()=>{if(finished)onRevise();setFinished(false);go(step-1)}}>← Предыдущий слой</button>:null}
       </section>
     </div>
   </div>;
