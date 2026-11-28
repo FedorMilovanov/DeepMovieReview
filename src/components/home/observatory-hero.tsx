@@ -15,6 +15,8 @@ export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;f
   const [visible,setVisible]=useState(true);
   const [entering,setEntering]=useState(false);
   const root=useRef<HTMLElement>(null);
+  const videoRef=useRef<HTMLVideoElement>(null);
+  const [videoReady,setVideoReady]=useState(false);
   const timer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const diveHref=`/films/${filmSlug}/dive`;
   const articleHref=`/films/${filmSlug}`;
@@ -27,6 +29,27 @@ export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;f
     return ()=>observer.disconnect();
   },[]);
   useEffect(()=>()=>{if(timer.current!==null)clearTimeout(timer.current)},[]);
+  const videoSources=artwork.video;
+  useEffect(()=>{
+    const video=videoRef.current;
+    if(!video||!videoSources)return;
+    const connection=(navigator as Navigator & {connection?:{saveData?:boolean;effectiveType?:string}}).connection;
+    const dataSaver=connection?.saveData||["slow-2g","2g"].includes(connection?.effectiveType??"");
+    const allowed=motion&&visible&&documentVisible&&!dataSaver;
+    if(!allowed){video.pause();return;}
+    const media=window.matchMedia("(max-width:760px)");
+    let active=true;
+    function playSelected(){
+      if(!video||!videoSources||!active)return;
+      const src=media.matches?videoSources.mobile:videoSources.desktop;
+      if(video.getAttribute("src")!==src){video.setAttribute("src",src);video.load();}
+      video.muted=true;
+      void video.play().catch(()=>{if(active)setVideoReady(false);});
+    }
+    playSelected();
+    media.addEventListener("change",playSelected);
+    return ()=>{active=false;media.removeEventListener("change",playSelected);video.pause();};
+  },[motion,visible,documentVisible,videoSources]);
   function enter(event:MouseEvent<HTMLAnchorElement>){
     if(!motion||event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     event.preventDefault();
@@ -34,7 +57,7 @@ export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;f
     setEntering(true);
     timer.current=setTimeout(()=>{router.push(diveHref);timer.current=setTimeout(()=>setEntering(false),1800)},360);
   }
-  return <section ref={root} className="observatoryHero" data-art={artwork.original?"observatory":"fallback"} data-motion={motion?"on":"off"} data-visible={visible&&documentVisible} data-entering={entering} aria-labelledby="hero-title">
+  return <section ref={root} className="observatoryHero" data-art={artwork.original?"observatory":"fallback"} data-motion={motion?"on":"off"} data-visible={visible&&documentVisible} data-entering={entering} data-video-ready={videoReady&&canMove} aria-labelledby="hero-title">
     <div className="observatoryScene" aria-hidden="true">
       <picture className="observatoryPicture">
         {artwork.mobile?<source media="(max-width:760px)" srcSet={artwork.mobile} sizes="100vw"/>:null}
@@ -42,6 +65,9 @@ export function ObservatoryHero({filmTitle,filmSlug,artwork}:{filmTitle:string;f
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={artwork.src} srcSet={artwork.desktop} sizes="100vw" alt="" fetchPriority="high" decoding="async"/>
       </picture>
+      {videoSources?<video ref={videoRef} className="observatoryVideo" muted loop playsInline preload="none" aria-hidden="true"
+        disablePictureInPicture disableRemotePlayback
+        onLoadStart={()=>setVideoReady(false)} onPlaying={()=>setVideoReady(true)} onError={()=>setVideoReady(false)}/>:null}
       <div className="observatoryLight"/>
       {artwork.original?<div className="observatoryWater">
         <svg viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid slice" className="observatorySuspension" aria-hidden="true">

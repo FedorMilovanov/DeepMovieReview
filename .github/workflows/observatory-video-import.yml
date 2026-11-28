@@ -1,0 +1,83 @@
+name: Import observatory video (one time)
+on:
+  push:
+    branches: [max/152-truman-reading]
+    paths: ['.github/workflows/observatory-video-import.yml']
+permissions:
+  contents: write
+jobs:
+  transfer:
+    if: github.ref == 'refs/heads/max/152-truman-reading'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: max/152-truman-reading
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Download the generated public art through its normal download page
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright-core';
+          import { readFile } from 'node:fs/promises';
+          import { createHash } from 'node:crypto';
+          
+          const browser = await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
+          const ctx = await browser.newContext({acceptDownloads:true});
+          let resolveDownload;
+          const downloadPromise = new Promise(resolve=>{resolveDownload=resolve;});
+          const capture = page=>page.on('download',resolveDownload);
+          ctx.on('page',capture);
+          try {
+            const page = await ctx.newPage();
+            await page.goto('https://firestorage.ai/en/f/p4A4d9MCV5y-',{waitUntil:'domcontentloaded'});
+            await page.getByRole('button',{name:'Download',exact:true}).click({timeout:20000});
+            let download;
+            const visited=new Set();
+            for(let i=0;i<30&&!download;i++){
+              download=await Promise.race([downloadPromise,new Promise(resolve=>setTimeout(()=>resolve(null),1000))]);
+              if(download)break;
+              for(const p of ctx.pages()){
+                const url=p.url();
+                if(!url.startsWith('https://firestorage.ai/')||url.endsWith('/p4A4d9MCV5y-')||visited.has(url))continue;
+                const button=p.getByRole('button',{name:/^(Download|Download file|Continue to download)$/i}).first();
+                if(await button.isVisible().catch(()=>false)){visited.add(url);await button.click();}
+                else {const link=p.getByRole('link',{name:/^(Download|Download file|Continue to download)$/i}).first();if(await link.isVisible().catch(()=>false)){visited.add(url);await link.click();}}
+              }
+            }
+            if(!download)throw Error('No file download; normal public UI did not complete.');
+            await download.saveAs('/tmp/dmr-observatory.mp4');
+            const bytes=await readFile('/tmp/dmr-observatory.mp4');
+            const sha=createHash('sha256').update(bytes).digest('hex');
+            if(sha!=='c8fdb04ecb5d58a5477ee4418e1fe2943e7eb437c7a2b7a2a25033f4719cd443')throw Error('Source hash mismatch');
+            console.log('Verified source SHA-256:',sha);
+          }finally{await browser.close();}
+          JS
+      - name: Encode quiet responsive background loops
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v ffmpeg >/dev/null; then sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ffmpeg; fi
+          ffmpeg -hide_banner -loglevel error -y -i /tmp/dmr-observatory.mp4 -filter_complex_threads 2 -filter_complex "[0:v]fps=24,split=3[a][b][c];[a]trim=start_frame=18:end_frame=222,setpts=PTS-STARTPTS[body];[b]trim=start_frame=222:end_frame=240,setpts=PTS-STARTPTS,fps=24[tail];[c]trim=start_frame=0:end_frame=18,setpts=PTS-STARTPTS,fps=24[head];[tail][head]xfade=transition=fade:duration=0.708333:offset=0[seam];[body][seam]concat=n=2:v=1:a=0,format=yuv420p[v]" -map '[v]' -an -c:v libx264 -preset medium -crf 24 -maxrate 1400k -bufsize 2800k -movflags +faststart -threads 4 public/art/observatory-desktop.mp4
+          ffmpeg -hide_banner -loglevel error -y -i public/art/observatory-desktop.mp4 -vf 'crop=404:720:476:0' -an -c:v libx264 -preset medium -crf 25 -maxrate 620k -bufsize 1240k -movflags +faststart -threads 4 public/art/observatory-mobile.mp4
+          for file in public/art/observatory-{desktop,mobile}.mp4; do
+            test "$(ffprobe -v error -select_streams v -show_entries stream=codec_name -of csv=p=0 "$file")" = h264
+            test -z "$(ffprobe -v error -select_streams a -show_entries stream=codec_name -of csv=p=0 "$file")"
+            ffprobe -v error -show_entries format=duration,size -show_entries stream=width,height,nb_frames -of compact "$file"
+          done
+      - name: Commit only the verified derivatives and remove this transfer workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/art/observatory-desktop.mp4 public/art/observatory-mobile.mp4
+          git rm .github/workflows/observatory-video-import.yml
+          git commit -m "Import optimized observatory video loops"
+          git push origin HEAD:refs/heads/max/152-truman-reading
