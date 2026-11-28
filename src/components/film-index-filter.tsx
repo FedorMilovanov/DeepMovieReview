@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FilmMediaFrame } from "@/components/film-media-frame";
 import { FilmTransitionLink } from "@/components/film-transition-link";
 import { filterFilmIndex, type FilmIndexSearchEntry } from "@/lib/film-index";
@@ -19,6 +19,7 @@ export type FilmIndexEntry = FilmIndexSearchEntry & {
  */
 export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
   const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const hydrated = useHydrated();
   const visible = useMemo(() => filterFilmIndex(films, query), [films, query]);
 
@@ -26,7 +27,10 @@ export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
     <>
       <div className="filmFilter">
         <label htmlFor="film-filter">Поиск по индексу</label>
+        <div className="filmFilterField">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
         <input
+          ref={searchRef}
           id="film-filter"
           type="search"
           disabled={!hydrated}
@@ -36,6 +40,8 @@ export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
           placeholder="Название, год, статус…"
           autoComplete="off"
         />
+        {query ? <button type="button" className="filmFilterClear" aria-label="Очистить поиск" onClick={()=>{setQuery("");searchRef.current?.focus();}}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button> : null}
+        </div>
         {!hydrated ? <p id="film-filter-unavailable">Поиск доступен после загрузки скриптов; полный список ниже.</p> : null}
       </div>
       <p className="filmFilterCount" aria-live="polite">
@@ -51,9 +57,9 @@ export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
           >
             <span className="filmRowIndex">{String(film.position).padStart(3, "0")}</span>
             <FilmMediaFrame slug={film.slug} variant="index" />
-            <span className="filmRowTitle"><strong>{film.title}</strong></span>
+            <span className="filmRowTitle"><strong>{film.title}</strong>{film.originalTitle && film.originalTitle!==film.title ? <small>{film.originalTitle}</small>:null}</span>
             <span className="filmRowMeta">
-              {film.year} · {film.status} · {film.modules} {pluralRu(film.modules, "модуль", "модуля", "модулей")}
+              <span className="filmRowYear">{film.year}</span><span className="filmRowStatus">{film.status}</span><span>{film.modules} {pluralRu(film.modules, "модуль", "модуля", "модулей")}</span>
             </span>
           </FilmTransitionLink>
         ))}

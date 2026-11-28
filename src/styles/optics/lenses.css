@@ -200,3 +200,23 @@
   }
 }
 
+
+/* Six lenses are six instruments; native radio state is still the sole controller. */
+.lensSelector { gap:.4rem; background:none; border:0; }
+.lensTab { min-height:54px; padding:.8rem .85rem; border:1px solid var(--instrument-line-strong); border-radius:5px; background:var(--instrument-base); }
+.lensTab:hover { background:var(--instrument-raised); }
+.lensTabLabel { font-family:var(--font-body); font-size:.88rem; font-weight:550; letter-spacing:0; text-transform:none; color:var(--instrument-text); overflow-wrap:anywhere; }
+.lensTabIndex { color:var(--instrument-gold); font-size:.7rem; }
+.lensReadings { padding:clamp(1rem,2vw,1.5rem); border:1px solid var(--instrument-line); border-radius:6px; background:var(--instrument-base); min-width:0; }
+.lensReading h3 { font-family:Georgia,"Times New Roman",serif; font-weight:400; text-transform:none; letter-spacing:-.02em; line-height:1.2; color:var(--instrument-gold); }
+.lensReadingPrompt { color:var(--instrument-text); }
+.lensReading p:not(.lensReadingPrompt) { color:var(--instrument-muted); }
+.lensMark { border-color:#7793a4; background:#0c1924; border-radius:3px; color:#f0eee7; letter-spacing:.04em; }
+.lensMark::before { border-color:#e0c49a; }
+@supports selector(:has(*)) {
+ .lensTab:has(.lensRadio:checked) { background:var(--instrument-selected); border-color:var(--instrument-gold); }
+ .lensTab:has(.lensRadio:checked)::before { inset:8px auto 8px 0; width:2px; background:var(--instrument-gold); }
+ .lensTab:has(.lensRadio:checked) .lensTabLabel { color:var(--instrument-text); font-weight:700; }
+}
+@media (max-width:640px) { .lensTab { padding:.65rem .55rem; } .lensTabLabel { font-size:.8rem; } }
+@media (forced-colors:active) { .lensTab:has(.lensRadio:checked) { outline:2px solid Highlight; outline-offset:-2px; } .lensMark { background:Canvas; color:CanvasText; } }

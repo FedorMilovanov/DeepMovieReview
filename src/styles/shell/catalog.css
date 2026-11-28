@@ -89,3 +89,39 @@
   color: var(--ink-1);
   font-size: 0.75rem;
 }
+
+/* Editorial archive: a search instrument, then a readable film index. */
+.filmIndexHero { padding-top:clamp(2.5rem,6vw,5.5rem); }
+.filmIndexHero h1 { font-family:Georgia,"Times New Roman",serif; font-weight:400; text-transform:none; letter-spacing:-.03em; line-height:1.12; }
+.filmIndexHero .sectionIntro { max-width:68ch; }
+.filmFilter { max-width:36rem; }
+.filmFilter label { font-size:.8rem; letter-spacing:.025em; text-transform:none; color:var(--instrument-ice); }
+.filmFilterField { position:relative; display:flex; align-items:center; min-width:0; }
+.filmFilterField > svg { position:absolute; inset-inline-start:.85rem; width:20px; height:20px; stroke:var(--instrument-ice); stroke-width:1.5; pointer-events:none; }
+.filmFilter input { width:100%; min-width:0; border-radius:6px; border-color:var(--instrument-line-strong); background:var(--instrument-base); color:var(--instrument-text); padding-inline:2.65rem 3.2rem; font-size:1rem; }
+.filmFilter input::placeholder { color:var(--instrument-muted); }
+.filmFilter input::-webkit-search-cancel-button { -webkit-appearance:none; }
+.filmFilterClear { position:absolute; inset-inline-end:2px; display:grid; place-items:center; width:44px; height:44px; border:0; border-radius:4px; background:transparent; color:var(--instrument-ice); cursor:pointer; }
+.filmFilterClear svg { width:19px; height:19px; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; }
+.filmFilterClear:hover { background:var(--instrument-raised); }
+.filmFilterCount { font-family:var(--font-meta); color:var(--instrument-muted); }
+.filmList { display:grid; gap:.65rem; margin-top:1.6rem; border:0; }
+.filmRow { grid-template-columns:48px minmax(120px,190px) minmax(0,1fr) minmax(100px,160px); padding:1rem; border:1px solid var(--instrument-line); border-radius:7px; background:var(--instrument-base); text-decoration:none; }
+.filmRow:hover,.filmRow:focus-visible { background:var(--instrument-panel); border-color:var(--instrument-line-strong); }
+.filmRowIndex { font-family:var(--font-meta); color:var(--instrument-gold); font-variant-numeric:tabular-nums; }
+.filmRowTitle { display:grid; gap:.35rem; min-width:0; overflow-wrap:anywhere; }
+.filmRowTitle strong { font-family:Georgia,"Times New Roman",serif; font-weight:400; font-size:clamp(1.15rem,2.4vw,1.9rem); line-height:1.2; color:var(--instrument-text); }
+.filmRowTitle small { color:var(--instrument-muted); font-size:.8rem; line-height:1.35; }
+.filmRowMeta { display:flex; flex-direction:column; gap:.35rem; color:var(--instrument-muted); overflow-wrap:anywhere; line-height:1.45; }
+.filmRowYear { color:var(--instrument-gold); font-family:var(--font-meta); }
+.filmRowStatus { color:var(--instrument-ice); }
+.fixtureNotice { border-color:var(--instrument-line); border-radius:6px; background:var(--instrument-base); color:var(--instrument-muted); }
+@media (max-width:640px) {
+ .filmRow { grid-template-columns:26px minmax(70px,96px) minmax(0,1fr); gap:.55rem; padding:.7rem; }
+ .filmRowMeta { grid-column:3; flex-direction:row; flex-wrap:wrap; gap:.2rem .55rem; font-size:.72rem; }
+ .filmRowTitle strong { font-size:1.1rem; }
+}
+@media (max-width:360px) {
+ .filmRow { grid-template-columns:20px minmax(58px,72px) minmax(0,1fr); padding:.55rem; gap:.4rem; }
+}
+@media (forced-colors:active) { .filmRow:focus-visible { outline:2px solid Highlight; } }
