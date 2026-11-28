@@ -40,14 +40,14 @@ export function ReadingOutline({ sections, fullHref }: { sections: ReadingSectio
     update();
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
-    const observer = new ResizeObserver(schedule);
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
     // The control is portalled into the sticky header after hydration; observe
     // the article itself rather than assuming the control is still its child.
     const article = document.querySelector(".articleShell");
-    if (article) observer.observe(article);
+    if (article) observer?.observe(article);
     return () => {
       cancelAnimationFrame(frame);
-      observer.disconnect();
+      observer?.disconnect();
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
     };
@@ -165,7 +165,7 @@ export function ReadingOutline({ sections, fullHref }: { sections: ReadingSectio
           setPinned(!pinned);
         }}
       >
-        <span className="readingOutlineWord">Разделы</span>
+        <svg className="readingOutlineGlyph" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h11"/><path d="M4 12h6" strokeWidth="3"/></svg><span className="readingOutlineWord">Разделы</span>
         <span className="readingOutlineRail" aria-hidden="true">
           {sections.map(({ id }, index) => <i key={id} data-active={id === active} data-read={index < activeIndex} />)}
         </span>{/* A real separator keeps the visible word and number distinct in label-in-name checks. */}{" "}

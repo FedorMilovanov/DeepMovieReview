@@ -15,6 +15,7 @@
   min-height: 2.75rem;
   padding: 0.7rem 0.8rem;
   border: 1px solid var(--stroke-default);
+  border-radius:5px;
   background: var(--surface-canvas);
   color: var(--ink-2);
   cursor: pointer;
@@ -27,7 +28,14 @@
   text-transform: uppercase;
 }
 
-.readingOutlineRail { display: none; }
+.readingOutlineGlyph { width:18px; height:18px; flex:none; stroke:currentColor; stroke-width:1.4; stroke-linecap:round; }
+.readingOutlineRail { display:flex; gap:2px; align-items:center; }
+.readingOutlineRail i { display:block; height:13px; width:3px; border-radius:1px; background:var(--stroke-strong); }
+.readingOutlineRail i[data-read="true"] { background:var(--accent-restoration-soft); }
+.readingOutlineRail i[data-active="true"] { background:var(--accent-restoration); height:19px; }
+@media (max-width:1020px) { .readingOutlineRail { display:none; } }
+@media (max-width:360px) { .readingOutlineGlyph { display:none; } }
+@media (forced-colors:active) { .readingOutlineRail i { background:GrayText; } .readingOutlineRail i[data-active="true"] { background:Highlight; } }
 
 .readingOutlinePosition {
   font-family: var(--font-meta);
@@ -109,6 +117,8 @@
 
 .readingOutlinePanel a[aria-current="location"],
 .readingOutlinePanel a:hover { color: var(--ink-1); background: var(--surface-2); }
+.readingOutlinePanel a[aria-current="location"] { box-shadow:inset 2px 0 var(--accent-restoration); }
+.readingOutlinePanel a[aria-current="location"] > span { color:var(--accent-restoration); }
 
 .readingOutlineTrigger:focus-visible,
 .readingOutlinePanel a:focus-visible { outline: 2px solid var(--ink-1); outline-offset: calc(-1 * var(--focus-offset)); }

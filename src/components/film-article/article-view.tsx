@@ -336,24 +336,36 @@ function ArticleBlockView({
 function OpeningKnowledgeDiagram() {
   return (
     <figure className="articleKnowledgeDiagram">
-      <svg viewBox="0 0 320 246" width="100%" role="img" aria-labelledby="truman-opening-diagram-title truman-opening-diagram-desc">
+      <div className="articleDiagramLabel"><span lang="en">FIELD NOTES / 01</span><span>Различить сведения</span></div>
+      <svg viewBox="0 0 320 214" width="100%" role="img" aria-labelledby="truman-opening-diagram-title truman-opening-diagram-desc">
         <title id="truman-opening-diagram-title">Предмет и объяснение</title>
-        <desc id="truman-opening-diagram-desc">Два независимых входа: наблюдаемый осветительный прибор с надписью Sirius и сообщение о детали самолёта. Их сопоставление создаёт вопрос о доверии к объяснению.</desc>
-        <g fill="none" stroke="currentColor" strokeWidth="1.25">
-          <rect x="10" y="12" width="144" height="82" rx="5" />
-          <rect x="166" y="12" width="144" height="82" rx="5" />
-          <path d="M82 94 V126 H160 M238 94 V126 H160 V158 M155 151 L160 158 L165 151" />
-          <rect x="44" y="158" width="232" height="72" rx="5" />
+        <desc id="truman-opening-diagram-desc">На осветительном приборе видна надпись Sirius. В сообщении предмет объясняется деталью самолёта. Наличие объяснения не доказывает его истинность; требуется проверка.</desc>
+        <g fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 24V10h14m276 0h14v14M8 190v14h14m276 0h14v-14" opacity=".38"/>
+          <path d="M160 12v112" strokeDasharray="2 5" opacity=".35"/>
+          <g className="articleDiagramObserved">
+            <path d="m52 26 25-13 30 16-25 16zM52 26v28l30 17 25-16V29M82 45v26"/>
+            <ellipse cx="93" cy="50" rx="9" ry="15" transform="rotate(12 93 50)"/>
+            <path d="M58 31l15 8m-15-3 15 8" opacity=".65"/>
+          </g>
+          <g className="articleDiagramReported">
+            <rect x="204" y="14" width="70" height="52" rx="3"/>
+            <path d="M213 25h18m-18 9h52m-52 8h52m-52 8h34M231 66v7m-12 0h24"/>
+            <circle cx="262" cy="25" r="3"/>
+          </g>
+          <path d="M80 123v15l80 20 80-20v-15" opacity=".75"/>
+          <circle cx="160" cy="158" r="4" fill="currentColor"/>
+          <path d="M160 162v10" opacity=".75"/>
         </g>
-        <g textAnchor="middle" fill="currentColor" fontSize="13">
-          <text x="82" y="34">Что видно</text>
-          <text x="82" y="58" fontSize="20" fontWeight="bold">Sirius</text>
-          <text x="82" y="78" fontSize="11">Осветительный прибор</text>
-          <text x="238" y="34">Что говорят</text>
-          <text x="238" y="57">Деталь</text>
-          <text x="238" y="76">самолёта</text>
-          <text x="160" y="183" fontSize="16" fontWeight="bold">Точка сомнения</text>
-          <text x="160" y="206">Как проверить объяснение?</text>
+        <g fill="currentColor" textAnchor="middle" fontSize="12">
+          <text className="articleDiagramObserved" x="80" y="88" fontSize="10" letterSpacing="1.4">НАБЛЮДЕНИЕ</text>
+          <text x="80" y="105" fontSize="17" fontWeight="600">Sirius</text>
+          <text x="80" y="119">Осветительный прибор</text>
+          <text className="articleDiagramReported" x="240" y="88" fontSize="10" letterSpacing="1.4">СООБЩЕНИЕ</text>
+          <text x="240" y="105" fontSize="15" fontWeight="600">Деталь самолёта</text>
+          <text x="240" y="119">Готовое объяснение</text>
+          <text className="articleDiagramReported" x="160" y="185" fontSize="17" fontWeight="600">Точка сомнения</text>
+          <text x="160" y="200">Как проверить объяснение?</text>
         </g>
       </svg>
       <figcaption>Авторская схема прочтения: различие между наблюдением и готовым объяснением. Не план камеры и не кадр фильма.</figcaption>
