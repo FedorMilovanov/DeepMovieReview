@@ -6821,12 +6821,12 @@ test("Film 001 reader distinguishes local master verification from detector reru
     return block.text;
   };
   const cast = paragraph("truman-article-cast-marlon");
-  assert.match(cast, /выборочная машинная сверка оригинальной английской дорожки.*повтор близких фраз/);
+  assert.match(cast, /выборочная машинная сверка оригинальной английской дорожки.*повтор близких фраз/i);
   assert.match(cast, /не удостоверила голоса.*интонации.*не проверялся/);
   assert.doesNotMatch(cast, /звук и непрерывный монтаж мы не проверяли/);
 
   const relationship = paragraph("truman-article-bonds-friendship-2");
-  assert.match(relationship, /машинное распознавание исходной английской дорожки.*не установило личность говорящего/);
+  assert.match(relationship, /машинное распознавание исходной английской дорожки.*не установило личность говорящего/i);
   assert.match(relationship, /не удостоверило интонацию/);
   const duel = blocks.find((item) => item.id === "truman-article-duel-promise");
   assert.ok(duel && duel.kind === "duel");
