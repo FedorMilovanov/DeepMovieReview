@@ -523,6 +523,13 @@ try {
         const memory = page.locator(".memoryJourney");
         await memory.getByRole("button",{name:"Семейный альбом",exact:true}).click();
         await memory.getByRole("button",{name:"Фрагменты журналов",exact:true}).click();
+        const albumToggle=memory.locator(".memoryFragmentToggle").filter({hasText:"Семейный альбом"});
+        assert.equal(await albumToggle.getAttribute("aria-expanded"),"true");
+        await albumToggle.click();
+        assert.equal(await albumToggle.getAttribute("aria-expanded"),"false");
+        assert.equal(await albumToggle.getByText("Изучено",{exact:true}).count(),1,"closing does not erase the read mark");
+        assert.equal(await memory.locator(".diveInstrumentReadout").getByText("2 / 2 изучено",{exact:true}).count(),1);
+        assert.equal(await memory.getByRole("button",{name:"Собрать два фрагмента"}).isEnabled(),true,"read history survives disclosure closing");
         await memory.getByRole("button",{name:"Собрать два фрагмента"}).click();
         await memory.getByRole("button",{name:"Фрагменты журналов",exact:true}).click();
         await memory.getByRole("button",{name:"Семейная преемственность",exact:true}).click();
@@ -534,6 +541,12 @@ try {
         assert.equal(await page.locator(".diveJournalItem").count(),3);
         assert.equal(await page.locator(".diveJournalSynthesis").count(),1);
         await page.screenshot({path:`${dir}/dive-${viewport.label}-atlas.png`});
+        await memory.getByRole("button",{name:"Предыдущий слой"}).click();
+        assert.equal(await page.locator(".diveJournalItem").count(),2,"revising a completed room invalidates its old journal entry");
+        await memory.getByRole("button",{name:"Семейная преемственность",exact:true}).click();
+        await memory.getByRole("button",{name:"Сопоставить прочтения"}).click();
+        await memory.getByRole("button",{name:"Завершить третье погружение"}).click();
+        assert.equal(await page.locator(".diveJournalItem").count(),3,"the revised discovery replaces the old result");
         await page.goto(base + article + "/dive", {waitUntil:"load"});
         await page.locator(".diveStandaloneRead").click();
         await page.waitForURL(url => url.pathname === article && !url.search);
