@@ -337,11 +337,11 @@ function OpeningKnowledgeDiagram() {
   return (
     <figure className="articleKnowledgeDiagram">
       <div className="articleDiagramLabel"><span lang="en">FIELD NOTES / 01</span><span>Различить сведения</span></div>
-      <svg viewBox="0 0 320 244" width="100%" role="img" aria-labelledby="truman-opening-diagram-title truman-opening-diagram-desc">
+      <svg viewBox="0 0 320 256" width="100%" role="img" aria-labelledby="truman-opening-diagram-title truman-opening-diagram-desc">
         <title id="truman-opening-diagram-title">Предмет и объяснение</title>
         <desc id="truman-opening-diagram-desc">На осветительном приборе видна надпись Sirius. В сообщении предмет объясняется деталью самолёта. Наличие объяснения не доказывает его истинность; требуется проверка.</desc>
         <g fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 24V10h14m276 0h14v14M8 220v14h14m276 0h14v-14" opacity=".38"/>
+          <path d="M8 24V10h14m276 0h14v14M8 232v14h14m276 0h14v-14" opacity=".38"/>
           <path d="M160 12v128" strokeDasharray="2 5" opacity=".35"/>
           <g className="articleDiagramObserved">
             <path d="m52 26 25-13 30 16-25 16zM52 26v28l30 17 25-16V29M82 45v26"/>
@@ -355,7 +355,7 @@ function OpeningKnowledgeDiagram() {
           </g>
           <path d="M80 145v12l80 19 80-19v-12" opacity=".75"/>
           <circle cx="160" cy="176" r="4" fill="currentColor"/>
-          <path d="M160 180v8" opacity=".75"/>
+          <path d="M160 180v3" opacity=".75"/>
         </g>
         <g fill="currentColor" textAnchor="middle" fontSize="12">
           <text className="articleDiagramObserved" x="80" y="88" fontSize="10" letterSpacing="1.4">НАБЛЮДЕНИЕ</text>
@@ -364,8 +364,8 @@ function OpeningKnowledgeDiagram() {
           <text className="articleDiagramReported" x="240" y="88" fontSize="10" letterSpacing="1.4">СООБЩЕНИЕ</text>
           <text x="240" y="112" fontSize="15" fontWeight="600">Деталь самолёта</text>
           <text x="240" y="136">Готовое объяснение</text>
-          <text className="articleDiagramReported" x="160" y="202" fontSize="17" fontWeight="600">Точка сомнения</text>
-          <text x="160" y="226">Как проверить объяснение?</text>
+          <text className="articleDiagramReported" x="160" y="214" fontSize="17" fontWeight="600">Точка сомнения</text>
+          <text x="160" y="238">Как проверить объяснение?</text>
         </g>
       </svg>
       <figcaption>Авторская схема прочтения: различие между наблюдением и готовым объяснением. Не план камеры и не кадр фильма.</figcaption>
