@@ -174,3 +174,9 @@
   .observatoryHero .observatoryCta,.observatoryHero .observatoryCta:hover,.observatoryRead,.observatoryRead:hover,.observatoryPause { color:CanvasText; background:Canvas; border-color:CanvasText; box-shadow:none; }
   .observatoryCtaIcon,.observatoryCtaArrow,.observatoryStages svg { color:CanvasText; stroke:CanvasText; }
 }
+
+/* The home wordmark can keep both lines, except on the smallest viewports. */
+@media (max-width:360px) {
+ .siteHeader[data-observatory] .brandText strong { font-size:.8rem; letter-spacing:.08em; }
+ .siteHeader[data-observatory] .brandText small { font-size:.57rem; }
+}

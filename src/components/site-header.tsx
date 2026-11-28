@@ -105,14 +105,9 @@ export function SiteHeader({diveHref}: {diveHref?:string}) {
 
   return (
     <header className="siteHeader" data-scrolled={scrolled || undefined} data-observatory={observatory || undefined}>
-      {/* The monogram is decoration: it is drawn by CSS, so the link's visible
-          text is exactly "Deep Waters" and its accessible name can contain that
-          text verbatim (WCAG 2.5.3, label in name). A text node here would put
-          "DW" into the name or, worse, leave the name saying something the
-          visible label does not. */}
-      <Link className="brand" href="/" aria-label={observatory ? "Deep Waters / Глубокие воды — на главную" : "Deep Waters — на главную"}>
-        <span className="brandMark" aria-hidden="true">{observatory ? <svg viewBox="0 0 48 32" width="38" height="28" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="24" cy="16" r="13"/><path d="M11 16h26M24 3v26" opacity=".35"/><path d="M4 16c7-7 13-7 20 0s13 7 20 0M4 22c7-7 13-7 20 0s13 7 20 0" strokeLinecap="round"/><circle cx="24" cy="16" r="3" fill="currentColor" stroke="none"/></svg> : null}</span>
-        <span className="brandText">{observatory ? <><strong lang="en">DEEP WATERS</strong><small>Глубокие воды</small></> : "Deep Waters"}</span>
+      <Link className="brand" href="/" aria-label="Deep Waters / Глубокие воды — на главную">
+        <span className="brandMark" aria-hidden="true"><svg viewBox="0 0 48 32" width="38" height="28" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="24" cy="16" r="13"/><path d="M11 16h26M24 3v26" opacity=".35"/><path d="M4 16c7-7 13-7 20 0s13 7 20 0M4 22c7-7 13-7 20 0s13 7 20 0" strokeLinecap="round"/><circle cx="24" cy="16" r="3" fill="currentColor" stroke="none"/></svg></span>
+        <span className="brandText"><strong lang="en">DEEP WATERS</strong><small>Глубокие воды</small></span>
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">
         {navLinks.map((link) => (
@@ -140,7 +135,7 @@ export function SiteHeader({diveHref}: {diveHref?:string}) {
         aria-controls="site-menu"
         onClick={() => setMenuOpen((value) => !value)}
       >
-        {menuOpen ? "Закрыть" : "Меню"}
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">{menuOpen?<path d="m6 6 12 12M18 6 6 18"/>:<path d="M4 7h16M4 12h16M4 17h11"/>}</svg><span>{menuOpen ? "Закрыть" : "Меню"}</span>
       </button> : null}
       <nav
         id="site-menu"

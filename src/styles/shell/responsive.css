@@ -27,10 +27,7 @@
     position: absolute;
     inset: 100% 0 auto;
     border-bottom: 1px solid var(--stroke-default);
-    background: var(--surface-canvas);
-    background: color-mix(in srgb, var(--surface-canvas) 94%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: var(--instrument-base);
   }
 
   .siteMenu a {
