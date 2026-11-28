@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useExperienceQuality } from "@/components/experience/experience-quality-provider";
 
 const NAV_LINKS = [
   { href: "/#films", label: "Фильмы" },
@@ -20,6 +21,24 @@ export function SiteHeader() {
   const observatory = pathname === "/";
   const navLinks = NAV_LINKS;
   const hydrated = useHydrated();
+  const { reducedMotion, forcedColors, experienceMode, documentVisible } = useExperienceQuality();
+  const emblemVideoRef = useRef<HTMLVideoElement>(null);
+  const [emblemRequested, setEmblemRequested] = useState(false);
+  const [emblemHovered, setEmblemHovered] = useState(false);
+  const [emblemPlaying, setEmblemPlaying] = useState(false);
+  const [emblemFailed, setEmblemFailed] = useState(false);
+  const emblemAllowed = hydrated && !reducedMotion && !forcedColors && experienceMode !== "lite" && documentVisible;
+  const emblemActive = emblemAllowed && emblemHovered && !emblemFailed;
+
+  // Keep the original bronze rim visible; load only on a deliberate mouse hover.
+  useEffect(() => {
+    const video = emblemVideoRef.current;
+    if (!video) return;
+    if (!emblemActive) { video.pause(); return; }
+    let current = true;
+    void video.play().catch(() => { if (current) setEmblemFailed(true); });
+    return () => { current = false; video.pause(); };
+  }, [emblemActive, emblemRequested]);
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPathname, setMenuPathname] = useState(pathname);
@@ -115,8 +134,20 @@ export function SiteHeader() {
 
   return (
     <header className="siteHeader" data-scrolled={scrolled || undefined} data-observatory={observatory || undefined}>
-      <Link className="brand" href="/" aria-label="DEEP WATERS Глубокие воды — на главную">
-        <span className="brandMark" aria-hidden="true"><Image src="/art/deep-waters-emblem.png" alt="" width={128} height={128} unoptimized /></span>
+      <Link className="brand" href="/" aria-label="DEEP WATERS Глубокие воды — на главную"
+        onPointerEnter={event => {
+          if (event.pointerType !== "mouse" || !emblemAllowed || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+          const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+          if (connection?.saveData || ["slow-2g", "2g"].includes(connection?.effectiveType ?? "")) return;
+          setEmblemRequested(true);
+          setEmblemHovered(true);
+        }}
+        onPointerLeave={() => setEmblemHovered(false)}
+      >
+        <span className="brandMark" aria-hidden="true"><Image src="/art/deep-waters-emblem.png" alt="" width={128} height={128} unoptimized />
+          {emblemRequested && emblemAllowed && !emblemFailed ? <video ref={emblemVideoRef} className="brandEmblemVideo" src="/art/deep-waters-hover.mp4" data-playing={emblemActive && emblemPlaying} muted loop playsInline preload="none" disablePictureInPicture disableRemotePlayback tabIndex={-1} aria-hidden="true"
+            onPlaying={() => setEmblemPlaying(true)} onPause={() => setEmblemPlaying(false)} onWaiting={() => setEmblemPlaying(false)} onError={() => setEmblemFailed(true)} /> : null}
+        </span>
         <span className="brandText"><strong lang="en">DEEP WATERS</strong>{" "}<small>Глубокие воды</small></span>
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">

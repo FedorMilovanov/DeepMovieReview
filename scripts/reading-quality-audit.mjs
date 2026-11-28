@@ -714,6 +714,27 @@ try {
       assert.equal(await catalogueCard.locator(".filmRowTeaser").innerText(), jacket);
       return {jacket};
     }));
+  await check("journal emblem plays the real circular video only on deliberate hover", () =>
+    withPage({ viewport: { width: 1440, height: 900 }, reducedMotion:"no-preference" }, "emblem-hover", async page => {
+      await page.goto(base, { waitUntil:"load" });
+      const brand=page.locator(".siteHeader .brand");
+      const video=page.locator(".brandEmblemVideo");
+      assert.equal(await video.count(),0,"no video requested on cold entry");
+      await brand.hover();
+      await video.waitFor({state:"visible"});
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime > .25 && v.dataset.playing==="true";});
+      const details=await video.evaluate(v=>({muted:v.muted,loop:v.loop,width:v.videoWidth,height:v.videoHeight,mask:getComputedStyle(v).maskImage||getComputedStyle(v).webkitMaskImage,clip:getComputedStyle(v).clipPath}));
+      assert.ok(details.muted && details.loop && details.width===96 && details.height===96);
+      assert.match(details.mask,/radial-gradient/);
+      assert.match(details.clip,/circle/);
+      await page.mouse.move(400,200);
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && v.paused && v.dataset.playing==="false";});
+      await page.emulateMedia({reducedMotion:"reduce"});
+      await video.waitFor({state:"detached"});
+      await brand.hover();
+      assert.equal(await video.count(),0,"reduced motion prevents playback");
+      return details;
+    }));
   await check("desktop navigation reselects the journal fragment with keyboard focus", () =>
     withPage({ viewport: { width: 1440, height: 900 } }, "journal-desktop-navigation", async page => {
       await page.goto(`${base}/#films`, { waitUntil: "load" });
