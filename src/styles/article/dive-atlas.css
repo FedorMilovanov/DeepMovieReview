@@ -57,3 +57,14 @@
   .diveJournalShift { gap:.4rem; font-size:.88rem; }
 }
 @media (prefers-reduced-motion:reduce) { .memoryStage svg g { transition:none; } }
+
+.diveAtlas .diveRoomRail > * { background:var(--instrument-base); border-color:var(--instrument-line); }
+.diveAtlas .diveRoomRail > button:hover { background:var(--instrument-raised); border-color:var(--instrument-line-strong); }
+.diveAtlas .diveRoomRail > [aria-current="step"] { background:var(--instrument-selected); border-color:var(--instrument-gold); box-shadow:inset 0 -2px var(--instrument-gold); }
+.diveAtlasToggle { background:var(--instrument-panel); border-color:var(--instrument-line-strong); }
+.diveAtlasToggle[aria-expanded="true"] { background:var(--instrument-selected); border-color:var(--instrument-gold); }
+.diveAtlasJournal { background:var(--instrument-base); border-color:var(--instrument-line); }
+.diveAtlasJournal h2 { font:400 1.65rem/1.2 Georgia,"Times New Roman",serif; text-transform:none; letter-spacing:normal; }
+.diveJournalShift { background:var(--instrument-panel); }
+@media (max-width:360px) { .diveJournalShift { grid-template-columns:1fr; } .diveJournalShift > span { transform:rotate(90deg); justify-self:start; } }
+@media (forced-colors:active) { .diveAtlas .diveRoomRail > [aria-current="step"],.diveAtlasToggle[aria-expanded="true"] { outline:2px solid Highlight; outline-offset:-2px; } }

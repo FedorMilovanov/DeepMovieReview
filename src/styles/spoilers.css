@@ -114,3 +114,19 @@
     min-height: 0;
   }
 }
+
+/* Each mark corresponds to one actual spoiler level, not a score. */
+.spoilerOptions { gap:.4rem; }
+.spoilerOption { gap:.55rem; border-color:var(--instrument-line); border-radius:5px; background:var(--instrument-base); color:var(--instrument-muted); font-size:.78rem; letter-spacing:0; text-transform:none; text-decoration:none; }
+.spoilerDepth { display:inline-flex; align-items:flex-end; gap:2px; flex:none; height:15px; }
+.spoilerDepth i { width:3px; height:7px; background:var(--instrument-line-strong); opacity:.6; }
+.spoilerDepth i:nth-child(2) { height:9px; }
+.spoilerDepth i:nth-child(3) { height:12px; }
+.spoilerDepth i:nth-child(4) { height:15px; }
+.spoilerDepth i[data-filled="true"] { background:var(--instrument-gold); opacity:1; }
+.spoilerOption:hover,.spoilerOption:focus-visible { background:var(--instrument-raised); border-color:var(--instrument-line-strong); color:var(--instrument-text); }
+.spoilerOptionActive,.spoilerOptionActive:hover,.spoilerOptionActive:focus-visible { background:var(--instrument-selected); border-color:var(--instrument-gold); color:var(--instrument-text); }
+.spoilerSelectedMark { width:14px; height:14px; stroke:var(--instrument-gold); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+@media (max-width:640px) { .spoilerOption { justify-content:flex-start; text-align:start; min-width:0; padding:.55rem .5rem; } .spoilerOption span:last-of-type { overflow-wrap:anywhere; } .spoilerSelectedMark { margin-inline-start:auto; } }
+@media (prefers-reduced-motion:reduce) { .spoilerOption { transition:none; } }
+@media (forced-colors:active) { .spoilerOptionActive { outline:2px solid Highlight; outline-offset:-2px; } .spoilerDepth i { background:GrayText; forced-color-adjust:none; } .spoilerDepth i[data-filled="true"] { background:Highlight; } }
