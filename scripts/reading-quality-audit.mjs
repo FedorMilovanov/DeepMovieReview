@@ -462,8 +462,11 @@ try {
     await check(`reader journey ${viewport.label}: entry, opening, evidence, full text and legacy links`, () =>
       withPage({ viewport: { width: viewport.width, height: viewport.height } }, `reader-${viewport.label}`, async page => {
         await page.goto(base, { waitUntil: "load" });
-        const entry = page.locator(`a.buttonPrimary[href="${article}/dive"]`).filter({ hasText: "Начать погружение" });
+        const entry = page.locator(`a.buttonPrimary[href="${article}/dive"]`).filter({ hasText: "Войти в исследование" });
         assert.equal(await entry.count(), 1, "one primary immersive entry");
+        assert.equal(await page.locator(".observatoryHero h1").textContent(),"Здесь кино становится исследованием");
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true,"hero fits viewport");
+        await page.screenshot({path:`${dir}/observatory-${viewport.label}.png`});
         await entry.click();
         await page.waitForURL(url => url.pathname === article + "/dive");
         await page.locator(".diveStandalone .diveJourney").waitFor({ state: "visible" });

@@ -1,0 +1,64 @@
+/* DIVE entrance — separate platform scene, not a film poster. */
+.observatoryHero { --obs-ink:#f3eee4; --obs-muted:#cbd9df; --obs-brass:#e1c49b; position:relative; isolation:isolate; overflow:hidden; min-height:calc(100vh - 78px); min-height:calc(100svh - 78px); display:grid; grid-template-rows:1fr auto; color:var(--obs-ink); background:#071722; }
+.siteHeader[data-observatory] { width:100%; max-width:none; padding-inline:var(--gutter); min-height:78px; background:#08121b; border-color:#91adc533; }
+.siteHeader[data-observatory] .brand { gap:12px; }
+.siteHeader[data-observatory] .brandMark { color:#d7c3a0; border:0; padding:0; display:flex; }
+.siteHeader[data-observatory] .brandMark::before { content:none; }
+.siteHeader[data-observatory] .brandText { font:400 1.5rem Georgia,"Times New Roman",serif; color:#f1eee8; }
+.siteHeader[data-observatory] .siteNav { text-transform:none; letter-spacing:.03em; color:#e7e8e8; }
+.observatoryScene,.observatoryPicture,.observatoryPicture img,.observatoryShade,.observatoryLight { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.observatoryScene { z-index:-1; overflow:hidden; }
+.observatoryPicture img { object-fit:cover; object-position:50% 56%; transform:scale(1.015); }
+.observatoryShade { background:linear-gradient(180deg,rgba(4,12,19,.78) 0%,rgba(4,14,24,.53) 24%,rgba(5,16,24,.40) 43%,transparent 65%,rgba(3,10,16,.91) 100%); }
+.observatoryHero[data-art="fallback"] .observatoryShade { background:linear-gradient(180deg,#071722cc,#071722b0 48%,#07172235 72%,#041019f0); }
+.observatoryLight { opacity:.44; background:radial-gradient(ellipse at 68% 3%,rgba(99,191,229,.36),transparent 42%); mix-blend-mode:screen; transform-origin:68% 0; }
+.observatoryHero[data-motion="on"] .observatoryPicture img { animation:observatoryBreath 20s ease-in-out infinite alternate; }
+.observatoryHero[data-motion="on"] .observatoryLight { animation:observatoryLightDrift 13s ease-in-out infinite alternate; }
+.observatoryHero[data-visible="false"] .observatoryPicture img,.observatoryHero[data-visible="false"] .observatoryLight { animation-play-state:paused; }
+.observatoryMain { display:flex; flex-direction:column; align-items:center; text-align:center; gap:1.05rem; width:min(100% - 2*var(--gutter),980px); margin-inline:auto; padding-block:clamp(2rem,7vh,5rem) clamp(9rem,22vh,14rem); }
+.observatoryKicker { margin:0; font:500 .69rem var(--font-meta); letter-spacing:.16em; text-transform:uppercase; color:var(--obs-brass); }
+.observatoryHero h1 { margin:0; font-family:Georgia,"Times New Roman",serif; font-size:clamp(2.9rem,5.3vw,5.3rem); font-weight:400; line-height:1.04; letter-spacing:-.035em; text-transform:none; max-width:24ch; text-shadow:0 2px 28px #06111b; }
+.observatoryIntro { margin:0; font-size:clamp(1rem,1.35vw,1.23rem); line-height:1.5; max-width:55ch; color:var(--obs-muted); text-shadow:0 1px 9px #040b13; }
+.observatoryActions { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:.75rem; margin-top:.4rem; }
+.observatoryHero .observatoryCta { display:inline-flex; min-height:54px; align-items:center; justify-content:center; gap:1.7rem; border:1px solid #d5bd98; background:linear-gradient(180deg,#ead8bb,#d5b78d); color:#172630; border-radius:4px; padding:.9rem 1.65rem; font-size:.94rem; font-weight:650; letter-spacing:0; text-transform:none; box-shadow:0 8px 26px #050b1577; }
+.observatoryHero .observatoryCta:hover { background:#f2dfbe; color:#10202a; border-color:#f5e5ce; }
+.observatoryRead { display:inline-flex; min-height:54px; align-items:center; padding:.75rem 1rem; border:1px solid #aebfca88; border-radius:4px; background:#081520bd; color:#f0ede6; font-size:.9rem; }
+.observatoryRead:hover { background:#152d3c; }
+.observatoryFeature { position:relative; width:min(100% - 2*var(--gutter),1200px); margin:0 auto; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); align-items:center; gap:1.5rem; border-top:1px solid #a8c0ce44; padding:1.2rem 0 2.8rem; }
+.observatoryFeatureTitle { display:grid; gap:.4rem; }
+.observatoryFeatureTitle small { color:#bcd0dd; font-size:.69rem; letter-spacing:.12em; text-transform:uppercase; }
+.observatoryFeatureTitle strong { font-family:Georgia,"Times New Roman",serif; font-size:clamp(1.25rem,2.1vw,1.9rem); font-weight:400; }
+.observatoryFeatureTitle p { color:#cfdae1; font-size:.87rem; margin:0; line-height:1.45; }
+.observatoryStages { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:.65rem; color:#bcd2dd; font-size:.77rem; }
+.observatoryStages span { display:inline-flex; align-items:center; gap:.4rem; }
+.observatoryStages span+span::before { content:""; width:3px; height:3px; border-radius:50%; background:#d5bd98; }
+.observatoryPause { position:absolute; inset:auto var(--gutter) .25rem auto; color:#c6d9e3; background:#0b1c28df; border:1px solid #90aaba66; border-radius:4px; min-height:44px; min-width:44px; padding:.35rem .65rem; font-size:.72rem; cursor:pointer; }
+.observatoryHero :is(a,button):focus-visible { outline:2px solid #e4cba3; outline-offset:4px; }
+.observatoryHero[data-entering="true"] .observatoryScene { animation:observatoryEnter 500ms cubic-bezier(.22,1,.36,1) both; }
+@keyframes observatoryBreath { from { transform:scale(1.015) translate3d(0,0,0); } to { transform:scale(1.055) translate3d(-.35%,.25%,0); } }
+@keyframes observatoryLightDrift { from { opacity:.28; transform:rotate(-1deg); } to { opacity:.65; transform:rotate(2deg); } }
+@keyframes observatoryEnter { to { transform:scale(1.085); filter:blur(8px); opacity:.2; } }
+@media (max-width:760px) {
+ .siteHeader[data-observatory] { min-height:62px; }
+ .siteHeader[data-observatory] .brand { gap:9px; }
+ .siteHeader[data-observatory] .brandText { font-size:1.15rem; }
+ .siteHeader[data-observatory] .brandMark svg { width:29px; }
+ .observatoryHero { min-height:calc(100svh - 62px); }
+ .observatoryPicture img { object-position:54% 62%; }
+ .observatoryShade { background:linear-gradient(180deg,rgba(4,13,22,.86) 0%,rgba(4,15,24,.65) 31%,rgba(4,14,23,.32) 49%,transparent 69%,#041019eb 100%); }
+ .observatoryMain { width:calc(100% - 2*var(--gutter)); padding-block:clamp(1.6rem,6vh,3rem) clamp(9rem,25vh,14rem); gap:.85rem; }
+ .observatoryHero h1 { font-size:clamp(2.15rem,8.75vw,3.8rem); max-width:15ch; }
+ .observatoryKicker { font-size:.61rem; letter-spacing:.105em; }
+ .observatoryIntro { font-size:.94rem; line-height:1.45; max-width:34ch; }
+ .observatoryActions { gap:.6rem; width:100%; margin-top:.3rem; }
+ .observatoryHero .observatoryCta { min-height:50px; padding:.8rem 1.3rem; width:min(100%,340px); }
+ .observatoryRead { min-height:44px; padding:.45rem .8rem; border:0; background:#0815209c; }
+ .observatoryFeature { grid-template-columns:1fr; gap:.55rem; padding:.9rem 0 3.2rem; }
+ .observatoryFeatureTitle { gap:.25rem; }
+ .observatoryFeatureTitle strong { font-size:1.35rem; }
+ .observatoryFeatureTitle p { font-size:.8rem; }
+ .observatoryStages { justify-content:flex-start; font-size:.7rem; gap:.45rem; }
+}
+@media (max-width:360px) { .observatoryHero h1 { font-size:2rem; } .observatoryMain { padding-block-start:1.5rem; gap:.65rem; } .observatoryIntro { font-size:.88rem; } }
+@media(prefers-reduced-motion:reduce) { .observatoryHero * { animation:none!important; transition:none!important; } }
+@media(forced-colors:active) { .observatoryScene { display:none; } .observatoryHero,.observatoryHero .observatoryCta,.observatoryRead { color:CanvasText; background:Canvas; border-color:CanvasText; } }

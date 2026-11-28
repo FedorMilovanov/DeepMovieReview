@@ -8,6 +8,7 @@ import { MoralLensCursor } from "@/components/moral-lens-cursor";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { requireFilmPackageBySlug } from "@/data/film-registry";
+import { getDiveOpening } from "@/lib/dive-opening";
 import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { resolveSiteOrigin } from "@/lib/site-publication-policy";
 import { siteIndexingEnabled } from "@/lib/site-indexing";
@@ -110,7 +111,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <a className="skipLink" href="#main">Перейти к содержимому</a>
         <ExperienceQualityProvider>
           <div className="appShell">
-            <SiteHeader />
+            <SiteHeader diveHref={homepageFilmPackage.film.status === "published" && getDiveOpening(homepageFilmPackage) ? `/films/${homepageFeaturedFilmSlug}/dive` : undefined} />
             {/* tabIndex -1 lets the skip link move keyboard focus into main,
                 not just scroll to it (WCAG 2.4.1). */}
             <main id="main" tabIndex={-1}>{children}</main>

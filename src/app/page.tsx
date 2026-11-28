@@ -11,6 +11,8 @@ import type { LensKey, NarrativePermissionState } from "@/lib/content";
 import { filmPackages, getFilmPackageBySlug, requireFilmPackageBySlug } from "@/data/film-registry";
 import { pluralRu } from "@/lib/plural-ru";
 import { getDiveOpening } from "@/lib/dive-opening";
+import { ObservatoryHero } from "@/components/home/observatory-hero";
+import { getObservatoryArtwork } from "@/data/observatory-artwork";
 import { filmStillsServable, homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
 import { illustrationView } from "@/data/film-illustrations";
 import { getFilmHomeAsset } from "@/data/visual-assets";
@@ -983,7 +985,7 @@ export default function HomePage() {
   if (isPublished) {
     return (
       <>
-        <FilmHero data={data} />
+        {getDiveOpening(featuredFilmPackage) ? <ObservatoryHero filmTitle={data.featuredFilm.title} filmSlug={data.featuredFilm.slug} artwork={getObservatoryArtwork()} /> : <FilmHero data={data} />}
         {!featuredFilmPackage.article ? <HomepagePaths data={data} /> : null}
         <LensStage example={data.sceneExample} filmSlug={data.featuredFilm.slug} />
         <DataSections data={data} published />

@@ -15,8 +15,10 @@ const NAV_LINKS = [
  * Site header: low-contrast at top, gains a solid surface after the first
  * scroll; collapses to an accessible disclosure menu on narrow viewports.
  */
-export function SiteHeader() {
+export function SiteHeader({diveHref}: {diveHref?:string}) {
   const pathname = usePathname();
+  const observatory = pathname === "/" && Boolean(diveHref);
+  const navLinks = diveHref ? [{href:diveHref,label:"DIVE"},...NAV_LINKS] : NAV_LINKS;
   const hydrated = useHydrated();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -102,18 +104,18 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="siteHeader" data-scrolled={scrolled || undefined}>
+    <header className="siteHeader" data-scrolled={scrolled || undefined} data-observatory={observatory || undefined}>
       {/* The monogram is decoration: it is drawn by CSS, so the link's visible
           text is exactly "Deep Waters" and its accessible name can contain that
           text verbatim (WCAG 2.5.3, label in name). A text node here would put
           "DW" into the name or, worse, leave the name saying something the
           visible label does not. */}
-      <Link className="brand" href="/" aria-label="Deep Waters — на главную">
-        <span className="brandMark" aria-hidden="true" />
-        <span className="brandText">Deep Waters</span>
+      <Link className="brand" href="/" aria-label={observatory ? "Глубокие воды — на главную" : "Deep Waters — на главную"}>
+        <span className="brandMark" aria-hidden="true">{observatory ? <svg viewBox="0 0 48 32" width="38" height="28" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M2 12c8-6 14-6 22 0s14 6 22 0M2 20c8-6 14-6 22 0s14 6 22 0"/></svg> : null}</span>
+        <span className="brandText">{observatory ? "Глубокие воды" : "Deep Waters"}</span>
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">
-        {NAV_LINKS.map((link) => (
+        {navLinks.map((link) => (
           <Link key={link.href} href={link.href} {...linkProps(link.href)}>
             {link.label}
           </Link>
@@ -126,7 +128,7 @@ export function SiteHeader() {
         <details className="siteMenuFallback">
           <summary>Меню</summary>
           <nav aria-label="Меню">
-            {NAV_LINKS.map((link) => <Link key={link.href} href={link.href} {...linkProps(link.href)}>{link.label}</Link>)}
+            {navLinks.map((link) => <Link key={link.href} href={link.href} {...linkProps(link.href)}>{link.label}</Link>)}
           </nav>
         </details>
       ) : null}
@@ -147,7 +149,7 @@ export function SiteHeader() {
         data-open={menuOpen || undefined}
         inert={!menuOpen}
       >
-        {NAV_LINKS.map((link) => (
+        {navLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}
