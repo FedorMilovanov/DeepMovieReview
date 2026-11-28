@@ -8,7 +8,7 @@ export type SiteIndexingPolicyInput = {
 
 /**
  * Search indexing is a public-production capability, never a preview capability.
- * A published homepage feature is necessary but not sufficient: preview content
+ * At least one published journal entry is necessary but not sufficient: preview content
  * must also be disabled so draft/fixture surfaces can never share an indexable build.
  */
 export function canIndexSite({

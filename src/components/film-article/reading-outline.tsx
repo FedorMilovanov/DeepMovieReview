@@ -1,13 +1,13 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
 
 type ReadingSection = { id: string; number: number; heading: string };
 
 /** One spoiler-projected contents list: mouse preview, click pin and keyboard access. */
-export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
+export function ReadingOutline({ sections, fullHref }: { sections: ReadingSection[]; fullHref?: string }) {
   const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
   const [pinned, setPinned] = useState(false);
@@ -40,14 +40,14 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
     update();
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
-    const observer = new ResizeObserver(schedule);
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(schedule) : null;
     // The control is portalled into the sticky header after hydration; observe
     // the article itself rather than assuming the control is still its child.
     const article = document.querySelector(".articleShell");
-    if (article) observer.observe(article);
+    if (article) observer?.observe(article);
     return () => {
       cancelAnimationFrame(frame);
-      observer.disconnect();
+      observer?.disconnect();
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
     };
@@ -120,6 +120,16 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
 
   if (!sections.length) return null;
   const activeIndex = Math.max(0, sections.findIndex(section => section.id === active));
+  function fullRead(event: MouseEvent<HTMLAnchorElement>) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const line = window.innerHeight * 0.28;
+    const paragraphs = Array.from(document.querySelectorAll<HTMLElement>("[data-reading-block]"));
+    const target = paragraphs.filter(paragraph => paragraph.getBoundingClientRect().top <= line).at(-1);
+    const url = new URL(event.currentTarget.href);
+    url.hash = target?.id ?? sections[0]?.id ?? "article-top";
+    event.preventDefault();
+    window.location.assign(url.toString());
+  }
   const position = String(activeIndex + 1).padStart(2, "0");
   const outline = (
     <div
@@ -155,7 +165,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
           setPinned(!pinned);
         }}
       >
-        <span className="readingOutlineWord">Разделы</span>
+        <svg className="readingOutlineGlyph" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h11"/><path d="M4 12h6" strokeWidth="3"/></svg><span className="readingOutlineWord">Разделы</span>
         <span className="readingOutlineRail" aria-hidden="true">
           {sections.map(({ id }, index) => <i key={id} data-active={id === active} data-read={index < activeIndex} />)}
         </span>{/* A real separator keeps the visible word and number distinct in label-in-name checks. */}{" "}
@@ -186,6 +196,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
             <span>{String(number).padStart(2, "0")}</span><strong>{heading}</strong>
           </a>
         ))}
+        {fullHref ? <a className="readingOutlineFull" href={fullHref} onClick={fullRead}>Читать всё, включая финал</a> : null}
       </nav>
     </div>
   );
@@ -200,6 +211,7 @@ export function ReadingOutline({ sections }: { sections: ReadingSection[] }) {
         {sections.map(({ id, number, heading }) => (
           <a key={id} href={`#${id}`}><span>{number}</span><strong>{heading}</strong></a>
         ))}
+        {fullHref ? <a className="readingOutlineFull" href={fullHref}>Читать всё, включая финал</a> : null}
       </nav>
       {outline}
     </>

@@ -17,6 +17,7 @@ const probes = Object.freeze({
   geometry: "JSON.stringify({width:innerWidth,outer:outerWidth,dpr:devicePixelRatio,scroll:document.documentElement.scrollWidth})",
   focus: "JSON.stringify((() => { const el = document.activeElement; return el ? {tag: el.tagName, text: (el.textContent || '').trim().slice(0, 80), href: el.getAttribute('href'), className: el.className} : null; })())",
   sceneSupport: "JSON.stringify(document.querySelector('#scene-truman-sc-day-10909 .filmSceneSupports')?.open ?? null)",
+  articleDisclosures: "JSON.stringify(Object.fromEntries(['truman-article-craft-windows','truman-article-corrections','film-evidence-appendix'].map(id=>[id,document.getElementById(id)?.open ?? null])))",
 });
 export function safariProbe(name) {
   assert.ok(Object.hasOwn(probes, name), "Unknown native Safari read-only probe");
@@ -60,6 +61,7 @@ export async function safariDesktop({ run = nativeRun, ci = process.env.GITHUB_A
       // Read-only native focus identity and disclosure state; input remains VoiceOver's.
       focus: () => read("focus"),
       sceneSupport: () => read("sceneSupport"),
+      articleDisclosures: () => read("articleDisclosures"),
       async goto(url) {
         await osa('on run argv\ntell application "Safari" to set URL of current tab of window id (item 1 of argv as integer) to item 2 of argv\nend run', windowId, url);
         const deadline = Date.now() + 90000;

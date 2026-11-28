@@ -79,7 +79,8 @@ html[data-document-visible="false"] .experienceDiagnostics {
   /* The panel opens upward from the footer; on short viewports (landscape
      phones) it used to extend past the top edge and become unreachable.
      Clamp it to the viewport and let the fieldsets scroll inside. */
-  max-height: calc(100vh - 150px);
+  max-height: max(4rem, calc(100vh - 150px));
+  max-height: max(4rem, calc(100dvh - 150px));
   overflow-y: auto;
   /* Do not scroll-chain to the page when the panel reaches its scroll end. */
   overscroll-behavior: contain;
@@ -200,4 +201,31 @@ html[data-reduced-motion="true"] *::after {
     right: 0;
     width: auto;
   }
+}
+
+/* The quality controls are an instrument panel, not developer diagnostics. */
+.experienceControls summary { min-height:44px; border-radius:5px; background:var(--instrument-base); border-color:var(--instrument-line-strong); color:var(--instrument-text); text-transform:none; letter-spacing:.03em; font-size:.85rem; }
+.experienceControls summary > span { color:var(--instrument-gold); font-family:var(--font-meta); font-size:.65rem; overflow-wrap:anywhere; }
+.experienceControls[open] summary { border-color:var(--instrument-gold); background:var(--instrument-selected); }
+.experienceControlsPanel { background:var(--instrument-base); border-color:var(--instrument-line-strong); border-radius:7px; color:var(--instrument-text); }
+.experienceControls legend { color:var(--instrument-gold); font-size:.75rem; letter-spacing:.03em; text-transform:none; }
+.experienceControls label { min-height:44px; padding:.75rem .65rem; border:1px solid var(--instrument-line-strong); border-radius:4px; background:var(--instrument-panel); }
+.experienceControls label + label { margin-top:.4rem; }
+.experienceControls label:has(input:checked) { background:var(--instrument-selected); border-color:var(--instrument-gold); }
+.experienceControls label:has(input:focus-visible) { outline:2px solid var(--focus-color); outline-offset:2px; }
+.experienceControls input { accent-color:var(--instrument-gold); }
+.experienceControls label strong { color:var(--instrument-text); font-size:.9rem; }
+.experienceControls label small { color:var(--instrument-muted); font-size:.78rem; }
+@media (forced-colors:active) { .experienceControls label:has(input:checked) { outline:2px solid Highlight; outline-offset:-2px; } }
+
+.experienceControls { min-width:0; }
+.experienceControls summary { justify-content:flex-start; gap:.55rem; }
+.experienceControls .experienceControlIcon { width:20px; height:20px; stroke:var(--instrument-gold); stroke-width:1.4; stroke-linecap:round; flex:none; }
+.experienceControls .experienceControlIcon circle { fill:var(--instrument-base); }
+.experienceControls summary > .experienceControlLabel { flex:1; min-width:0; color:var(--instrument-text); font:.85rem var(--font-body); }
+.experienceControls summary > .experienceControlMode { white-space:nowrap; }
+.experienceControls fieldset { min-width:0; }
+.experienceControlsPanel { scrollbar-gutter:stable; }
+@media (min-width:641px) and (max-width:1020px) {
+ .experienceControlsPanel { width:min(430px,calc(100vw - 2*var(--gutter))); }
 }

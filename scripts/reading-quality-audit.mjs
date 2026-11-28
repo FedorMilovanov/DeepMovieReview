@@ -15,7 +15,8 @@ const engine = { chromium, firefox, webkit }[name];
 assert.ok(engine, `Unknown reading audit browser: ${name}`);
 const dir = resolve(process.env.READING_AUDIT_DIR ?? `browser-audit/reading-${name}`);
 mkdirSync(dir, { recursive: true });
-const article = "/films/the-truman-show/article";
+const article = "/films/the-truman-show";
+const legacyArticle = `${article}/article`;
 const levels = ["NONE", "MINOR", "MAJOR", "ENDING", "FULL"];
 const viewports = [
   { label: "phone", width: 390, height: 844 },
@@ -32,6 +33,24 @@ const report = {
   inProgress: null, completed: false,
 };
 const pdfManifest = { browser: name, files: [], fullSections: [] };
+
+// Actual rendered interface surfaces, not cinematic media and not token text.
+// Check the resolved cascade after navigation on the same journey.
+async function assertNeutralSurface(locator, label) {
+  await locator.waitFor({ state: "visible" });
+  const appearance = await locator.evaluate(element => {
+    const css = getComputedStyle(element);
+    return { background: css.backgroundColor, image: css.backgroundImage };
+  });
+  const match = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(appearance.background);
+  assert.ok(match, `${label}: expected an opaque interface surface, got ${appearance.background}`);
+  const channels = match.slice(1).map(Number);
+  assert.ok(Math.max(...channels) <= 40 && Math.max(...channels) - Math.min(...channels) <= 2,
+    `${label}: black palette drift: ${appearance.background}`);
+  assert.equal(appearance.image, "none", `${label}: unexpected interface background image`);
+  return appearance;
+}
+
 function save() {
   writeFileSync(`${dir}/results.json`, `${JSON.stringify(report, null, 2)}\n`);
   writeFileSync(`${dir}/pdf-manifest.json`, `${JSON.stringify(pdfManifest, null, 2)}\n`);
@@ -324,7 +343,7 @@ async function testOutline(page, viewport) {
   assert.equal(await trigger.getAttribute("aria-expanded"), "false");
   assert.ok(await trigger.evaluate(element => document.activeElement === element), "Escape did not return focus to outline trigger");
 
-  const hashes = await panel.locator("a").evaluateAll(links => links.map(link => link.hash));
+  const hashes = await panel.locator('a[href^="#"]').evaluateAll(links => links.map(link => link.hash));
   const sectionIds = await page.locator(".articleSection").evaluateAll(sections => sections.map(section => `#${section.id}`));
   assert.deepEqual(hashes, sectionIds, "outline must expose exactly the projected sections");
   const reached = [];
@@ -364,29 +383,29 @@ async function menuNavigation(page, source, input) {
   if (input === "keyboard") {
     await tabTo(page, ".menuButton");
     await page.keyboard.press("Enter");
-    await tabTo(page, '#site-menu a[href="/#lenses"]');
+    await tabTo(page, '#site-menu a[href="/#films"]');
     await page.keyboard.press("Enter");
   } else {
     await page.locator(".menuButton").click();
-    await page.locator('#site-menu a[href="/#lenses"]').click();
+    await page.locator('#site-menu a[href="/#films"]').click();
   }
-  await page.waitForFunction(() => location.pathname === "/" && location.hash === "#lenses" && document.activeElement?.id === "lenses");
+  await page.waitForFunction(() => location.pathname === "/" && location.hash === "#films" && document.activeElement?.id === "films");
   const landing = await page.evaluate(() => ({
     hash: location.hash, active: document.activeElement.id, y: scrollY,
-    top: document.querySelector("#lenses").getBoundingClientRect().top,
+    top: document.querySelector("#films").getBoundingClientRect().top,
     headerBottom: document.querySelector(".siteHeader").getBoundingClientRect().bottom,
     height: innerHeight, expanded: document.querySelector(".menuButton").getAttribute("aria-expanded"),
   }));
   assert.equal(landing.expanded, "false");
   assert.ok(landing.top >= landing.headerBottom - 1 && landing.top < landing.height, `anchor is obscured: ${JSON.stringify(landing)}`);
   await page.keyboard.press("Tab");
-  const next = await page.evaluate(() => ({ id: document.activeElement.id, inside: Boolean(document.activeElement.closest("#lenses")), y: scrollY }));
+  const next = await page.evaluate(() => ({ id: document.activeElement.id, inside: Boolean(document.activeElement.closest("#films")), y: scrollY }));
   assert.ok(next.inside, `next Tab left the selected section: ${JSON.stringify(next)}`);
   assert.ok(next.y > landing.y - 200, "next Tab jumped to the hero");
   await page.goBack({ waitUntil: "load" });
   await page.waitForURL(`${base}${source}`);
   await page.goForward({ waitUntil: "load" });
-  await page.waitForURL(`${base}/#lenses`);
+  await page.waitForURL(`${base}/#films`);
   return { landing, next, back: source, forward: new URL(page.url()).hash };
 }
 
@@ -413,6 +432,241 @@ async function pdf(page, file, metadata, background) {
 }
 
 try {
+
+  for (const viewport of viewports.filter(item => item.label === "phone" || item.label === "desktop")) {
+    await check(`DIVE Sirius ${viewport.label}: inspect, branch, classify, reconsider, return`, () =>
+      withPage({ viewport: { width: viewport.width, height: viewport.height } }, `dive-${viewport.label}`, async page => {
+        await page.goto(base + article, { waitUntil: "load" });
+        const entry = page.locator(".diveEntryAction");
+        await entry.click();
+        const dialog = page.locator(".diveDialog");
+        await dialog.getByRole("button", { name: "Рассмотреть маркировку" }).click();
+        await dialog.getByRole("button", { name: "Сформулировать гипотезу" }).click();
+        await dialog.getByRole("button", { name: "Обычная случайность" }).click();
+        await dialog.getByRole("button", { name: "Выбрать способ проверки" }).click();
+        await dialog.getByRole("button", { name: "Сообщение", exact: true }).click();
+        await dialog.getByRole("button", { name: "Как сообщение", exact: true }).click();
+        await dialog.getByRole("button", { name: "Такое объяснение присутствует в тексте." }).click();
+        await dialog.getByRole("button", { name: "Независимая проверка", exact: true }).click();
+        await dialog.getByRole("button", { name: "Разные первоисточники", exact: true }).click();
+        assert.equal(await dialog.locator(".diveExperiment svg").getAttribute("aria-label"), "Три сообщения из трёх условно независимых источников");
+        await dialog.getByRole("button", { name: "Независимо проверяемая запись происхождения предмета." }).click();
+        await dialog.getByRole("button", { name: "Сообщение", exact: true }).click();
+        assert.equal(await dialog.getByRole("button", { name: "Такое объяснение присутствует в тексте." }).getAttribute("aria-pressed"), "true");
+        assert.equal(await dialog.getByRole("button", { name: "Как сообщение", exact: true }).getAttribute("aria-pressed"), "true");
+        await page.screenshot({ path: `${dir}/dive-${viewport.label}-branch.png` });
+        await dialog.getByRole("button", { name: "Соединить сведения" }).click();
+        for (const [i, label] of ["Наблюдение", "Сообщение", "Гипотеза"].entries()) {
+          await dialog.locator(".diveSort").nth(i).getByRole("button", {name: label, exact: true}).click();
+        }
+        await dialog.getByRole("button", {name:"Вернуться к первому выводу"}).click();
+        await dialog.getByRole("button", {name:"Недостаточно сведений",exact:true}).click();
+        await dialog.getByRole("button", {name:"Открыть итог"}).click();
+        await dialog.getByRole("heading",{name:"Вы открыли различие"}).waitFor();
+        await page.screenshot({path:`${dir}/dive-${viewport.label}-synthesis.png`});
+        await dialog.getByRole("button",{name:"Продолжить статью"}).click();
+        assert.equal(await dialog.evaluate(el => el.open), false);
+        assert.equal(await entry.evaluate(el => document.activeElement === el), true);
+        await entry.click();
+        await dialog.getByRole("heading",{name:"Вы открыли различие"}).waitFor();
+        await page.keyboard.press("Escape");
+        assert.equal(await dialog.evaluate(el => el.open), false);
+        return {viewport:viewport.label, resumed:true};
+      }));
+  }
+  // #152: follow the reader journey on both viewport classes, not an isolated
+  // component fixture. Screenshots are taken only after the actual actions.
+  for (const viewport of viewports.filter(item => item.label === "phone" || item.label === "desktop")) {
+    await check(`reader journey ${viewport.label}: entry, opening, evidence, full text and legacy links`, () =>
+      withPage({ viewport: { width: viewport.width, height: viewport.height } }, `reader-${viewport.label}`, async page => {
+        await page.goto(base, { waitUntil: "load" });
+        const entry = page.locator('a.observatoryCta[href="#films"]').filter({ hasText: "Выбрать фильм" });
+        assert.equal(await entry.count(), 1, "one primary immersive entry");
+        assert.equal(await page.locator(".observatoryHero h1").innerText().then(s=>s.replace(/\s+/g," ").trim()),"Look beyond the frame.");
+        assert.equal(await page.locator(".observatoryPromise").textContent(),"Здесь кино становится исследованием.");
+        assert.equal(await page.locator(".observatoryHero").getAttribute("data-art"),"observatory","the final hero art is present");
+        await page.locator(".observatoryPicture img").evaluate(img=>img.decode());
+        const artSrc=await page.locator(".observatoryPicture img").evaluate(img=>img.currentSrc);
+        assert.ok(artSrc.includes(viewport.width<=760?"observatory-mobile-":"observatory-"),"responsive artwork selected");
+        assert.ok(await entry.evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),"primary CTA remains above fold");
+        const video=page.locator(".observatoryVideo");
+        assert.equal(await video.count(),1,"local background video is present");
+        assert.equal(await video.evaluate(el=>el.muted&&el.loop&&el.playsInline),true,"muted inline loop");
+        // Native video playback is independent of the 3D graphics tier. The
+        // chosen source must match the viewport when playback is permitted.
+        const videoSrc=await video.getAttribute("src");
+        if(videoSrc) assert.equal(videoSrc,viewport.width<=760?"/art/observatory-mobile.mp4":"/art/observatory-desktop.mp4");
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true,"hero fits viewport");
+        await assertNeutralSurface(page.locator(".siteHeader"), "observatory header");
+        await assertNeutralSurface(entry, "observatory primary action");
+        await page.screenshot({path:`${dir}/observatory-${viewport.label}.png`});
+        assert.equal(await page.locator(".siteHeader a[href$='/dive']").count(), 0, "global navigation must not pick a film");
+        assert.equal(await page.locator(".lensStageSection, .characterGrid, .articleSection").count(),0,"journal does not embed a selected film's analysis");
+        await entry.click();
+        await page.waitForURL(url => url.pathname === "/" && url.hash === "#films");
+        await page.waitForFunction(() => document.activeElement?.id === "films");
+        const sectionFocus = await page.locator("#films").evaluate(el=>({ outline:getComputedStyle(el).outlineStyle, marker:getComputedStyle(el.querySelector("h2"),"::before").borderInlineStartWidth, keyboard:el.matches(":focus-visible") }));
+        assert.equal(sectionFocus.outline,"none","fragment focus must not frame the whole journal");
+        if(sectionFocus.keyboard) assert.ok(parseFloat(sectionFocus.marker)>=3,"visible focus marker at journal heading");
+        const selectedFilm = page.locator(`#films a.filmRow[href="${article}"]`);
+        await selectedFilm.scrollIntoViewIfNeeded();
+        await selectedFilm.locator("img").evaluate(img=>img.decode());
+        await assertNeutralSurface(selectedFilm, "journal film card");
+        await page.screenshot({path:`${dir}/journal-${viewport.label}-selection.png`});
+        await selectedFilm.click();
+        await page.waitForURL(url => url.pathname === article && !url.search);
+        await page.locator(".articleSection").first().waitFor({state:"visible"});
+        assert.equal(await page.locator(".articleSection").count(),1,"first reading stays spoiler-free");
+        await page.screenshot({path:`${dir}/journal-${viewport.label}-first-reading.png`});
+        await page.goBack({waitUntil:"load"});
+        await page.waitForURL(url => url.pathname === "/" && url.hash === "#films");
+        assert.ok(await selectedFilm.evaluate(el=>{const box=el.getBoundingClientRect();return box.bottom>0&&box.top<innerHeight;}),"Back returns to the selected card");
+        await selectedFilm.click();
+        await page.waitForURL(url => url.pathname === article && !url.search);
+        await page.locator(`.articleHeaderLinks a[href="${article}/dive"]`).click();
+        await page.waitForURL(url => url.pathname === article + "/dive");
+        await page.locator(".diveStandalone .diveJourney").waitFor({ state: "visible" });
+        assert.equal(await page.locator("h1").count(), 1);
+        assert.equal(await page.locator("#article-verdict").count(), 0);
+        await assertNeutralSurface(page.locator(".diveStandalone"), "SIRIUS room");
+        await page.screenshot({path:`${dir}/dive-${viewport.label}-standalone.png`});
+        assert.equal(await page.locator(".fearJourney").count(),0,"fear is not rendered before consent");
+        const sirius = page.locator(".diveStandalone .diveJourney");
+        await sirius.getByRole("button",{name:"Рассмотреть маркировку"}).click();
+        await sirius.getByRole("button",{name:"Сформулировать гипотезу"}).click();
+        await sirius.getByRole("button",{name:"Недостаточно сведений",exact:true}).click();
+        await sirius.getByRole("button",{name:"Выбрать способ проверки"}).click();
+        await sirius.getByRole("button",{name:"Предмет",exact:true}).click();
+        await sirius.getByRole("button",{name:"На приборе видна надпись.",exact:true}).click();
+        await sirius.getByRole("button",{name:"Соединить сведения"}).click();
+        for (const [i,label] of ["Наблюдение","Сообщение","Гипотеза"].entries()) {
+          await sirius.locator(".diveSort").nth(i).getByRole("button",{name:label,exact:true}).click();
+        }
+        await sirius.getByRole("button",{name:"Вернуться к первому выводу"}).click();
+        await sirius.getByRole("button",{name:"Недостаточно сведений",exact:true}).click();
+        await sirius.getByRole("button",{name:"Открыть итог"}).click();
+        await sirius.getByRole("button",{name:"Открыть следующую комнату"}).click();
+        await page.waitForURL(url => url.searchParams.get("spoilers") === "minor");
+        const fear = page.locator(".fearJourney");
+        await fear.getByRole("button",{name:"Отложить переправу",exact:true}).click();
+        await fear.getByRole("button",{name:"Открыть прошлое героя"}).click();
+        await fear.getByRole("button",{name:"Изменить условия"}).click();
+        await fear.getByRole("button",{name:"Приемлемые по проверке",exact:true}).click();
+        await fear.getByRole("button",{name:"Есть независимая проверка",exact:true}).click();
+        await fear.getByRole("button",{name:"Проверить условия и попросить помощи",exact:true}).click();
+        await assertNeutralSurface(page.locator(".diveStandalone"), "FEAR room");
+        await page.screenshot({path:`${dir}/dive-${viewport.label}-fear.png`});
+        await fear.getByRole("button",{name:"Сопоставить решения"}).click();
+        await fear.getByRole("button",{name:"Завершить второе погружение"}).click();
+        assert.equal(await page.locator(".diveRoomRail").getByText("Исследовано",{exact:true}).count(),2);
+        await fear.getByRole("button",{name:"Вернуться в SIRIUS"}).click();
+        assert.equal(await sirius.getByRole("heading",{name:"Вы открыли различие"}).isVisible(),true);
+        await page.locator(".diveRoomRail").getByRole("button",{name:/FEAR/}).click();
+        assert.equal(await fear.getByRole("heading",{name:"Страх и свобода"}).isVisible(),true);
+        assert.equal(await fear.getByText("Вы изменили решение.",{exact:false}).isVisible(),true);
+        await page.locator(".diveRoomContinue").click();
+        const memory = page.locator(".memoryJourney");
+        await memory.getByRole("button",{name:"Семейный альбом",exact:true}).click();
+        await memory.getByRole("button",{name:"Фрагменты журналов",exact:true}).click();
+        const albumToggle=memory.locator(".memoryFragmentToggle").filter({hasText:"Семейный альбом"});
+        assert.equal(await albumToggle.getAttribute("aria-expanded"),"true");
+        await albumToggle.click();
+        assert.equal(await albumToggle.getAttribute("aria-expanded"),"false");
+        assert.equal(await albumToggle.getByText("Изучено",{exact:true}).count(),1,"closing does not erase the read mark");
+        assert.equal(await memory.locator(".diveInstrumentReadout").getByText("2 / 2 изучено",{exact:true}).count(),1);
+        assert.equal(await memory.getByRole("button",{name:"Собрать два фрагмента"}).isEnabled(),true,"read history survives disclosure closing");
+        await memory.getByRole("button",{name:"Собрать два фрагмента"}).click();
+        await memory.getByRole("button",{name:"Фрагменты журналов",exact:true}).click();
+        await memory.getByRole("button",{name:"Семейная преемственность",exact:true}).click();
+        await memory.getByRole("button",{name:"Право на собственную историю",exact:true}).click();
+        await assertNeutralSurface(page.locator(".diveStandalone"), "MEMORY room");
+        await page.screenshot({path:`${dir}/dive-${viewport.label}-memory.png`});
+        await memory.getByRole("button",{name:"Сопоставить прочтения"}).click();
+        await memory.getByRole("button",{name:"Завершить третье погружение"}).click();
+        await page.getByRole("button",{name:"Мои открытия"}).click();
+        assert.equal(await page.locator(".diveJournalItem").count(),3);
+        assert.equal(await page.locator(".diveJournalSynthesis").count(),1);
+        await assertNeutralSurface(page.locator(".diveAtlasJournal"), "opened discovery journal");
+        await page.screenshot({path:`${dir}/dive-${viewport.label}-atlas.png`});
+        await memory.getByRole("button",{name:"Предыдущий слой"}).click();
+        assert.equal(await page.locator(".diveJournalItem").count(),2,"revising a completed room invalidates its old journal entry");
+        await memory.getByRole("button",{name:"Семейная преемственность",exact:true}).click();
+        await memory.getByRole("button",{name:"Сопоставить прочтения"}).click();
+        await memory.getByRole("button",{name:"Завершить третье погружение"}).click();
+        assert.equal(await page.locator(".diveJournalItem").count(),3,"the revised discovery replaces the old result");
+        await page.goto(base + article + "/dive", {waitUntil:"load"});
+        await page.locator(".diveStandaloneRead").click();
+        await page.waitForURL(url => url.pathname === article && !url.search);
+        await page.locator(".readingOutlineTrigger").waitFor({ state: "visible" });
+        assert.equal(await page.locator("h1").count(), 1);
+        assert.equal(await page.locator(".articleSection").count(), 1, "opening is the only projected chapter");
+        assert.ok(await page.locator("#truman-article-method-title").isVisible());
+        assert.equal(await page.locator("#article-verdict").count(), 0);
+        assert.equal(await page.locator(".filmReadingAppendix").evaluate(el => el.open), false);
+        await page.screenshot({ path: `${dir}/reader-${viewport.label}-entry.png` });
+
+        const paragraph = page.locator("#truman-article-method-2");
+        const support = paragraph.locator("xpath=following-sibling::details[1]");
+        await support.locator("summary").click();
+        assert.equal(await support.evaluate(el => el.open), true);
+        assert.ok(await support.locator("a[href*='#evidence-']").first().isVisible());
+        assert.equal(new URL(page.url()).pathname, article);
+        await assertNeutralSurface(support.locator("summary"), "opened evidence disclosure");
+        await page.screenshot({ path: `${dir}/reader-${viewport.label}-evidence.png` });
+        await support.locator("summary").click();
+
+        const next = page.locator(".articleReveal a.buttonPrimary");
+        const nextUrl = new URL(await next.getAttribute("href"), base);
+        await next.click();
+        await page.waitForURL(url => url.searchParams.get("spoilers") === nextUrl.searchParams.get("spoilers") && url.hash === nextUrl.hash);
+        assert.ok(await page.locator(".articleSection").count() > 1);
+        assert.equal(await page.locator("#article-verdict").count(), 0);
+
+        await paragraph.evaluate(el => el.scrollIntoView({ block: "start" }));
+        await page.locator(".readingOutlineTrigger").click();
+        const activeParagraph = await page.evaluate(() => [...document.querySelectorAll("[data-reading-block]")].filter(el => el.getBoundingClientRect().top <= innerHeight * 0.28).at(-1)?.id);
+        assert.ok(activeParagraph, "a paragraph is in the reading position");
+        await page.locator(".readingOutlinePanel .readingOutlineFull").click();
+        await page.waitForURL(url => url.searchParams.get("spoilers") === "full" && url.hash === "#" + activeParagraph);
+        await page.locator("#article-verdict").waitFor({ state: "attached" });
+        await page.waitForFunction(id => {
+          const el = document.getElementById(id);
+          const rect = el?.getBoundingClientRect();
+          return rect && rect.top < innerHeight && rect.bottom > 0;
+        }, activeParagraph);
+        await page.screenshot({ path: `${dir}/reader-${viewport.label}-full-resumed.png` });
+
+        const promise = page.locator("#truman-article-duel-promise");
+        const sides = promise.locator(".articleDuelSide");
+        assert.equal(await sides.count(), 3);
+        for (const side of await sides.all()) {
+          await side.locator("summary").click();
+          assert.equal(await side.evaluate(el => el.open), true);
+          assert.ok(await side.locator("p").isVisible());
+        }
+        await page.screenshot({ path: `${dir}/reader-${viewport.label}-perspectives.png` });
+        assert.equal(await page.locator(".articleSceneStill").count(), 17);
+        const duplicateIds = await page.locator(".articleShell [id]").evaluateAll(elements => {
+          const seen = new Set(); return elements.map(el => el.id).filter(id => seen.has(id) || !seen.add(id));
+        });
+        assert.deepEqual(duplicateIds, []);
+        const rain = page.locator("#truman-article-anchor-rain");
+        assert.ok(await rain.locator("xpath=ancestor::div[contains(@class,'articleSceneSequence')]/preceding-sibling::p[1][@id='truman-article-machine-rain']").count(), "rain follows its own argument");
+
+        for (const id of ["truman-article-craft-windows","truman-article-corrections"]) {
+          await page.goto(`${base}${article}?spoilers=full#${id}`, {waitUntil:"load"});
+          await page.waitForFunction(target=>document.getElementById(target)?.open===true,id);
+          assert.ok(await page.locator(`#${id} table`).isVisible(),"a real evidence deep link reveals its native table");
+          await assertNeutralSurface(page.locator(`#${id} .articleTableViewport`), "evidence table frame");
+        }
+        await page.goto(`${base}${legacyArticle}?spoilers=FULL#truman-article-method-2`, { waitUntil: "load" });
+        await page.waitForURL(url => url.pathname === article && url.searchParams.get("spoilers") === "full" && url.hash === "#truman-article-method-2");
+        await page.goto(`${base}${article}#evidence-truman-ev-light`, { waitUntil: "load" });
+        await page.waitForFunction(() => document.getElementById("film-evidence-appendix")?.open === true);
+        assert.ok(await page.locator("#evidence-truman-ev-light").isVisible());
+        return { resumed: activeParagraph, legacy: true, viewport: viewport.label };
+      }));
+  }
   for (const viewport of viewports) {
     await check(`outline ${viewport.label}: real wheel, panel, Escape, every link`, () =>
       withPage({ viewport: { width: viewport.width, height: viewport.height } }, `outline-${viewport.label}`, page => testOutline(page, viewport)));
@@ -446,27 +700,90 @@ try {
     }
     return measured;
   });
-  await check("homepage: single character card fills its desktop grid", () =>
-    withPage({ viewport: { width: 1440, height: 900 } }, "character-grid", async page => {
-      await page.goto(`${base}/`, { waitUntil: "load" });
-      const grid = page.locator(".characterGridSingle");
-      assert.equal(await grid.locator(".characterCard").count(), 1, "fixture must contain one character card");
-      // Next/Image marks this below-the-fold editorial image loading="lazy".
-      // A screenshot does not guarantee image decode completed in Chromium;
-      // scroll the real element into view and require native image decoding.
-      // Broken URLs/decode still reject rather than passing a placeholder.
-      const characterImage = grid.locator(".characterCard img");
-      await characterImage.scrollIntoViewIfNeeded();
-      await characterImage.evaluate(image => image.decode());
-      await grid.screenshot({ path: `${dir}/single-character-card.png` });
-      const sizes = await grid.evaluate(element => ({
-        grid: element.getBoundingClientRect().width,
-        card: element.querySelector(".characterCard").getBoundingClientRect().width,
-        imageWidth: element.querySelector("img")?.naturalWidth,
-      }));
-      assert.ok(sizes.card / sizes.grid > 0.98, `single card leaves an empty column: ${JSON.stringify(sizes)}`);
-      assert.ok(sizes.imageWidth > 0, "character image did not load");
-      return sizes;
+  await check("journal and catalogue show the same published jacket", () =>
+    withPage({ viewport: { width: 1440, height: 900 } }, "journal-card-parity", async page => {
+      await page.goto(`${base}/#films`, { waitUntil: "load" });
+      const card = page.locator(`#films a.filmRow[href="${article}"]`);
+      await card.waitFor({state:"visible"});
+      const jacket = await card.locator(".filmRowTeaser").innerText();
+      assert.equal(await page.locator("#films .filmFilter").count(),0,"one published film needs no search");
+      assert.ok(await card.locator(".filmRowTeaser").isVisible(),"spoiler-free jacket copy");
+      await page.goto(`${base}/films`, { waitUntil: "load" });
+      const catalogueCard = page.locator(`a.filmRow[href="${article}"]`);
+      // Position may differ in preview, but the same projected copy is used.
+      assert.equal(await catalogueCard.locator(".filmRowTeaser").innerText(), jacket);
+      return {jacket};
+    }));
+  await check("journal emblem is a single frozen video surface with natural playback", () =>
+    withPage({ viewport: { width: 1440, height: 900 }, reducedMotion:"no-preference" }, "emblem-hover", async page => {
+      await page.goto(base, { waitUntil:"load" });
+      const brand=page.locator(".siteHeader .brand");
+      const video=page.locator(".brandEmblemVideo");
+      assert.equal(await video.count(),1,"one surface even before hover");
+      assert.equal(await video.getAttribute("src"),null,"no video requested on cold entry");
+      assert.equal(await video.getAttribute("poster"),"/art/deep-waters-emblem.png");
+      assert.equal(await brand.locator("img").count(),0,"no mismatched overlaid image");
+      await page.waitForFunction(()=>Boolean(document.documentElement.dataset.experienceMode));
+      const bounds=await video.boundingBox();
+      await brand.hover();
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>.6;});
+      const details=await video.evaluate(v=>({muted:v.muted,loop:v.loop,width:v.videoWidth,height:v.videoHeight,duration:v.duration,opacity:getComputedStyle(v).opacity,transform:getComputedStyle(v).transform,filter:getComputedStyle(v).filter}));
+      assert.ok(details.muted && details.loop && details.width===144 && details.height===144);
+      assert.ok(details.duration >= 10.6 && details.duration <= 10.9,"full motion plus encoded seam");
+      assert.equal(details.opacity,"1");
+      assert.equal(details.transform,"none");
+      assert.equal(details.filter,"none");
+      assert.deepEqual(await video.boundingBox(),bounds,"hover cannot change position or size");
+      await video.screenshot({path:`${dir}/emblem-playing.png`});
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>9.7;},undefined,{timeout:15000});
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime<1;});
+      await page.waitForFunction(()=>document.querySelector(".brandEmblemVideo").currentTime>1.5);
+      await page.mouse.move(400,200);
+      await page.waitForFunction(()=>document.querySelector(".brandEmblemVideo").paused);
+      const frozen=await video.evaluate(v=>v.currentTime);
+      await page.waitForTimeout(300);
+      assert.ok(Math.abs((await video.evaluate(v=>v.currentTime))-frozen)<.04,"frame freezes without a seek or substitution");
+      await video.screenshot({path:`${dir}/emblem-frozen.png`});
+      await brand.hover();
+      await page.waitForFunction(t=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>t+.2;},frozen);
+      await page.mouse.move(400,200);
+      for(let i=0;i<5;i++){await brand.hover();await page.mouse.move(400,200);}
+      await brand.hover();
+      await page.waitForFunction(()=>!document.querySelector(".brandEmblemVideo").paused);
+      await page.emulateMedia({reducedMotion:"reduce"});
+      await page.waitForFunction(()=>document.querySelector(".brandEmblemVideo").paused);
+      await page.emulateMedia({reducedMotion:"no-preference"});
+      await page.waitForFunction(()=>document.documentElement.dataset.reducedMotion==="false");
+      assert.ok(await video.evaluate(v=>v.paused),"restoring motion cannot restart an old hover");
+      await page.mouse.move(400,200);
+      return details;
+    }));
+  await check("touch and reduced-motion entry keep the emblem as its poster", () =>
+    withPage({ viewport:{width:390,height:844},hasTouch:true,reducedMotion:"reduce" },"emblem-static-mobile",async page=>{
+      await page.goto(base,{waitUntil:"load"});
+      const brand=page.locator(".siteHeader .brand"), video=page.locator(".brandEmblemVideo");
+      await brand.hover();
+      assert.equal(await video.getAttribute("src"),null);
+      assert.ok(await video.evaluate(v=>v.paused));
+      const rect=await brand.boundingBox();
+      assert.ok(rect.width>=44 && rect.height>=44,"mobile link remains a usable target");
+      await video.screenshot({path:`${dir}/emblem-mobile.png`});
+    }));
+  await check("desktop navigation reselects the journal fragment with keyboard focus", () =>
+    withPage({ viewport: { width: 1440, height: 900 } }, "journal-desktop-navigation", async page => {
+      await page.goto(`${base}/#films`, { waitUntil: "load" });
+      await page.evaluate(()=>window.scrollTo(0,0));
+      const link=page.locator('.siteNav a[href="/#films"]');
+      await link.focus();
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(()=>document.activeElement?.id==="films");
+      const focus=await page.locator("#films").evaluate(el=>({top:el.getBoundingClientRect().top, header:document.querySelector(".siteHeader").getBoundingClientRect().bottom, keyboard:el.matches(":focus-visible"), outline:getComputedStyle(el).outlineStyle, marker:getComputedStyle(el.querySelector("h2"),"::before").borderInlineStartWidth}));
+      assert.ok(focus.top>=focus.header-1 && focus.top<900,"journal destination stays below header");
+      assert.equal(focus.outline,"none");
+      assert.ok(focus.keyboard && parseFloat(focus.marker)>=3,"keyboard destination remains visible");
+      await page.keyboard.press("Tab");
+      assert.ok(await page.evaluate(()=>document.activeElement?.matches("#films .filmRow")),"next Tab reaches the first film");
+      return focus;
     }));
   await check("footer: settings panel is opaque over underlying text", () =>
     withPage({ viewport: { width: 390, height: 844 } }, "footer-settings", async page => {
@@ -474,14 +791,16 @@ try {
       await page.locator(".experienceControls summary").click();
       const panel = page.locator(".experienceControlsPanel");
       await panel.waitFor({ state: "visible" });
-      const background = await panel.evaluate(element => getComputedStyle(element).backgroundColor);
-      assert.equal(background, "rgb(5, 5, 5)");
+      const { background } = await assertNeutralSurface(panel, "quality settings panel");
+      assert.match(background, /^rgb\(\d+,\s*\d+,\s*\d+\)$/, "settings must remain opaque, independently of the editorial palette");
+      const summary=page.locator(".experienceControls summary");
+      assert.ok(await summary.getByText("Авто",{exact:true}).isVisible(),"normal settings show a human-readable mode");
       await page.screenshot({ path: `${dir}/footer-settings.png` });
       return { background };
     }));
   await check("menu: Escape returns focus; a repeated same-hash link scrolls back to the section", () =>
     withPage({ viewport: { width: 390, height: 844 } }, "menu-repeat", async page => {
-      await page.goto(`${base}/#lenses`, { waitUntil: "load" });
+      await page.goto(`${base}/#films`, { waitUntil: "load" });
       const trigger = page.locator(".menuButton");
       await trigger.waitFor({ state: "visible" });
       await trigger.focus();
@@ -494,12 +813,12 @@ try {
       await page.mouse.wheel(0, -900);
       await page.waitForTimeout(150);
       await trigger.click();
-      await page.locator('#site-menu a[href="/#lenses"]').click();
-      await page.waitForFunction(() => document.activeElement?.id === "lenses" && document.querySelector("#lenses").getBoundingClientRect().top < innerHeight);
-      const result = await page.evaluate(() => ({ top: document.querySelector("#lenses").getBoundingClientRect().top, header: document.querySelector(".siteHeader").getBoundingClientRect().bottom }));
+      await page.locator('#site-menu a[href="/#films"]').click();
+      await page.waitForFunction(() => document.activeElement?.id === "films" && document.querySelector("#films").getBoundingClientRect().top < innerHeight);
+      const result = await page.evaluate(() => ({ top: document.querySelector("#films").getBoundingClientRect().top, header: document.querySelector(".siteHeader").getBoundingClientRect().bottom }));
       assert.ok(result.top >= result.header - 1);
       await page.keyboard.press("Tab");
-      assert.ok(await page.evaluate(() => Boolean(document.activeElement.closest("#lenses"))));
+      assert.ok(await page.evaluate(() => Boolean(document.activeElement.closest("#films"))));
       return result;
     }));
 
@@ -508,7 +827,7 @@ try {
       await openArticle(page);
       await observeOutlineEvents(page);
       const trigger = page.locator(".readingOutlineTrigger");
-      const links = page.locator(".readingOutlinePanel a");
+      const links = page.locator('.readingOutlinePanel a[href^="#"]');
       const first = await links.first().getAttribute("href");
       const last = await links.last().getAttribute("href");
       const historyBefore = await page.evaluate(() => history.length);
@@ -547,7 +866,7 @@ try {
         await observeOutlineEvents(page);
         const trigger = page.locator(".readingOutlineTrigger");
         const panel = page.locator(".readingOutlinePanel");
-        const hashes = await panel.locator("a").evaluateAll(links => links.map(link => link.hash));
+        const hashes = await panel.locator('a[href^="#"]').evaluateAll(links => links.map(link => link.hash));
         const sectionIds = await page.locator(".articleSection").evaluateAll(sections => sections.map(section => `#${section.id}`));
         assert.ok(hashes.length > 0, `${level}: projected outline is empty`);
         assert.deepEqual(hashes, sectionIds, `${level}: outline includes a section outside the projection`);
@@ -570,10 +889,10 @@ try {
       withPage({ viewport: { width: 390, height: 844 } }, "outline-modified-click", async (page, context) => {
         await openArticle(page, "NONE");
         await page.locator(".readingOutlineTrigger").click();
-        const hash = await page.locator(".readingOutlinePanel a").first().getAttribute("href");
+        const hash = await page.locator('.readingOutlinePanel a[href^="#"]').first().getAttribute("href");
         const [newPage] = await Promise.all([
           context.waitForEvent("page"),
-          page.locator(".readingOutlinePanel a").first().click({ modifiers: ["Control"] }),
+          page.locator('.readingOutlinePanel a[href^="#"]').first().click({ modifiers: ["Control"] }),
         ]);
         await newPage.waitForLoadState("domcontentloaded");
         const original = new URL(page.url());
@@ -602,7 +921,7 @@ try {
       await openArticle(page);
       await observeOutlineEvents(page);
       const trigger = page.locator(".readingOutlineTrigger");
-      const hash = await page.locator(".readingOutlinePanel a").first().getAttribute("href");
+      const hash = await page.locator('.readingOutlinePanel a[href^="#"]').first().getAttribute("href");
       const headingId = await page.locator(`[id="${hash.slice(1)}"]`).getAttribute("aria-labelledby");
       await trigger.focus();
       await page.keyboard.press("Enter");
@@ -623,9 +942,9 @@ try {
     withPage({ viewport: { width: 390, height: 844 }, reducedMotion: "no-preference" }, "outline-motion", async page => {
       await openArticle(page);
       await observeOutlineEvents(page);
-      await page.locator(".articleTableFigure").first().evaluate(element => element.scrollIntoView({ block: "center", behavior: "instant" }));
+      await page.locator(".articleVerdictContext").last().locator("summary").scrollIntoViewIfNeeded();
       const trigger = page.locator(".readingOutlineTrigger");
-      const first = page.locator(".readingOutlinePanel a").first();
+      const first = page.locator('.readingOutlinePanel a[href^="#"]').first();
       const hash = await first.getAttribute("href");
       for (let attempt = 0; attempt < 2; attempt += 1) {
         if (attempt) {
@@ -650,9 +969,10 @@ try {
       const before = await details.evaluateAll(items => items.map(item => item.open));
       assert.ok(before.length > 2 && before.every(open => !open));
       await page.emulateMedia({ media: "print" });
-      for (const selector of [".siteHeader", ".siteFooter", ".skipLink", ".articleVerdictCore"]) {
+      for (const selector of [".siteHeader", ".siteFooter", ".skipLink"]) {
         assert.equal(await page.locator(selector).first().evaluate(element => getComputedStyle(element).display), "none", `${selector} must not print`);
       }
+      assert.equal(await page.locator(".articleVerdictCore").count(), 0, "decorative verdict renderer is not part of the article");
       assert.ok(await page.locator(".articleVerdictGrid").isVisible(), "textual verdict must print");
       assert.equal(await page.locator(".articleClosing").evaluate(element => getComputedStyle(element).breakInside), "avoid",
         "the editorial kicker, heading and note must stay together when possible");
@@ -663,7 +983,7 @@ try {
       assert.ok(contents.length > 10 && contents.every(item => item.visible), JSON.stringify(contents.filter(item => !item.visible)));
       assert.deepEqual(await details.evaluateAll(items => items.map(item => item.open)), before);
       await page.emulateMedia({ media: "screen" });
-      assert.ok(!(await page.locator(".articleVerdictContext").last().locator("li").first().isVisible()));
+      assert.ok(!(await page.locator(".articleQualifications li").first().isVisible()));
       return { closedDetails: before.length, printVisibleItems: contents.length };
     }));
 
@@ -726,7 +1046,7 @@ try {
             const file = `${theme}-${background ? "backgrounds" : "no-backgrounds"}-${opened ? "open" : "closed"}.pdf`;
             await withPage({ viewport: { width: 390, height: 844 }, colorScheme: theme }, `pdf-${file}`, async page => {
               await openArticle(page);
-              if (opened) await page.locator(".articleVerdictContext").last().locator("summary").click();
+              if (opened) await page.locator(".articleQualifications summary").click();
               const item = { level: "FULL", javascript: true, theme, opened };
               await pdf(page, file, item, background);
               if (!pdfManifest.fullSections.length) pdfManifest.fullSections = (await manifest(page)).sections;
@@ -746,10 +1066,10 @@ try {
             else {
               const fallback = page.locator('nav[aria-label="Разделы статьи без JavaScript"]');
               assert.ok(await fallback.isVisible());
-              const hashes = await fallback.locator("a").evaluateAll(links => links.map(link => link.hash));
+              const hashes = await fallback.locator('a[href^="#"]').evaluateAll(links => links.map(link => link.hash));
               const ids = await page.locator(".articleSection").evaluateAll(sections => sections.map(section => `#${section.id}`));
               assert.deepEqual(hashes, ids);
-              await fallback.locator("a").last().click();
+              await fallback.locator('a[href^="#"]').last().click();
               assert.equal(new URL(page.url()).hash, ids.at(-1));
             }
             await pdf(page, `level-${level.toLowerCase()}-${javascript ? "js" : "nojs"}.pdf`, { level, javascript, theme: "dark", opened: false }, false);
@@ -766,10 +1086,10 @@ try {
       await page.goto(`${base}${article}?spoilers=FULL`, { waitUntil: "domcontentloaded" });
       const fallback = page.locator('nav[aria-label="Разделы статьи без JavaScript"]');
       assert.ok(await fallback.isVisible());
-      const hashes = await fallback.locator("a").evaluateAll(links => links.map(link => link.hash));
+      const hashes = await fallback.locator('a[href^="#"]').evaluateAll(links => links.map(link => link.hash));
       const ids = await page.locator(".articleSection").evaluateAll(sections => sections.map(section => `#${section.id}`));
       assert.deepEqual(hashes, ids);
-      await fallback.locator("a").last().click();
+      await fallback.locator('a[href^="#"]').last().click();
       assert.equal(new URL(page.url()).hash, ids.at(-1));
       return { links: hashes.length };
     }));

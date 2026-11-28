@@ -4,5 +4,12 @@
 @import "./article/entry.css";
 @import "./article/production.css";
 @import "./article/reading.css";
+@import "./article/reading-apparatus.css";
 @import "./article/duel.css";
 @import "./article/outline.css";
+
+@import "./article/dive.css";
+
+@import "./article/dive-fear.css";
+
+@import "./article/dive-atlas.css";

@@ -1,5 +1,5 @@
-import { homepageFeaturedFilmSlug, isPreviewContentEnabled } from "@/data/site-config";
-import { requireFilmPackageBySlug } from "@/data/film-registry";
+import { isPreviewContentEnabled } from "@/data/site-config";
+import { filmPackages } from "@/data/film-registry";
 import { canIndexSite, resolveIndexingRequest } from "./site-publication-policy";
 
 /**
@@ -15,6 +15,6 @@ export function siteIndexingEnabled(): boolean {
   return canIndexSite({
     siteIndexingRequested: resolveIndexingRequest(),
     previewContentEnabled: isPreviewContentEnabled(),
-    homepageStatus: requireFilmPackageBySlug(homepageFeaturedFilmSlug).film.status,
+    homepageStatus: filmPackages.some(pkg => pkg.film.status === "published") ? "published" : "draft",
   });
 }

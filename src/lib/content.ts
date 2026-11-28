@@ -34,6 +34,8 @@ export type ShellFilm = {
   runtime: string;
   genre: string[];
   premise: string;
+  /** Editorially approved, spoiler-free jacket copy; never inferred from analysis. */
+  catalogTeaser?: string;
   thesisQuestion: string;
   status: "fixture" | "draft" | "published";
 };

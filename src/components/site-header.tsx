@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useExperienceQuality } from "@/components/experience/experience-quality-provider";
 
 const NAV_LINKS = [
-  { href: "/films", label: "Фильмы" },
-  { href: "/#lenses", label: "Обзор" },
-  { href: "/methodology", label: "Методология" },
+  { href: "/#films", label: "Фильмы" },
+  { href: "/methodology", label: "О журнале" },
 ] as const;
 
 /**
@@ -17,7 +17,38 @@ const NAV_LINKS = [
  */
 export function SiteHeader() {
   const pathname = usePathname();
+  const observatory = pathname === "/";
+  const navLinks = NAV_LINKS;
   const hydrated = useHydrated();
+  const { reducedMotion, forcedColors, experienceMode, documentVisible } = useExperienceQuality();
+  const emblemVideoRef = useRef<HTMLVideoElement>(null);
+  const emblemSession = useRef(0);
+  const emblemFailed = useRef(false);
+  const emblemAllowed = hydrated && !reducedMotion && !forcedColors && experienceMode !== "lite" && documentVisible;
+
+  // One persistent video surface: poster = decoded first frame. Pausing
+  // leaves the actual decoded frame on screen, with no image substitution.
+  useEffect(() => {
+    const video = emblemVideoRef.current;
+    if (!emblemAllowed) {
+      emblemSession.current++;
+      video?.pause();
+    }
+    return () => { emblemSession.current++; video?.pause(); };
+  }, [emblemAllowed, pathname]);
+
+  function endEmblemHover() {
+    emblemSession.current++;
+    emblemVideoRef.current?.pause();
+  }
+
+  function restoreEmblemPoster(video: HTMLVideoElement) {
+    emblemFailed.current = true;
+    emblemSession.current++;
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+  }
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPathname, setMenuPathname] = useState(pathname);
@@ -52,6 +83,11 @@ export function SiteHeader() {
 
   useEffect(() => {
     if (!menuOpen) return;
+    const dismissOutside = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) return;
+      if (menuButtonRef.current?.contains(event.target) || document.getElementById("site-menu")?.contains(event.target)) return;
+      setMenuOpen(false);
+    };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setMenuOpen(false);
@@ -59,11 +95,15 @@ export function SiteHeader() {
       }
     };
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", dismissOutside);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", dismissOutside);
+    };
   }, [menuOpen]);
 
   function linkProps(href: string) {
-    const isCurrent = href === "/" ? pathname === "/" : pathname.startsWith(href);
+    const isCurrent = !href.includes("#") && pathname === href;
     return isCurrent ? { "aria-current": "page" as const } : {};
   }
 
@@ -95,26 +135,42 @@ export function SiteHeader() {
     return () => cancelAnimationFrame(frame);
   }, [pendingAnchor]);
 
-  function closeMenuAfterNavigation(href: string) {
+  function closeMenuAfterNavigation(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
     setMenuOpen(false);
     const destination = new URL(href, window.location.href);
     setPendingAnchor(destination.hash ? { pathname: destination.pathname, hash: destination.hash } : null);
   }
 
   return (
-    <header className="siteHeader" data-scrolled={scrolled || undefined}>
-      {/* The monogram is decoration: it is drawn by CSS, so the link's visible
-          text is exactly "Deep Waters" and its accessible name can contain that
-          text verbatim (WCAG 2.5.3, label in name). A text node here would put
-          "DW" into the name or, worse, leave the name saying something the
-          visible label does not. */}
-      <Link className="brand" href="/" aria-label="Deep Waters — на главную">
-        <span className="brandMark" aria-hidden="true" />
-        <span className="brandText">Deep Waters</span>
+    <header className="siteHeader" data-scrolled={scrolled || undefined} data-observatory={observatory || undefined}>
+      <Link className="brand" href="/" aria-label="DEEP WATERS Глубокие воды — на главную"
+        onPointerEnter={event => {
+          if (event.pointerType !== "mouse" || !emblemAllowed || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+          const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+          if (connection?.saveData || ["slow-2g", "2g"].includes(connection?.effectiveType ?? "")) return;
+          const video = emblemVideoRef.current;
+          if (!video || emblemFailed.current) return;
+          const session = ++emblemSession.current;
+          video.muted = true;
+          if (!video.getAttribute("src")) video.src = "/art/deep-waters-hover.mp4";
+          void video.play().catch((error: unknown) => {
+            if (session !== emblemSession.current || (error instanceof DOMException && error.name === "AbortError")) return;
+            restoreEmblemPoster(video);
+          });
+        }}
+        onPointerLeave={endEmblemHover}
+        onPointerCancel={endEmblemHover}
+      >
+        <span className="brandMark" aria-hidden="true"><video ref={emblemVideoRef} className="brandEmblemVideo"
+          poster="/art/deep-waters-emblem.png" width={144} height={144} muted loop playsInline preload="none"
+          disablePictureInPicture disableRemotePlayback tabIndex={-1} aria-hidden="true"
+          onError={event => { if (event.currentTarget.getAttribute("src")) restoreEmblemPoster(event.currentTarget); }} /></span>
+        <span className="brandText"><strong lang="en">DEEP WATERS</strong>{" "}<small>Глубокие воды</small></span>
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">
-        {NAV_LINKS.map((link) => (
-          <Link key={link.href} href={link.href} {...linkProps(link.href)}>
+        {navLinks.map((link) => (
+          <Link key={link.href} href={link.href} onClick={(event) => closeMenuAfterNavigation(event, link.href)} {...linkProps(link.href)}>
             {link.label}
           </Link>
         ))}
@@ -126,7 +182,7 @@ export function SiteHeader() {
         <details className="siteMenuFallback">
           <summary>Меню</summary>
           <nav aria-label="Меню">
-            {NAV_LINKS.map((link) => <Link key={link.href} href={link.href} {...linkProps(link.href)}>{link.label}</Link>)}
+            {navLinks.map((link) => <Link key={link.href} href={link.href} {...linkProps(link.href)}>{link.label}</Link>)}
           </nav>
         </details>
       ) : null}
@@ -138,7 +194,7 @@ export function SiteHeader() {
         aria-controls="site-menu"
         onClick={() => setMenuOpen((value) => !value)}
       >
-        {menuOpen ? "Закрыть" : "Меню"}
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">{menuOpen?<path d="m6 6 12 12M18 6 6 18"/>:<path d="M4 7h16M4 12h16M4 17h11"/>}</svg><span>{menuOpen ? "Закрыть" : "Меню"}</span>
       </button> : null}
       <nav
         id="site-menu"
@@ -147,11 +203,11 @@ export function SiteHeader() {
         data-open={menuOpen || undefined}
         inert={!menuOpen}
       >
-        {NAV_LINKS.map((link) => (
+        {navLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}
-            onClick={() => closeMenuAfterNavigation(link.href)}
+            onClick={(event) => closeMenuAfterNavigation(event, link.href)}
             {...linkProps(link.href)}
           >
             {link.label}

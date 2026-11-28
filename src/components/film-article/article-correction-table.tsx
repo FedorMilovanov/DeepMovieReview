@@ -29,7 +29,7 @@ export function ArticleCorrectionTable({ block, filmSlug, spoilerLevel, evidence
           });
           const measured = row.measurement ? describeMeasurement(row.measurement) : undefined;
           return (
-            <tr key={row.id}>
+            <tr key={row.id} id={row.id}>
               <th scope="row">{row.commonClaim}</th>
               <td>
                 <span>{row.onScreen}</span>

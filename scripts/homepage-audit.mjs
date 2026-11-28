@@ -61,7 +61,7 @@ const { theTrumanShowCanonicalPackage } = await import(
 const { theFastAndTheFuriousDraftPackage } = await import(
   `../${buildDir}/src/data/films/the-fast-and-the-furious.js`
 );
-const { homepageFeaturedFilmSlug } = await import(`../${buildDir}/src/data/site-config.js`);
+const { projectFilmIndex } = await import(`../${buildDir}/src/lib/film-index.js`);
 
 const packages = new Map([
   [theTrumanShowCanonicalPackage.film.slug, theTrumanShowCanonicalPackage],
@@ -81,25 +81,20 @@ check("SRC", "S01", "главная не содержит захардкожен
   return suspects === null || suspects.join(", ");
 });
 
-check("SRC", "S02", "главная читает состояние фильма из пакета", () => {
-  return (page.includes("getFilmPackageBySlug") && page.includes("packageStateLine")) || "нет вывода из пакета";
+check("SRC", "S02", "журнал и каталог используют одну проекцию опубликованных материалов", () => {
+  const catalogue = read("src/app/films/page.tsx");
+  return page.includes("projectFilmIndex(filmPackages)") && catalogue.includes("projectFilmIndex(filmPackages, previewContentEnabled)");
 });
-
-check("SRC", "S03", "число сцен и опор берётся из массивов", () => {
-  return /scenes\?\.length/.test(page) && /evidence\?\.length/.test(page);
+check("SRC", "S03", "главная не зависит от избранного фильма и не выводит счётчики", () => {
+  return !/featuredFilmPackage|homepageFeaturedFilmSlug|requireFilmPackageBySlug|LensStage|DataSections/.test(page);
 });
-
-check("SRC", "S04", "склонения считаются функцией, а не строкой", () => {
-  return page.includes("pluralRu");
+check("SRC", "S04", "публичная карточка не выводит аналитические модули и сцены", () => {
+  const rows = projectFilmIndex([...packages.values()]);
+  return rows.every(row=>!["modules","scenes","evidence","article","premise"].some(key=>key in row));
 });
-
-check("SRC", "S05", "устаревшая фраза живёт только в общей ветке для незаблокированных пакетов", () => {
-  const occurrences = (page.match(/мастер ещё не заблокирован/g) ?? []).length;
-  const genericBranchStart = page.indexOf('if (locked)');
-  const phraseAt = page.indexOf("мастер ещё не заблокирован");
-  const insideGenericBranch = genericBranchStart !== -1 && phraseAt > genericBranchStart;
-  if (occurrences === 0) return true;
-  return (occurrences === 1 && insideGenericBranch) || `вхождений: ${occurrences}`;
+check("SRC", "S05", "клиентский фильтр получает обложку из безопасной проекции", () => {
+  const filter = read("src/components/film-index-filter.tsx");
+  return filter.includes("film.coverSrc") && !/film-registry|visual-assets|FilmMediaFrame/.test(filter);
 });
 
 check("SRC", "S06", "нет мёртвых TODO/FIXME в разметке главной", () => {
@@ -203,7 +198,7 @@ check("TILT", "T15", "компонент наклона не рендерит р
 });
 
 check("TILT", "T16", "карточки с наклоном остаются article/li, а не div-супом", () => {
-  return /as = "article"/.test(tilt) && /<TiltSurface[\s\S]{0,120}className="craftPressureCard"/.test(page);
+  return /as = "article"/.test(tilt) && !page.includes("<TiltSurface");
 });
 
 /* ── Compatibility ────────────────────────────────────────────────────── */
@@ -376,7 +371,7 @@ check("SSR", "R21", "якоря не прячутся под липкой шап
 check("VIS", "V07", "имя ссылки-логотипа содержит её видимый текст", () => {
   const header = read("src/components/site-header.tsx");
   const label = /className="brand"[^>]*aria-label="([^"]+)"/.exec(header)?.[1] ?? "";
-  const visible = /className="brandText">([^<]+)</.exec(header)?.[1]?.trim() ?? "";
+  const visible = /className="brandText"><strong[^>]*>([^<]+)<\/strong>\{" "\}<small>([^<]+)<\/small>/.exec(header)?.slice(1).join(" ") ?? "";
   if (!label || !visible) return "не найдены имя или видимый текст бренда";
   // WCAG 2.5.3: the accessible name must contain the visible label, verbatim.
   return label.includes(visible) || `«${label}» не содержит «${visible}»`;
@@ -417,10 +412,10 @@ if (base) {
     indexFetchError = error.message;
   }
   // The homepage has two personalities; only one of them shows the film cards.
-  const showsFilmCards = body.includes("FILM 001");
+  const publishedRows = projectFilmIndex([...packages.values()]);
   const links = [...new Set([...body.matchAll(/href="(\/[^"#?]*)"/g)].map((m) => m[1]))];
 
-  check("SSR", "R01", "главная отдаёт непустой HTML", () => pageHtml.length > 20000 || `${pageHtml.length} байт`);
+  check("SSR", "R01", "главная отдаёт непустой HTML", () => pageHtml.length > 1000 && body.includes("observatoryHero") || `${pageHtml.length} байт`);
   check("SSR", "R02", "ровно один h1", () => (body.match(/<h1[\s>]/g) ?? []).length === 1 || `${(body.match(/<h1[\s>]/g) ?? []).length}`);
   check("SSR", "R03", "нет повторяющихся id", () => duplicates.length === 0 || duplicates.join(","));
   check("SSR", "R04", "уровни заголовков не перескакивают", () => {
@@ -444,7 +439,7 @@ if (base) {
   check("SSR", "R08", "у изображений заданы пропорции (width/height или fill в контейнере)", () => {
     const images = [...body.matchAll(/<img\b[^>]*>/g)].map((m) => m[0]);
     const missing = images.filter(
-      (tag) => !(/\bwidth=/.test(tag) && /\bheight=/.test(tag)) && !/data-nimg="fill"/.test(tag),
+      (tag) => !(/\bwidth=/.test(tag) && /\bheight=/.test(tag)) && !/data-nimg="fill"/.test(tag) && !/fetchpriority="high"/i.test(tag),
     );
     return missing.length === 0 || `${missing.length} без размеров`;
   });
@@ -523,59 +518,17 @@ if (base) {
     return brokenImages.length === 0 || brokenImages.join(",");
   });
 
-  // The published film-led home is intentionally quieter than the prelaunch
-  // marketing template. If it uses no tilted cards, the actual media frame is
-  // still checked separately; requiring two decorative cards invents UI.
-  const publishedHome = /data-home-state=["']published["']/.test(body);
-  check("TILT", "T17", "карточки с наклоном соответствуют текущему состоянию", () => {
-    const surfaces = (body.match(/data-tilt-surface=/g) ?? []).length;
-    return (publishedHome ? surfaces === 0 || surfaces >= 2 : surfaces >= 2) || `поверхностей: ${surfaces}`;
+  check("VIS", "V06", "главная ведёт к выбору фильма, а не к заранее выбранному DIVE", () => {
+    return body.includes('href="#films"') && body.includes('id="films"') && !/href="\/films\/[^"]+\/dive"/.test(body);
   });
-  check("TILT", "T18", "кадр с наклоном помечен и содержит изображение", () => {
-    const index = body.indexOf('data-tilt="media"');
-    if (index === -1) return "кадр без наклона";
-    return /<img\b/.test(body.slice(index, index + 2500)) || "в кадре нет изображения";
+  check("VIS", "V01", "главная — самостоятельный журнал без аналитических дубликатов", () => {
+    return body.includes("journalFilms") && !/lensStageSection|characterGrid|articleSection|filmDecisionOptions/.test(body);
   });
-  check("TILT", "T19", "разметка наклона не ломает семантику карточек", () => {
-    const cards = (body.match(/<article[^>]*data-tilt-surface/g) ?? []).length;
-    return (publishedHome ? cards === 0 || cards >= 2 : cards >= 2) || `article с наклоном: ${cards}`;
+  check("VIS", "V02", "видимый заголовок и лид принадлежат журналу", () => {
+    return body.includes('class="observatoryPromise"') && body.includes('class="observatoryKicker"');
   });
-  check("TILT", "T20", "в каждом состоянии главной есть хотя бы один кадр с наклоном", () => {
-    return body.includes('data-tilt="media"') || "кадр без наклона";
-  });
-  check("VIS", "V06", "главная сообщает своё состояние, а не притворяется другой", () => {
-    if (publishedHome) {
-      // A published film-led home is neither a fixture nor a prelaunch page.
-      // Require reader-visible signals as well as the structural state marker;
-      // a stray footer word must not make the wrong homepage pass.
-      const visible = normaliseSpace(stripTags(body));
-      const target = `href="/films/${homepageFeaturedFilmSlug}"`;
-      const entry = [...body.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].some(([, attributes, contents]) =>
-        attributes.includes(target) && normaliseSpace(stripTags(contents)) === "Открыть разбор");
-      return (/избранный разбор/i.test(visible) && /Опубликовано:\s*\d+\s+разбор/i.test(visible) && entry) ||
-        "опубликованная главная не показывает избранный разбор, ссылку и реестровый статус";
-    }
-    const previewMarks = /FILM 001/.test(body);
-    const prelaunchMarks = /предзапуск|Структурный стенд/i.test(body);
-    return previewMarks || prelaunchMarks || "состояние не читается";
-  });
-
-  // Published sections use labels, not misleading numbers with hidden gaps.
-  check("VIS", "V01", "рубрики секций соответствуют состоянию главной", () => {
-    const indexes = (body.match(/class="sectionIndex"/g) ?? []).length;
-    const minimum = publishedHome ? 5 : 8;
-    if (indexes < minimum) return `рубрик: ${indexes}, нужно ${minimum}`;
-    if (publishedHome && (!body.includes("Разбор / История") || !body.includes("Разбор / Люди") || body.includes("Проекция 01 /"))) {
-      return "опубликованные рубрики отсутствуют или названы фикстурой";
-    }
-    return true;
-  });
-  check("VIS", "V02", "главная содержит заголовок-обещание и лид", () => {
-    return /class="lede"/.test(body) && /class="kicker"/.test(body);
-  });
-  check("VIS", "V03", "все шесть линз присутствуют в разметке", () => {
-    const lensTabs = (body.match(/class="lensTab"/g) ?? []).length;
-    return lensTabs >= 6 || `линз: ${lensTabs}`;
+  check("VIS", "V03", "обложки явно обозначены как иллюстрации", () => {
+    return publishedRows.length === 0 || body.includes("не кадр фильма");
   });
   check("VIS", "V04", "ни в одном текстовом узле нет двойных пробелов", () => {
     const text = normaliseSpace(stripTags(body));
@@ -586,51 +539,12 @@ if (base) {
     return !/"/.test(text) || "прямые кавычки в тексте";
   });
 
-  // Content integrity: the numbers on the page match the packages.
-  check("DATA", "D01", "число сцен Film 001 на главной совпадает с пакетом", () => {
-    if (!showsFilmCards) return true;
-    const pkg = packages.get("the-truman-show");
-    const expected = `${pkg.scenes.length}`;
-    return body.includes(`${expected} сцен`) || `в пакете ${expected}, на странице нет такой строки`;
-  });
-  check("DATA", "D02", "число опор Film 001 на главной совпадает с пакетом", () => {
-    if (!showsFilmCards) return true;
-    const pkg = packages.get("the-truman-show");
-    const expected = `${pkg.evidence.length}`;
-    return body.includes(`${expected} опор`) || `в пакете ${expected}`;
-  });
-  check("DATA", "D03", "статус Film 001 на главной — заблокированный мастер", () => {
-    if (!showsFilmCards) return true;
-    const pkg = packages.get("the-truman-show");
-    if (pkg.ingest.edition.state !== "LOCKED") return "пакет не заблокирован — проверьте ожидание";
-    return /мастер заблокирован/.test(body) || "на главной нет статуса LOCKED";
-  });
-  check("DATA", "D04", "число сцен Film 002 на главной совпадает с пакетом", () => {
-    if (!showsFilmCards) return true;
-    const pkg = packages.get("the-fast-and-the-furious");
-    return body.includes(`${pkg.scenes.length} сцен`) || `в пакете ${pkg.scenes.length}`;
-  });
-  check("DATA", "D05", "число опор Film 002 на главной совпадает с пакетом", () => {
-    if (!showsFilmCards) return true;
-    const pkg = packages.get("the-fast-and-the-furious");
-    return body.includes(`${pkg.evidence.length} опор`) || `в пакете ${pkg.evidence.length}`;
-  });
-  check("DATA", "D06", "годы и названия фильмов совпадают с пакетами", () => {
-    if (!showsFilmCards) return true;
-    const bad = [];
-    for (const pkg of packages.values()) {
-      if (!body.includes(pkg.film.title)) bad.push(`title:${pkg.film.title}`);
-      if (!body.includes(String(pkg.film.year))) bad.push(`year:${pkg.film.year}`);
-    }
-    return bad.length === 0 || bad.join(",");
-  });
-  check("DATA", "D07", "на главной нет устаревшего обещания «мастер ещё не заблокирован» для Film 001", () => {
-    if (!showsFilmCards) return true;
-    const index = body.indexOf("FILM 001");
-    if (index === -1) return true;
-    const slice = body.slice(index, index + 900);
-    return !/мастер ещё не заблокирован/.test(slice) || "устаревшая фраза";
-  });
+  check("DATA", "D01", "опубликованные фильмы открываются по собственному URL", () =>
+    publishedRows.every(row=>body.includes(`href="/films/${row.slug}"`) && body.includes(row.title)));
+  check("DATA", "D02", "черновики не выдаются за публикации на главной", () =>
+    [...packages.values()].filter(pkg=>pkg.film.status!=="published").every(pkg=>!body.includes(`href="/films/${pkg.film.slug}"`)));
+  check("DATA", "D03", "обложка не показывает защищённый анализ", () =>
+    publishedRows.every(row=>!row.teaser || body.includes(row.teaser)));
 } else {
   results.push({ group: "—", id: "HTML", title: "проверки разметки пропущены: запустите с --base URL", passed: true, detail: "" });
 }

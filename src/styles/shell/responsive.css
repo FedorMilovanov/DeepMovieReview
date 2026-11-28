@@ -27,10 +27,7 @@
     position: absolute;
     inset: 100% 0 auto;
     border-bottom: 1px solid var(--stroke-default);
-    background: var(--surface-canvas);
-    background: color-mix(in srgb, var(--surface-canvas) 94%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: var(--instrument-base);
   }
 
   .siteMenu a {
@@ -52,8 +49,8 @@
   }
 
   .filmRow {
-    grid-template-columns: 36px 96px minmax(0, 1fr);
-    gap: 0.75rem;
+    grid-template-columns: 26px minmax(70px,96px) minmax(0,1fr);
+    gap: 0.55rem;
   }
 
   .filmRowIndex {
@@ -76,4 +73,8 @@
     grid-column: 3;
     grid-row: 2;
   }
+}
+
+@media (max-width:360px) {
+ .filmRow { grid-template-columns:20px minmax(58px,72px) minmax(0,1fr); gap:.4rem; }
 }

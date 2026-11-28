@@ -22,7 +22,19 @@ export function SpoilerDeepLinkGuard({ spoilerLevel }: { spoilerLevel: SpoilerLe
   useEffect(() => {
     function clearStaleHash() {
       const targetId = currentHashId();
-      if (!targetId || document.getElementById(targetId)) return;
+      if (!targetId) return;
+      const target = document.getElementById(targetId);
+      if (target) {
+        let revealed = false;
+        for (let ancestor: HTMLElement | null = target; ancestor; ancestor = ancestor.parentElement) {
+          if (ancestor instanceof HTMLDetailsElement && !ancestor.open) {
+            ancestor.open = true;
+            revealed = true;
+          }
+        }
+        if (revealed) requestAnimationFrame(() => target.scrollIntoView({ block: "start" }));
+        return;
+      }
 
       window.history.replaceState(
         window.history.state,

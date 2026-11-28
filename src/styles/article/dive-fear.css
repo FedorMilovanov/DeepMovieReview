@@ -1,0 +1,52 @@
+/* Water is an analytical field, not a reconstruction of a film shot. */
+.diveStandalone[data-room="fear"] { background:var(--surface-canvas); }
+.diveRoomRail { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:.6rem; padding: 1.1rem 0; }
+.diveRoomRail > * { display:grid; grid-template-columns:auto minmax(0,1fr); align-content:center; gap:.3rem .6rem; padding:.75rem; min-width:0; border:1px solid var(--instrument-line-strong); background:var(--instrument-base); color:var(--ink-2); border-radius:6px; text-align:start; font:inherit; }
+.diveRoomRail > button { cursor:pointer; }
+.diveRoomRail > [aria-current="step"] { border-color:var(--instrument-gold); color:var(--ink-1); background:var(--instrument-selected); }
+.diveRoomRail > * > span { grid-row:span 2; font:.85rem var(--font-meta); color:#d5b783; align-self:center; }
+.diveRoomRail strong { font-size:.85rem; overflow-wrap:anywhere; }
+.diveRoomRail small { color:#c3c3c3; font-size:.7rem; }
+.fearJourney { padding-block: 0 var(--space-5); }
+.fearProgress { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.fearStage { position:sticky; top:5.2rem; min-width:0; border:1px solid var(--instrument-line); border-radius:10px; overflow:hidden; background:var(--instrument-base); box-shadow:0 20px 70px #06060688; animation:diveRoomArrival 650ms var(--ease-standard) both; }
+.fearWaterField { display:block; width:100%; height:auto; }
+.fearStage > p { font-size:.74rem; line-height:1.5; margin:0; padding:.65rem 1rem; color:#c6c6c6; border-top:1px solid #9f9f9f44; }
+.fearWaterLines { transform-origin:center; animation:fearWaterDrift 9s ease-in-out infinite alternate; }
+.fearRoom { padding-top:.35rem; }
+@keyframes fearWaterDrift { from { transform:translateX(-1%) scaleY(.985); } to { transform:translateX(1%) scaleY(1.015); } }
+@media (max-width:760px) {
+  .diveRoomRail { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .diveRoomRail .diveRailFuture { grid-column:1/-1; }
+  .fearStage { position:relative; top:auto; }
+  .fearWaterField { height: min(45vh, 300px); }
+  .fearStage > p { padding:.5rem .75rem; }
+}
+@media (prefers-reduced-motion: reduce) { .fearStage,.fearWaterLines { animation:none; } }
+
+.diveRoomFocus { scroll-margin-block-start: 5.5rem; }
+.diveRoomFocus:focus-visible { outline: 1px solid #d6b98c; outline-offset: 4px; }
+
+/* Large diagrams and their legible live HTML instrument readouts. */
+.diveInstrumentHeader { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:.3rem .8rem; padding:.75rem 1rem; border-bottom:1px solid var(--instrument-line); background:var(--instrument-base); color:var(--instrument-muted); font-size:.72rem; }
+.diveInstrumentHeader [lang="en"] { color:var(--instrument-gold); font-family:var(--font-meta); letter-spacing:.075em; }
+.diveInstrumentReadout { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin:0; gap:1px; background:var(--instrument-line); border-block:1px solid var(--instrument-line); }
+.diveInstrumentReadout > div { min-width:0; background:var(--instrument-panel); padding:.75rem .85rem; }
+.diveInstrumentReadout dt { margin:0 0 .25rem; color:var(--instrument-muted); font-size:.7rem; }
+.diveInstrumentReadout dd { margin:0; color:var(--instrument-ice); font-size:.85rem; font-weight:550; line-height:1.45; overflow-wrap:anywhere; }
+.diveInstrumentReadout dd[data-warning="true"] { color:var(--instrument-warning); }
+.fearStage,.memoryStage { border-color:var(--instrument-line-strong); }
+@media (max-width:760px) {
+ .diveInstrumentHeader { padding:.65rem .75rem; }
+ .diveInstrumentReadout > div { padding:.65rem .55rem; }
+ .diveInstrumentReadout dd { font-size:.77rem; }
+}
+@media (max-width:400px) {
+ .diveInstrumentReadout { grid-template-columns:1fr; }
+ .diveInstrumentReadout > div { display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1fr); align-items:baseline; gap:.55rem; }
+ .diveInstrumentReadout dt { margin:0; }
+}
+@media (forced-colors:active) { .diveInstrumentReadout > div { border:1px solid CanvasText; } }
+
+/* Short landscape windows cannot fit the full sticky readout and diagram. */
+@media (max-height:750px) and (min-width:761px) { .fearStage { position:relative; top:auto; } }

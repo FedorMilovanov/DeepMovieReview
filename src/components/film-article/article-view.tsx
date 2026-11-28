@@ -1,26 +1,23 @@
-import type { ReactNode } from "react";
 import type { ProductionSource } from "@/lib/production-dossier";
-import { DecisionModuleView } from "@/components/film-modules/module-components";
-import { VerdictCore } from "@/components/experience/verdict-core";
 import { EvidenceBasisLine } from "@/components/evidence-basis";
 import { ReadingOutline } from "./reading-outline";
+import { DiveEntry } from "./dive-entry";
 import { ArticleTable } from "./article-table";
 import { ArticleCorrectionTable } from "./article-correction-table";
 import Link from "next/link";
 import type {
   ArticleBlock,
+  ArticleSection,
   ArticleMeasurementRef,
   EvidenceRecord,
   FilmArticle,
   FinalSynthesisModule,
-  DecisionModule,
 } from "@/lib/film-package";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { illustrationView } from "@/data/film-illustrations";
 import type { ArticleMeasurementView, ArticleProjection } from "@/lib/film-article";
 import { articleReadingMinutes } from "@/lib/film-article";
 import { withSpoilerQuery, type SpoilerLevel } from "@/lib/spoilers";
-import { evidenceBasisMaterialLabels, evidenceBasisOutcomeLabels } from "@/lib/presentation-labels";
 
 type ArticleViewProps = {
   article: FilmArticle;
@@ -34,8 +31,6 @@ type ArticleViewProps = {
   filmTitle: string;
   projection: ArticleProjection;
   synthesis?: FinalSynthesisModule;
-  controls?: ReactNode;
-  decisions?: DecisionModule[];
   spoilerLevel: SpoilerLevel;
   /** Renders a measurement from the committed dataset, never from prose. */
   describeMeasurement: (ref: ArticleMeasurementRef) => ArticleMeasurementView | undefined;
@@ -56,21 +51,7 @@ type ArticleViewProps = {
   contextSourcesById?: ReadonlyMap<string, ProductionSource>;
 };
 
-const levelLabels: Record<SpoilerLevel, string> = {
-  NONE: "без спойлеров",
-  MINOR: "небольшие спойлеры",
-  MAJOR: "значительные спойлеры",
-  ENDING: "спойлеры к финалу",
-  FULL: "полный разбор",
-};
-
-/** `2026-10-28` → `28.10.2026`. Kept local: the article has no date formatter of its own. */
-function formatSignatureDate(iso: string): string {
-  const [year, month, day] = iso.split("-");
-  return `${day}.${month}.${year}`;
-}
-
-/** Original drawing. Provenance stays in the model and accessible alternative, not a prose caption. */
+/** Original drawing. Keep visible provenance and the accessible alternative distinct from film stills. */
 function ArticleIllustration({
   block,
 }: {
@@ -79,7 +60,7 @@ function ArticleIllustration({
   const view = illustrationView(block.assetId);
   if (!view) return null;
   return (
-    <figure className="articleIllustration" data-layout={block.layout ?? "wide"}>
+    <figure id={block.id} className="articleIllustration" data-layout={block.layout ?? "wide"}>
       <picture>
         {view.sources.map((source) => (
           <source key={source.type} srcSet={source.srcSet} sizes={view.sizes} type={source.type} />
@@ -95,6 +76,7 @@ function ArticleIllustration({
           decoding="async"
         />
       </picture>
+      <figcaption>Авторская иллюстрация · {block.caption}</figcaption>
     </figure>
   );
 }
@@ -136,13 +118,14 @@ function ArticleDuel({
   formatTimecode: (seconds: number) => string;
 }) {
   return (
-    <section className="articleDuel" aria-label={block.label}>
+    <section id={block.id} className="articleDuel" aria-label={block.label}>
       <p className="articleDuelLabel">{block.label}</p>
+      <p className="articlePerspectiveHint">Откройте разные перспективы и сравните, что меняется в прочтении сцены.</p>
       <h3 className="articleDuelQuestion">{block.question}</h3>
       <div className="articleDuelSides">
         {block.sides.map((side) => (
-          <article className="articleDuelSide" key={side.id}>
-            <h4>{side.label}</h4>
+          <details className="articleDuelSide" key={side.id} id={side.id}>
+            <summary>{side.label}</summary>
             <p>{side.reading}</p>
             <ul className="articleDuelEvidence" aria-label="Опора этой стороны">
               {side.evidenceIds.map((id) => {
@@ -160,7 +143,7 @@ function ArticleDuel({
                 );
               })}
             </ul>
-          </article>
+          </details>
         ))}
       </div>
       <p className="articleDuelOpen">
@@ -192,47 +175,40 @@ function ArticleBlockView({
     case "duel":
       return <ArticleDuel block={block} evidenceById={evidenceById} filmSlug={filmSlug} spoilerLevel={spoilerLevel} formatTimecode={formatTimecode} />;
     case "paragraph": {
-      const supports = (block.support?.evidenceIds ?? []).flatMap((id) => {
+      const records = (ids: string[]) => ids.flatMap((id) => {
         const record = evidenceById?.get(id);
         return record ? [record] : [];
       });
+      const supports = records(block.support?.evidenceIds ?? []);
+      const counter = records(block.support?.counterevidenceIds ?? []);
       return (
         <>
-          <p className="articleParagraph">{block.text}</p>
-          {block.contextSourceIds?.length ? (
-            <div className="articleContextSources">
-              <strong>Контекстный источник, не экранная опора:</strong>{" "}
-              {block.contextSourceIds.flatMap((id) => {
-                const source = contextSourcesById?.get(id);
-                return source ? [<a key={id} href={source.url}>{source.label} · {source.publisher}</a>] : [];
-              })}
-              <p>Источник указан отдельно от проверенных сцен; сопоставление — редакционное чтение.</p>
-            </div>
-          ) : null}
-          {supports.length === 1 ? (() => {
-            const record = supports[0];
-            return <p className="articleSupportSingle"><a href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>
-              Опора · {record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)} · {record.label}
-              {record.basis?.material === "clip-frames" ? " · отдельные кадры фрагмента" : ""}
-              {!record.basis ? " · основа не записана" : record.basis.outcome !== "seen" ? ` · ${evidenceBasisOutcomeLabels[record.basis.outcome]}` : ""}
-            </a></p>;
-          })() : supports.length > 1 ? (
+          <p id={block.id} data-reading-block className="articleParagraph">{block.text}</p>
+          {supports.length || counter.length || block.contextSourceIds?.length ? (
             <details className="articleSupport">
-              <summary>
-                {supports.length === 1 ? "Опора этого абзаца" : `Опоры этого абзаца · ${supports.length}`}
-              </summary>
+              <summary>Сцена и источники</summary>
               <ul>
-                {supports.map((record, index) => (
+                {[...supports.map(record => ({ record, counter: false })), ...counter.map(record => ({ record, counter: true }))].map(({ record, counter }, index) => (
                   <li key={index}>
                     <span>{record.timestampSeconds === undefined ? "—" : formatTimecode(record.timestampSeconds)}</span>
-                    <a href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>
-                      {record.label}
-                      {record.basis?.material === "clip-frames" ? " · отдельные кадры фрагмента" : ""}
-                      {!record.basis ? " · основа не записана" : record.basis.outcome !== "seen" ? ` · ${evidenceBasisOutcomeLabels[record.basis.outcome]}` : ""}
-                    </a>
+                    <div>
+                      <a href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>{counter ? "Контрдовод: " : ""}{record.label}</a>
+                      <p>{record.observation}</p>
+                      {record.basis ? <EvidenceBasisLine basis={record.basis} /> : <small>Материал проверки не записан.</small>}
+                      {record.id === "truman-ev-rain" && filmSlug === "the-truman-show" ? <a href="https://github.com/FedorMilovanov/DeepMovieReview/blob/main/docs/72-FILM-001-DIRECT-MASTER-RECHECK.md">Дополнительная сверка оригинала от 4 ноября 2026 года</a> : null}
+                    </div>
                   </li>
                 ))}
               </ul>
+              {block.contextSourceIds?.length ? (
+                <div className="articleContextSources">
+                  <strong>Контекст, не экранное доказательство:</strong>{" "}
+                  {block.contextSourceIds.flatMap((id) => {
+                    const source = contextSourcesById?.get(id);
+                    return source ? [<a key={id} href={source.url}>{source.label} · {source.publisher}</a>] : [];
+                  })}
+                </div>
+              ) : null}
             </details>
           ) : null}
         </>
@@ -240,7 +216,7 @@ function ArticleBlockView({
     }
     case "aside":
       return (
-        <aside className="articleAside" role="note" aria-label={block.label}>
+        <aside id={block.id} className="articleAside" role="note" aria-label={block.label}>
           <p className="microLabel">{block.label}</p>
           <p>{block.text}</p>
         </aside>
@@ -248,76 +224,81 @@ function ArticleBlockView({
     case "illustration":
       return <ArticleIllustration block={block} />;
     case "subhead":
-      return <h3 className="articleSubhead">{block.text}</h3>;
+      return <h3 id={block.id} className="articleSubhead">{block.text}</h3>;
     case "pullquote":
       return (
-        <blockquote className="articlePullquote">
+        <blockquote id={block.id} className="articlePullquote">
           <p>{block.text}</p>
           {block.attribution ? <cite>{block.attribution}</cite> : null}
         </blockquote>
       );
-    case "timeline":
+    case "timeline": {
+      function anchorDetail(item: Extract<ArticleBlock, { kind: "timeline" }>["items"][number]) {
+        const record = evidenceById?.get(item.evidenceId);
+        return (
+          <>
+            <span className="articleTimecode">{formatTimecode(item.timestampSeconds)}</span>
+            <p>{item.label}</p>
+            {record ? (
+              <>
+                <a className="articleTimelineBasisLabel" href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`}>{record.label}</a>
+                {record.basis ? <EvidenceBasisLine basis={record.basis} /> : <small>Материал проверки не записан.</small>}
+              </>
+            ) : null}
+          </>
+        );
+      }
+      const withoutStill = block.items.filter(item => !item.still);
       return (
-        <ol className="articleTimeline" aria-label="Опорные точки разбора">
-          {block.items.map((item, index) => (
-            <li key={index}>
-              <span className="articleTimecode">{formatTimecode(item.timestampSeconds)}</span>
-              <p>{item.label}</p>
-              {(() => {
-                const record = evidenceById?.get(item.evidenceId);
-                if (!record) return null;
-                const evidenceHref = `${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#evidence-${record.id}`;
-                if (record.basis?.material === "clip-frames") {
-                  return (
-                    <div className="articleTimelineBasis">
-                      <a className="articleTimelineBasisLabel" href={evidenceHref}>{record.label}</a>
-                      <EvidenceBasisLine basis={record.basis} />
-                    </div>
-                  );
-                }
-                return (
-                  <p className="articleTimelineBasis">
-                    <a className="articleTimelineBasisLabel" href={evidenceHref}>
-                      {record.basis
-                        ? `${evidenceBasisMaterialLabels[record.basis.material]} · ${evidenceBasisOutcomeLabels[record.basis.outcome]}`
-                        : "основа проверки не записана"}
-                      {record.basis?.refusedAncestor ? " · исходная запись отклонена и переписана" : ""}
-                    </a>
-                  </p>
-                );
-              })()}
-              {item.still ? (
-                <figure className="articleSceneStill">
-                  <picture>
-                    <source type="image/avif" srcSet={item.still.avifSrc} />
-                    <img src={item.still.src} width={item.still.width} height={item.still.height}
-                      alt={item.still.alt} loading="lazy" decoding="async" />
-                  </picture>
-                  <figcaption>
-                    <span>{item.still.caption}</span>
-                    {item.still.samplingKind === "grid" ? (
-                      <small>Номинальная отметка сетки {formatTimecode(item.still.sampleTimeSeconds)} · шаг {item.still.samplingIntervalSeconds} с; время исходного кадра может отличаться</small>
-                    ) : item.still.samplingKind === "clip" ? (
-                      <small>Кадр из фрагмента {item.still.clip.file} · примерно {formatTimecode(item.still.sampleTimeSeconds)} по смещению в манифесте; точный таймкод исходника не проверен</small>
+        <div id={block.id} className="articleSceneSequence" hidden={!block.items.length}>
+          {block.items.map(item => {
+            const still = item.still;
+            if (!still) return null;
+            return (
+              <figure id={item.id} className="articleSceneStill" key={item.id}>
+                <picture>
+                  <source type="image/avif" srcSet={still.avifSrc} />
+                  <img src={still.src} width={still.width} height={still.height} alt={still.alt} loading="lazy" decoding="async" />
+                </picture>
+                <figcaption>
+                  <span>Кадр фильма · {still.caption}</span>
+                  <small>{still.credit}</small>
+                  <details className="articleSupport">
+                    <summary>Таймкод и основание</summary>
+                    {anchorDetail(item)}
+                    {still.samplingKind === "grid" ? (
+                      <small>Отметка сетки {formatTimecode(still.sampleTimeSeconds)} · шаг {still.samplingIntervalSeconds} с; время кадра может отличаться.</small>
+                    ) : still.samplingKind === "clip" ? (
+                      <small>Кадр из фрагмента {still.clip.file} · примерно {formatTimecode(still.sampleTimeSeconds)}; точный PTS не удостоверен.</small>
                     ) : (
-                      <small>Прямая выборка исходного MKV около {formatTimecode(item.still.sampleTimeSeconds)}; точный PTS кадра не удостоверен</small>
+                      <small>Выборка исходного MKV около {formatTimecode(still.sampleTimeSeconds)}; точный PTS не удостоверен.</small>
                     )}
-                    <small>{item.still.credit}</small>
-                  </figcaption>
-                </figure>
-              ) : null}
-            </li>
-          ))}
-        </ol>
+                  </details>
+                </figcaption>
+              </figure>
+            );
+          })}
+          {withoutStill.length ? (
+            <details className="articleSupport">
+              <summary>Другие моменты сцены</summary>
+              <ol className="articleSceneReferences">
+                {withoutStill.map(item => <li id={item.id} key={item.id}><div>{anchorDetail(item)}</div></li>)}
+              </ol>
+            </details>
+          ) : null}
+        </div>
       );
+    }
     case "measurement": {
       const view = describeMeasurement(block.measurement);
       if (!view) return null;
-      return <MeasurementFigure view={view} text={block.text} />;
+      return <details id={block.id} className="articleVerdictContext"><summary>Как измеряли этот эпизод</summary><MeasurementFigure view={view} text={block.text} /></details>;
     }
     case "measurement-table":
       return (
-        <ArticleTable blockId={block.id} caption={block.caption}>
+        <details id={block.id} className="articleVerdictContext">
+          <summary>Монтажные измерения</summary>
+          <ArticleTable blockId={block.id} caption={block.caption}>
           <thead>
             <tr>
               {block.columns.map((column) => <th key={column} scope="col">{column}</th>)}
@@ -328,7 +309,7 @@ function ArticleBlockView({
               const view = describeMeasurement(row.measurement);
               if (!view) return null;
               return (
-                <tr key={row.id}>
+                <tr key={row.id} id={row.id}>
                   <th scope="row">
                     {row.label}
                     {/* The span and the rate belong to the row, not to a hover
@@ -342,12 +323,106 @@ function ArticleBlockView({
               );
             })}
           </tbody>
-        </ArticleTable>
+          </ArticleTable>
+        </details>
       );
     case "corrections":
-      return <ArticleCorrectionTable block={block} filmSlug={filmSlug} spoilerLevel={spoilerLevel}
-        evidenceById={evidenceById} describeMeasurement={describeMeasurement} />;
+      return <details id={block.id} className="articleVerdictContext"><summary>Редакционные уточнения к распространённым пересказам</summary><ArticleCorrectionTable block={block} filmSlug={filmSlug} spoilerLevel={spoilerLevel}
+        evidenceById={evidenceById} describeMeasurement={describeMeasurement} /></details>;
   }
+}
+
+/** A visual interpretation of the opening evidence, not a reconstruction of a shot. */
+function OpeningKnowledgeDiagram() {
+  return (
+    <figure className="articleKnowledgeDiagram">
+      <div className="articleDiagramLabel"><span lang="en">FIELD NOTES / 01</span><span>Различить сведения</span></div>
+      <svg viewBox="0 0 320 256" width="100%" role="img" aria-labelledby="truman-opening-diagram-title truman-opening-diagram-desc">
+        <title id="truman-opening-diagram-title">Предмет и объяснение</title>
+        <desc id="truman-opening-diagram-desc">На осветительном приборе видна надпись Sirius. В сообщении предмет объясняется деталью самолёта. Наличие объяснения не доказывает его истинность; требуется проверка.</desc>
+        <g fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 24V10h14m276 0h14v14M8 232v14h14m276 0h14v-14" opacity=".38"/>
+          <path d="M160 12v128" strokeDasharray="2 5" opacity=".35"/>
+          <g className="articleDiagramObserved">
+            <path d="m52 26 25-13 30 16-25 16zM52 26v28l30 17 25-16V29M82 45v26"/>
+            <ellipse cx="93" cy="50" rx="9" ry="15" transform="rotate(12 93 50)"/>
+            <path d="M58 31l15 8m-15-3 15 8" opacity=".65"/>
+          </g>
+          <g className="articleDiagramReported">
+            <rect x="204" y="14" width="70" height="52" rx="3"/>
+            <path d="M213 25h18m-18 9h52m-52 8h52m-52 8h34M231 66v7m-12 0h24"/>
+            <circle cx="262" cy="25" r="3"/>
+          </g>
+          <path d="M80 145v12l80 19 80-19v-12" opacity=".75"/>
+          <circle cx="160" cy="176" r="4" fill="currentColor"/>
+          <path d="M160 180v3" opacity=".75"/>
+        </g>
+        <g fill="currentColor" textAnchor="middle" fontSize="12">
+          <text className="articleDiagramObserved" x="80" y="88" fontSize="10" letterSpacing="1.4">НАБЛЮДЕНИЕ</text>
+          <text x="80" y="112" fontSize="17" fontWeight="600">Sirius</text>
+          <text x="80" y="136">Осветительный прибор</text>
+          <text className="articleDiagramReported" x="240" y="88" fontSize="10" letterSpacing="1.4">СООБЩЕНИЕ</text>
+          <text x="240" y="112" fontSize="15" fontWeight="600">Деталь самолёта</text>
+          <text x="240" y="136">Готовое объяснение</text>
+          <text className="articleDiagramReported" x="160" y="214" fontSize="17" fontWeight="600">Точка сомнения</text>
+          <text x="160" y="238">Как проверить объяснение?</text>
+        </g>
+      </svg>
+      <figcaption>Авторская схема прочтения: различие между наблюдением и готовым объяснением. Не план камеры и не кадр фильма.</figcaption>
+    </figure>
+  );
+}
+
+/** Editorial placement, using only items that survived the server spoiler/rights projection. */
+const trumanStillPlacement: Record<string, string> = {
+  "truman-article-anchor-rain": "truman-article-machine-rain",
+  "truman-article-anchor-ghost": "truman-article-machine-4",
+  "truman-article-anchor-newspaper": "truman-article-machine-4",
+  "truman-article-anchor-elevator": "truman-article-machine-5",
+  "truman-article-anchor-sylvia": "truman-article-cast-sylvia",
+  "truman-article-bond-tools": "truman-article-bonds-marriage-2",
+  "truman-article-bond-held": "truman-article-bonds-marriage-2",
+  "truman-article-bond-reunion": "truman-article-bonds-friendship-3",
+  "truman-article-anchor-mococoa": "truman-article-props-grater",
+  "truman-article-anchor-knife": "truman-article-props-grater",
+  "truman-article-anchor-wall": "truman-article-props-ladder",
+  "truman-article-anchor-setting-sail": "truman-article-decision-4",
+  "truman-article-anchor-sail-number": "truman-article-decision-4",
+  "truman-article-anchor-decision-exit": "truman-article-decision-5",
+  "truman-article-anchor-seahaven": "truman-article-morality-2",
+  "truman-article-anchor-nothing-left": "truman-article-morality-4",
+};
+
+function readingBlocks(section: ArticleSection): ArticleBlock[] {
+  const targets = new Set(section.blocks.map(block => block.id));
+  const placements = new Map<string, Extract<ArticleBlock, { kind: "timeline" }>["items"]>();
+  const rest = section.blocks.map(block => {
+    if (block.kind !== "timeline") return block;
+    const items = block.items.filter(item => {
+      const target = trumanStillPlacement[item.id];
+      if (!item.still || !target || !targets.has(target)) return true;
+      placements.set(target, [...(placements.get(target) ?? []), item]);
+      return false;
+    });
+    return { ...block, items };
+  });
+  return rest.flatMap(block => {
+    const items = placements.get(block.id);
+    return items ? [block, { kind: "timeline" as const, id: block.id + "-frames", items }] : [block];
+  });
+}
+
+function ArticleReadingBlock(props: Parameters<typeof ArticleBlockView>[0]) {
+  return (
+    <>
+      <ArticleBlockView {...props} />
+      {props.block.id === "truman-article-method-3" ? <OpeningKnowledgeDiagram /> : null}
+      {props.block.id === "truman-article-method-4" && props.evidenceById?.has("truman-ev-light") && props.evidenceById.has("truman-ev-light-explanation") ? (
+        <DiveEntry observation={props.evidenceById.get("truman-ev-light")!.observation}
+          report={props.evidenceById.get("truman-ev-light-explanation")!.observation} />
+      ) : null}
+    </>
+  );
 }
 
 export function ArticleView({
@@ -356,8 +431,6 @@ export function ArticleView({
   filmTitle,
   projection,
   synthesis,
-  controls,
-  decisions = [],
   spoilerLevel,
   describeMeasurement,
   evidenceById,
@@ -366,6 +439,8 @@ export function ArticleView({
   moduleHeadings,
 }: ArticleViewProps) {
   const { visibleSections, hiddenSections, nextHiddenLevel } = projection;
+  const pathname = `/films/${filmSlug}`;
+  const nextSection = article.sections[visibleSections.length];
   const readingMinutes = articleReadingMinutes(article, projection);
   const complete = hiddenSections === 0;
   const readingSections = [
@@ -379,41 +454,26 @@ export function ArticleView({
         <Breadcrumbs
           trail={[
             { label: "Фильмы", href: "/films" },
-            { label: filmTitle, href: withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel) },
-            { label: "Разбор" },
+            { label: filmTitle },
           ]}
         />
 
         <div className="sectionIndex">{article.kicker}</div>
         <h1 className="articleTitle">{article.title}</h1>
-        {controls ? <div className="articleSpoilerBar">{controls}</div> : null}
         <p className="articleStandfirst">{article.standfirst}</p>
         <div className="articleByline">
           <span>{article.byline.author}</span>
-          <span>
-            {article.byline.reviewedAt
-              ? `редакция ${article.byline.editorialRevision} · ${formatSignatureDate(article.byline.reviewedAt)}`
-              : `черновик · ${article.byline.editorialRevision}`}
-          </span>
-          <span>≈ {readingMinutes} мин основного текста{complete ? "" : " · видимая часть"}</span>
-          <span>точка зрения: {levelLabels[spoilerLevel]}</span>
+          <span>≈ {readingMinutes} мин {complete ? "чтения" : "открытого текста"}</span>
         </div>
+        <p className="articleReadingNote">{complete ? "Открыт весь текст, включая финал." : spoilerLevel === "NONE" ? "Начало без спойлеров. По ходу чтения открывайте следующие главы; весь фильм можно раскрыть через меню «Разделы»." : "Продолжайте чтение; следующие сюжетные повороты открываются отдельно."}</p>
         <div className="articleHeaderLinks">
-          <Link className="microLabel" href={withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}>← Разбор фильма</Link>
+          {filmSlug === "the-truman-show" && evidenceById?.has("truman-ev-light") && evidenceById.has("truman-ev-light-explanation") ? <Link className="buttonPrimary" href={`${pathname}/dive`}>Начать погружение →</Link> : null}
           <Link className="microLabel" href={`/films/${filmSlug}/making`}>Как это снимали →</Link>
-          {complete && synthesis ? <a className="microLabel" href="#article-verdict">Редакционная оценка ↓</a> : null}
+          <a className="microLabel" href="#film-evidence-appendix">Сцены и источники ↓</a>
         </div>
       </header>
 
-      <ReadingOutline sections={readingSections} />
-
-      {hiddenSections > 0 ? (
-        <p className="sectionShell spoilerOmissionNotice" aria-live="polite">
-          Скрыто разделов: {hiddenSections}
-          {nextHiddenLevel ? ` — следующий требует уровня «${levelLabels[nextHiddenLevel]}»` : ""}.
-          Текст обрывается на том месте, где начинаются спойлеры, а не в случайной точке.
-        </p>
-      ) : null}
+      <ReadingOutline sections={readingSections} fullHref={complete ? undefined : withSpoilerQuery(pathname, "FULL")} />
 
       {visibleSections.map((section) => (
         <section
@@ -426,53 +486,37 @@ export function ArticleView({
             <div className="sectionIndex">{section.eyebrow}</div>
             <h2 id={`${section.id}-title`} tabIndex={-1}>{section.heading}</h2>
             {section.standfirst ? <p className="sectionIntro">{section.standfirst}</p> : null}
-            {section.moduleIds?.length ? (
-              <div className="articleModuleLinks">
-                <span className="microLabel">
-                  {section.moduleIds.length > 1
-                    ? "Аналитические модули этого раздела"
-                    : "Аналитический модуль этого раздела"}
-                </span>
-                <ul>
-                  {section.moduleIds.map((moduleId) => (
-                    <li key={moduleId}>
-                      <Link
-                        className="articleModuleLink"
-                        href={`${withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}#${moduleId}`}
-                      >
-                        {moduleHeadings?.[moduleId] ?? moduleId}
-                        <span aria-hidden="true">→</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
           </div>
-          {decisions.filter(module => section.moduleIds?.includes(module.id)).map(module => (
-            <details className="articleAnalysis articleVerdictContext" key={module.id}>
-              <summary>Карта решения: варианты, знание, давление</summary>
-              <DecisionModuleView module={module} />
-            </details>
-          ))}
           <div className="articleBody">
             {/* Projection keeps every block in its original section order; the
                 compact position key avoids serializing long editorial IDs twice. */}
-            {section.blocks.map((block, index) => (
-              <ArticleBlockView
-                key={index}
-                block={block}
-                filmSlug={filmSlug}
-                spoilerLevel={spoilerLevel}
-                describeMeasurement={describeMeasurement}
-                evidenceById={evidenceById}
-                contextSourcesById={contextSourcesById}
-                formatTimecode={formatTimecode}
-              />
+            {readingBlocks(section).map((block) => (
+              <ArticleReadingBlock key={block.id} block={block} filmSlug={filmSlug} spoilerLevel={spoilerLevel}
+                describeMeasurement={describeMeasurement} evidenceById={evidenceById}
+                contextSourcesById={contextSourcesById} formatTimecode={formatTimecode} />
             ))}
+            {section.moduleIds?.length ? (
+              <details className="articleSupport">
+                <summary>Подробнее в аналитическом досье</summary>
+                <div className="articleModuleLinks">
+                  {section.moduleIds.map(moduleId => <a className="articleModuleLink" key={moduleId}
+                    href={`${withSpoilerQuery(pathname, spoilerLevel)}#${moduleId}`}>{moduleHeadings?.[moduleId] ?? moduleId} →</a>)}
+                </div>
+              </details>
+            ) : null}
           </div>
         </section>
       ))}
+
+      {nextHiddenLevel && nextSection ? (
+        <section className="sectionShell sectionRule articleReveal" aria-labelledby="article-reveal-title">
+          <div className="articleSectionHead">
+            <h2 id="article-reveal-title">{nextHiddenLevel === "ENDING" ? "Дальше — финал фильма" : "Продолжить чтение?"}</h2>
+            <p className="sectionIntro">{nextHiddenLevel === "ENDING" ? "Следующая часть обсуждает развязку. Откройте её, если готовы узнать финал." : nextHiddenLevel === "MINOR" ? "Дальше разбираем несколько ранних событий фильма." : nextHiddenLevel === "MAJOR" ? "Дальше обсуждаем существенные сюжетные повороты." : "Далее — итоговое прочтение всей картины."}</p>
+            <a className="buttonPrimary" href={withSpoilerQuery(`${pathname}#${nextSection.id}`, nextHiddenLevel)}>{nextHiddenLevel === "ENDING" ? "Открыть финальную часть" : "Открыть следующую часть"}</a>
+          </div>
+        </section>
+      ) : null}
 
       {complete && synthesis ? (
         <section id="article-verdict" className="sectionShell sectionRule articleSection articleVerdict" aria-labelledby="article-verdict-title">
@@ -481,20 +525,18 @@ export function ArticleView({
             <h2 id="article-verdict-title" tabIndex={-1}>{synthesis.heading}</h2>
             <p className="sectionIntro">Качество кино и тяжесть показанного зла — разные оси, не один усреднённый балл.</p>
           </div>
-          <div className="articleVerdictBody">
-            <div className="articleVerdictCore">
-              <VerdictCore />
-            </div>
+          <p className="articleParagraph">{synthesis.verdict}</p>
+          <details className="articleVerdictContext">
+            <summary>Подробная редакционная оценка</summary>
             <dl className="articleVerdictGrid">
               {synthesis.facets.map(facet => (
                 <div key={facet.key}><dt>{facet.label}</dt><dd>{facet.value}</dd></div>
               ))}
             </dl>
-          </div>
-          <p className="articleParagraph">{synthesis.verdict}</p>
+          </details>
           {synthesis.qualifications.length ? (
-            <details className="articleVerdictContext">
-              <summary>Оговорки к оценке <span>{synthesis.qualifications.length}</span></summary>
+            <details className="articleVerdictContext articleQualifications">
+              <summary>Что важно оговорить</summary>
               <ul>{synthesis.qualifications.map(text => <li key={text}>{text}</li>)}</ul>
             </details>
           ) : null}
@@ -503,9 +545,10 @@ export function ArticleView({
 
       {article.closing && complete ? (
         <footer className="sectionShell sectionRule articleClosing">
-          <div className="sectionIndex">Редакция</div>
-          <h2>{article.closing.heading}</h2>
-          <p>{article.closing.text}</p>
+          <details className="articleVerdictContext">
+            <summary>{article.closing.heading} — как проверяли материал</summary>
+            <p>{article.closing.text}</p>
+          </details>
         </footer>
       ) : null}
     </article>

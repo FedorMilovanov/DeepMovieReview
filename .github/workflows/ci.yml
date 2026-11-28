@@ -132,7 +132,7 @@ jobs:
               echo "Prelaunch homepage must remain noindex/nofollow even when the launch flag is enabled."
               exit 1
             fi
-          elif grep -Fq 'Открыть разбор' /tmp/home.html; then
+          elif grep -Fq 'class="observatoryHero"' /tmp/home.html || grep -Fq 'Открыть разбор' /tmp/home.html; then
             site_state="published-preview"
             if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/home.html; then
               echo "Preview builds must remain noindex/nofollow even when the configured homepage film is published."
@@ -162,7 +162,13 @@ jobs:
           done
 
           grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/?"|href="https://deepwaters\.example\.test/?"[^>]*rel="canonical"' /tmp/home.html
-          grep -Fq 'Предполагаемый тезис' /tmp/home.html
+          grep -Fq 'Выбрать фильм' /tmp/home.html
+          grep -Fq 'href="#films"' /tmp/home.html
+          grep -Fq 'id="films"' /tmp/home.html
+          if grep -Fq 'class="lensStageSection"' /tmp/home.html || grep -Fq 'Предполагаемый тезис' /tmp/home.html; then
+            echo "Journal leaked a film-specific analytical section."
+            exit 1
+          fi
           if grep -Fq 'Явная теза' /tmp/home.html; then
             echo "Homepage leaked legacy apparent-claim label."
             exit 1
@@ -238,7 +244,7 @@ jobs:
           fi
           # Each route can override the layout's metadata independently. In
           # particular, the production dossier once silently dropped noindex.
-          for suffix in article making; do
+          for suffix in making; do
             preview_film_page="/tmp/truman-preview-${suffix}.html"
             curl --fail --silent --show-error "http://127.0.0.1:3210/films/the-truman-show/${suffix}" > "$preview_film_page"
             if ! grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' "$preview_film_page"; then
@@ -250,6 +256,18 @@ jobs:
               exit 1
             fi
           done
+          # Verify the server-rendered metadata and preserved legacy redirect.
+          for level in minor major ending full; do
+            curl --fail --silent --show-error "http://127.0.0.1:3210/films/the-truman-show?spoilers=$level" > /tmp/preview-spoiler.html
+            grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"' /tmp/preview-spoiler.html
+            grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/films/the-truman-show"' /tmp/preview-spoiler.html
+          done
+          curl --fail --silent --show-error 'http://127.0.0.1:3210/films/the-truman-show/dive?spoilers=minor' > /tmp/preview-dive.html
+          grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"' /tmp/preview-dive.html
+          grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/films/the-truman-show"' /tmp/preview-dive.html
+          legacy_status=$(curl --silent --show-error --dump-header /tmp/preview-legacy.headers --output /dev/null --write-out '%{http_code}' 'http://127.0.0.1:3210/films/the-truman-show/article?spoilers=MINOR')
+          test "$legacy_status" = "308"
+          grep -Eiq '^location: ([^[:space:]]+://[^/]+)?/films/the-truman-show\?spoilers=minor[[:space:]]*$' /tmp/preview-legacy.headers
           if grep -Eiq 'rel="canonical"' /tmp/fast-draft.html; then
             echo "Research draft must not advertise a canonical public film URL."
             exit 1
@@ -443,7 +461,7 @@ jobs:
             exit 1
           fi
 
-          if grep -Fq 'Открыть разбор' /tmp/public-home.html; then
+          if grep -Fq 'class="observatoryHero"' /tmp/public-home.html || grep -Fq 'Открыть разбор' /tmp/public-home.html; then
             public_state="published"
             if grep -Eiq 'name="robots"[^>]*content="noindex, nofollow"|content="noindex, nofollow"[^>]*name="robots"' /tmp/public-home.html; then
               echo "Published public homepage remained noindex despite launch flag and preview mode being disabled."
@@ -477,13 +495,13 @@ jobs:
           grep -Fq 'Sitemap: https://deepwaters.example.test/sitemap.xml' /tmp/public-robots.txt
 
           curl --fail --silent --show-error http://127.0.0.1:3211/sitemap.xml > /tmp/public-sitemap.xml
-          for public_path in '/films/the-truman-show</loc>' '/films/the-truman-show/article</loc>' '/films/the-truman-show/making</loc>'; do
+          for public_path in '/films/the-truman-show</loc>' '/films/the-truman-show/making</loc>'; do
             if ! grep -Fq "$public_path" /tmp/public-sitemap.xml; then
               echo "Published sitemap is missing public route: $public_path"
               exit 1
             fi
           done
-          for forbidden_path in '/labs/' '/films/the-fast-and-the-furious' '/films/pilot-film'; do
+          for forbidden_path in '/labs/' '/films/the-fast-and-the-furious' '/films/pilot-film' '/films/the-truman-show/article</loc>' '/films/the-truman-show/dive</loc>'; do
             if grep -Fq "$forbidden_path" /tmp/public-sitemap.xml; then
               echo "Public sitemap leaked non-public route: $forbidden_path"
               exit 1
@@ -536,7 +554,7 @@ jobs:
             exit 1
           fi
           grep -Fq 'Труман Бёрбанк' /tmp/public-truman-route.html
-          for suffix in article making; do
+          for suffix in making; do
             public_film_page="/tmp/truman-public-${suffix}.html"
             curl --fail --silent --show-error "http://127.0.0.1:3211/films/the-truman-show/${suffix}" > "$public_film_page"
             if grep -Eiq 'name="robots"[^>]*content="noindex|content="noindex[^>]*name="robots"' "$public_film_page"; then
@@ -548,6 +566,19 @@ jobs:
               exit 1
             fi
           done
+
+          # Verify the server-rendered metadata and preserved legacy redirect.
+          for level in minor major ending full; do
+            curl --fail --silent --show-error "http://127.0.0.1:3211/films/the-truman-show?spoilers=$level" > /tmp/public-spoiler.html
+            grep -Eiq 'name="robots"[^>]*content="noindex, follow"' /tmp/public-spoiler.html
+            grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/films/the-truman-show"' /tmp/public-spoiler.html
+          done
+          curl --fail --silent --show-error 'http://127.0.0.1:3211/films/the-truman-show/dive?spoilers=minor' > /tmp/public-dive.html
+          grep -Eiq 'name="robots"[^>]*content="noindex, follow"' /tmp/public-dive.html
+          grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/films/the-truman-show"' /tmp/public-dive.html
+          legacy_status=$(curl --silent --show-error --dump-header /tmp/public-legacy.headers --output /dev/null --write-out '%{http_code}' 'http://127.0.0.1:3211/films/the-truman-show/article?spoilers=FULL')
+          test "$legacy_status" = "308"
+          grep -Eiq '^location: ([^[:space:]]+://[^/]+)?/films/the-truman-show\?spoilers=full[[:space:]]*$' /tmp/public-legacy.headers
 
           fast_status=$(curl --silent --output /tmp/public-fast-route.html --write-out '%{http_code}' http://127.0.0.1:3211/films/the-fast-and-the-furious)
           if [[ "$fast_status" != "200" && "$fast_status" != "404" ]]; then

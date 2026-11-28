@@ -387,3 +387,34 @@
     linear-gradient(120deg, rgb(255 255 255 / 0.018), rgb(255 255 255 / 0.055), rgb(255 255 255 / 0.012));
 }
 
+
+/* The archive and its character dossiers share the same quiet reading material. */
+@media screen {
+ .discoverySection { grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); }
+ .discoveryCard { background:var(--instrument-base); border-color:var(--instrument-line); border-radius:6px; }
+ .discoveryCard strong,.characterCard h3,.relationshipPanel h3 { font-family:Georgia,"Times New Roman",serif; font-weight:400; text-transform:none; letter-spacing:normal; line-height:1.2; }
+ .discoveryCard p,.discoveryLinks a { color:var(--instrument-muted); }
+ .discoveryLinks a:hover { color:var(--instrument-ice); }
+ .characterGrid,.meaningGrid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.65rem; background:none; border:0; }
+ .characterGrid.characterGridSingle { grid-template-columns:minmax(0,1fr); }
+ .characterCard,.meaningGrid > div { background:var(--instrument-base); border:1px solid var(--instrument-line); border-radius:6px; min-width:0; min-height:0; }
+ .characterCard dl > div { grid-template-columns:minmax(90px,.35fr) minmax(0,1fr); border-color:var(--instrument-line); }
+ .characterCard dt,.meaningGrid span { color:var(--instrument-gold); letter-spacing:.04em; }
+ .characterCard dd,.characterPresentation { color:var(--instrument-muted); overflow-wrap:anywhere; }
+ .relationshipPanel { grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr); background:var(--instrument-base); border-color:var(--instrument-line); border-radius:6px; }
+ .relationshipPanel p,.traceEvent p { color:var(--instrument-muted); }
+ .traceEvent { grid-template-columns:18px minmax(0,1fr); }
+ .traceDot { border-color:var(--instrument-line-strong); background:var(--instrument-base); }
+ .trace-fracture .traceDot { border-color:var(--instrument-warning); }
+ .trace-repair .traceDot { border-color:var(--instrument-gold); }
+ .permissionField { grid-template-columns:repeat(3,minmax(0,1fr)); }
+ .permissionField article,.knowledgeGrid article { background:var(--instrument-base); border-color:var(--instrument-line); border-radius:6px; min-height:0; }
+ .permissionField h3,.knowledgeGrid h3 { font-family:Georgia,"Times New Roman",serif; font-weight:400; text-transform:none; letter-spacing:normal; line-height:1.2; }
+ .permissionState { margin-bottom:1.2rem; color:var(--instrument-gold); }
+}
+@media screen and (max-width:900px) {
+ .discoverySection,.relationshipPanel,.characterGrid,.meaningGrid { grid-template-columns:minmax(0,1fr); }
+ .permissionField { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media screen and (max-width:720px) { .permissionField { grid-template-columns:minmax(0,1fr); } }
+@media screen and (max-width:420px) { .characterCard dl > div { grid-template-columns:minmax(0,1fr); gap:.35rem; } }

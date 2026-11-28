@@ -393,3 +393,18 @@ article.filmKnowledgeFog {
 .relationshipDimensions dt { color: var(--ink-1); font-weight: 600; }
 .relationshipDimensions dd { margin: 0.35rem 0 0; color: var(--ink-2); }
 .relationshipDimensions dd span { color: var(--ink-3); }
+
+/* Analytical cards are editorial evidence, not equal-height dashboard widgets. */
+@media screen {
+ .filmModuleQuestion { font-family:Georgia,"Times New Roman",serif; font-weight:400; line-height:1.2; text-transform:none; letter-spacing:-.025em; }
+ .filmObservationGrid,.filmCraftGrid,.filmDecisionOptions,.filmKnowledgeGrid,.filmDecisionContext,.filmMethodMeta { border:0; gap:.55rem; background:none; align-items:start; }
+ :is(.filmObservationGrid,.filmCraftGrid,.filmDecisionOptions,.filmKnowledgeGrid,.filmDecisionContext) > article,.filmMethodMeta > div { background:var(--instrument-base); border:1px solid var(--instrument-line); border-radius:5px; min-height:0; min-width:0; overflow-wrap:anywhere; }
+ .filmObservationGrid h3,.filmSignalList h3,.filmCraftGrid > article > strong,.filmDecisionOptions strong,.filmDecisionJudgment > p:not(.filmCounterevidence) { font-family:Georgia,"Times New Roman",serif; font-weight:400; line-height:1.24; text-transform:none; letter-spacing:-.015em; }
+ .filmObservationMeta,.filmMethodMeta span { color:var(--instrument-gold); }
+ .filmObservationGrid p,.filmCraftGrid p,.filmSignalList p,.filmDecision :where(p) { color:var(--instrument-muted); }
+ .filmDecisionOptions > article[data-available="false"] { background:var(--instrument-panel); border-inline-start:2px solid var(--instrument-line-strong); }
+ .filmDecisionJudgment { background:var(--instrument-base); border-inline-start:2px solid var(--instrument-gold); }
+ .filmKnowledgeGrid p,.filmDecisionContext p,.filmCounterevidence { border-color:var(--instrument-line); }
+ .filmSourceList a { color:var(--instrument-ice); }
+ .relationshipDimensions > div { background:var(--instrument-panel); border-color:var(--instrument-line-strong); }
+}

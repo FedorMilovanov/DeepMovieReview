@@ -8,6 +8,20 @@
   /* Keeps media labels readable even over a completely white source image. */
   --surface-media-caption: rgba(3, 3, 3, 0.92);
 
+  /* Neutral editorial surfaces shared by reading, tables and controls.
+     Instrument names are compatibility aliases, not an alternate theme. */
+  --instrument-base: var(--surface-1);
+  --instrument-panel: var(--surface-2);
+  --instrument-raised: #181818;
+  --instrument-selected: #252525;
+  --instrument-line: #3e3e3e;
+  --instrument-line-strong: #858585;
+  --instrument-gold: #d8c09d;
+  --instrument-ice: var(--ink-2);
+  --instrument-text: var(--ink-1);
+  --instrument-muted: var(--ink-3);
+  --instrument-warning: #efa2a4;
+
   /* Text */
   --ink-1: #f2eee6;
   --ink-2: #cbc5ba;
@@ -115,4 +129,15 @@
     --accent-fracture: #bf3b45;
     --accent-restoration: #d0a96e;
   }
+}
+
+@media (prefers-contrast:more) {
+ :root { --instrument-line:#777777; --instrument-line-strong:#b5b5b5; }
+}
+@media (forced-colors:active) {
+ :root {
+ --instrument-base:Canvas; --instrument-panel:Canvas; --instrument-raised:Canvas; --instrument-selected:Canvas;
+ --instrument-line:CanvasText; --instrument-line-strong:CanvasText; --instrument-gold:CanvasText;
+ --instrument-ice:CanvasText; --instrument-text:CanvasText; --instrument-muted:CanvasText; --instrument-warning:CanvasText;
+ }
 }

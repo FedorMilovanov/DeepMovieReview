@@ -13,7 +13,7 @@ const base = process.env.BASE_URL ?? "http://127.0.0.1:3212";
 const out = "a11y-report";
 const engines = { chromium, firefox, webkit };
 const selected = (process.env.A11Y_BROWSERS ?? "chromium,firefox,webkit").split(",");
-const routes = ["/", "/films", "/films/the-truman-show?spoilers=ENDING", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"];
+const routes = ["/", "/films", "/films/the-truman-show?spoilers=ENDING", "/films/the-truman-show?spoilers=full", "/films/the-truman-show/making"];
 const report = { requestedBrowsers: selected, revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), axe: axe.version,
   playwright: require("playwright-core/package.json").version, results: [], failures: [] };
 mkdirSync(out, { recursive: true });
@@ -89,7 +89,7 @@ for (const name of selected) {
               violations: result.violations.length, review, file: `${id}-${state}.json` });
             for (const rule of result.violations) failure(`${id}/${state}: ${rule.id}: ${JSON.stringify(rule.nodes.map(node => ({ target: node.target, summary: node.failureSummary })))}`);
             if (process.env.A11Y_RENDERED_CONTRAST === "true") {
-              const comparisonOnly = route.includes("/films/the-truman-show?") && scope === "document";
+              const comparisonOnly = route.endsWith("?spoilers=ENDING") && scope === "document" && state === "appendix-open";
               // The full film page is axe-scanned above. Its additional rendered
               // assessment is explicitly limited to the new comparison so a
               // multi-hour full-page sweep is not misreported as completed.
@@ -112,7 +112,12 @@ for (const name of selected) {
           await scan("page");
           await page.screenshot({ path: `${out}/${id}.png` });
 
-          if (route.includes("/films/the-truman-show?")) {
+          if (route.endsWith("?spoilers=ENDING")) {
+            const appendix = page.locator(".filmReadingAppendix");
+            await appendix.locator(":scope > summary").focus();
+            await page.keyboard.press("Enter");
+            assert.ok(await appendix.evaluate(el=>el.open), "appendix opens by keyboard");
+            await scan("appendix-open");
             // These newly navigable controls lie outside the comparison-only
             // rendered assessment of the long film page. Audit their real,
             // keyboard-open state separately, without claiming the whole page.
@@ -143,60 +148,16 @@ for (const name of selected) {
             await page.keyboard.press("Enter");
           }
 
-          const concreteScene = route === "/" && await page.locator('.lensSceneLink').count() > 0;
-          if (width === 390 && route === "/") {
-            for (const lens of ["story", "people", "relationships", "ideas", "moral-world", "craft"]) {
-              await page.locator(`label[for="lens-radio-${lens}"]`).click();
-              if (concreteScene) {
-                const reading = `.lensReading[data-lens="${lens}"]`;
-                await page.waitForFunction(selector => {
-                  const node = document.querySelector(selector), section = node?.closest('.sectionRule');
-                  return node && +getComputedStyle(node).opacity === 1 && (!section || +getComputedStyle(section).opacity === 1);
-                }, reading);
-                assert.ok(await page.locator(`${reading} .lensEvidenceLinks a`).first().isVisible(), `${lens}: a visible reading must have an evidence link`);
-                // The published scene uses authored method art, but each actual
-                // reading still needs its real visible evidence links.
-                await scan(`lens-${lens}`, reading);
-              } else {
-                await page.waitForFunction(lens => {
-                  const group = document.querySelector(`.lensMarkGroup[data-lens="${lens}"]`);
-                  const section = group?.closest(".sectionRule");
-                  return group && +getComputedStyle(group).opacity === 1 && (!section || +getComputedStyle(section).opacity === 1);
-                }, lens);
-                // One layout snapshot: separate protocol calls can straddle the
-                // section's reveal translation and invent an overlap on slow CI.
-                const geometry = await page.evaluate(lens => ({
-                  meta: document.querySelector(".lensFrame .frameMeta").getBoundingClientRect().toJSON(),
-                  marks: [...document.querySelectorAll(`.lensMarkGroup[data-lens="${lens}"] .lensMark`)].map(mark => mark.getBoundingClientRect().toJSON()),
-                }), lens);
-                assert.ok(geometry.marks.length > 0, `${lens}: visible label group must not be empty`);
-                for (const box of geometry.marks) {
-                  assert.ok(box.y >= geometry.meta.bottom, `${lens}: chips must not overlap frame metadata: ${JSON.stringify({ box, meta: geometry.meta })}`);
-                }
-              }
-            }
-            await page.locator('label[for="lens-radio-story"]').click();
-          }
-
           if (route === "/") {
-            if (concreteScene) {
-              // Source-film frames are quoted inside the critical article only.
-              const editorialArt = page.locator(".lensFrameWrap .livingFrame img");
-              assert.ok(await editorialArt.isVisible(), "the method illustration must stay visible");
-              assert.match(await editorialArt.getAttribute("alt") ?? "", /Фигура спиной перед светящимся дверным проёмом/i);
-              assert.equal(await page.locator(".lensEvidenceFigure").count(), 0, "homepage must not display a source-film still");
-              assert.equal(await page.locator(".lensFrameWrap .lensMarkGroup, .lensFrameWrap .lensTrace").count(), 0,
-                "the published method illustration must not masquerade as film evidence");
-            } else {
-              const layers = await page.evaluate(() => ({
-                marks: +getComputedStyle(document.querySelector('.lensMarkGroup[data-lens="story"]')).zIndex,
-                position: getComputedStyle(document.querySelector('.lensMarkGroup[data-lens="story"]')).position,
-                trace: +getComputedStyle(document.querySelector('.lensTrace')).zIndex,
-              }));
-              assert.ok(layers.position !== "static" && layers.marks > layers.trace, "decorative trace must not paint over lens label glyphs");
-            }
+            assert.equal(await page.locator(".siteHeader a[href$='/dive']").count(),0,"no film-specific global navigation");
+            assert.equal(await page.locator(".lensStageSection,.characterGrid,.articleSection").count(),0,"journal is not a film dossier");
+            const choose = page.getByRole("link",{name:/Выбрать фильм/});
+            await choose.focus();
+            await page.keyboard.press("Enter");
+            await page.waitForURL(url=>url.hash==="#films");
+            assert.ok(await page.locator("#films a.filmRow").first().isVisible(),"published film can be selected by keyboard");
+            await scan("journal-selection","#films");
           }
-
           if (width === 390) {
             const menu = page.locator(".menuButton");
             await menu.focus();
@@ -208,7 +169,7 @@ for (const name of selected) {
             assert.ok(await menu.evaluate(el => el === document.activeElement), "menu focus restored");
           }
 
-          if (route.includes("/article?")) {
+          if (route.endsWith("?spoilers=full")) {
             const sectionCount = await page.locator(".articleSection").count();
             const hiddenId = await page.locator(".articleSection").last().getAttribute("id");
             const outline = page.getByRole("button", { name: /^Разделы \d{2,} — оглавление статьи$/ });
@@ -219,8 +180,8 @@ for (const name of selected) {
             assert.equal(await outline.getAttribute("aria-label"), `Разделы ${position} — оглавление статьи`);
             assert.ok(await page.evaluate(() => {
               const title = document.querySelector('.articleTitle');
-              const controls = document.querySelector('.articleSpoilerBar');
-              return Boolean(title.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING);
+              const controls = document.querySelector('.filmReadingAppendix .spoilerControl');
+              return Boolean(title && controls && (title.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING));
             }), "reading opens with the title, not five spoiler buttons");
             // Check both directions across long sections, not a forced active state.
             for (const index of [sectionCount - 1, 0]) {
@@ -263,7 +224,7 @@ for (const name of selected) {
               await page.keyboard.press('Enter');
               assert.equal(await analysis.evaluate(el => el.open), false);
             }
-            const context = page.locator('#article-verdict .articleVerdictContext');
+            const context = page.locator('#article-verdict .articleQualifications');
             if (await context.count()) {
               await context.locator('summary').focus();
               await page.keyboard.press('Enter');
@@ -342,7 +303,12 @@ for (const name of selected) {
               const top = heading.getBoundingClientRect().top;
               return top >= document.querySelector(".siteHeader").getBoundingClientRect().bottom - 1 && top < innerHeight;
             });
-            const viewport = page.locator(".articleTableViewport").first();
+            const measurements = page.locator("#truman-article-craft-windows");
+            await measurements.locator(":scope > summary").focus();
+            await page.keyboard.press("Enter");
+            assert.ok(await measurements.evaluate(el=>el.open),"native measurement disclosure opens by keyboard");
+            await scan("measurements-open", "#truman-article-craft-windows");
+            const viewport = measurements.locator(".articleTableViewport").first();
             assert.equal(await viewport.getAttribute("role"), "region");
             assert.ok(await viewport.locator('th[scope="col"]').count());
             assert.ok(await viewport.locator('th[scope="row"]').count());
@@ -367,7 +333,13 @@ for (const name of selected) {
               if (original.whiteSpace) el.style.setProperty("white-space", original.whiteSpace, original.priority);
               else el.style.removeProperty("white-space");
             }, originalCell);
-            await page.locator(".spoilerOption").first().click();
+            const appendix = page.locator(".filmReadingAppendix");
+            if (!(await appendix.evaluate(el=>el.open))) {
+              await appendix.locator(":scope > summary").focus();
+              await page.keyboard.press("Enter");
+              assert.ok(await appendix.evaluate(el=>el.open),"appendix opens by keyboard");
+            }
+            await appendix.locator(".spoilerOption").first().click();
             await page.waitForFunction(count => document.querySelectorAll(".articleSection").length < count, sectionCount);
             await page.waitForLoadState("networkidle");
             assert.equal(await page.locator(`[id="${hiddenId}"]`).count(), 0, "hidden spoiler section absent from DOM");

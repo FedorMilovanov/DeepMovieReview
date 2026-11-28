@@ -235,3 +235,18 @@
 .filmCraftDetail cite { font-style: normal; color: var(--ink-3); }
 .filmCraftSources { margin-top: 1rem; color: var(--ink-3); font-size: 0.8rem; line-height: 1.5; }
 .filmCraftSources a { color: var(--ink-1); text-underline-offset: 0.2em; }
+
+@media screen {
+ .filmSceneTableWrap { border:1px solid var(--instrument-line); border-radius:6px; background:var(--instrument-base); }
+ .filmSceneTable thead th { background:var(--instrument-panel); color:var(--instrument-gold); font-size:.72rem; text-transform:none; letter-spacing:.04em; border-bottom-color:var(--instrument-line); }
+ .filmSceneTable tbody :is(th,td) { border-bottom-color:var(--instrument-line); }
+ .filmSceneTable tbody tr:nth-child(odd) { background:var(--instrument-panel); }
+ .filmSceneTable tbody tr:hover,.filmSceneTable tbody tr:focus-within,.filmSceneTable tbody tr:target { background:var(--instrument-selected); }
+ .filmSceneTime,.filmSceneIndex,.filmSceneMobileMeta { color:var(--instrument-muted); }
+ .filmSceneState[data-state="verified"] { color:var(--instrument-ice); }
+ .filmSceneState[data-state="draft"] { color:var(--instrument-warning); }
+ .characterAnchors a { min-height:44px; align-items:center; background:var(--instrument-base); border-color:var(--instrument-line); color:var(--instrument-text); border-radius:4px; }
+ .characterAnchorTime { color:var(--instrument-gold); }
+ .sceneLensDetails { border-color:var(--instrument-line); border-radius:6px; background:var(--instrument-base); }
+}
+@media screen and (max-width:720px) { .filmSceneTable thead th,.filmSceneTable tbody :is(th,td) { padding:.65rem .55rem; overflow-wrap:anywhere; } }

@@ -18,9 +18,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       .filter((filmPackage) => filmPackage.film.status === "published")
       .flatMap((filmPackage) => [
         { url: `${origin}/films/${filmPackage.film.slug}` },
-        ...(filmPackage.article
-          ? [{ url: `${origin}/films/${filmPackage.film.slug}/article` }]
-          : []),
         ...(getProductionDossier(filmPackage.film.slug)
           ? [{ url: `${origin}/films/${filmPackage.film.slug}/making` }]
           : []),

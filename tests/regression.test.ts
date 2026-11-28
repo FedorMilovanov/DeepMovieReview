@@ -67,7 +67,7 @@ import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
 import { continueIntervalBenchmark, intervalP95, validInterval } from "../src/lib/interval-benchmark";
 import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
-import { filterFilmIndex, filmIndexStatusLabel } from "../src/lib/film-index";
+import { filterFilmIndex, filmIndexStatusLabel, projectFilmIndex } from "../src/lib/film-index";
 import { pluralRu } from "../src/lib/plural-ru";
 import { COMPARISON_DIMENSIONS, type ArticleBlock, type EvidenceRecord, type FilmPackage, type CharactersModule } from "../src/lib/film-package";
 import { theTrumanShowDraftPackage } from "../src/data/films/the-truman-show";
@@ -181,7 +181,6 @@ test("a page's own robots tag never contradicts robots.txt", () => {
   // preview deployment that made a published page indexable by its own tag.
   const filmRoutes = [
     readFileSync("src/app/films/[slug]/page.tsx", "utf8"),
-    readFileSync("src/app/films/[slug]/article/page.tsx", "utf8"),
     readFileSync("src/app/films/[slug]/making/page.tsx", "utf8"),
   ];
   for (const source of filmRoutes) {
@@ -5016,7 +5015,7 @@ test("Film 001 page metadata describes the page, not the site, and cannot spoil 
 
   const articlePage = articlePageMetadata(theTrumanShowCanonicalPackage, shareImage);
   assert.ok(articlePage);
-  assert.equal(articlePage.openGraph.url, "/films/the-truman-show/article");
+  assert.equal(articlePage.openGraph.url, "/films/the-truman-show");
   assert.equal(
     articlePage.openGraph.images[0].url,
     "/og/truman-show-share.jpg",
@@ -5826,13 +5825,13 @@ test("a breadcrumb names the film, never the edition's state", () => {
     assert.match(source, /filmTitle: string/, `${name} receives the film title explicitly`);
     assert.ok(
       source.includes(name === "article-view"
-        ? "label: filmTitle, href: withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)"
+        ? "label: filmTitle"
         : "label: filmTitle, href: `/films/${filmSlug}`"),
       `${name} links the film crumb by title; the article preserves its spoiler level`,
     );
   }
 
-  for (const page of ["src/app/films/[slug]/article/page.tsx", "src/app/films/[slug]/making/page.tsx"]) {
+  for (const page of ["src/components/film-article/film-article-reading.tsx", "src/app/films/[slug]/making/page.tsx"]) {
     const source = readFileSync(page, "utf8");
     assert.match(
       source,
@@ -5842,13 +5841,14 @@ test("a breadcrumb names the film, never the edition's state", () => {
   }
 });
 
-test("both article return links use the selected spoiler level; making is separate", () => {
+test("one film reading route preserves the spoiler query on old article addresses", () => {
+  const route = readFileSync("src/app/films/[slug]/article/page.tsx", "utf8");
+  assert.match(route, /permanentRedirect\(withSpoilerQuery/);
+  assert.match(route, /parseSpoilerLevel\(query.spoilers\)/);
+  assert.doesNotMatch(route, /ArticleView/);
   const source = readFileSync("src/components/film-article/article-view.tsx", "utf8");
-  assert.ok(source.includes("label: filmTitle, href: withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)"));
-  assert.ok(source.includes("href={withSpoilerQuery(`/films/${filmSlug}`, spoilerLevel)}>← Разбор фильма"));
-  assert.ok(source.includes("href={`/films/${filmSlug}/making`}>Как это снимали"));
-  // All five values, existing queries, duplicate spoiler keys and fragments are
-  // separately checked above; the real links are also exercised in the browser.
+  assert.ok(source.includes('href={`/films/${filmSlug}/making`}>Как это снимали'));
+  assert.ok(source.includes('fullHref={complete ? undefined : withSpoilerQuery(pathname, "FULL")}'));
 });
 
 test("tilt never keeps a position the pointer no longer holds", () => {
@@ -5905,16 +5905,19 @@ test("the page survives paper, anchors and the sticky header", () => {
 
   const header = readFileSync("src/components/site-header.tsx", "utf8");
   const label = /className="brand"[^>]*aria-label="([^"]+)"/.exec(header)?.[1] ?? "";
-  const visible = /className="brandText">([^<]+)</.exec(header)?.[1]?.trim() ?? "";
-  assert.ok(visible.length > 0, "the brand has visible text");
-  assert.ok(
-    label.includes(visible),
-    `the brand's accessible name («${label}») must contain its visible text («${visible}»): WCAG 2.5.3`,
-  );
+  const visible = /className="brandText"><strong[^>]*>([^<]+)<\/strong>\{" "\}<small>([^<]+)<\/small>/.exec(header);
+  assert.ok(visible, "the brand has a visible bilingual wordmark");
+  assert.ok(label.includes(visible.slice(1).join(" ")), "the visible bilingual phrase must be contiguous in the accessible name");
+  for (const word of visible.slice(1)) {
+    assert.ok(
+      label.toLocaleLowerCase().includes(word.toLocaleLowerCase()),
+      `the brand's accessible name («${label}») must contain its visible text («${word}»): WCAG 2.5.3`,
+    );
+  }
   assert.match(
     header,
-    /className="brandMark" aria-hidden="true" \/>/,
-    "the monogram must be drawn by CSS, not typed into the link's name",
+    /className="brandMark" aria-hidden="true"><video[\s\S]*?poster="\/art\/deep-waters-emblem\.png"/,
+    "the decorative video emblem must not enter the accessible link name",
   );
 
   // A bare `1fr` track grows to its widest child's min-content; the shell clips
@@ -6425,7 +6428,7 @@ test("Homepage never presents a generated illustration as a film frame", () => {
   // to print «Кадр фильма» over it and a «Кадр · 0001» meta chip — the one caption
   // this site cannot afford, because it is the same error the article spends a
   // section correcting.
-  for (const file of ["src/app/page.tsx", "src/components/film-media-frame.tsx"]) {
+  for (const file of ["src/components/film-index-filter.tsx", "src/components/film-media-frame.tsx"]) {
     const source = readFileSync(file, "utf8");
     assert.ok(!source.includes("Кадр фильма"), `${file}: the cover must not be called a frame of the film`);
     assert.ok(!source.includes('metaLeft="Кадр'), `${file}: no art chip may claim a frame number`);
@@ -6804,9 +6807,9 @@ test("published methodology does not turn supplied metadata into a viewing or au
   const articleLimits = theTrumanShowArticle.sections.flatMap((section) => section.blocks)
     .find((block) => block.id === "truman-article-method-4");
   assert.ok(articleLimits?.kind === "paragraph");
-  assert.match(articleLimits.text, /прямо сказано, что он не записан/i);
-  assert.match(articleLimits.text, /не заменяет просмотра всей сцены со звуком/i);
-  assert.match(theTrumanShowArticle.standfirst, /отмечено, что он не записан/i);
+  assert.match(articleLimits.text, /независимой возможности проверить/i);
+  assert.match(theTrumanShowArticle.closing?.text ?? "", /полного непрерывного просмотра со звуком это не заменяет/i);
+  assert.match(theTrumanShowArticle.standfirst, /доверять собственным глазам/i);
   assert.doesNotMatch(theTrumanShowArticle.standfirst, /у каждой опоры указан материал/i);
 });
 
@@ -6818,12 +6821,12 @@ test("Film 001 reader distinguishes local master verification from detector reru
     return block.text;
   };
   const cast = paragraph("truman-article-cast-marlon");
-  assert.match(cast, /выборочная машинная сверка оригинальной английской дорожки.*повтор близких фраз/);
+  assert.match(cast, /выборочная машинная сверка оригинальной английской дорожки.*повтор близких фраз/i);
   assert.match(cast, /не удостоверила голоса.*интонации.*не проверялся/);
   assert.doesNotMatch(cast, /звук и непрерывный монтаж мы не проверяли/);
 
   const relationship = paragraph("truman-article-bonds-friendship-2");
-  assert.match(relationship, /машинное распознавание исходной английской дорожки.*не установило личность говорящего/);
+  assert.match(relationship, /машинное распознавание исходной английской дорожки.*не установило личность говорящего/i);
   assert.match(relationship, /не удостоверило интонацию/);
   const duel = blocks.find((item) => item.id === "truman-article-duel-promise");
   assert.ok(duel && duel.kind === "duel");
@@ -7496,4 +7499,24 @@ test("atomic FilmPackage promotion delegates verifiedAt validity to the canonica
     ),
   );
   assert.equal(source.ingest?.edition.state, "MASTER_IDENTIFIED");
+});
+
+
+test("journal catalogue projects zero, one and two published entries without leaking analysis", () => {
+  const film = theTrumanShowCanonicalPackage;
+  const draft = theFastAndTheFuriousDraftPackage;
+  const second = { ...film, film: {...film.film, slug:"second-test-only", title:"Второй тестовый выпуск", catalogTeaser:"Безопасная завязка"} };
+  assert.deepEqual(projectFilmIndex([draft]), []);
+  const one = projectFilmIndex([draft,film]);
+  assert.equal(one.length,1);
+  assert.equal(one[0].slug,film.film.slug);
+  assert.equal(one[0].teaser,film.film.catalogTeaser);
+  assert.equal(one[0].coverSrc,"/art/truman-home-hero.jpg");
+  assert.deepEqual(Object.keys(one[0]).sort(), ["coverSrc","originalTitle","position","published","slug","status","teaser","title","year"]);
+  assert.deepEqual(projectFilmIndex([draft,film,second]).map(item=>item.slug),[film.film.slug,second.film.slug]);
+  const preview = projectFilmIndex([draft,film],true);
+  assert.equal(preview.length,2);
+  assert.equal(preview[0].published,false);
+  assert.equal(preview[0].teaser,undefined);
+  assert.equal(projectFilmIndex([film, {...second,film:{...second.film,catalogTeaser:undefined,premise:"PROTECTED TEST CONTENT"}}])[1].teaser,undefined);
 });

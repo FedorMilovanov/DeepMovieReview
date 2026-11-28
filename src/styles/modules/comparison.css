@@ -98,3 +98,22 @@
   .comparisonViewport th, .comparisonViewport td { padding: 0.4rem; overflow-wrap: anywhere; }
   .comparisonViewport { font-size: 0.75rem; }
 }
+
+@media screen {
+ .comparisonChoices label { border-radius:5px; background:var(--instrument-base); border-color:var(--instrument-line); color:var(--instrument-muted); cursor:pointer; }
+ .comparisonChoices label:has(input:checked) { background:var(--instrument-selected); border-color:var(--instrument-gold); color:var(--instrument-text); }
+ .comparisonChoices input { accent-color:var(--instrument-gold); }
+ .comparisonChoices label:has(input:focus-visible) { outline:2px solid var(--focus-color); outline-offset:3px; }
+ .comparisonControls button { background:var(--instrument-panel); border-color:var(--instrument-line-strong); border-radius:5px; color:var(--instrument-text); }
+ .comparisonControls button:disabled { opacity:.55; }
+ .comparisonViewport { border-color:var(--instrument-line); border-radius:6px; background:var(--instrument-base); }
+ .comparisonViewport th,.comparisonViewport td { border-bottom-color:var(--instrument-line); }
+ .comparisonViewport thead th { background:var(--instrument-panel); }
+ .comparisonViewport thead th span { color:var(--instrument-gold); text-transform:none; }
+ .comparisonViewport thead th strong { font-family:Georgia,"Times New Roman",serif; font-weight:400; font-size:1.4rem; }
+ .comparisonViewport tbody tr:nth-child(odd) { background:var(--instrument-panel); }
+ .comparisonViewport td p { color:var(--instrument-muted); }
+ .comparisonCitations a { color:var(--instrument-ice); }
+}
+@media screen and (max-width:40rem) { .comparisonViewport tbody th { background:var(--instrument-raised); color:var(--instrument-gold); } .comparisonViewport td + td { border-top:1px dashed var(--instrument-line-strong); } }
+@media (forced-colors:active) { .comparisonChoices label:has(input:checked) { outline:2px solid Highlight; outline-offset:-2px; } }

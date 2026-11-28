@@ -15,6 +15,28 @@ import { gzipSync } from "node:zlib";
 
 const script = resolve("scripts/style-contract.mjs");
 
+test("shared editorial surfaces and frames remain neutral black, not a second blue theme", () => {
+  const root = postcss.parse(readFileSync("src/styles/tokens.css", "utf8")).nodes
+    .find(node => node.type === "rule" && node.selector === ":root");
+  assert.ok(root, "canonical colour tokens");
+  const values = new Map(root.nodes.filter(node => node.type === "decl").map(node => [node.prop, node.value]));
+  function resolveColour(name, depth = 0) {
+    assert.ok(depth < 5, `cyclic colour token: ${name}`);
+    const value = values.get(name);
+    assert.ok(value, `missing colour token: ${name}`);
+    const alias = /^var\((--[\w-]+)\)$/.exec(value);
+    if (alias) return resolveColour(alias[1], depth + 1);
+    assert.match(value, /^#[0-9a-f]{6}$/i, name);
+    return value.slice(1).match(/../g).map(channel => Number.parseInt(channel, 16));
+  }
+  for (const name of ["--instrument-base", "--instrument-panel", "--instrument-raised", "--instrument-selected", "--instrument-line", "--instrument-line-strong"]) {
+    const channels = resolveColour(name);
+    assert.ok(Math.max(...channels) - Math.min(...channels) <= 2, `${name} must be achromatic`);
+    if (!name.includes("-line")) assert.ok(Math.max(...channels) <= 40, `${name} must remain a dark surface`);
+  }
+});
+
+
 test("HTML budgets distinguish UTF-16 units, UTF-8 bytes and estimated gzip bytes", () => {
   const html = "А😀";
   const size = measureHtmlSize(html);
@@ -181,7 +203,7 @@ rejects("film data cannot bypass styles with inline declarations", ({ write }) =
 
 test("import reader preserves declarations in cascade order", () => fixture(({ root }) => {
   const surface = readStylesheet(join(root, "src/styles/film-article.css"));
-  const expected = ["body", "tables", "entry", "production", "reading", "duel", "outline"]
+  const expected = ["body", "tables", "entry", "production", "reading", "reading-apparatus", "duel", "outline", "dive", "dive-fear", "dive-atlas"]
     .map((name) => readFileSync(join(root, `src/styles/article/${name}.css`), "utf8")).join("");
   const rules = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s/g, "");
   assert.equal(rules(surface), rules(expected));
@@ -810,13 +832,16 @@ test("reading layout wraps inset artwork and preserves accessible navigation", (
   const view = readFileSync("src/components/film-article/article-view.tsx", "utf8");
   assert.match(view, /<ReadingOutline sections=\{readingSections\}/);
   assert.match(view, /Авторская иллюстрация, не кадр из фильма/);
-  assert.doesNotMatch(view, /<figcaption>\{block.caption\}/);
+  assert.match(view, /<figcaption>Авторская иллюстрация · \{block.caption\}<\/figcaption>/);
   const outline = readFileSync("src/components/film-article/reading-outline.tsx", "utf8");
   assert.match(outline, /aria-label="Разделы статьи без JavaScript"/);
   assert.match(outline, /href=\{`#\$\{id\}`\}/);
   assert.match(outline, /aria-expanded=\{open\}/);
   assert.match(outline, /hidden=\{!open\}/);
-  assert.match(outline, /observer.disconnect/);
+  assert.match(outline, /observer\?\.disconnect\(\)/);
+  assert.match(outline, /cancelAnimationFrame\(frame\)/);
+  assert.match(outline, /removeEventListener\("scroll", schedule\)/);
+  assert.match(outline, /removeEventListener\("resize", schedule\)/);
   assert.match(outline, /event.key === "Escape"/);
 });
 

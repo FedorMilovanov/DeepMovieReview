@@ -1,0 +1,231 @@
+/* DIVE: an optional cinematic research chamber. No film-specific selectors. */
+.diveEntry {
+  position: relative; display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: var(--space-4); align-items: center; padding: var(--space-5);
+  overflow: hidden; border: 1px solid var(--stroke-warm); border-radius: var(--radius-panel);
+  background: var(--instrument-base); color: #f0eee7;
+}
+.diveEntryCopy { display: grid; gap: var(--space-3); position: relative; min-width: 0; }
+.diveEntryCopy h3 { font-family: var(--font-display); font-size: var(--type-display-3); line-height: 1.2; margin: 0; }
+.diveEntryCopy p { margin: 0; line-height: 1.6; }
+.diveEntryCopy small, .diveFoot { color: #b7b7b7; font-size: .75rem; line-height: 1.5; }
+.diveEyebrow { font-family: var(--font-meta); font-size: .72rem; color: #e0c49a; letter-spacing: .11em; text-transform: uppercase; }
+.diveEntryOrb { position: relative; aspect-ratio: 1; display: grid; place-items: center; }
+.diveEntryOrb svg { width:min(100%,180px); height:auto; color:#e0c49a; }
+.diveEntryOrb span { position:absolute; bottom:6%; left:6%; font:.75rem var(--font-meta); color:#e0c49a; letter-spacing:.16em; }
+.diveEntryAction svg { width:22px; height:22px; flex:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+.diveEntryAction, .divePrimary, .diveChoice, .diveBranch, .diveSortButton, .diveExit, .diveBack {
+  min-height: 44px; cursor: pointer; border: 1px solid var(--instrument-line-strong); border-radius: 5px;
+  padding: .8rem 1rem; text-align: start; font: inherit; color: var(--ink-1); background: var(--instrument-base);
+  overflow-wrap: anywhere;
+}
+.diveEntryAction, .divePrimary { display: flex; justify-content: space-between; gap: 1rem; align-items: center; background: var(--instrument-panel); color:#f5e4c9; border-color:#c4a878; font-weight:650; box-shadow:inset 0 1px #e3c18f22; }
+.diveEntryAction:hover, .divePrimary:not(:disabled):hover { background:var(--instrument-raised); border-color:var(--instrument-gold); }
+.divePrimary:disabled { opacity: .5; cursor: not-allowed; }
+.diveChoice:hover, .diveBranch:hover, .diveSortButton:hover { background: var(--instrument-raised); }
+.diveChoice[aria-pressed="true"], .diveBranch[aria-pressed="true"], .diveSortButton[aria-pressed="true"] { border-color: #e3c18f; background: var(--instrument-selected); box-shadow: inset 3px 0 #e3c18f; }
+.diveEntry button:focus-visible, .diveDialog button:focus-visible { outline: 2px solid #f1d7a9; outline-offset: 3px; }
+.diveDialog {
+  position: fixed; inset: 0; margin: auto; width: min(94vw, 1250px); max-width: none; max-height: 94dvh;
+  padding: 0; border: 1px solid var(--instrument-line-strong); border-radius: 14px; background: var(--surface-canvas); color: #f1eee8;
+  overflow: auto; overscroll-behavior: contain; color-scheme: dark; box-shadow: 0 24px 120px #000b;
+}
+.diveDialog[open] { animation: diveArrival 600ms var(--ease-standard) both; }
+.diveDialog::backdrop { background: #090909c9; backdrop-filter: blur(9px); }
+html:has(.diveDialog[open]) { overflow: hidden; }
+.diveDialogBar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: .75rem; background: var(--instrument-base); border-bottom: 1px solid var(--instrument-line); padding: .8rem clamp(1rem, 3vw, 2rem); }
+.diveExit { display: inline-flex; gap: .7rem; align-items: center; background: transparent; padding: .6rem .8rem; }
+.diveExit span { font-size: 1.4rem; line-height: 1; }
+.diveLoading { padding: 2rem; }
+.diveJourney { padding: clamp(1rem, 3vw, 2.5rem); }
+.diveProgress { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .45rem; margin-bottom: var(--space-4); }
+.diveProgress > span { display: grid; gap: .3rem; padding-top: .5rem; border-top: 2px solid #505050; color: #b4b4b4; font-size: .72rem; overflow-wrap: anywhere; }
+.diveProgress > span[data-reached="true"] { border-color: #aa936d; color: #dfc7a1; }
+.diveProgress > span[aria-current="step"] { border-color: #edcc98; color: #fff2d9; }
+.diveProgress i { font: .78rem var(--font-meta); font-style: normal; }
+.diveScene { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(0, .94fr); gap: clamp(1rem, 4vw, 3.5rem); align-items: start; }
+.diveStageArt { position: sticky; top: 5.2rem; isolation: isolate; overflow: hidden; min-width: 0; background: var(--instrument-base); border: 1px solid var(--instrument-line); border-radius: 8px; }
+.diveArtifact, .diveReasoningField { display: block; position: relative; width: 100%; height: auto; transition: transform 650ms var(--ease-standard), opacity 500ms; }
+.diveReasoningField { animation: diveRoomArrival 460ms var(--ease-standard) both; }
+.diveJourney[data-depth="1"] .diveArtifact { transform: scale(1.09) translateY(-2%); }
+.diveJourney[data-depth="2"] .diveArtifact { transform: scale(.88) translateY(-4%); opacity: .73; }
+.diveJourney[data-depth="3"] .diveArtifact { transform: scale(.83); opacity: .53; }
+.diveJourney[data-depth="4"] .diveArtifact { transform: scale(1.12); }
+.diveJourney[data-completed="true"] .diveStageArt { background: var(--instrument-base); border-color:var(--instrument-gold); }
+.diveOrbit { position: absolute; inset: 18%; border: 1px solid #b2b2b233; border-radius: 50%; transform: rotate(-30deg) scaleY(.63); }
+.diveOrbitTwo { inset: 8%; transform: rotate(42deg) scaleY(.71); }
+.diveArtMeta { position: absolute; inset: auto 1rem .85rem; display: flex; justify-content: space-between; gap: .5rem; color: #b6b6b6; font: .62rem var(--font-meta); letter-spacing: .06em; }
+.diveRoom { min-width: 0; display: grid; gap: var(--space-3); animation: diveRoomArrival 460ms var(--ease-standard) both; }
+.diveRoom h2 { font-family:Georgia,"Times New Roman",serif; font-weight:400; font-size:clamp(1.8rem,3.2vw,3rem); line-height:1.17; color:#f4ede0; margin:0; text-wrap:balance; }
+.diveRoom p { margin: 0; color: #dbdbdb; line-height: 1.6; }
+.diveRoom h2:focus { outline: none; }
+.diveInsight, .diveBeforeAfter { padding: 1rem; border-inline-start: 2px solid #d5b783; background: var(--instrument-panel); color: var(--ink-1); display: grid; gap: .4rem; }
+.diveInsight p { font-size: .9rem; }
+.diveBranches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.diveBranch { display: grid; gap: .5rem; padding: .7rem; font-size: .86rem; }
+.diveBranch span { font: .75rem var(--font-meta); color: #d8be93; }
+.diveBranchContent { display: grid; gap: .6rem; animation: diveRoomArrival 400ms var(--ease-standard) both; }
+.diveSort { margin: 0; min-width: 0; padding: .65rem; border: 1px solid #646464; }
+.diveSort legend { padding: .15rem; color: #e4e6e9; line-height: 1.4; }
+.diveSort > div { display: flex; flex-wrap: wrap; gap: .4rem; }
+.diveSortButton { flex: 1 1 auto; padding: .55rem .65rem; font-size: .78rem; }
+.diveSort small { display: block; margin-top: .45rem; color: #d8c49f; line-height: 1.45; }
+.diveBeforeAfter { grid-template-columns: 1fr auto 1fr; align-items: center; }
+.diveBeforeAfter div { display: grid; gap: .3rem; }
+.diveBeforeAfter small { color: #c6c6c6; }
+.diveBack { justify-self: start; background: transparent; border-color: transparent; color: #c4c4c4; padding-inline: .2rem; }
+.diveFoot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .75rem; margin-top: var(--space-5); padding-top: var(--space-3); border-top: 1px solid #646464; }
+@keyframes diveArrival { from { opacity: 0; transform: perspective(1200px) translateZ(-120px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes diveRoomArrival { from { opacity: .15; transform: translateY(14px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@media (max-width: 760px) {
+  .diveEntry { grid-template-columns: 1fr; padding: var(--space-4); }
+  .diveEntryOrb { width: 100px; justify-self: start; }
+  .diveDialog { width: 100%; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; margin: 0; }
+  .diveDialogBar { padding-top: max(.8rem, env(safe-area-inset-top)); }
+  .diveJourney { padding-bottom: max(1.5rem, env(safe-area-inset-bottom)); }
+  .diveScene { grid-template-columns: 1fr; }
+  .diveStageArt { position: relative; top: auto; max-height: 230px; }
+  .diveArtifact, .diveReasoningField { width: 100%; height: 230px; }
+  .diveProgress > span { font-size: .64rem; }
+  .diveProgress > span:not([aria-current="step"]) > span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .diveDialog[open], .diveRoom, .diveBranchContent, .diveReasoningField { animation: none; } .diveArtifact { transition: none; } .diveDialog::backdrop { backdrop-filter: none; } }
+@media print { .diveEntry { display: none; } }
+
+/* Experiments are different manipulations of the same inquiry, not visual clones. */
+.diveExperiment { display: grid; gap: .75rem; padding: 1rem; background: var(--instrument-base); border: 1px solid var(--instrument-line); border-radius: 7px; }
+.diveExperiment h3 { font-family: var(--font-display); color: #f0e9dd; font-size: 1.3rem; line-height: 1.25; margin: 0; }
+.diveExperimentControls { display: flex; flex-wrap: wrap; gap: .45rem; }
+.diveExperiment svg { display: block; width: 100%; height: auto; }
+.diveExperiment p { font-size: .88rem; }
+.diveClaimLayers { display: grid; gap: .4rem; text-align: center; }
+.diveClaimLayers > div { display: grid; gap: .3rem; padding: .8rem; border: 1px solid #87878766; color: #c4c4c4; }
+.diveClaimLayers > div[data-active="true"] { border-color: #e3c18f; background: var(--instrument-selected); color: var(--ink-1); }
+.diveClaimLayers small { font: .65rem var(--font-meta); letter-spacing: .08em; }
+.diveClaimLayers > span { color: #c4a779; }
+.diveReportLine { min-height: 85px; display: block; padding: 1rem; background: var(--instrument-base); border-left: 2px solid var(--instrument-gold); line-height: 1.7; color: #c6c6c6; }
+.diveReportLine strong { color: #f3e2bf; font-size: 1.1rem; }
+.diveTrace { display: grid; gap: .55rem; padding: .9rem; border-top: 1px solid #95959566; border-bottom: 1px solid #95959566; }
+.diveTrace strong { color: #e1c49b; font-size: .85rem; }
+.diveTrace p { font-size: .85rem; }
+.diveBranch[data-explored="true"] span { color: #e4d6ab; }
+
+/* Inspection reveals the label as a closer visual plane; the drawing remains symbolic. */
+.diveJourney[data-depth="0"] .diveStageArt[data-inspected="true"] .diveArtifact { transform: scale(1.16) translate(3%, -1%); }
+.diveJourney[data-depth="0"] .diveStageArt[data-inspected="true"] { border-color: #c6c6c6; }
+@media (max-width: 760px) {
+  .diveBranches { grid-template-columns: repeat(3,minmax(0,1fr)); gap: .3rem; }
+  .diveBranch { padding: .6rem .45rem; font-size: .79rem; }
+  .diveExperiment { padding: .8rem; }
+}
+
+/* Primary experience: a navigable, full-page journey rather than a modal-only extra. */
+.diveStandalone {
+  color: #f0eee7; background: var(--surface-canvas);
+  min-height: 78dvh; padding: clamp(1.1rem, 3.5vw, 3.5rem); isolation: isolate;
+}
+.diveStandaloneInner { max-width: 1280px; margin-inline: auto; }
+.diveStandaloneHeader { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid #a2a2a255; }
+.diveStandaloneHeader h1 { font-family:Georgia,"Times New Roman",serif; font-weight:400; font-size:clamp(2rem,4vw,3.8rem); line-height:1.12; margin:.4rem 0; color:#f1e7d5; }
+.diveStandaloneHeader p { max-width: 60ch; color: #cecece; margin: .6rem 0 0; line-height: 1.55; }
+.diveStandaloneRead { color: #e2c99e; border: 1px solid #c0a57b77; border-radius: 6px; padding: .8rem 1rem; text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
+.diveStandaloneRead:hover { background: #d3b88a22; }
+.diveStandalone .diveJourney { padding-inline: 0; }
+.diveStandalone .diveStageArt { top: 5.2rem; }
+.diveStandalone .diveStageArt { box-shadow: 0 25px 100px #08080888; }
+.diveStandalone button:focus-visible, .diveStandalone a:focus-visible { outline: 2px solid #f1d7a9; outline-offset: 3px; }
+.diveHomeLegend { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 0; color: var(--ink-2); border-top: 1px solid var(--stroke-warm); font-size: .82rem; }
+.diveHomeLegend strong { color: var(--accent-restoration); font: .8rem var(--font-meta); letter-spacing: .1em; }
+@media (max-width: 760px) {
+  .diveStandaloneHeader { grid-template-columns: 1fr; }
+  .diveStandaloneHeader h1 { font-size: 2.2rem; }
+  .diveStandaloneRead { justify-self: start; }
+  .diveStandalone .diveStageArt { top: auto; }
+}
+
+@media (max-width:760px) {
+ .diveEntryOrb { width:76px; }
+ .diveEntry { gap:.7rem; }
+ .diveEntryOrb span { font-size:.65rem; }
+}
+@media (forced-colors:active) {
+ .diveEntryAction,.divePrimary,.diveEntryAction:hover,.divePrimary:not(:disabled):hover { color:ButtonText; background:ButtonFace; border-color:ButtonText; box-shadow:none; }
+}
+
+/* Real choice and disclosure affordances. State is never encoded by colour alone. */
+.diveChoice,.diveBranch,.diveSortButton { background:var(--instrument-base); border-color:var(--instrument-line-strong); color:var(--instrument-text); }
+.diveChoice:hover,.diveBranch:hover,.diveSortButton:hover { background:var(--instrument-raised); }
+.diveChoice[aria-pressed],.diveChoice[aria-expanded] { display:flex; align-items:center; gap:.7rem; }
+.diveChoice[aria-pressed]::before { content:""; width:1rem; height:1rem; flex:none; border:1px solid var(--instrument-line-strong); border-radius:50%; box-sizing:border-box; }
+.diveChoice[aria-pressed="true"]::before { border:4px solid var(--instrument-gold); background:var(--instrument-base); }
+.diveChoice[aria-expanded]::after { content:""; flex:none; margin-inline-start:auto; width:.48rem; height:.48rem; border-inline-end:1.5px solid currentColor; border-block-end:1.5px solid currentColor; transform:rotate(45deg); }
+.diveChoice[aria-expanded="true"]::after { transform:rotate(225deg); }
+.diveChoice[aria-pressed="true"],.diveBranch[aria-pressed="true"],.diveSortButton[aria-pressed="true"],.diveChoice[aria-expanded="true"] { background:var(--instrument-selected); border-color:var(--instrument-gold); box-shadow:inset 2px 0 var(--instrument-gold); }
+.diveExperimentControls { padding:.25rem; gap:.3rem; border:1px solid var(--instrument-line); border-radius:6px; background:var(--instrument-base); }
+.diveExperimentControls .diveSortButton { border-color:transparent; min-width:0; font-size:.83rem; background:transparent; }
+.diveExperimentControls .diveSortButton:hover { background:var(--instrument-raised); }
+.diveExperimentControls .diveSortButton[aria-pressed="true"] { border-color:var(--instrument-gold); background:var(--instrument-selected); box-shadow:none; }
+.diveSortButton[aria-pressed="true"] { font-weight:650; }
+.diveProgress > span { border-top:1px solid var(--instrument-line-strong); }
+.diveProgress > span[aria-current="step"] { border-top:3px solid var(--instrument-gold); padding-top:calc(.5rem - 2px); }
+.diveProgress i { font-size:.8rem; font-variant-numeric:tabular-nums; }
+.diveInsight,.diveBeforeAfter { background:var(--instrument-panel); border-inline-start-color:var(--instrument-gold); }
+.diveRoom h2,.diveStandaloneHeader h1,.diveEntryCopy h3 { text-transform:none; letter-spacing:-.02em; }
+.diveRoom .divePrimary:disabled { opacity:.58; box-shadow:none; }
+@media (max-width:360px) {
+ .diveBranches { grid-template-columns:1fr; }
+ .diveBeforeAfter { grid-template-columns:1fr; }
+ .diveBeforeAfter > span { transform:rotate(90deg); justify-self:start; }
+}
+@media (forced-colors:active) {
+ .diveChoice[aria-pressed="true"],.diveBranch[aria-pressed="true"],.diveSortButton[aria-pressed="true"],.diveChoice[aria-expanded="true"] { outline:2px solid Highlight; outline-offset:-2px; }
+ .diveChoice[aria-pressed="true"]::before { border-color:Highlight; }
+}
+
+/* Keep the optical canvas and real, responsive instrument data independent. */
+.siriusStage { max-height:none; }
+.siriusOpticalField { position:relative; isolation:isolate; overflow:hidden; }
+.siriusStage .diveInstrumentHeader { position:relative; z-index:1; }
+.siriusStage .diveInstrumentReadout { position:relative; z-index:1; }
+.siriusStage .diveArtifact,.siriusStage .diveReasoningField { max-width:100%; }
+@media (max-width:760px) {
+ .siriusStage { max-height:none; }
+ .siriusOpticalField { max-height:230px; }
+}
+@media (max-height:650px) and (min-width:761px) {
+ .siriusStage,.fearStage,.memoryStage { position:relative; top:auto; }
+}
+
+/* Make the complete study available in short windows and dialog viewports. */
+.diveDialogBar { background:var(--instrument-base); border-color:var(--instrument-line); }
+.diveExit { border-color:var(--instrument-line-strong); color:var(--instrument-ice); }
+.diveExit:hover { background:var(--instrument-raised); }
+.diveSort { border-color:var(--instrument-line); border-radius:5px; background:var(--instrument-base); padding:.75rem; }
+.diveSort legend { color:var(--instrument-text); }
+.diveSort > div { gap:.4rem; }
+.diveSortButton { min-width:0; border-radius:4px; }
+.diveTrace { border-color:var(--instrument-line); }
+.diveEntryCopy h3 { font-family:Georgia,"Times New Roman",serif; font-weight:400; }
+@media (max-height:750px) and (min-width:761px) {
+ .diveJourney .siriusStage,.diveStandalone .siriusStage,.diveStandalone .fearStage,.diveStandalone .memoryStage { position:relative; top:auto; }
+}
+@media (max-width:760px) {
+ .siriusOpticalField { max-height:none; }
+ .siriusStage .diveArtifact,.siriusStage .diveReasoningField { height:clamp(190px,42vh,300px); }
+ .diveJourney[data-depth="0"] .siriusStage[data-inspected="true"] .diveArtifact { transform:scale(1.05); }
+}
+@media (forced-colors:active) { .diveExit,.diveSort { border-color:CanvasText; } }
+
+/* On phones the stage number stays in the rail, and the full active label
+   gets the entire width. Inactive labels remain available to screen readers. */
+@media (max-width:760px) {
+ .diveProgress { position:relative; padding-bottom:1.7rem; margin-bottom:.85rem; }
+ .diveProgress > span > span { display:block; }
+ .diveProgress > span:not([aria-current="step"]) > span { display:block; position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+ .diveProgress > span[aria-current="step"] > span { position:absolute; inset:auto 0 0; font-size:.82rem; font-weight:550; color:var(--instrument-gold); line-height:1.4; }
+ .diveProgress > span { min-height:26px; }
+}
+.diveExperiment h3 { font-family:Georgia,"Times New Roman",serif; font-weight:400; text-transform:none; letter-spacing:0; }
+.diveClaimLayers > div { border-radius:4px; background:var(--instrument-base); }
+.diveClaimLayers > div[data-active="true"] { background:var(--instrument-selected); }
+.diveReportLine { min-height:0; border-radius:0 4px 4px 0; background:var(--instrument-base); }

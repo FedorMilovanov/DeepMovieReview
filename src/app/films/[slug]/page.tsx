@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FilmMediaFrame } from "@/components/film-media-frame";
+import { FilmArticleReading } from "@/components/film-article/film-article-reading";
 import { FilmEvidenceMap } from "@/components/film-modules/evidence-map";
 import { FilmModuleList, getVisibleFilmModules } from "@/components/film-modules/film-module-renderer";
 import { FilmSceneTable } from "@/components/film-modules/scene-table";
@@ -16,7 +17,7 @@ import { getFilmShareAsset } from "@/data/film-share-assets";
 import { getProductionDossier } from "@/data/films/production-dossiers";
 import { pluralRu } from "@/lib/plural-ru";
 import { formatTimecode } from "@/lib/timecode";
-import { filmPageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
+import { articlePageMetadata, filmPageMetadata, shareImageFromAsset } from "@/lib/page-metadata";
 import { siteIndexingEnabled } from "@/lib/site-indexing";
 import { canRevealSpoiler, parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 
@@ -40,16 +41,14 @@ export function generateStaticParams() {
     .map((filmPackage) => ({ slug: filmPackage.film.slug }));
 }
 
-export async function generateMetadata({ params }: FilmPageProps): Promise<Metadata> {
-  const { slug } = await params;
+export async function generateMetadata({ params, searchParams }: FilmPageProps): Promise<Metadata> {
+  const [{ slug }, query] = await Promise.all([params, searchParams]);
   const filmPackage = getFilmPackageBySlug(slug);
   if (!filmPackage || (filmPackage.film.status !== "published" && !isPreviewContentEnabled())) return {};
   const { film } = filmPackage;
   const shareAsset = getFilmShareAsset(film.slug);
-  const page = filmPageMetadata(
-    filmPackage,
-    shareAsset ? shareImageFromAsset(shareAsset) : undefined,
-  );
+  const share = shareAsset ? shareImageFromAsset(shareAsset) : undefined;
+  const page = articlePageMetadata(filmPackage, share) ?? filmPageMetadata(filmPackage, share);
   return {
     title: page.title,
     description: page.description,
@@ -60,7 +59,7 @@ export async function generateMetadata({ params }: FilmPageProps): Promise<Metad
     // deployment the layout's noindex must not be dropped by this route.
     robots:
       film.status === "published" && siteIndexingEnabled()
-        ? undefined
+        ? (parseSpoilerLevel(query.spoilers) === "NONE" ? undefined : { index: false, follow: true })
         : { index: false, follow: false },
   };
 }
@@ -96,17 +95,15 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
     sourcesById: new Map(sourceRecords.map((source) => [source.id, source])),
   };
 
-  return (
+  const dossier = (
     <>
-      <SpoilerDeepLinkGuard spoilerLevel={spoilerLevel} />
-
       <section className="sectionShell filmPageHero" aria-labelledby="film-title">
-        <Breadcrumbs
+        {!filmPackage.article ? <Breadcrumbs
           trail={[{ label: "Фильмы", href: "/films" }, { label: film.title }]}
-        />
+        /> : null}
         <FilmMediaFrame slug={film.slug} variant="hero" />
         <div className="sectionIndex">Фильм / {researchDraft ? "исследовательский черновик" : statusLabels[film.status]} / Схема {filmPackage.schemaVersion}</div>
-        <h1 id="film-title">{film.title}</h1>
+        {filmPackage.article ? <h2 id="film-title">{film.title}: аналитическое досье</h2> : <h1 id="film-title">{film.title}</h1>}
         <p className="sectionIntro">{film.premise}</p>
         <div className="meaningGrid">
           <div><span>Год</span><strong>{film.year}</strong></div>
@@ -117,9 +114,9 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
         {filmPackage.article ? (
           <Link
             className="articleEntryLink"
-            href={withSpoilerQuery(`/films/${film.slug}/article`, spoilerLevel)}
+            href={withSpoilerQuery(`/films/${film.slug}#article-top`, spoilerLevel)}
           >
-            <span>Читать разбор целиком</span>
+            <span>Вернуться к статье</span>
             <strong>{filmPackage.article.title}</strong>
             <small>{filmPackage.article.standfirst}</small>
           </Link>
@@ -151,7 +148,7 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
           {filmPackage.article || characters || decision || hasVisibleScenes || hasVisibleEvidence ? (
             <nav className="filmReadingPaths" aria-label="Быстрые маршруты чтения">
               <p>Начать с интересующего</p>
-              {filmPackage.article ? <Link href={withSpoilerQuery(`/films/${film.slug}/article`, spoilerLevel)}>Текст целиком</Link> : null}
+              {filmPackage.article ? <Link href={withSpoilerQuery(`/films/${film.slug}#article-top`, spoilerLevel)}>К статье</Link> : null}
               {characters ? <Link href={`${outlineBase}#${characters.id}`}>По героям</Link> : null}
               {decision ? <Link href={`${outlineBase}#${decision.id}`}>По решениям</Link> : null}
               {hasVisibleScenes ? <Link href={`${outlineBase}#film-scene-table-title`}>По сценам</Link> : null}
@@ -215,6 +212,21 @@ export default async function FilmPage({ params, searchParams }: FilmPageProps) 
       />
 
       <FilmModuleList context={moduleContext} modules={visibleModules} />
+    </>
+  );
+
+  return (
+    <>
+      <SpoilerDeepLinkGuard spoilerLevel={spoilerLevel} />
+      {filmPackage.article ? (
+        <>
+          <FilmArticleReading filmPackage={filmPackage} spoilerLevel={spoilerLevel} />
+          <details className="sectionShell filmReadingAppendix" id="film-evidence-appendix">
+            <summary>Приложение: сцены, источники и аналитическое досье</summary>
+            {dossier}
+          </details>
+        </>
+      ) : dossier}
     </>
   );
 }

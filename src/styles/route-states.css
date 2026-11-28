@@ -250,3 +250,15 @@ html[data-route-transition="active"]::after {
     font-size: 0.5rem;
   }
 }
+
+/* Loading and failure use the same material as the completed reader. */
+.routeLoadingLabel { color:var(--instrument-muted); font-size:.84rem; text-transform:none; letter-spacing:.025em; }
+.routeSkeleton,.routeCardSkeleton,.routeFilmHeroSkeleton,.routeMetaCellSkeleton { background:var(--instrument-base); border-color:var(--instrument-line); border-radius:5px; }
+.routeMetaSkeleton { background:none; border:0; gap:.4rem; }
+.routeMetaCellSkeleton { border:1px solid var(--instrument-line); min-height:90px; }
+.routeError h1 { max-width:24ch; font:400 clamp(2rem,5vw,4rem)/1.15 Georgia,"Times New Roman",serif; text-transform:none; letter-spacing:-.025em; }
+.filmMediaFrameIndex { border-color:var(--instrument-line); border-radius:4px; }
+.filmMediaFrameMark { color:var(--instrument-text); background:var(--surface-media-caption); border-radius:2px; padding:.22rem .3rem; }
+@media (prefers-reduced-motion:reduce) {
+ .routeSkeleton::after,.routeCardSkeleton::after,.routeFilmHeroSkeleton::after,.routeMetaCellSkeleton::after { animation:none; }
+}

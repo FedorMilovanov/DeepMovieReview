@@ -33,7 +33,7 @@ const deadline = setTimeout(() => {
   const message = `${name}: eight-minute scenario deadline at ${phase}`;
   report.failures.push(message);
   report.results = [{ browser: name, version: report.browser?.version ?? "not-started", width: 0,
-    route: "/films/the-truman-show/article?spoilers=full", state: "timeout", scope: "actual desktop OS", file: "actual-at.json" }];
+    route: "/films/the-truman-show?spoilers=full", state: "timeout", scope: "actual desktop OS", file: "actual-at.json" }];
   checkpoint(phase);
   console.error(workflowError(message));
   server.kill();
@@ -176,6 +176,35 @@ async function screenshot(label) {
 async function geometry() {
   return mac ? safari.geometry() : execute("({width:innerWidth,outer:outerWidth,dpr:devicePixelRatio,scroll:document.documentElement.scrollWidth})");
 }
+// Navigation uses the actual public deep link, never setting the DOM's open
+// property in the harness. Read-only state proves the product revealed the
+// requested apparatus; spoken native table semantics remain mandatory.
+async function assertEvidenceDisclosure(id) {
+  const ids = ["truman-article-craft-windows","truman-article-corrections","film-evidence-appendix"];
+  assert.ok(ids.includes(id), "known editorial disclosure");
+  for (let attempt=0;attempt<40;attempt++) {
+    const state=mac ? await safari.articleDisclosures() : await execute("Object.fromEntries(['truman-article-craft-windows','truman-article-corrections','film-evidence-appendix'].map(id=>[id,document.getElementById(id)?.open ?? null]))");
+    if (state[id]===true) {
+      evidence.actions.push({label:"public deep link opens requested disclosure",id,state});
+      return;
+    }
+    await delay(100);
+  }
+  throw new Error(`The actual article deep link did not reveal ${id}`);
+}
+async function positionAtDocumentStart(prefix, probe) {
+  if (mac) {
+    await macOSActivate(MacOSApplications.Safari);
+    await action(`${prefix} Item Chooser`, () => reader.perform(reader.commanderCommands.ITEM_CHOOSER, navigationOptions), /item chooser|VoiceOver Menu|On item\s+(?:Перейти к содержимому\.\s*Page Menu|Шоу Трумана: человек, который заметил камеру)/i);
+    await action(`${prefix} web content selection`, () => reader.type("web content", navigationOptions), /web content/i);
+    await action(`${prefix} web content chosen`, () => reader.press("Enter", navigationOptions), /web content/i);
+    await enterVoiceOverWebArea(prefix, probe);
+  } else {
+    await page.bringToFront();
+    await perform(reader.keyboardCommands.exitFocusMode, { capture: false });
+    await reader.press("Control+Home");
+  }
+}
 try {
   let ready = false;
   for (let i = 0; i < 60; i++) {
@@ -211,7 +240,7 @@ try {
     report.browser = { name: "Chrome", version: browser.version() };
   }
   checkpoint("opening article", true);
-  await go("/films/the-truman-show/article?spoilers=full");
+  await go("/films/the-truman-show?spoilers=full");
   checkpoint("article loaded; positioning real AT cursor", true);
   if (mac) {
     await macOSActivate(MacOSApplications.Safari);
@@ -275,6 +304,9 @@ try {
     }
     await perform(reader.keyboardCommands.describeItem, navigationOptions);
   }, [/шоу трумана/i, /heading|заголовок/i], { observeDuring: true });
+  await go("/films/the-truman-show?spoilers=full#truman-article-craft-windows");
+  await assertEvidenceDisclosure("truman-article-craft-windows");
+  await positionAtDocumentStart("measurement table", "measurementFocusProbe");
   await findNamedTable("native table navigation", /четыре окна/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   await action("table column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /переходы/i);
@@ -295,12 +327,25 @@ try {
         // actual row. Read both cells using native table-column commands;
         // their real spoken words must jointly name the row and exact value.
         // No DOM read, replayed tap or synthetic speech can satisfy this gate.
-        const heading = await action("table row header via native column",
-          () => perform(reader.keyboardCommands.moveToPreviousColumn, navigationOptions),
-          /библиотека/i, { observeDuring: true });
-        const count = await action("table row detected count via native column",
-          () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions),
-          /\b0 обнаруженных переходов/i, { observeDuring: true });
+        // The current native cursor may be on either side of the detector cell.
+        // Traverse at most the table width, requiring fresh native speech at
+        // every step; the exact header and exact value are still mandatory.
+        async function seekColumn(label, command, expected) {
+          let spoken = [];
+          for (let step=0;step<3;step++) {
+            const phrase = await action(`${label} ${step+1}`,
+              () => perform(command, navigationOptions), expected,
+              {required:false,observeDuring:true});
+            if (expected.test(phrase.join(" "))) return phrase;
+            spoken.push(...phrase);
+          }
+          assert.match(spoken.join(" "),expected,`${label}: native cursor did not reach expected cell`);
+          return spoken;
+        }
+        const heading = await seekColumn("table row header via native column",
+          reader.keyboardCommands.moveToPreviousColumn, /библиотека/i);
+        const count = await seekColumn("table row detected count via native column",
+          reader.keyboardCommands.moveToNextColumn, /\b0 обнаруженных переходов/i);
         assert.match([...heading, ...count].join(" "), libraryDetectionRowSpeech,
           "Real VoiceOver must speak the named row and exact detector count");
       }
@@ -310,6 +355,11 @@ try {
   }
   await screenshot("table-reading");
   if (mac) await action("leave first table interaction", () => perform(reader.keyboardCommands.stopInteractingWithItem, navigationOptions), /out of[\s\S]*table|(?:вне|выход)[\s\S]*таблиц/i);
+  // A fresh document (same FULL projection) opens only the second disclosure.
+  // This avoids relying on the previous virtual cursor inside the first table.
+  await go("/films/the-truman-show?spoilers=FULL#truman-article-corrections");
+  await assertEvidenceDisclosure("truman-article-corrections");
+  await positionAtDocumentStart("corrections table", "correctionsFocusProbe");
   await findNamedTable("corrections table name", /пять утверждений/i);
   if (mac) await perform(reader.keyboardCommands.interactWithItem, navigationOptions);
   await action("corrections column header", () => perform(reader.keyboardCommands.moveToNextColumn, navigationOptions), /что удалось проверить/i);
@@ -330,7 +380,7 @@ try {
   assert.ok(Math.abs(original.width / zoom.width - 2) < 0.04, `Native zoom200: ${JSON.stringify({ original, zoom })}`);
   assert.ok(Math.abs(original.outer - zoom.outer) < 4, "Zoom must not resize the physical window");
   evidence.actions.push({ label: "native browser zoom200", original, zoom });
-  for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"]) {
+  for (const route of ["/", "/films", "/films/the-truman-show?spoilers=full", "/films/the-truman-show/making"]) {
     checkpoint(`native zoom: navigating ${route}`);
     await go(route);
     checkpoint(`native zoom: measuring ${route}`);
@@ -345,7 +395,7 @@ try {
     zoom = await geometry();
   }
   assert.ok(zoom.width >= 300 && zoom.width <= 321, `Native reflow320: ${JSON.stringify(zoom)}`);
-  for (const route of ["/", "/films", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making", "/films/the-truman-show?spoilers=none"]) {
+  for (const route of ["/", "/films", "/films/the-truman-show?spoilers=full", "/films/the-truman-show/making", "/films/the-truman-show?spoilers=none#film-evidence-appendix"]) {
     checkpoint(`native zoom: navigating ${route}`);
     await go(route);
     checkpoint(`native zoom: measuring ${route}`);
@@ -353,6 +403,7 @@ try {
     assert.ok(box.scroll <= box.width + 1, `${route}: reflow320 overflow`);
     evidence.actions.push({ label: "native zoom reflow320", route, box });
   }
+  await assertEvidenceDisclosure("film-evidence-appendix");
   // Read the actual responsive film tables using native screen-reader commands
   // at the measured ~320 CSS-pixel browser UI zoom, not a simulated AT tree.
   if (mac) {
@@ -416,7 +467,7 @@ try {
   await screenshot("reflow320-film-tables");
   await reader.press(mac ? "Meta+0" : "Control+0", { capture: false });
   report.results.push({ browser: name, version: report.browser.version, width: original.width,
-    route: "/films/the-truman-show/article?spoilers=full", state: "real-AT-native-zoom", scope: "desktop OS", file: "actual-at.json" });
+    route: "/films/the-truman-show?spoilers=full", state: "real-AT-native-zoom", scope: "desktop OS", file: "actual-at.json" });
 } catch (error) {
   report.failedPhase = phase;
   const message = inspect(error, { depth: 8, maxStringLength: 16000 });
@@ -424,7 +475,7 @@ try {
   console.error(workflowError(`${name}: ${message}`));
   if (safari || page) await screenshot("failure").catch(() => {});
   report.results.push({ browser: name, version: report.browser?.version ?? "not-started", width: 0,
-    route: "/films/the-truman-show/article?spoilers=full", state: "failure", scope: "desktop OS", file: "actual-at.json" });
+    route: "/films/the-truman-show?spoilers=full", state: "failure", scope: "desktop OS", file: "actual-at.json" });
 } finally {
   clearTimeout(deadline);
   await reader.stop().catch(() => {});

@@ -264,7 +264,7 @@ export function articlePageMetadata(
   return card(
     fitTitle(headline),
     fitDescription(article.seoDescription ?? article.standfirst),
-    `/films/${film.slug}/article`,
+    `/films/${film.slug}`,
     "article",
     shareImage,
   );
