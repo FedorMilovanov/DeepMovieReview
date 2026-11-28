@@ -481,3 +481,57 @@
  .articleShell .articleReveal { border-top:1px solid var(--stroke-warm); }
  .articleShell .articleReveal .articleSectionHead { max-width:72ch; }
 }
+
+/* Editorial disclosure system. Preserve native details, keyboard and print. */
+@media screen {
+ .articleSupport { font-size:.84rem; }
+ .articleSupport > summary,
+ .articleVerdictContext > summary,
+ .filmReadingAppendix > summary,
+ .articleDuelSide > summary {
+   display:flex; align-items:center; gap:.65rem; min-height:44px;
+   list-style:none; color:var(--instrument-ice); line-height:1.45;
+   font-family:var(--font-body); font-size:.88rem; letter-spacing:0; text-transform:none;
+ }
+ :is(.articleSupport,.articleVerdictContext,.filmReadingAppendix,.articleDuelSide) > summary::-webkit-details-marker { display:none; }
+ :is(.articleSupport,.articleVerdictContext,.filmReadingAppendix,.articleDuelSide) > summary::after {
+   content:""; display:block; flex:none; margin-inline-start:auto;
+   width:.45rem; height:.45rem; border-inline-end:1.5px solid currentColor;
+   border-block-end:1.5px solid currentColor; transform:rotate(45deg);
+ }
+ :is(.articleSupport,.articleVerdictContext,.filmReadingAppendix,.articleDuelSide)[open] > summary::after { transform:rotate(225deg); }
+ .articleSupport > summary { justify-content:flex-start; width:fit-content; max-width:100%; padding:.45rem .7rem; border:1px solid var(--instrument-line); border-radius:4px; background:var(--instrument-base); }
+ .articleSupport > summary::after { margin-inline-start:.35rem; }
+ .articleSupport[open] > summary { border-color:var(--instrument-gold); color:var(--instrument-gold); }
+ .articleSupport > ul { background:var(--instrument-base); border:1px solid var(--instrument-line); border-radius:5px; padding:.45rem .8rem; }
+ .articleSupport li { padding-block:.7rem; border-color:var(--instrument-line); }
+ .articleSupport li:first-child { border-top:0; }
+ .articleSupport li > span { color:var(--instrument-gold); letter-spacing:.02em; }
+ .articleSupport a,.articleSupportSingle a,.articleContextSources a { color:var(--instrument-ice); }
+ .articleSupportSingle a { min-height:44px; display:inline-flex; align-items:center; }
+ .articleVerdictContext,.filmReadingAppendix { border:1px solid var(--instrument-line); border-radius:6px; background:var(--instrument-base); }
+ .articleVerdictContext > summary,.filmReadingAppendix > summary { padding:.85rem 1rem; }
+ .articleVerdictContext[open] > summary,.filmReadingAppendix[open] > summary { border-bottom:1px solid var(--instrument-line); color:var(--instrument-gold); }
+ .articleVerdictContext > :not(summary) { margin-inline:clamp(.65rem,2vw,1.25rem); }
+ .articleVerdictContext[open] { padding-bottom:.8rem; }
+ .articleVerdictContext > ul { padding-inline-start:1.25rem; }
+ .filmReadingAppendix { padding-block:0; }
+ .filmReadingAppendix > .sectionShell { width:100%; padding-inline:clamp(.65rem,2vw,1.25rem); }
+ .articleVerdictGrid { background:none; border:0; gap:.55rem; }
+ .articleVerdictGrid > div { background:var(--instrument-base); border:1px solid var(--instrument-line); border-radius:5px; min-width:0; }
+ .articleVerdictGrid dt { color:var(--instrument-gold); letter-spacing:.035em; text-transform:none; font-size:.78rem; }
+ .articleVerdictGrid dd { color:var(--instrument-text); margin-top:.6rem; }
+ .articleModuleLink { color:var(--instrument-ice); letter-spacing:0; text-transform:none; min-height:44px; }
+ .articleShell .articleTitle,.articleShell .articleSectionHead h2 { text-transform:none; }
+ .articleSceneStill figcaption { background:var(--instrument-base); padding:.75rem .85rem; border:1px solid var(--instrument-line); border-top:0; color:var(--instrument-muted); font-size:.76rem; letter-spacing:0; }
+ .articleSceneStill figcaption > span { color:var(--instrument-text); }
+ .articleSceneStill figcaption small { color:var(--instrument-muted); }
+}
+@media screen and (max-width:480px) {
+ .articleSupport li { grid-template-columns:minmax(0,1fr); gap:.25rem; }
+ .articleSupport > ul { padding-inline:.65rem; }
+ .articleVerdictContext > summary,.filmReadingAppendix > summary { padding:.75rem; }
+}
+@media (forced-colors:active) {
+ :is(.articleSupport,.articleVerdictContext,.filmReadingAppendix)[open] > summary { outline:1px solid Highlight; outline-offset:-1px; }
+}

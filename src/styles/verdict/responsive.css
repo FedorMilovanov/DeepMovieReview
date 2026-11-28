@@ -101,3 +101,7 @@
   }
 }
 
+
+@container verdict-surface (width < 32rem) {
+ .filmMoralEventGrid > div,.filmMoralEventGrid > div:nth-child(even),.filmSynthesisFacets > article,.filmSynthesisFacets > article:nth-child(even),.filmMoralLedgerMeta > div { padding-inline:1rem; }
+}

@@ -389,3 +389,20 @@
     grid-column: 1 / -1;
   }
 }
+
+@media screen {
+ .articleSubhead,.articlePullquote p,.articleClosing h2 { font-family:Georgia,"Times New Roman",serif; font-weight:400; text-transform:none; letter-spacing:-.015em; line-height:1.28; }
+ .articleAside { background:var(--instrument-base); border-color:var(--instrument-line-strong); border-radius:0 5px 5px 0; }
+ .articleAside > p:last-child { color:var(--instrument-muted); }
+ .articlePullquote { border-color:var(--instrument-gold); }
+ .articleTimecode { display:inline-flex; width:fit-content; padding:.28rem .4rem; border:1px solid var(--instrument-line); border-radius:3px; background:var(--instrument-base); color:var(--instrument-gold); letter-spacing:0; font-size:.76rem; }
+ .articleTimeline { border-color:var(--instrument-line); }
+ .articleTimeline li { grid-template-columns:minmax(5.4rem,auto) minmax(0,1fr); border-color:var(--instrument-line); }
+ .articleTimelineBasisLabel { color:var(--instrument-ice); }
+ .articleMeasurement { background:var(--instrument-base); border-color:var(--instrument-line); border-inline-start-color:var(--instrument-gold); border-radius:5px; }
+ .articleMeasurementHead .microLabel { color:var(--instrument-gold); text-transform:none; letter-spacing:.035em; }
+ .articleMeasurementHead strong { font-family:var(--font-body); font-weight:500; color:var(--instrument-text); font-size:clamp(1.6rem,4vw,2.8rem); line-height:1.2; }
+ .articleMeasurementBody { color:var(--instrument-ice); letter-spacing:0; text-transform:none; }
+ .articleMeasurement figcaption { color:var(--instrument-muted); }
+}
+@media screen and (max-width:45em) { .articleTimeline li { grid-template-columns:minmax(0,1fr); gap:.4rem; } }
