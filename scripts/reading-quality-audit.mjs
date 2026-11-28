@@ -605,6 +605,11 @@ try {
         const rain = page.locator("#truman-article-anchor-rain");
         assert.ok(await rain.locator("xpath=ancestor::div[contains(@class,'articleSceneSequence')]/preceding-sibling::p[1][@id='truman-article-machine-rain']").count(), "rain follows its own argument");
 
+        for (const id of ["truman-article-craft-windows","truman-article-corrections"]) {
+          await page.goto(`${base}${article}?spoilers=full#${id}`, {waitUntil:"load"});
+          await page.waitForFunction(target=>document.getElementById(target)?.open===true,id);
+          assert.ok(await page.locator(`#${id} table`).isVisible(),"a real evidence deep link reveals its native table");
+        }
         await page.goto(`${base}${legacyArticle}?spoilers=FULL#truman-article-method-2`, { waitUntil: "load" });
         await page.waitForURL(url => url.pathname === article && url.searchParams.get("spoilers") === "full" && url.hash === "#truman-article-method-2");
         await page.goto(`${base}${article}#evidence-truman-ev-light`, { waitUntil: "load" });
