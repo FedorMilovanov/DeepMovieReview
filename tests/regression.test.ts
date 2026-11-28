@@ -5905,16 +5905,18 @@ test("the page survives paper, anchors and the sticky header", () => {
 
   const header = readFileSync("src/components/site-header.tsx", "utf8");
   const label = /className="brand"[^>]*aria-label="([^"]+)"/.exec(header)?.[1] ?? "";
-  const visible = /className="brandText">([^<]+)</.exec(header)?.[1]?.trim() ?? "";
-  assert.ok(visible.length > 0, "the brand has visible text");
-  assert.ok(
-    label.includes(visible),
-    `the brand's accessible name («${label}») must contain its visible text («${visible}»): WCAG 2.5.3`,
-  );
+  const visible = /className="brandText"><strong[^>]*>([^<]+)<\/strong><small>([^<]+)<\/small>/.exec(header);
+  assert.ok(visible, "the brand has a visible bilingual wordmark");
+  for (const word of visible.slice(1)) {
+    assert.ok(
+      label.toLocaleLowerCase().includes(word.toLocaleLowerCase()),
+      `the brand's accessible name («${label}») must contain its visible text («${word}»): WCAG 2.5.3`,
+    );
+  }
   assert.match(
     header,
-    /className="brandMark" aria-hidden="true" \/>/,
-    "the monogram must be drawn by CSS, not typed into the link's name",
+    /className="brandMark" aria-hidden="true"><svg/,
+    "the decorative optical mark must not enter the accessible link name",
   );
 
   // A bare `1fr` track grows to its widest child's min-content; the shell clips
