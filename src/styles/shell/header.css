@@ -151,7 +151,7 @@
 .siteHeader .brandText { display:grid; gap:.2rem; }
 .siteHeader .brandText strong { font:400 1rem/1.1 Georgia,"Times New Roman",serif; letter-spacing:.12em; white-space:nowrap; }
 .siteHeader .brandText small { font-size:.65rem; font-weight:400; color:var(--ink-3); letter-spacing:.025em; }
-.menuButton,.siteMenuFallback summary { border-radius:5px; background:var(--instrument-base); border-color:var(--instrument-line); color:var(--instrument-text); }
+.menuButton,.siteMenuFallback summary { border-radius:5px; background:var(--instrument-base); border-color:var(--instrument-line-strong); color:var(--instrument-text); }
 .menuButton svg { width:18px; height:18px; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; flex:none; }
 .menuButton[aria-expanded="true"] { border-color:var(--instrument-gold); background:var(--instrument-selected); }
 .siteMenu a[aria-current="page"],.siteMenuFallback a[aria-current="page"] { color:var(--instrument-gold); box-shadow:inset 2px 0 var(--instrument-gold); }

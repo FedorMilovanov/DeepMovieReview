@@ -33,6 +33,24 @@ const report = {
   inProgress: null, completed: false,
 };
 const pdfManifest = { browser: name, files: [], fullSections: [] };
+
+// Actual rendered interface surfaces, not cinematic media and not token text.
+// Check the resolved cascade after navigation on the same journey.
+async function assertNeutralSurface(locator, label) {
+  await locator.waitFor({ state: "visible" });
+  const appearance = await locator.evaluate(element => {
+    const css = getComputedStyle(element);
+    return { background: css.backgroundColor, image: css.backgroundImage };
+  });
+  const match = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(appearance.background);
+  assert.ok(match, `${label}: expected an opaque interface surface, got ${appearance.background}`);
+  const channels = match.slice(1).map(Number);
+  assert.ok(Math.max(...channels) <= 40 && Math.max(...channels) - Math.min(...channels) <= 2,
+    `${label}: black palette drift: ${appearance.background}`);
+  assert.equal(appearance.image, "none", `${label}: unexpected interface background image`);
+  return appearance;
+}
+
 function save() {
   writeFileSync(`${dir}/results.json`, `${JSON.stringify(report, null, 2)}\n`);
   writeFileSync(`${dir}/pdf-manifest.json`, `${JSON.stringify(pdfManifest, null, 2)}\n`);
@@ -479,12 +497,15 @@ try {
         const videoSrc=await video.getAttribute("src");
         if(videoSrc) assert.equal(videoSrc,viewport.width<=760?"/art/observatory-mobile.mp4":"/art/observatory-desktop.mp4");
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true,"hero fits viewport");
+        await assertNeutralSurface(page.locator(".siteHeader"), "observatory header");
+        await assertNeutralSurface(entry, "observatory primary action");
         await page.screenshot({path:`${dir}/observatory-${viewport.label}.png`});
         await entry.click();
         await page.waitForURL(url => url.pathname === article + "/dive");
         await page.locator(".diveStandalone .diveJourney").waitFor({ state: "visible" });
         assert.equal(await page.locator("h1").count(), 1);
         assert.equal(await page.locator("#article-verdict").count(), 0);
+        await assertNeutralSurface(page.locator(".diveStandalone"), "SIRIUS room");
         await page.screenshot({path:`${dir}/dive-${viewport.label}-standalone.png`});
         assert.equal(await page.locator(".fearJourney").count(),0,"fear is not rendered before consent");
         const sirius = page.locator(".diveStandalone .diveJourney");
@@ -510,6 +531,7 @@ try {
         await fear.getByRole("button",{name:"Приемлемые по проверке",exact:true}).click();
         await fear.getByRole("button",{name:"Есть независимая проверка",exact:true}).click();
         await fear.getByRole("button",{name:"Проверить условия и попросить помощи",exact:true}).click();
+        await assertNeutralSurface(page.locator(".diveStandalone"), "FEAR room");
         await page.screenshot({path:`${dir}/dive-${viewport.label}-fear.png`});
         await fear.getByRole("button",{name:"Сопоставить решения"}).click();
         await fear.getByRole("button",{name:"Завершить второе погружение"}).click();
@@ -534,12 +556,14 @@ try {
         await memory.getByRole("button",{name:"Фрагменты журналов",exact:true}).click();
         await memory.getByRole("button",{name:"Семейная преемственность",exact:true}).click();
         await memory.getByRole("button",{name:"Право на собственную историю",exact:true}).click();
+        await assertNeutralSurface(page.locator(".diveStandalone"), "MEMORY room");
         await page.screenshot({path:`${dir}/dive-${viewport.label}-memory.png`});
         await memory.getByRole("button",{name:"Сопоставить прочтения"}).click();
         await memory.getByRole("button",{name:"Завершить третье погружение"}).click();
         await page.getByRole("button",{name:"Мои открытия"}).click();
         assert.equal(await page.locator(".diveJournalItem").count(),3);
         assert.equal(await page.locator(".diveJournalSynthesis").count(),1);
+        await assertNeutralSurface(page.locator(".diveAtlasJournal"), "opened discovery journal");
         await page.screenshot({path:`${dir}/dive-${viewport.label}-atlas.png`});
         await memory.getByRole("button",{name:"Предыдущий слой"}).click();
         assert.equal(await page.locator(".diveJournalItem").count(),2,"revising a completed room invalidates its old journal entry");
@@ -564,6 +588,7 @@ try {
         assert.equal(await support.evaluate(el => el.open), true);
         assert.ok(await support.locator("a[href*='#evidence-']").first().isVisible());
         assert.equal(new URL(page.url()).pathname, article);
+        await assertNeutralSurface(support.locator("summary"), "opened evidence disclosure");
         await page.screenshot({ path: `${dir}/reader-${viewport.label}-evidence.png` });
         await support.locator("summary").click();
 
@@ -609,6 +634,7 @@ try {
           await page.goto(`${base}${article}?spoilers=full#${id}`, {waitUntil:"load"});
           await page.waitForFunction(target=>document.getElementById(target)?.open===true,id);
           assert.ok(await page.locator(`#${id} table`).isVisible(),"a real evidence deep link reveals its native table");
+          await assertNeutralSurface(page.locator(`#${id} .articleTableViewport`), "evidence table frame");
         }
         await page.goto(`${base}${legacyArticle}?spoilers=FULL#truman-article-method-2`, { waitUntil: "load" });
         await page.waitForURL(url => url.pathname === article && url.searchParams.get("spoilers") === "full" && url.hash === "#truman-article-method-2");
@@ -679,7 +705,7 @@ try {
       await page.locator(".experienceControls summary").click();
       const panel = page.locator(".experienceControlsPanel");
       await panel.waitFor({ state: "visible" });
-      const background = await panel.evaluate(element => getComputedStyle(element).backgroundColor);
+      const { background } = await assertNeutralSurface(panel, "quality settings panel");
       assert.match(background, /^rgb\(\d+,\s*\d+,\s*\d+\)$/, "settings must remain opaque, independently of the editorial palette");
       const summary=page.locator(".experienceControls summary");
       assert.ok(await summary.getByText("Авто",{exact:true}).isVisible(),"normal settings show a human-readable mode");

@@ -133,7 +133,7 @@
 .articleOutline a.readingOutlineFull { display: block; min-height: 2.75rem; padding: .8rem .65rem; color: var(--ink-1); border: 1px solid var(--stroke-strong); font-weight: 600; }
 
 /* The header outline is a compact navigational instrument, not a second menu. */
-.readingOutlineTrigger { color:var(--instrument-text); background:var(--instrument-base); border-color:var(--instrument-line); }
+.readingOutlineTrigger { color:var(--instrument-text); background:var(--instrument-base); border-color:var(--instrument-line-strong); }
 .readingOutlineTrigger[aria-expanded="true"] { border-color:var(--instrument-gold); background:var(--instrument-selected); }
 .readingOutlineWord { text-transform:none; letter-spacing:0; font:500 .8rem var(--font-body); }
 .readingOutlinePosition { color:var(--instrument-gold); }

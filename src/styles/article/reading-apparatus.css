@@ -269,7 +269,7 @@
    border-block-end:1.5px solid currentColor; transform:rotate(45deg);
  }
  :is(.articleSupport,.articleVerdictContext,.filmReadingAppendix,.articleDuelSide)[open] > summary::after { transform:rotate(225deg); }
- .articleSupport > summary { justify-content:flex-start; width:fit-content; max-width:100%; padding:.45rem .7rem; border:1px solid var(--instrument-line); border-radius:4px; background:var(--instrument-base); }
+ .articleSupport > summary { justify-content:flex-start; width:fit-content; max-width:100%; padding:.45rem .7rem; border:1px solid var(--instrument-line-strong); border-radius:4px; background:var(--instrument-base); }
  .articleSupport > summary::after { margin-inline-start:.35rem; }
  .articleSupport[open] > summary { border-color:var(--instrument-gold); color:var(--instrument-gold); }
  .articleSupport > ul { background:var(--instrument-base); border:1px solid var(--instrument-line); border-radius:5px; padding:.45rem .8rem; }
