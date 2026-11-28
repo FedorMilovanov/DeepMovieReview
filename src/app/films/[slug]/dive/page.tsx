@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { filmPackages, getFilmPackageBySlug } from "@/data/film-registry";
 import { isPreviewContentEnabled } from "@/data/site-config";
+import { siteIndexingEnabled } from "@/lib/site-indexing";
 import { getDiveFear, getDiveMemory, getDiveOpening } from "@/lib/dive-opening";
 import { parseSpoilerLevel, withSpoilerQuery } from "@/lib/spoilers";
 import { DiveExperience } from "@/components/film-article/dive-experience";
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: DivePageProps): Promise<Metad
   const {slug} = await params;
   const pkg = getFilmPackageBySlug(slug);
   if (!pkg || !getDiveOpening(pkg) || (pkg.film.status !== "published" && !isPreviewContentEnabled())) return {};
-  return { title: `Погружение: ${pkg.film.title}`, description: "Интерактивное исследование фильма: наблюдение, гипотезы, развилки и синтез. Первое путешествие без спойлеров.", robots: {index:false,follow:true}, alternates:{canonical:`/films/${slug}`} };
+  return { title: `Погружение: ${pkg.film.title}`, description: "Интерактивное исследование фильма: наблюдение, гипотезы, развилки и синтез. Первое путешествие без спойлеров.", robots: {index:false,follow:pkg.film.status==="published" && siteIndexingEnabled()}, alternates:{canonical:`/films/${slug}`} };
 }
 
 export default async function FilmDivePage({params, searchParams}: DivePageProps) {

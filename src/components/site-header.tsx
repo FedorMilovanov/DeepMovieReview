@@ -54,6 +54,11 @@ export function SiteHeader({diveHref}: {diveHref?:string}) {
 
   useEffect(() => {
     if (!menuOpen) return;
+    const dismissOutside = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) return;
+      if (menuButtonRef.current?.contains(event.target) || document.getElementById("site-menu")?.contains(event.target)) return;
+      setMenuOpen(false);
+    };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setMenuOpen(false);
@@ -61,7 +66,11 @@ export function SiteHeader({diveHref}: {diveHref?:string}) {
       }
     };
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", dismissOutside);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", dismissOutside);
+    };
   }, [menuOpen]);
 
   function linkProps(href: string) {

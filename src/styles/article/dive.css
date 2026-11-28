@@ -215,3 +215,17 @@ html:has(.diveDialog[open]) { overflow: hidden; }
  .diveJourney[data-depth="0"] .siriusStage[data-inspected="true"] .diveArtifact { transform:scale(1.05); }
 }
 @media (forced-colors:active) { .diveExit,.diveSort { border-color:CanvasText; } }
+
+/* On phones the stage number stays in the rail, and the full active label
+   gets the entire width. Inactive labels remain available to screen readers. */
+@media (max-width:760px) {
+ .diveProgress { position:relative; padding-bottom:1.7rem; margin-bottom:.85rem; }
+ .diveProgress > span > span { display:block; }
+ .diveProgress > span:not([aria-current="step"]) > span { display:block; position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+ .diveProgress > span[aria-current="step"] > span { position:absolute; inset:auto 0 0; font-size:.82rem; font-weight:550; color:var(--instrument-gold); line-height:1.4; }
+ .diveProgress > span { min-height:26px; }
+}
+.diveExperiment h3 { font-family:Georgia,"Times New Roman",serif; font-weight:400; text-transform:none; letter-spacing:0; }
+.diveClaimLayers > div { border-radius:4px; background:var(--instrument-base); }
+.diveClaimLayers > div[data-active="true"] { background:var(--instrument-selected); }
+.diveReportLine { min-height:0; border-radius:0 4px 4px 0; background:var(--instrument-base); }

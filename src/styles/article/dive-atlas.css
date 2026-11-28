@@ -73,3 +73,24 @@
 .memoryStage .diveInstrumentReadout dd { color:var(--instrument-gold); }
 
 @media (max-height:750px) and (min-width:761px) { .memoryStage { position:relative; top:auto; } }
+
+/* Journal toggle, completion and locked state remain distinct without dimming text. */
+.diveAtlasToggle { display:inline-flex; align-items:center; gap:.55rem; }
+.diveAtlasToggle > svg { width:20px; height:20px; stroke:currentColor; stroke-width:1.4; stroke-linejoin:round; stroke-linecap:round; flex:none; }
+.diveAtlasCount { color:var(--instrument-gold); font:.74rem var(--font-meta); font-variant-numeric:tabular-nums; border-inline-start:1px solid var(--instrument-line-strong); padding-inline-start:.55rem; }
+.diveAtlas .diveAtlasLocked { opacity:1; border-style:dashed; }
+.diveAtlasRoomCopy small { color:var(--instrument-muted); font-size:.78rem; }
+.diveAtlas .diveAtlasLocked strong { color:var(--instrument-muted); letter-spacing:0; font-family:var(--font-body); font-weight:550; font-size:.88rem; }
+.diveJournalItem summary { min-height:44px; display:flex; align-items:center; color:var(--instrument-ice); }
+.diveJournalItem summary::after { content:""; margin-inline-start:auto; flex:none; width:.45rem; height:.45rem; border-inline-end:1.5px solid currentColor; border-block-end:1.5px solid currentColor; transform:rotate(45deg); }
+.diveJournalItem details[open] > summary::after { transform:rotate(225deg); }
+.diveJournalItem summary::-webkit-details-marker { display:none; }
+@media (max-width:480px) {
+ .diveAtlas .diveRoomRail { grid-template-columns:minmax(0,1fr); gap:.4rem; }
+ .diveAtlas .diveRoomRail::before { display:none; }
+ .diveAtlas .diveRoomRail > * { grid-template-columns:52px minmax(0,1fr); min-height:64px; padding:.45rem .7rem; text-align:start; gap:.65rem; }
+ .diveAtlasRoomCopy > .diveEyebrow { justify-content:flex-start; }
+ .diveAtlasRoomCopy small { font-size:.74rem; }
+ .diveAtlasSymbol svg { height:42px; }
+ .diveAtlasLock svg { height:30px; }
+}
