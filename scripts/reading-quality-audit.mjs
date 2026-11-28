@@ -724,16 +724,21 @@ try {
       await brand.hover();
       await video.waitFor({state:"visible"});
       await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime > .6 && v.dataset.playing==="true" && v.dataset.seam==="false" && Number(getComputedStyle(v).opacity)>.9;});
-      const details=await video.evaluate(v=>({muted:v.muted,loop:v.loop,width:v.videoWidth,height:v.videoHeight,mask:getComputedStyle(v).maskImage||getComputedStyle(v).webkitMaskImage,clip:getComputedStyle(v).clipPath}));
+      const details=await video.evaluate(v=>({muted:v.muted,loop:v.loop,width:v.videoWidth,height:v.videoHeight,duration:v.duration,mask:getComputedStyle(v).maskImage||getComputedStyle(v).webkitMaskImage,clip:getComputedStyle(v).clipPath}));
       assert.ok(details.muted && details.loop && details.width===96 && details.height===96);
+      assert.ok(details.duration >= 9.9 && details.duration <= 10.2,"full original motion, not the shortened ping-pong segment");
       assert.match(details.mask,/radial-gradient/);
       assert.match(details.clip,/circle/);
-      // Exercise the real video near its wrap, including the neutral poster hold.
-      await video.evaluate(v=>{v.currentTime=v.duration-.4;});
+      // Let the actual playback clock advance; a synthetic seek cannot prove
+      // that the full clip keeps playing while the pointer stays over the mark.
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>8.5 && Number(getComputedStyle(v).opacity)>.9;},undefined,{timeout:15000});
       await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && v.dataset.seam==="true" && Number(getComputedStyle(v).opacity)<.1;});
       await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && v.currentTime>.6 && v.currentTime<3 && v.dataset.seam==="false" && Number(getComputedStyle(v).opacity)>.9;});
       await page.mouse.move(400,200);
       await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && v.paused && v.dataset.playing==="false";});
+      await brand.hover();
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime>.3 && v.currentTime<2 && v.dataset.seam==="false";});
+      await page.mouse.move(400,200);
       await page.emulateMedia({reducedMotion:"reduce"});
       await video.waitFor({state:"detached"});
       await brand.hover();

@@ -140,6 +140,11 @@ export function SiteHeader() {
           if (event.pointerType !== "mouse" || !emblemAllowed || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
           const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
           if (connection?.saveData || ["slow-2g", "2g"].includes(connection?.effectiveType ?? "")) return;
+          if (emblemFailed) return;
+          const video = emblemVideoRef.current;
+          if (video && video.readyState >= 1) video.currentTime = 0;
+          setEmblemAtSeam(true);
+          setEmblemPlaying(false);
           setEmblemRequested(true);
           setEmblemHovered(true);
         }}
@@ -151,7 +156,7 @@ export function SiteHeader() {
             onTimeUpdate={event => {
               const { currentTime, duration } = event.currentTarget;
               // Fade to the exact static artwork before the native loop wraps.
-              setEmblemAtSeam(!Number.isFinite(duration) || currentTime < .24 || duration - currentTime < .65);
+              setEmblemAtSeam(!Number.isFinite(duration) || currentTime < .16 || duration - currentTime < .55);
             }}
             onPlaying={() => setEmblemPlaying(true)} onPause={() => setEmblemPlaying(false)} onWaiting={() => setEmblemPlaying(false)} onError={() => setEmblemFailed(true)} /> : null}
         </span>
