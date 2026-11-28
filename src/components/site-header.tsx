@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -115,7 +116,7 @@ export function SiteHeader() {
   return (
     <header className="siteHeader" data-scrolled={scrolled || undefined} data-observatory={observatory || undefined}>
       <Link className="brand" href="/" aria-label="DEEP WATERS Глубокие воды — на главную">
-        <span className="brandMark" aria-hidden="true"><svg viewBox="0 0 48 32" width="38" height="28" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="24" cy="16" r="13"/><path d="M11 16h26M24 3v26" opacity=".35"/><path d="M4 16c7-7 13-7 20 0s13 7 20 0M4 22c7-7 13-7 20 0s13 7 20 0" strokeLinecap="round"/><circle cx="24" cy="16" r="3" fill="currentColor" stroke="none"/></svg></span>
+        <span className="brandMark" aria-hidden="true"><Image src="/art/deep-waters-emblem.png" alt="" width={128} height={128} unoptimized /></span>
         <span className="brandText"><strong lang="en">DEEP WATERS</strong>{" "}<small>Глубокие воды</small></span>
       </Link>
       <nav className="siteNav" aria-label="Основная навигация">
