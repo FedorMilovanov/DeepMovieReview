@@ -838,7 +838,10 @@ test("reading layout wraps inset artwork and preserves accessible navigation", (
   assert.match(outline, /href=\{`#\$\{id\}`\}/);
   assert.match(outline, /aria-expanded=\{open\}/);
   assert.match(outline, /hidden=\{!open\}/);
-  assert.match(outline, /observer.disconnect/);
+  assert.match(outline, /observer\?\.disconnect\(\)/);
+  assert.match(outline, /cancelAnimationFrame\(frame\)/);
+  assert.match(outline, /removeEventListener\("scroll", schedule\)/);
+  assert.match(outline, /removeEventListener\("resize", schedule\)/);
   assert.match(outline, /event.key === "Escape"/);
 });
 
