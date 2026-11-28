@@ -205,14 +205,14 @@
 .articleKnowledgeDiagram { width: min(100%, 35rem); margin-inline: auto; color: var(--ink-2); }
 .articleDiagramLabel { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.3rem .8rem; padding:.75rem 1rem; border-bottom:1px solid var(--stroke-default); font-family:var(--font-meta); font-size:.72rem; color:var(--ink-3); }
 .articleDiagramLabel [lang="en"] { letter-spacing:.11em; color:var(--accent-restoration); }
-.articleDiagramObserved { color:#aac8dc; fill:#aac8dc; }
+.articleDiagramObserved { color:var(--ink-1); fill:currentColor; }
 .articleDiagramReported { color:#e0c49a; fill:#e0c49a; }
-.articleKnowledgeDiagram svg > g:first-of-type :is(.articleDiagramObserved,.articleDiagramReported) { fill:none; }
+.articleKnowledgeDiagram svg > g:first-of-type :is(.articleDiagramObserved,.articleDiagramReported) { fill:none; stroke:currentColor; }
 @media screen {
- .articleKnowledgeDiagram { background:linear-gradient(145deg,#172835,#0b1722); border:1px solid #829bab55; border-radius:6px; padding:0 .4rem .8rem; color:#e0e8ed; }
- .articleKnowledgeDiagram figcaption { color:#bdcad4; padding-inline:.65rem; }
+ .articleKnowledgeDiagram { background:var(--instrument-base); border:1px solid var(--instrument-line); border-radius:6px; padding:0 .4rem .8rem; color:#e7e7e7; }
+ .articleKnowledgeDiagram figcaption { color:#c8c8c8; padding-inline:.65rem; }
  .articleKnowledgeDiagram svg { margin-block:.45rem; }
- .articleDiagramLabel { color:#c1d0da; }
+ .articleDiagramLabel { color:#cecece; }
  .articleDiagramLabel [lang="en"] { color:#e0c49a; }
 }
 @media print, (forced-colors:active) { .articleDiagramObserved,.articleDiagramReported { color:currentColor; fill:currentColor; } }

@@ -3,78 +3,78 @@
   position: relative; display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
   gap: var(--space-4); align-items: center; padding: var(--space-5);
   overflow: hidden; border: 1px solid var(--stroke-warm); border-radius: var(--radius-panel);
-  background: radial-gradient(ellipse at 18% 45%, #233344, #101720 40%, #090e15 85%); color: #f0eee7;
+  background: var(--instrument-base); color: #f0eee7;
 }
 .diveEntryCopy { display: grid; gap: var(--space-3); position: relative; min-width: 0; }
 .diveEntryCopy h3 { font-family: var(--font-display); font-size: var(--type-display-3); line-height: 1.2; margin: 0; }
 .diveEntryCopy p { margin: 0; line-height: 1.6; }
-.diveEntryCopy small, .diveFoot { color: #abb9c5; font-size: .75rem; line-height: 1.5; }
+.diveEntryCopy small, .diveFoot { color: #b7b7b7; font-size: .75rem; line-height: 1.5; }
 .diveEyebrow { font-family: var(--font-meta); font-size: .72rem; color: #e0c49a; letter-spacing: .11em; text-transform: uppercase; }
 .diveEntryOrb { position: relative; aspect-ratio: 1; display: grid; place-items: center; }
 .diveEntryOrb svg { width:min(100%,180px); height:auto; color:#e0c49a; }
 .diveEntryOrb span { position:absolute; bottom:6%; left:6%; font:.75rem var(--font-meta); color:#e0c49a; letter-spacing:.16em; }
 .diveEntryAction svg { width:22px; height:22px; flex:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
 .diveEntryAction, .divePrimary, .diveChoice, .diveBranch, .diveSortButton, .diveExit, .diveBack {
-  min-height: 44px; cursor: pointer; border: 1px solid #647b90; border-radius: 5px;
-  padding: .8rem 1rem; text-align: start; font: inherit; color: #f2f2ef; background: #172534;
+  min-height: 44px; cursor: pointer; border: 1px solid #787878; border-radius: 5px;
+  padding: .8rem 1rem; text-align: start; font: inherit; color: #f2f2ef; background: #232323;
   overflow-wrap: anywhere;
 }
-.diveEntryAction, .divePrimary { display: flex; justify-content: space-between; gap: 1rem; align-items: center; background: linear-gradient(110deg,#223d4b,#142733 75%,#243941); color:#f5e4c9; border-color:#c4a878; font-weight:650; box-shadow:inset 0 1px #e3c18f22; }
-.diveEntryAction:hover, .divePrimary:not(:disabled):hover { background:#294858; border-color:#eed6af; }
+.diveEntryAction, .divePrimary { display: flex; justify-content: space-between; gap: 1rem; align-items: center; background: var(--instrument-panel); color:#f5e4c9; border-color:#c4a878; font-weight:650; box-shadow:inset 0 1px #e3c18f22; }
+.diveEntryAction:hover, .divePrimary:not(:disabled):hover { background:#434343; border-color:#eed6af; }
 .divePrimary:disabled { opacity: .5; cursor: not-allowed; }
-.diveChoice:hover, .diveBranch:hover, .diveSortButton:hover { background: #25384a; }
-.diveChoice[aria-pressed="true"], .diveBranch[aria-pressed="true"], .diveSortButton[aria-pressed="true"] { border-color: #e3c18f; background: #384237; box-shadow: inset 3px 0 #e3c18f; }
+.diveChoice:hover, .diveBranch:hover, .diveSortButton:hover { background: #353535; }
+.diveChoice[aria-pressed="true"], .diveBranch[aria-pressed="true"], .diveSortButton[aria-pressed="true"] { border-color: #e3c18f; background: var(--instrument-selected); box-shadow: inset 3px 0 #e3c18f; }
 .diveEntry button:focus-visible, .diveDialog button:focus-visible { outline: 2px solid #f1d7a9; outline-offset: 3px; }
 .diveDialog {
   position: fixed; inset: 0; margin: auto; width: min(94vw, 1250px); max-width: none; max-height: 94dvh;
-  padding: 0; border: 1px solid #687c90; border-radius: 14px; background: #0c141e; color: #f1eee8;
+  padding: 0; border: 1px solid #797979; border-radius: 14px; background: #131313; color: #f1eee8;
   overflow: auto; overscroll-behavior: contain; color-scheme: dark; box-shadow: 0 24px 120px #000b;
 }
 .diveDialog[open] { animation: diveArrival 600ms var(--ease-standard) both; }
-.diveDialog::backdrop { background: #050912c9; backdrop-filter: blur(9px); }
+.diveDialog::backdrop { background: #090909c9; backdrop-filter: blur(9px); }
 html:has(.diveDialog[open]) { overflow: hidden; }
-.diveDialogBar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: .75rem; background: #0c141ef5; border-bottom: 1px solid #71869b55; padding: .8rem clamp(1rem, 3vw, 2rem); }
+.diveDialogBar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: .75rem; background: #131313f5; border-bottom: 1px solid #83838355; padding: .8rem clamp(1rem, 3vw, 2rem); }
 .diveExit { display: inline-flex; gap: .7rem; align-items: center; background: transparent; padding: .6rem .8rem; }
 .diveExit span { font-size: 1.4rem; line-height: 1; }
 .diveLoading { padding: 2rem; }
 .diveJourney { padding: clamp(1rem, 3vw, 2.5rem); }
 .diveProgress { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .45rem; margin-bottom: var(--space-4); }
-.diveProgress > span { display: grid; gap: .3rem; padding-top: .5rem; border-top: 2px solid #405267; color: #a7b6c4; font-size: .72rem; overflow-wrap: anywhere; }
+.diveProgress > span { display: grid; gap: .3rem; padding-top: .5rem; border-top: 2px solid #505050; color: #b4b4b4; font-size: .72rem; overflow-wrap: anywhere; }
 .diveProgress > span[data-reached="true"] { border-color: #aa936d; color: #dfc7a1; }
 .diveProgress > span[aria-current="step"] { border-color: #edcc98; color: #fff2d9; }
 .diveProgress i { font: .78rem var(--font-meta); font-style: normal; }
 .diveScene { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(0, .94fr); gap: clamp(1rem, 4vw, 3.5rem); align-items: start; }
-.diveStageArt { position: sticky; top: 5.2rem; isolation: isolate; overflow: hidden; min-width: 0; background: radial-gradient(ellipse at 50% 45%, #203951, #0b1521 62%, #080c13); border: 1px solid #7d96ac55; border-radius: 8px; }
+.diveStageArt { position: sticky; top: 5.2rem; isolation: isolate; overflow: hidden; min-width: 0; background: radial-gradient(ellipse at 50% 45%, #353535, #141414 62%, #0c0c0c); border: 1px solid #92929255; border-radius: 8px; }
 .diveArtifact, .diveReasoningField { display: block; position: relative; width: 100%; height: auto; transition: transform 650ms var(--ease-standard), opacity 500ms; }
 .diveReasoningField { animation: diveRoomArrival 460ms var(--ease-standard) both; }
 .diveJourney[data-depth="1"] .diveArtifact { transform: scale(1.09) translateY(-2%); }
 .diveJourney[data-depth="2"] .diveArtifact { transform: scale(.88) translateY(-4%); opacity: .73; }
 .diveJourney[data-depth="3"] .diveArtifact { transform: scale(.83); opacity: .53; }
 .diveJourney[data-depth="4"] .diveArtifact { transform: scale(1.12); }
-.diveJourney[data-completed="true"] .diveStageArt { background: radial-gradient(ellipse, #4a3c2b, #182630 48%, #080d15); }
-.diveOrbit { position: absolute; inset: 18%; border: 1px solid #9cb6cf33; border-radius: 50%; transform: rotate(-30deg) scaleY(.63); }
+.diveJourney[data-completed="true"] .diveStageArt { background: radial-gradient(ellipse, #4a3c2b, #242424 48%, #0d0d0d); }
+.diveOrbit { position: absolute; inset: 18%; border: 1px solid #b2b2b233; border-radius: 50%; transform: rotate(-30deg) scaleY(.63); }
 .diveOrbitTwo { inset: 8%; transform: rotate(42deg) scaleY(.71); }
-.diveArtMeta { position: absolute; inset: auto 1rem .85rem; display: flex; justify-content: space-between; gap: .5rem; color: #a4b9cc; font: .62rem var(--font-meta); letter-spacing: .06em; }
+.diveArtMeta { position: absolute; inset: auto 1rem .85rem; display: flex; justify-content: space-between; gap: .5rem; color: #b6b6b6; font: .62rem var(--font-meta); letter-spacing: .06em; }
 .diveRoom { min-width: 0; display: grid; gap: var(--space-3); animation: diveRoomArrival 460ms var(--ease-standard) both; }
 .diveRoom h2 { font-family:Georgia,"Times New Roman",serif; font-weight:400; font-size:clamp(1.8rem,3.2vw,3rem); line-height:1.17; color:#f4ede0; margin:0; text-wrap:balance; }
-.diveRoom p { margin: 0; color: #d4dce4; line-height: 1.6; }
+.diveRoom p { margin: 0; color: #dbdbdb; line-height: 1.6; }
 .diveRoom h2:focus { outline: none; }
-.diveInsight, .diveBeforeAfter { padding: 1rem; border-inline-start: 2px solid #d5b783; background: #1b2b39; color: #efdfc6; display: grid; gap: .4rem; }
+.diveInsight, .diveBeforeAfter { padding: 1rem; border-inline-start: 2px solid #d5b783; background: #292929; color: #efdfc6; display: grid; gap: .4rem; }
 .diveInsight p { font-size: .9rem; }
 .diveBranches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
 .diveBranch { display: grid; gap: .5rem; padding: .7rem; font-size: .86rem; }
 .diveBranch span { font: .75rem var(--font-meta); color: #d8be93; }
 .diveBranchContent { display: grid; gap: .6rem; animation: diveRoomArrival 400ms var(--ease-standard) both; }
-.diveSort { margin: 0; min-width: 0; padding: .65rem; border: 1px solid #526779; }
+.diveSort { margin: 0; min-width: 0; padding: .65rem; border: 1px solid #646464; }
 .diveSort legend { padding: .15rem; color: #e4e6e9; line-height: 1.4; }
 .diveSort > div { display: flex; flex-wrap: wrap; gap: .4rem; }
 .diveSortButton { flex: 1 1 auto; padding: .55rem .65rem; font-size: .78rem; }
 .diveSort small { display: block; margin-top: .45rem; color: #d8c49f; line-height: 1.45; }
 .diveBeforeAfter { grid-template-columns: 1fr auto 1fr; align-items: center; }
 .diveBeforeAfter div { display: grid; gap: .3rem; }
-.diveBeforeAfter small { color: #b7c9d6; }
-.diveBack { justify-self: start; background: transparent; border-color: transparent; color: #b6c6d5; padding-inline: .2rem; }
-.diveFoot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .75rem; margin-top: var(--space-5); padding-top: var(--space-3); border-top: 1px solid #526779; }
+.diveBeforeAfter small { color: #c6c6c6; }
+.diveBack { justify-self: start; background: transparent; border-color: transparent; color: #c4c4c4; padding-inline: .2rem; }
+.diveFoot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .75rem; margin-top: var(--space-5); padding-top: var(--space-3); border-top: 1px solid #646464; }
 @keyframes diveArrival { from { opacity: 0; transform: perspective(1200px) translateZ(-120px) scale(.96); } to { opacity: 1; transform: none; } }
 @keyframes diveRoomArrival { from { opacity: .15; transform: translateY(14px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
 @media (max-width: 760px) {
@@ -93,26 +93,26 @@ html:has(.diveDialog[open]) { overflow: hidden; }
 @media print { .diveEntry { display: none; } }
 
 /* Experiments are different manipulations of the same inquiry, not visual clones. */
-.diveExperiment { display: grid; gap: .75rem; padding: 1rem; background: linear-gradient(140deg,#172d40,#101a25); border: 1px solid #7694aa66; border-radius: 7px; }
+.diveExperiment { display: grid; gap: .75rem; padding: 1rem; background: linear-gradient(140deg,#2a2a2a,#191919); border: 1px solid #8f8f8f66; border-radius: 7px; }
 .diveExperiment h3 { font-family: var(--font-display); color: #f0e9dd; font-size: 1.3rem; line-height: 1.25; margin: 0; }
 .diveExperimentControls { display: flex; flex-wrap: wrap; gap: .45rem; }
 .diveExperiment svg { display: block; width: 100%; height: auto; }
 .diveExperiment p { font-size: .88rem; }
 .diveClaimLayers { display: grid; gap: .4rem; text-align: center; }
-.diveClaimLayers > div { display: grid; gap: .3rem; padding: .8rem; border: 1px solid #728ba266; color: #b6c6d5; }
+.diveClaimLayers > div { display: grid; gap: .3rem; padding: .8rem; border: 1px solid #87878766; color: #c4c4c4; }
 .diveClaimLayers > div[data-active="true"] { border-color: #e3c18f; background: #d3b88a15; color: #f4e3c9; }
 .diveClaimLayers small { font: .65rem var(--font-meta); letter-spacing: .08em; }
 .diveClaimLayers > span { color: #c4a779; }
-.diveReportLine { min-height: 85px; display: block; padding: 1rem; background: #0c151f; border-left: 2px solid #d3b88a; line-height: 1.7; color: #b7c9d6; }
+.diveReportLine { min-height: 85px; display: block; padding: 1rem; background: #141414; border-left: 2px solid #d3b88a; line-height: 1.7; color: #c6c6c6; }
 .diveReportLine strong { color: #f3e2bf; font-size: 1.1rem; }
-.diveTrace { display: grid; gap: .55rem; padding: .9rem; border-top: 1px solid #8299ac66; border-bottom: 1px solid #8299ac66; }
+.diveTrace { display: grid; gap: .55rem; padding: .9rem; border-top: 1px solid #95959566; border-bottom: 1px solid #95959566; }
 .diveTrace strong { color: #e1c49b; font-size: .85rem; }
 .diveTrace p { font-size: .85rem; }
 .diveBranch[data-explored="true"] span { color: #e4d6ab; }
 
 /* Inspection reveals the label as a closer visual plane; the drawing remains symbolic. */
 .diveJourney[data-depth="0"] .diveStageArt[data-inspected="true"] .diveArtifact { transform: scale(1.16) translate(3%, -1%); }
-.diveJourney[data-depth="0"] .diveStageArt[data-inspected="true"] { border-color: #b7c8d8; }
+.diveJourney[data-depth="0"] .diveStageArt[data-inspected="true"] { border-color: #c6c6c6; }
 @media (max-width: 760px) {
   .diveBranches { grid-template-columns: repeat(3,minmax(0,1fr)); gap: .3rem; }
   .diveBranch { padding: .6rem .45rem; font-size: .79rem; }
@@ -121,18 +121,18 @@ html:has(.diveDialog[open]) { overflow: hidden; }
 
 /* Primary experience: a navigable, full-page journey rather than a modal-only extra. */
 .diveStandalone {
-  color: #f0eee7; background: radial-gradient(ellipse at 29% 30%, #223d53 0, #101c29 42%, #090e15 85%);
+  color: #f0eee7; background: var(--surface-canvas);
   min-height: 78dvh; padding: clamp(1.1rem, 3.5vw, 3.5rem); isolation: isolate;
 }
 .diveStandaloneInner { max-width: 1280px; margin-inline: auto; }
-.diveStandaloneHeader { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid #90a5ba55; }
+.diveStandaloneHeader { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid #a2a2a255; }
 .diveStandaloneHeader h1 { font-family:Georgia,"Times New Roman",serif; font-weight:400; font-size:clamp(2rem,4vw,3.8rem); line-height:1.12; margin:.4rem 0; color:#f1e7d5; }
-.diveStandaloneHeader p { max-width: 60ch; color: #c3d0db; margin: .6rem 0 0; line-height: 1.55; }
+.diveStandaloneHeader p { max-width: 60ch; color: #cecece; margin: .6rem 0 0; line-height: 1.55; }
 .diveStandaloneRead { color: #e2c99e; border: 1px solid #c0a57b77; border-radius: 6px; padding: .8rem 1rem; text-decoration: none; display: inline-flex; align-items: center; min-height: 44px; }
 .diveStandaloneRead:hover { background: #d3b88a22; }
 .diveStandalone .diveJourney { padding-inline: 0; }
 .diveStandalone .diveStageArt { top: 5.2rem; }
-.diveStandalone .diveStageArt { box-shadow: 0 25px 100px #04091088; }
+.diveStandalone .diveStageArt { box-shadow: 0 25px 100px #08080888; }
 .diveStandalone button:focus-visible, .diveStandalone a:focus-visible { outline: 2px solid #f1d7a9; outline-offset: 3px; }
 .diveHomeLegend { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem 0; color: var(--ink-2); border-top: 1px solid var(--stroke-warm); font-size: .82rem; }
 .diveHomeLegend strong { color: var(--accent-restoration); font: .8rem var(--font-meta); letter-spacing: .1em; }

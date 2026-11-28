@@ -8,17 +8,18 @@
   /* Keeps media labels readable even over a completely white source image. */
   --surface-media-caption: rgba(3, 3, 3, 0.92);
 
-  /* Observatory instrument surfaces: reading, tables and controls. */
-  --instrument-base: #0c1924;
-  --instrument-panel: #112331;
-  --instrument-raised: #192f3e;
-  --instrument-selected: #253e47;
-  --instrument-line: #344f60;
-  --instrument-line-strong: #7793a4;
-  --instrument-gold: #e0c49a;
-  --instrument-ice: #b6d5e5;
-  --instrument-text: #f0eee7;
-  --instrument-muted: #b9c9d4;
+  /* Neutral editorial surfaces shared by reading, tables and controls.
+     Instrument names are compatibility aliases, not an alternate theme. */
+  --instrument-base: var(--surface-1);
+  --instrument-panel: var(--surface-2);
+  --instrument-raised: #181818;
+  --instrument-selected: #252525;
+  --instrument-line: #3e3e3e;
+  --instrument-line-strong: #858585;
+  --instrument-gold: #d8c09d;
+  --instrument-ice: var(--ink-2);
+  --instrument-text: var(--ink-1);
+  --instrument-muted: var(--ink-3);
   --instrument-warning: #efa2a4;
 
   /* Text */
@@ -131,7 +132,7 @@
 }
 
 @media (prefers-contrast:more) {
- :root { --instrument-line:#718b9c; --instrument-line-strong:#b3c8d3; }
+ :root { --instrument-line:#777777; --instrument-line-strong:#b5b5b5; }
 }
 @media (forced-colors:active) {
  :root {

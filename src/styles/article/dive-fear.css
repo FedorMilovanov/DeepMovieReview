@@ -1,17 +1,17 @@
 /* Water is an analytical field, not a reconstruction of a film shot. */
-.diveStandalone[data-room="fear"] { background: radial-gradient(ellipse at 30% 35%,#183b4e,#0c2332 43%,#07111d 85%); }
+.diveStandalone[data-room="fear"] { background:var(--surface-canvas); }
 .diveRoomRail { display:grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap:.6rem; padding: 1.1rem 0; }
-.diveRoomRail > * { display:grid; grid-template-columns:auto minmax(0,1fr); align-content:center; gap:.3rem .6rem; padding:.75rem; min-width:0; border:1px solid #7694aa55; background:#0f1b27; color:#b6c4cf; border-radius:6px; text-align:start; font:inherit; }
+.diveRoomRail > * { display:grid; grid-template-columns:auto minmax(0,1fr); align-content:center; gap:.3rem .6rem; padding:.75rem; min-width:0; border:1px solid #8f8f8f55; background:#191919; color:#c2c2c2; border-radius:6px; text-align:start; font:inherit; }
 .diveRoomRail > button { cursor:pointer; }
-.diveRoomRail > [aria-current="step"] { border-color:#d6b98c; color:#f0dfc0; background:#243441; }
+.diveRoomRail > [aria-current="step"] { border-color:#d6b98c; color:#f0dfc0; background:#323232; }
 .diveRoomRail > * > span { grid-row:span 2; font:.85rem var(--font-meta); color:#d5b783; align-self:center; }
 .diveRoomRail strong { font-size:.85rem; overflow-wrap:anywhere; }
-.diveRoomRail small { color:#b8c5d0; font-size:.7rem; }
+.diveRoomRail small { color:#c3c3c3; font-size:.7rem; }
 .fearJourney { padding-block: 0 var(--space-5); }
 .fearProgress { grid-template-columns: repeat(4,minmax(0,1fr)); }
-.fearStage { position:sticky; top:5.2rem; min-width:0; border:1px solid #83a6ae66; border-radius:10px; overflow:hidden; background:#081d2b; box-shadow:0 20px 70px #02070c88; animation:diveRoomArrival 650ms var(--ease-standard) both; }
+.fearStage { position:sticky; top:5.2rem; min-width:0; border:1px solid #9f9f9f66; border-radius:10px; overflow:hidden; background:#1a1a1a; box-shadow:0 20px 70px #06060688; animation:diveRoomArrival 650ms var(--ease-standard) both; }
 .fearWaterField { display:block; width:100%; height:auto; }
-.fearStage > p { font-size:.74rem; line-height:1.5; margin:0; padding:.65rem 1rem; color:#b8c9d5; border-top:1px solid #83a6ae44; }
+.fearStage > p { font-size:.74rem; line-height:1.5; margin:0; padding:.65rem 1rem; color:#c6c6c6; border-top:1px solid #9f9f9f44; }
 .fearWaterLines { transform-origin:center; animation:fearWaterDrift 9s ease-in-out infinite alternate; }
 .fearRoom { padding-top:.35rem; }
 @keyframes fearWaterDrift { from { transform:translateX(-1%) scaleY(.985); } to { transform:translateX(1%) scaleY(1.015); } }

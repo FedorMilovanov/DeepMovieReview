@@ -331,10 +331,10 @@ h3 {
 /* Shared actions: do not flatten primary and secondary actions into one colour. */
 @media screen {
  .buttonPrimary,.buttonGhost { border-radius:5px; text-transform:none; letter-spacing:.025em; font-weight:550; }
- .buttonPrimary { background:var(--instrument-gold); border-color:var(--instrument-gold); color:#17232a; }
- .buttonPrimary:hover,.buttonPrimary:focus-visible { background:#f0d7b2; color:#17232a; }
+ .buttonPrimary { background:var(--ink-1); border-color:var(--ink-1); color:var(--ink-inverse); }
+ .buttonPrimary:hover,.buttonPrimary:focus-visible { background:#fffaf1; color:var(--ink-inverse); }
  .buttonGhost { color:var(--instrument-ice); border-color:var(--instrument-line-strong); background:var(--instrument-base); }
- .buttonGhost:hover,.buttonGhost:focus-visible { background:var(--instrument-raised); border-color:var(--instrument-gold); color:var(--instrument-text); }
+ .buttonGhost:hover,.buttonGhost:focus-visible { background:var(--instrument-raised); border-color:var(--ink-1); color:var(--instrument-text); }
 }
 @media (forced-colors:active) {
  .buttonPrimary,.buttonGhost,.buttonPrimary:hover,.buttonGhost:hover,.buttonPrimary:focus-visible,.buttonGhost:focus-visible { background:ButtonFace; color:ButtonText; border-color:ButtonText; }

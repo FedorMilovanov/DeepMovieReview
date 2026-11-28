@@ -211,7 +211,7 @@
 .lensReading h3 { font-family:Georgia,"Times New Roman",serif; font-weight:400; text-transform:none; letter-spacing:-.02em; line-height:1.2; color:var(--instrument-gold); }
 .lensReadingPrompt { color:var(--instrument-text); }
 .lensReading p:not(.lensReadingPrompt) { color:var(--instrument-muted); }
-.lensMark { border-color:#7793a4; background:#0c1924; border-radius:3px; color:#f0eee7; letter-spacing:.04em; }
+.lensMark { border-color:#8e8e8e; background:#171717; border-radius:3px; color:#f0eee7; letter-spacing:.04em; }
 .lensMark::before { border-color:#e0c49a; }
 @supports selector(:has(*)) {
  .lensTab:has(.lensRadio:checked) { background:var(--instrument-selected); border-color:var(--instrument-gold); }

@@ -94,6 +94,6 @@
 .examineRail button[aria-pressed="true"] { background:var(--instrument-selected); border-color:var(--instrument-gold); color:var(--instrument-text); box-shadow:inset 0 -2px var(--instrument-gold); }
 .examineRail button span { color:var(--instrument-gold); font-size:.7rem; }
 .examineRail button strong { font-size:.85rem; overflow-wrap:anywhere; }
-.examineAnchor { border-color:#b6d5e5; color:#f0eee7; background:#0c1924; }
+.examineAnchor { border-color:#d0d0d0; color:#f0eee7; background:#171717; }
 .examineAnchor[aria-pressed="true"] { border-color:#e0c49a; box-shadow:0 0 0 3px #e0c49a55; }
 @media (forced-colors:active) { .examineRail button[aria-pressed="true"],.examineAnchor[aria-pressed="true"] { outline:2px solid Highlight; outline-offset:-2px; } }
