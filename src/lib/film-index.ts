@@ -1,4 +1,5 @@
 import type { FilmPackage } from "./film-package";
+import { getFilmHomeAsset } from "../data/film-home-assets";
 
 /**
  * Pure film-index search logic. The query matches against the localized
@@ -46,6 +47,7 @@ export type FilmIndexEntry = FilmIndexSearchEntry & {
   position: number;
   published: boolean;
   teaser?: string;
+  coverSrc: string;
 };
 
 /** One registry projection for the journal and catalogue. Only an explicit
@@ -62,5 +64,6 @@ export function projectFilmIndex(packages: readonly FilmPackage[], includePrevie
       position: index + 1,
       published: pkg.film.status === "published",
       teaser: pkg.film.status === "published" ? pkg.film.catalogTeaser : undefined,
+      coverSrc: getFilmHomeAsset(pkg.film.slug)?.variants.find(variant => variant.purpose === "display")?.src ?? "/art/hero-master.jpg",
     }));
 }

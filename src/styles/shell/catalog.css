@@ -133,3 +133,5 @@
 .filmRowTeaser { font-size:.94rem; line-height:1.55; color:var(--ink-2); max-width:54ch; }
 .filmRowRead { color:var(--ink-1); font-size:.84rem; text-decoration:underline; text-underline-offset:.2em; }
 @media (max-width:640px) { .filmRowTeaser { font-size:.82rem; } .filmRowMeta { align-items:baseline; } }
+
+.filmRowTitle .filmRowArtNote { font-size:.68rem; color:var(--ink-3); }

@@ -148,60 +148,16 @@ for (const name of selected) {
             await page.keyboard.press("Enter");
           }
 
-          const concreteScene = route === "/" && await page.locator('.lensSceneLink').count() > 0;
-          if (width === 390 && route === "/") {
-            for (const lens of ["story", "people", "relationships", "ideas", "moral-world", "craft"]) {
-              await page.locator(`label[for="lens-radio-${lens}"]`).click();
-              if (concreteScene) {
-                const reading = `.lensReading[data-lens="${lens}"]`;
-                await page.waitForFunction(selector => {
-                  const node = document.querySelector(selector), section = node?.closest('.sectionRule');
-                  return node && +getComputedStyle(node).opacity === 1 && (!section || +getComputedStyle(section).opacity === 1);
-                }, reading);
-                assert.ok(await page.locator(`${reading} .lensEvidenceLinks a`).first().isVisible(), `${lens}: a visible reading must have an evidence link`);
-                // The published scene uses authored method art, but each actual
-                // reading still needs its real visible evidence links.
-                await scan(`lens-${lens}`, reading);
-              } else {
-                await page.waitForFunction(lens => {
-                  const group = document.querySelector(`.lensMarkGroup[data-lens="${lens}"]`);
-                  const section = group?.closest(".sectionRule");
-                  return group && +getComputedStyle(group).opacity === 1 && (!section || +getComputedStyle(section).opacity === 1);
-                }, lens);
-                // One layout snapshot: separate protocol calls can straddle the
-                // section's reveal translation and invent an overlap on slow CI.
-                const geometry = await page.evaluate(lens => ({
-                  meta: document.querySelector(".lensFrame .frameMeta").getBoundingClientRect().toJSON(),
-                  marks: [...document.querySelectorAll(`.lensMarkGroup[data-lens="${lens}"] .lensMark`)].map(mark => mark.getBoundingClientRect().toJSON()),
-                }), lens);
-                assert.ok(geometry.marks.length > 0, `${lens}: visible label group must not be empty`);
-                for (const box of geometry.marks) {
-                  assert.ok(box.y >= geometry.meta.bottom, `${lens}: chips must not overlap frame metadata: ${JSON.stringify({ box, meta: geometry.meta })}`);
-                }
-              }
-            }
-            await page.locator('label[for="lens-radio-story"]').click();
-          }
-
           if (route === "/") {
-            if (concreteScene) {
-              // Source-film frames are quoted inside the critical article only.
-              const editorialArt = page.locator(".lensFrameWrap .livingFrame img");
-              assert.ok(await editorialArt.isVisible(), "the method illustration must stay visible");
-              assert.match(await editorialArt.getAttribute("alt") ?? "", /Фигура спиной перед светящимся дверным проёмом/i);
-              assert.equal(await page.locator(".lensEvidenceFigure").count(), 0, "homepage must not display a source-film still");
-              assert.equal(await page.locator(".lensFrameWrap .lensMarkGroup, .lensFrameWrap .lensTrace").count(), 0,
-                "the published method illustration must not masquerade as film evidence");
-            } else {
-              const layers = await page.evaluate(() => ({
-                marks: +getComputedStyle(document.querySelector('.lensMarkGroup[data-lens="story"]')).zIndex,
-                position: getComputedStyle(document.querySelector('.lensMarkGroup[data-lens="story"]')).position,
-                trace: +getComputedStyle(document.querySelector('.lensTrace')).zIndex,
-              }));
-              assert.ok(layers.position !== "static" && layers.marks > layers.trace, "decorative trace must not paint over lens label glyphs");
-            }
+            assert.equal(await page.locator(".siteHeader a[href$='/dive']").count(),0,"no film-specific global navigation");
+            assert.equal(await page.locator(".lensStageSection,.characterGrid,.articleSection").count(),0,"journal is not a film dossier");
+            const choose = page.getByRole("link",{name:/Выбрать фильм/});
+            await choose.focus();
+            await page.keyboard.press("Enter");
+            await page.waitForURL(url=>url.hash==="#films");
+            assert.ok(await page.locator("#films a.filmRow").first().isVisible(),"published film can be selected by keyboard");
+            await scan("journal-selection","#films");
           }
-
           if (width === 390) {
             const menu = page.locator(".menuButton");
             await menu.focus();

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useHydrated } from "@/lib/use-hydrated";
 
 const NAV_LINKS = [
-  { href: "/films", label: "Фильмы" },
+  { href: "/#films", label: "Фильмы" },
   { href: "/methodology", label: "О журнале" },
 ] as const;
 

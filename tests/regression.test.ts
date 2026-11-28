@@ -67,7 +67,7 @@ import { validateVisualAssetManifest } from "../src/lib/visual-assets";
 import { downgradeTier, lowerOfTier, selectInitialTier } from "../src/lib/experience-quality";
 import { continueIntervalBenchmark, intervalP95, validInterval } from "../src/lib/interval-benchmark";
 import { canRevealSpoiler, filterBySpoilerLevel, parseSpoilerLevel, withSpoilerQuery } from "../src/lib/spoilers";
-import { filterFilmIndex, filmIndexStatusLabel } from "../src/lib/film-index";
+import { filterFilmIndex, filmIndexStatusLabel, projectFilmIndex } from "../src/lib/film-index";
 import { pluralRu } from "../src/lib/plural-ru";
 import { COMPARISON_DIMENSIONS, type ArticleBlock, type EvidenceRecord, type FilmPackage, type CharactersModule } from "../src/lib/film-package";
 import { theTrumanShowDraftPackage } from "../src/data/films/the-truman-show";
@@ -6428,7 +6428,7 @@ test("Homepage never presents a generated illustration as a film frame", () => {
   // to print «Кадр фильма» over it and a «Кадр · 0001» meta chip — the one caption
   // this site cannot afford, because it is the same error the article spends a
   // section correcting.
-  for (const file of ["src/app/page.tsx", "src/components/film-media-frame.tsx"]) {
+  for (const file of ["src/components/film-index-filter.tsx", "src/components/film-media-frame.tsx"]) {
     const source = readFileSync(file, "utf8");
     assert.ok(!source.includes("Кадр фильма"), `${file}: the cover must not be called a frame of the film`);
     assert.ok(!source.includes('metaLeft="Кадр'), `${file}: no art chip may claim a frame number`);
@@ -7499,4 +7499,24 @@ test("atomic FilmPackage promotion delegates verifiedAt validity to the canonica
     ),
   );
   assert.equal(source.ingest?.edition.state, "MASTER_IDENTIFIED");
+});
+
+
+test("journal catalogue projects zero, one and two published entries without leaking analysis", () => {
+  const film = theTrumanShowCanonicalPackage;
+  const draft = theFastAndTheFuriousDraftPackage;
+  const second = { ...film, film: {...film.film, slug:"second-test-only", title:"Второй тестовый выпуск", catalogTeaser:"Безопасная завязка"} };
+  assert.deepEqual(projectFilmIndex([draft]), []);
+  const one = projectFilmIndex([draft,film]);
+  assert.equal(one.length,1);
+  assert.equal(one[0].slug,film.film.slug);
+  assert.equal(one[0].teaser,film.film.catalogTeaser);
+  assert.equal(one[0].coverSrc,"/art/truman-home-hero.jpg");
+  assert.deepEqual(Object.keys(one[0]).sort(), ["coverSrc","originalTitle","position","published","slug","status","teaser","title","year"]);
+  assert.deepEqual(projectFilmIndex([draft,film,second]).map(item=>item.slug),[film.film.slug,second.film.slug]);
+  const preview = projectFilmIndex([draft,film],true);
+  assert.equal(preview.length,2);
+  assert.equal(preview[0].published,false);
+  assert.equal(preview[0].teaser,undefined);
+  assert.equal(projectFilmIndex([film, {...second,film:{...second.film,catalogTeaser:undefined,premise:"PROTECTED TEST CONTENT"}}])[1].teaser,undefined);
 });

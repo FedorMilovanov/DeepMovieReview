@@ -162,7 +162,13 @@ jobs:
           done
 
           grep -Eq 'rel="canonical"[^>]*href="https://deepwaters\.example\.test/?"|href="https://deepwaters\.example\.test/?"[^>]*rel="canonical"' /tmp/home.html
-          grep -Fq 'Предполагаемый тезис' /tmp/home.html
+          grep -Fq 'Выбрать фильм' /tmp/home.html
+          grep -Fq 'href="#films"' /tmp/home.html
+          grep -Fq 'id="films"' /tmp/home.html
+          if grep -Fq 'class="lensStageSection"' /tmp/home.html || grep -Fq 'Предполагаемый тезис' /tmp/home.html; then
+            echo "Journal leaked a film-specific analytical section."
+            exit 1
+          fi
           if grep -Fq 'Явная теза' /tmp/home.html; then
             echo "Homepage leaked legacy apparent-claim label."
             exit 1

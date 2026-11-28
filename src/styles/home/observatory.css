@@ -56,7 +56,7 @@
 .observatoryRead { display:inline-flex; align-items:center; gap:.55rem; background:#151515b8; border:1px solid #bfbfbf7c; border-radius:999px; padding:.75rem 1rem; min-height:50px; color:#ececec; font-size:.86rem; }
 .observatoryRead svg,.observatoryPause svg { width:19px; height:19px; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; flex:none; }
 .observatoryRead:hover { background:var(--instrument-raised); border-color:#e1e1e1; }
-.observatoryFeature { position:relative; width:min(calc(100% - 2*var(--obs-edge)),1440px); margin:0 auto; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,.8fr) auto; align-items:center; gap:clamp(.8rem,2.2vw,2rem); border-top:1px solid #cdcdcd4d; padding:1.15rem 0 1.65rem; }
+.observatoryFeature { position:relative; width:min(calc(100% - 2*var(--obs-edge)),1440px); margin:0 auto; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:clamp(.8rem,2.2vw,2rem); border-top:1px solid #cdcdcd4d; padding:1.15rem 0 1.65rem; }
 .observatoryFeatureTitle { display:flex; align-items:center; gap:1rem; min-width:0; }
 .observatoryEdition { display:grid; gap:.22rem; padding:.7rem .75rem; border:1px solid #d2b88b80; border-radius:4px; background:#161616e6; text-align:center; font:.63rem var(--font-meta); letter-spacing:.13em; color:#e6c9a3; flex:none; }
 .observatoryEdition span { font:400 1.6rem/1 Georgia,serif; letter-spacing:0; color:#f2e6d3; }
@@ -72,8 +72,6 @@
 .observatoryPause { display:inline-flex; justify-content:center; align-items:center; gap:.4rem; color:#e5e5e5; background:var(--surface-canvas); border:1px solid #a6a6a666; border-radius:999px; min-height:44px; min-width:44px; padding:.35rem .65rem; font-size:.72rem; cursor:pointer; }
 .observatoryPause svg { width:16px; height:16px; }
 .observatoryHero :is(a,button):focus-visible { outline:2px solid #e4cba3; outline-offset:4px; }
-.observatoryHero[data-entering="true"] .observatoryScene { animation:observatoryEnter 500ms cubic-bezier(.22,1,.36,1) both; }
-.observatoryHero[data-entering="true"] .observatoryEditorial { animation:observatoryTextExit 360ms ease-in both; }
 @keyframes observatoryBreath { from { transform:scale(1.015); } to { transform:scale(1.055) translate3d(-.35%,.25%,0); } }
 @keyframes observatoryLightDrift { from { opacity:.28; transform:rotate(-1deg); } to { opacity:.65; transform:rotate(2deg); } }
 @keyframes observatorySuspensionDrift { from { transform:translate3d(-.5%,1.5%,0); } to { transform:translate3d(.7%,-2%,0); } }
@@ -84,7 +82,7 @@
   .observatoryHero { --obs-edge:clamp(1.5rem,4vw,3rem); }
   .observatoryEditorial { width:min(100%,30rem); }
   .observatoryHero h1 { font-size:clamp(3.4rem,6.6vw,5.3rem); }
-  .observatoryFeature { grid-template-columns:minmax(0,1.25fr) minmax(0,.8fr) auto; gap:.65rem; }
+  .observatoryFeature { grid-template-columns:minmax(0,1fr) auto; gap:.65rem; }
   .observatoryStages { gap:.3rem; }
   .observatoryStages > div { padding-inline-start:.4rem; }
   .observatoryPause span { display:none; }
@@ -183,8 +181,7 @@
 
 /* Match the original state selectors so stillness wins without force priority. */
 @media (prefers-reduced-motion:reduce) {
- .observatoryHero[data-motion="on"] :is(.observatoryPicture img,.observatoryLight,.observatorySuspension,.observatoryCaustics),
- .observatoryHero[data-entering="true"] :is(.observatoryScene,.observatoryEditorial) { animation:none; }
+ .observatoryHero[data-motion="on"] :is(.observatoryPicture img,.observatoryLight,.observatorySuspension,.observatoryCaustics) { animation:none; }
  .observatoryHero :is(.observatoryVideo,.observatoryCta,.observatoryCtaArrow), .observatoryHero .observatoryCta::before { transition:none; }
  .observatoryHero .observatoryCta:hover .observatoryCtaArrow { transform:none; }
  .observatoryVideo { display:none; }

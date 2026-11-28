@@ -383,29 +383,29 @@ async function menuNavigation(page, source, input) {
   if (input === "keyboard") {
     await tabTo(page, ".menuButton");
     await page.keyboard.press("Enter");
-    await tabTo(page, '#site-menu a[href="/#lenses"]');
+    await tabTo(page, '#site-menu a[href="/#films"]');
     await page.keyboard.press("Enter");
   } else {
     await page.locator(".menuButton").click();
-    await page.locator('#site-menu a[href="/#lenses"]').click();
+    await page.locator('#site-menu a[href="/#films"]').click();
   }
-  await page.waitForFunction(() => location.pathname === "/" && location.hash === "#lenses" && document.activeElement?.id === "lenses");
+  await page.waitForFunction(() => location.pathname === "/" && location.hash === "#films" && document.activeElement?.id === "films");
   const landing = await page.evaluate(() => ({
     hash: location.hash, active: document.activeElement.id, y: scrollY,
-    top: document.querySelector("#lenses").getBoundingClientRect().top,
+    top: document.querySelector("#films").getBoundingClientRect().top,
     headerBottom: document.querySelector(".siteHeader").getBoundingClientRect().bottom,
     height: innerHeight, expanded: document.querySelector(".menuButton").getAttribute("aria-expanded"),
   }));
   assert.equal(landing.expanded, "false");
   assert.ok(landing.top >= landing.headerBottom - 1 && landing.top < landing.height, `anchor is obscured: ${JSON.stringify(landing)}`);
   await page.keyboard.press("Tab");
-  const next = await page.evaluate(() => ({ id: document.activeElement.id, inside: Boolean(document.activeElement.closest("#lenses")), y: scrollY }));
+  const next = await page.evaluate(() => ({ id: document.activeElement.id, inside: Boolean(document.activeElement.closest("#films")), y: scrollY }));
   assert.ok(next.inside, `next Tab left the selected section: ${JSON.stringify(next)}`);
   assert.ok(next.y > landing.y - 200, "next Tab jumped to the hero");
   await page.goBack({ waitUntil: "load" });
   await page.waitForURL(`${base}${source}`);
   await page.goForward({ waitUntil: "load" });
-  await page.waitForURL(`${base}/#lenses`);
+  await page.waitForURL(`${base}/#films`);
   return { landing, next, back: source, forward: new URL(page.url()).hash };
 }
 
@@ -480,7 +480,7 @@ try {
     await check(`reader journey ${viewport.label}: entry, opening, evidence, full text and legacy links`, () =>
       withPage({ viewport: { width: viewport.width, height: viewport.height } }, `reader-${viewport.label}`, async page => {
         await page.goto(base, { waitUntil: "load" });
-        const entry = page.locator(`a.buttonPrimary[href="${article}/dive"]`).filter({ hasText: "Войти в исследование" });
+        const entry = page.locator('a.observatoryCta[href="#films"]').filter({ hasText: "Выбрать фильм" });
         assert.equal(await entry.count(), 1, "one primary immersive entry");
         assert.equal(await page.locator(".observatoryHero h1").innerText().then(s=>s.replace(/\s+/g," ").trim()),"Look beyond the frame.");
         assert.equal(await page.locator(".observatoryPromise").textContent(),"Здесь кино становится исследованием.");
@@ -500,7 +500,26 @@ try {
         await assertNeutralSurface(page.locator(".siteHeader"), "observatory header");
         await assertNeutralSurface(entry, "observatory primary action");
         await page.screenshot({path:`${dir}/observatory-${viewport.label}.png`});
+        assert.equal(await page.locator(".siteHeader a[href$='/dive']").count(), 0, "global navigation must not pick a film");
+        assert.equal(await page.locator(".lensStageSection, .characterGrid, .articleSection").count(),0,"journal does not embed a selected film's analysis");
         await entry.click();
+        await page.waitForURL(url => url.pathname === "/" && url.hash === "#films");
+        const selectedFilm = page.locator(`#films a.filmRow[href="${article}"]`);
+        await selectedFilm.scrollIntoViewIfNeeded();
+        await selectedFilm.locator("img").evaluate(img=>img.decode());
+        await assertNeutralSurface(selectedFilm, "journal film card");
+        await page.screenshot({path:`${dir}/journal-${viewport.label}-selection.png`});
+        await selectedFilm.click();
+        await page.waitForURL(url => url.pathname === article && !url.search);
+        await page.locator(".articleSection").first().waitFor({state:"visible"});
+        assert.equal(await page.locator(".articleSection").count(),1,"first reading stays spoiler-free");
+        await page.screenshot({path:`${dir}/journal-${viewport.label}-first-reading.png`});
+        await page.goBack({waitUntil:"load"});
+        await page.waitForURL(url => url.pathname === "/" && url.hash === "#films");
+        assert.ok(await selectedFilm.evaluate(el=>{const box=el.getBoundingClientRect();return box.bottom>0&&box.top<innerHeight;}),"Back returns to the selected card");
+        await selectedFilm.click();
+        await page.waitForURL(url => url.pathname === article && !url.search);
+        await page.locator(`.articleHeaderLinks a[href="${article}/dive"]`).click();
         await page.waitForURL(url => url.pathname === article + "/dive");
         await page.locator(".diveStandalone .diveJourney").waitFor({ state: "visible" });
         assert.equal(await page.locator("h1").count(), 1);
@@ -677,27 +696,19 @@ try {
     }
     return measured;
   });
-  await check("homepage: single character card fills its desktop grid", () =>
-    withPage({ viewport: { width: 1440, height: 900 } }, "character-grid", async page => {
-      await page.goto(`${base}/`, { waitUntil: "load" });
-      const grid = page.locator(".characterGridSingle");
-      assert.equal(await grid.locator(".characterCard").count(), 1, "fixture must contain one character card");
-      // Next/Image marks this below-the-fold editorial image loading="lazy".
-      // A screenshot does not guarantee image decode completed in Chromium;
-      // scroll the real element into view and require native image decoding.
-      // Broken URLs/decode still reject rather than passing a placeholder.
-      const characterImage = grid.locator(".characterCard img");
-      await characterImage.scrollIntoViewIfNeeded();
-      await characterImage.evaluate(image => image.decode());
-      await grid.screenshot({ path: `${dir}/single-character-card.png` });
-      const sizes = await grid.evaluate(element => ({
-        grid: element.getBoundingClientRect().width,
-        card: element.querySelector(".characterCard").getBoundingClientRect().width,
-        imageWidth: element.querySelector("img")?.naturalWidth,
-      }));
-      assert.ok(sizes.card / sizes.grid > 0.98, `single card leaves an empty column: ${JSON.stringify(sizes)}`);
-      assert.ok(sizes.imageWidth > 0, "character image did not load");
-      return sizes;
+  await check("journal and catalogue show the same published jacket", () =>
+    withPage({ viewport: { width: 1440, height: 900 } }, "journal-card-parity", async page => {
+      await page.goto(`${base}/#films`, { waitUntil: "load" });
+      const card = page.locator(`#films a.filmRow[href="${article}"]`);
+      await card.waitFor({state:"visible"});
+      const jacket = await card.locator(".filmRowTeaser").innerText();
+      assert.equal(await page.locator("#films .filmFilter").count(),0,"one published film needs no search");
+      assert.ok(await card.locator(".filmRowTeaser").isVisible(),"spoiler-free jacket copy");
+      await page.goto(`${base}/films`, { waitUntil: "load" });
+      const catalogueCard = page.locator(`a.filmRow[href="${article}"]`);
+      // Position may differ in preview, but the same projected copy is used.
+      assert.equal(await catalogueCard.locator(".filmRowTeaser").innerText(), jacket);
+      return {jacket};
     }));
   await check("footer: settings panel is opaque over underlying text", () =>
     withPage({ viewport: { width: 390, height: 844 } }, "footer-settings", async page => {
@@ -714,7 +725,7 @@ try {
     }));
   await check("menu: Escape returns focus; a repeated same-hash link scrolls back to the section", () =>
     withPage({ viewport: { width: 390, height: 844 } }, "menu-repeat", async page => {
-      await page.goto(`${base}/#lenses`, { waitUntil: "load" });
+      await page.goto(`${base}/#films`, { waitUntil: "load" });
       const trigger = page.locator(".menuButton");
       await trigger.waitFor({ state: "visible" });
       await trigger.focus();
@@ -727,12 +738,12 @@ try {
       await page.mouse.wheel(0, -900);
       await page.waitForTimeout(150);
       await trigger.click();
-      await page.locator('#site-menu a[href="/#lenses"]').click();
-      await page.waitForFunction(() => document.activeElement?.id === "lenses" && document.querySelector("#lenses").getBoundingClientRect().top < innerHeight);
-      const result = await page.evaluate(() => ({ top: document.querySelector("#lenses").getBoundingClientRect().top, header: document.querySelector(".siteHeader").getBoundingClientRect().bottom }));
+      await page.locator('#site-menu a[href="/#films"]').click();
+      await page.waitForFunction(() => document.activeElement?.id === "films" && document.querySelector("#films").getBoundingClientRect().top < innerHeight);
+      const result = await page.evaluate(() => ({ top: document.querySelector("#films").getBoundingClientRect().top, header: document.querySelector(".siteHeader").getBoundingClientRect().bottom }));
       assert.ok(result.top >= result.header - 1);
       await page.keyboard.press("Tab");
-      assert.ok(await page.evaluate(() => Boolean(document.activeElement.closest("#lenses"))));
+      assert.ok(await page.evaluate(() => Boolean(document.activeElement.closest("#films"))));
       return result;
     }));
 

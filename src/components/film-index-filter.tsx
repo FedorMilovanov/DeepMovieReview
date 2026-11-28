@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { FilmMediaFrame } from "@/components/film-media-frame";
+import Image from "next/image";
 import Link from "next/link";
 import { filterFilmIndex, type FilmIndexEntry } from "@/lib/film-index";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -48,8 +48,8 @@ export function FilmIndexFilter({ films }: { films: FilmIndexEntry[] }) {
         {visible.map((film) => (
           <Link className="filmRow" href={`/films/${film.slug}`} key={film.slug} prefetch={false}>
             <span className="filmRowIndex">{String(film.position).padStart(3, "0")}</span>
-            <FilmMediaFrame slug={film.slug} variant="index" />
-            <span className="filmRowTitle"><strong>{film.title}</strong>{film.originalTitle && film.originalTitle!==film.title ? <small>{film.originalTitle}</small>:null}{film.teaser ? <span className="filmRowTeaser">{film.teaser}</span>:null}</span>
+            <span className="filmMediaFrame filmMediaFrameIndex" aria-hidden="true"><Image src={film.coverSrc} alt="" fill sizes="(max-width: 640px) 96px, 190px" /></span>
+            <span className="filmRowTitle"><strong>{film.title}</strong>{film.originalTitle && film.originalTitle!==film.title ? <small>{film.originalTitle}</small>:null}{film.teaser ? <span className="filmRowTeaser">{film.teaser}</span>:null}<small className="filmRowArtNote">Редакционная иллюстрация · не кадр фильма</small></span>
             <span className="filmRowMeta">
               <span className="filmRowYear">{film.year}</span>{!film.published ? <span className="filmRowStatus">{film.status}</span>:null}<span className="filmRowRead">{film.published ? "Читать разбор" : "Предпросмотр"} <span aria-hidden="true">→</span></span>
             </span>
