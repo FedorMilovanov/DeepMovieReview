@@ -720,13 +720,18 @@ try {
       const brand=page.locator(".siteHeader .brand");
       const video=page.locator(".brandEmblemVideo");
       assert.equal(await video.count(),0,"no video requested on cold entry");
+      await page.waitForFunction(()=>Boolean(document.documentElement.dataset.experienceMode));
       await brand.hover();
       await video.waitFor({state:"visible"});
-      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime > .25 && v.dataset.playing==="true";});
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && !v.paused && v.currentTime > .6 && v.dataset.playing==="true" && v.dataset.seam==="false" && Number(getComputedStyle(v).opacity)>.9;});
       const details=await video.evaluate(v=>({muted:v.muted,loop:v.loop,width:v.videoWidth,height:v.videoHeight,mask:getComputedStyle(v).maskImage||getComputedStyle(v).webkitMaskImage,clip:getComputedStyle(v).clipPath}));
       assert.ok(details.muted && details.loop && details.width===96 && details.height===96);
       assert.match(details.mask,/radial-gradient/);
       assert.match(details.clip,/circle/);
+      // Exercise the real video near its wrap, including the neutral poster hold.
+      await video.evaluate(v=>{v.currentTime=v.duration-.4;});
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && v.dataset.seam==="true" && Number(getComputedStyle(v).opacity)<.1;});
+      await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && v.currentTime>.6 && v.currentTime<3 && v.dataset.seam==="false" && Number(getComputedStyle(v).opacity)>.9;});
       await page.mouse.move(400,200);
       await page.waitForFunction(()=>{const v=document.querySelector(".brandEmblemVideo");return v && v.paused && v.dataset.playing==="false";});
       await page.emulateMedia({reducedMotion:"reduce"});

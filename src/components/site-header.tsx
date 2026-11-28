@@ -26,6 +26,7 @@ export function SiteHeader() {
   const [emblemRequested, setEmblemRequested] = useState(false);
   const [emblemHovered, setEmblemHovered] = useState(false);
   const [emblemPlaying, setEmblemPlaying] = useState(false);
+  const [emblemAtSeam, setEmblemAtSeam] = useState(true);
   const [emblemFailed, setEmblemFailed] = useState(false);
   const emblemAllowed = hydrated && !reducedMotion && !forcedColors && experienceMode !== "lite" && documentVisible;
   const emblemActive = emblemAllowed && emblemHovered && !emblemFailed;
@@ -144,8 +145,14 @@ export function SiteHeader() {
         }}
         onPointerLeave={() => setEmblemHovered(false)}
       >
-        <span className="brandMark" aria-hidden="true"><Image src="/art/deep-waters-emblem.png" alt="" width={128} height={128} unoptimized />
-          {emblemRequested && emblemAllowed && !emblemFailed ? <video ref={emblemVideoRef} className="brandEmblemVideo" src="/art/deep-waters-hover.mp4" data-playing={emblemActive && emblemPlaying} muted loop playsInline preload="none" disablePictureInPicture disableRemotePlayback tabIndex={-1} aria-hidden="true"
+        <span className="brandMark" aria-hidden="true"><Image src="/art/deep-waters-emblem.png" alt="" width={128} height={128} loading="eager" unoptimized />
+          {emblemRequested && emblemAllowed && !emblemFailed ? <video ref={emblemVideoRef} className="brandEmblemVideo" src="/art/deep-waters-hover.mp4" data-playing={emblemActive && emblemPlaying} data-seam={emblemAtSeam} muted loop playsInline preload="none" disablePictureInPicture disableRemotePlayback tabIndex={-1} aria-hidden="true"
+            onLoadStart={() => setEmblemAtSeam(true)}
+            onTimeUpdate={event => {
+              const { currentTime, duration } = event.currentTarget;
+              // Fade to the exact static artwork before the native loop wraps.
+              setEmblemAtSeam(!Number.isFinite(duration) || currentTime < .24 || duration - currentTime < .65);
+            }}
             onPlaying={() => setEmblemPlaying(true)} onPause={() => setEmblemPlaying(false)} onWaiting={() => setEmblemPlaying(false)} onError={() => setEmblemFailed(true)} /> : null}
         </span>
         <span className="brandText"><strong lang="en">DEEP WATERS</strong>{" "}<small>Глубокие воды</small></span>
