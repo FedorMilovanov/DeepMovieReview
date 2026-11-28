@@ -129,7 +129,7 @@
 }
 
 .lensGrade[data-lens="story"] {
-  background: linear-gradient(115deg, rgb(150 170 200 / 0.1), transparent 55%);
+  background: linear-gradient(115deg, rgb(170 170 170 / 0.1), transparent 55%);
 }
 
 .lensGrade[data-lens="people"] {

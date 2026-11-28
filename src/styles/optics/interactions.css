@@ -45,7 +45,7 @@
 
 .examineWrap[data-examined] .lfGrade {
   background:
-    linear-gradient(180deg, rgb(120 150 190 / 0.1), transparent 40%),
+    linear-gradient(180deg, rgb(150 150 150 / 0.1), transparent 40%),
     linear-gradient(0deg, rgb(0 0 0 / 0.42), transparent 55%);
 }
 
