@@ -13,7 +13,7 @@ const base = process.env.BASE_URL ?? "http://127.0.0.1:3212";
 const out = "a11y-report";
 const engines = { chromium, firefox, webkit };
 const selected = (process.env.A11Y_BROWSERS ?? "chromium,firefox,webkit").split(",");
-const routes = ["/", "/films", "/films/the-truman-show?spoilers=ENDING", "/films/the-truman-show/article?spoilers=full", "/films/the-truman-show/making"];
+const routes = ["/", "/films", "/films/the-truman-show?spoilers=ENDING", "/films/the-truman-show?spoilers=full", "/films/the-truman-show/making"];
 const report = { requestedBrowsers: selected, revision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(), axe: axe.version,
   playwright: require("playwright-core/package.json").version, results: [], failures: [] };
 mkdirSync(out, { recursive: true });
@@ -89,7 +89,7 @@ for (const name of selected) {
               violations: result.violations.length, review, file: `${id}-${state}.json` });
             for (const rule of result.violations) failure(`${id}/${state}: ${rule.id}: ${JSON.stringify(rule.nodes.map(node => ({ target: node.target, summary: node.failureSummary })))}`);
             if (process.env.A11Y_RENDERED_CONTRAST === "true") {
-              const comparisonOnly = route.includes("/films/the-truman-show?") && scope === "document";
+              const comparisonOnly = route.endsWith("?spoilers=ENDING") && scope === "document" && state === "appendix-open";
               // The full film page is axe-scanned above. Its additional rendered
               // assessment is explicitly limited to the new comparison so a
               // multi-hour full-page sweep is not misreported as completed.
@@ -112,7 +112,12 @@ for (const name of selected) {
           await scan("page");
           await page.screenshot({ path: `${out}/${id}.png` });
 
-          if (route.includes("/films/the-truman-show?")) {
+          if (route.endsWith("?spoilers=ENDING")) {
+            const appendix = page.locator(".filmReadingAppendix");
+            await appendix.locator(":scope > summary").focus();
+            await page.keyboard.press("Enter");
+            assert.ok(await appendix.evaluate(el=>el.open), "appendix opens by keyboard");
+            await scan("appendix-open");
             // These newly navigable controls lie outside the comparison-only
             // rendered assessment of the long film page. Audit their real,
             // keyboard-open state separately, without claiming the whole page.
@@ -208,7 +213,7 @@ for (const name of selected) {
             assert.ok(await menu.evaluate(el => el === document.activeElement), "menu focus restored");
           }
 
-          if (route.includes("/article?")) {
+          if (route.endsWith("?spoilers=full")) {
             const sectionCount = await page.locator(".articleSection").count();
             const hiddenId = await page.locator(".articleSection").last().getAttribute("id");
             const outline = page.getByRole("button", { name: /^Разделы \d{2,} — оглавление статьи$/ });
@@ -219,8 +224,8 @@ for (const name of selected) {
             assert.equal(await outline.getAttribute("aria-label"), `Разделы ${position} — оглавление статьи`);
             assert.ok(await page.evaluate(() => {
               const title = document.querySelector('.articleTitle');
-              const controls = document.querySelector('.articleSpoilerBar');
-              return Boolean(title.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING);
+              const controls = document.querySelector('.filmReadingAppendix .spoilerControl');
+              return Boolean(title && controls && (title.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING));
             }), "reading opens with the title, not five spoiler buttons");
             // Check both directions across long sections, not a forced active state.
             for (const index of [sectionCount - 1, 0]) {
@@ -263,7 +268,7 @@ for (const name of selected) {
               await page.keyboard.press('Enter');
               assert.equal(await analysis.evaluate(el => el.open), false);
             }
-            const context = page.locator('#article-verdict .articleVerdictContext');
+            const context = page.locator('#article-verdict .articleQualifications');
             if (await context.count()) {
               await context.locator('summary').focus();
               await page.keyboard.press('Enter');
@@ -342,7 +347,12 @@ for (const name of selected) {
               const top = heading.getBoundingClientRect().top;
               return top >= document.querySelector(".siteHeader").getBoundingClientRect().bottom - 1 && top < innerHeight;
             });
-            const viewport = page.locator(".articleTableViewport").first();
+            const measurements = page.locator("#truman-article-craft-windows");
+            await measurements.locator(":scope > summary").focus();
+            await page.keyboard.press("Enter");
+            assert.ok(await measurements.evaluate(el=>el.open),"native measurement disclosure opens by keyboard");
+            await scan("measurements-open", "#truman-article-craft-windows");
+            const viewport = measurements.locator(".articleTableViewport").first();
             assert.equal(await viewport.getAttribute("role"), "region");
             assert.ok(await viewport.locator('th[scope="col"]').count());
             assert.ok(await viewport.locator('th[scope="row"]').count());
@@ -367,7 +377,13 @@ for (const name of selected) {
               if (original.whiteSpace) el.style.setProperty("white-space", original.whiteSpace, original.priority);
               else el.style.removeProperty("white-space");
             }, originalCell);
-            await page.locator(".spoilerOption").first().click();
+            const appendix = page.locator(".filmReadingAppendix");
+            if (!(await appendix.evaluate(el=>el.open))) {
+              await appendix.locator(":scope > summary").focus();
+              await page.keyboard.press("Enter");
+              assert.ok(await appendix.evaluate(el=>el.open),"appendix opens by keyboard");
+            }
+            await appendix.locator(".spoilerOption").first().click();
             await page.waitForFunction(count => document.querySelectorAll(".articleSection").length < count, sectionCount);
             await page.waitForLoadState("networkidle");
             assert.equal(await page.locator(`[id="${hiddenId}"]`).count(), 0, "hidden spoiler section absent from DOM");

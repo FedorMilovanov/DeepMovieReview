@@ -5905,8 +5905,9 @@ test("the page survives paper, anchors and the sticky header", () => {
 
   const header = readFileSync("src/components/site-header.tsx", "utf8");
   const label = /className="brand"[^>]*aria-label="([^"]+)"/.exec(header)?.[1] ?? "";
-  const visible = /className="brandText"><strong[^>]*>([^<]+)<\/strong><small>([^<]+)<\/small>/.exec(header);
+  const visible = /className="brandText"><strong[^>]*>([^<]+)<\/strong>\{" "\}<small>([^<]+)<\/small>/.exec(header);
   assert.ok(visible, "the brand has a visible bilingual wordmark");
+  assert.ok(label.includes(visible.slice(1).join(" ")), "the visible bilingual phrase must be contiguous in the accessible name");
   for (const word of visible.slice(1)) {
     assert.ok(
       label.toLocaleLowerCase().includes(word.toLocaleLowerCase()),
