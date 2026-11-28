@@ -675,7 +675,9 @@ try {
       const panel = page.locator(".experienceControlsPanel");
       await panel.waitFor({ state: "visible" });
       const background = await panel.evaluate(element => getComputedStyle(element).backgroundColor);
-      assert.equal(background, "rgb(5, 5, 5)");
+      assert.match(background, /^rgb\(\d+,\s*\d+,\s*\d+\)$/, "settings must remain opaque, independently of the editorial palette");
+      const summary=page.locator(".experienceControls summary");
+      assert.ok(await summary.getByText("Авто",{exact:true}).isVisible(),"normal settings show a human-readable mode");
       await page.screenshot({ path: `${dir}/footer-settings.png` });
       return { background };
     }));
